@@ -40,14 +40,14 @@ the *Still to do* rows below. Everything unmarked here is done.
 | P1.3 | ◐ Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Number entry is still crude — see P1.3a below. |
 | P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
 | P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
+| P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import is additive and idempotent (`INSERT OR IGNORE`), refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
 
-57 JVM tests and 23 instrumented tests, all passing.
+63 JVM tests and 27 instrumented tests, all passing.
 
 ### Still to do
 
 | # | Feature | Why it is MVP |
 | --- | --- | --- |
-| **P1.12** | **Export / import** | Platform backup is off, so a local file is the only escape hatch — uninstall currently means permanent loss. **Promoted to the first MVP item.** |
 | **P1.6** | **Workout history** | Logging you cannot see is not a log. Chronological list plus a detail view with duration, volume and set count. |
 | **P1.7** | **Edit / delete a past set or workout** | Correcting a mis-tap is the most common post-hoc action, and it makes Finish recoverable. |
 | **P1.16** | **Resume affordance** | An active workout is currently invisible on the library screen; the button should read "Resume workout" with the elapsed time. |
