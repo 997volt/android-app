@@ -34,13 +34,26 @@ if [ -d "$ANDROID_ENV_ROOT/.toolchain/android-sdk" ]; then
     # into the workspace so it stays writable inside restricted sandboxes.
     ANDROID_USER_HOME="$ANDROID_ENV_ROOT/.toolchain/android-home"
     export ANDROID_USER_HOME
+    # avdmanager honours ANDROID_USER_HOME but the emulator does not: it looks in
+    # $ANDROID_AVD_HOME first, then $ANDROID_SDK_HOME/avd, then $HOME/.android/avd.
+    ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+    export ANDROID_AVD_HOME
 fi
 
 GRADLE_USER_HOME="$ANDROID_ENV_ROOT/.toolchain/gradle-home"
 export GRADLE_USER_HOME
 mkdir -p "$GRADLE_USER_HOME" 2>/dev/null || true
 
-PATH="$ANDROID_ENV_ROOT/tools/bin:${JAVA_HOME:+$JAVA_HOME/bin:}${ANDROID_HOME:+$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:}$PATH"
+# The emulator links against X11/Pulse libraries the host image does not ship,
+# and there is no package manager we may install into. .toolchain/syslibs holds
+# them extracted from distribution packages. Verified to shadow no host library.
+_syslibs="$ANDROID_ENV_ROOT/.toolchain/syslibs/root/usr/lib"
+if [ -d "$_syslibs" ]; then
+    LD_LIBRARY_PATH="$_syslibs:$_syslibs/pulseaudio${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH
+fi
+
+PATH="$ANDROID_ENV_ROOT/tools/bin:${JAVA_HOME:+$JAVA_HOME/bin:}${ANDROID_HOME:+$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:}$PATH"
 export PATH
 
-unset _android_env_src _android_env_root
+unset _android_env_src _android_env_root _syslibs

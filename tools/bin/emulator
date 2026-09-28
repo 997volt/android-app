@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+# Emulator wrapper for the workspace-local Android SDK.
+#
+# Two problems this solves:
+#
+# 1. HOME. The emulator writes ~/.android/adbkey. tools/bin/adb runs with a
+#    workspace-local HOME, so the emulator is given the same one -- otherwise the
+#    two disagree on the key and devices show up as "unauthorized". It also keeps
+#    the emulator working where $HOME is not writable.
+#
+# 2. KVM. x86_64 emulation requires hardware acceleration. The default
+#    workspace-write sandbox denies open("/dev/kvm") with EPERM, so the emulator
+#    must be launched with wider sandbox access:
+#        sandbox_permissions=danger-full-access
+#    Everything afterwards (adb, install, screencap) runs under normal access.
+
+if [ -z "${ANDROID_ENV_ROOT:-}" ]; then
+    _emu_src="${BASH_SOURCE:-$0}"
+    ANDROID_ENV_ROOT=$(CDPATH= cd -- "$(dirname -- "$_emu_src")/../.." 2>/dev/null && pwd)
+fi
+
+_emu_bin="$ANDROID_ENV_ROOT/.toolchain/android-sdk/emulator/emulator"
+if [ ! -x "$_emu_bin" ]; then
+    echo "emulator: not found at $_emu_bin" >&2
+    exit 1
+fi
+
+# Self-sufficient defaults, so the wrapper also works without sourcing the env.
+ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_ENV_ROOT/.toolchain/android-sdk}"
+ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$ANDROID_ENV_ROOT/.toolchain/android-home/avd}"
+ANDROID_USER_HOME="${ANDROID_USER_HOME:-$ANDROID_ENV_ROOT/.toolchain/android-home}"
+export ANDROID_SDK_ROOT ANDROID_AVD_HOME ANDROID_USER_HOME
+
+_emu_home="$ANDROID_ENV_ROOT/.toolchain/home"
+mkdir -p "$_emu_home/.android" 2>/dev/null || true
+
+HOME="$_emu_home" exec "$_emu_bin" "$@"

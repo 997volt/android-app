@@ -95,6 +95,16 @@ APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exi
 if [ -f "$APP_HOME/tools/android-env.sh" ]; then
     ANDROID_ENV_ROOT=$APP_HOME
     export ANDROID_ENV_ROOT
+    # adb -- including the copy Gradle's own ADB bridge invokes for
+    # connectedAndroidTest -- insists on $HOME/.android for its keys, and the
+    # emulator writes its key there too. Scope the redirect to this build
+    # process so an interactive shell's HOME, and therefore git/ssh's ~/.ssh,
+    # is never affected.
+    if [ -d "$APP_HOME/.toolchain" ]; then
+        HOME="$APP_HOME/.toolchain/home"
+        mkdir -p "$HOME/.android" 2>/dev/null || true
+        export HOME
+    fi
     . "$APP_HOME/tools/android-env.sh"
 fi
 
