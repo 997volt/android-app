@@ -67,6 +67,9 @@ class ActiveWorkoutViewModelTest {
 
     private fun TestScope.observe(viewModel: ActiveWorkoutViewModel) {
         backgroundScope.launch { viewModel.uiState.collect {} }
+        // The clock is a separate flow now (F16), so it needs its own subscriber to
+        // become active — exactly as the screen does.
+        backgroundScope.launch { viewModel.clock.collect {} }
     }
 
     private fun viewModelFor(
@@ -88,7 +91,9 @@ class ActiveWorkoutViewModelTest {
         // than a fixed string; elapsed is zone-independent and is asserted exactly.
         assertTrue("expected HH:mm, got '${state.startedAt}'", Regex("""\d{2}:\d{2}""").matches(state.startedAt))
         // 60 minutes rolls into the hour field rather than rendering as "60:00".
-        assertEquals("1:00:00", state.elapsed)
+        // Read from the clock: the elapsed time deliberately no longer lives in the
+        // screen state (F16), so a tick cannot rebuild the exercise list.
+        assertEquals("1:00:00", viewModel.clock.value.elapsed)
         assertTrue(state.isEmpty)
     }
 
@@ -319,6 +324,38 @@ class ActiveWorkoutViewModelTest {
         assertEquals(1, notifier.scheduled.size)
     }
 
+    @Test
+    fun aTick_updatesTheClock_butNeverEmitsANewScreenState() = runTest(dispatcher) {
+        // This is the mechanism behind F16, stated as a property: the exercise list
+        // stops recomposing every second only if a tick cannot produce a new
+        // ActiveWorkoutUiState. If this test ever fails, the ticker has crept back
+        // into the screen state and the whole list is being rebuilt once a second.
+        val tickingClock = MutableClock(FIXED_INSTANT)
+        val viewModel = ActiveWorkoutViewModel(FakeWorkoutRepository(), tickingClock, FakeRestNotifier())
+
+        val states = mutableListOf<ActiveWorkoutUiState>()
+        val clocks = mutableListOf<WorkoutClock>()
+        backgroundScope.launch { viewModel.uiState.collect { states += it } }
+        backgroundScope.launch { viewModel.clock.collect { clocks += it } }
+        settle()
+
+        val stateEmissions = states.size
+        val clockEmissions = clocks.size
+
+        // Three seconds of workout time, then one ticker period.
+        tickingClock.now = tickingClock.now.plusSeconds(3)
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(
+            "a tick must not rebuild the screen state (F16)",
+            stateEmissions,
+            states.size,
+        )
+        assertTrue("the clock must still have ticked", clocks.size > clockEmissions)
+        assertEquals("1:00:03", viewModel.clock.value.elapsed)
+    }
+
     private class FakeWorkoutRepository : WorkoutRepository {
         val sessions = MutableStateFlow<WorkoutSession?>(null)
         val exercises = MutableStateFlow<List<SessionExercise>>(emptyList())
@@ -413,6 +450,11 @@ class ActiveWorkoutViewModelTest {
             DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))
 
         override suspend fun clearRest(): DataResult<Unit> = successUnit()
+    }
+
+    /** A clock the test can move, so elapsed time can be asserted exactly. */
+    private class MutableClock(var now: Instant) : TimeSource {
+        override fun now(): Instant = now
     }
 
     /** Records what the screen asked to be alerted about, with no Android involved. */

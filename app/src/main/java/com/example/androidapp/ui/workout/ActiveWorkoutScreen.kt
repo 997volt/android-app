@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +67,11 @@ fun ActiveWorkoutRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val closed by viewModel.closed.collectAsStateWithLifecycle()
 
+    // Kept as a State object rather than unwrapped with `by`: reading it here would
+    // recompose this composable — and everything below it — once a second, which is
+    // the whole point of F16. Only the header and the rest bar read it.
+    val clock = viewModel.clock.collectAsStateWithLifecycle()
+
     // The rest alert needs two permissions that were declared but never requested
     // (ROADMAP F13). Asked for on the first logged set, where the reason is obvious.
     RestAlertPermissions(enabled = state.exercises.any { it.sets.isNotEmpty() })
@@ -81,6 +87,7 @@ fun ActiveWorkoutRoute(
 
     ActiveWorkoutScreen(
         state = state,
+        clock = clock,
         onAddExercise = onAddExercise,
         onLogSet = viewModel::onLogSet,
         onUpdateSet = viewModel::onUpdateSet,
@@ -101,6 +108,7 @@ fun ActiveWorkoutRoute(
 @Composable
 fun ActiveWorkoutScreen(
     state: ActiveWorkoutUiState,
+    clock: State<WorkoutClock>,
     onAddExercise: () -> Unit,
     onLogSet: (String) -> Unit,
     onUpdateSet: (String, Int, Long) -> Unit,
@@ -141,6 +149,7 @@ fun ActiveWorkoutScreen(
     ) { innerPadding ->
         WorkoutBody(
             state = state,
+            clock = clock,
             onLogSet = onLogSet,
             onRemoveExercise = onRemoveExercise,
             onEditSet = { row -> editing = EditTarget(row) },
@@ -212,6 +221,7 @@ private fun WorkoutTopBar(canFinish: Boolean, onFinish: () -> Unit, onBack: () -
 @Composable
 private fun WorkoutBody(
     state: ActiveWorkoutUiState,
+    clock: State<WorkoutClock>,
     onLogSet: (String) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onEditSet: (SetRow) -> Unit,
@@ -237,14 +247,8 @@ private fun WorkoutBody(
             state.hasNoSession -> CenteredMessage(stringResource(R.string.active_workout_none), showSpinner = false)
 
             else -> {
-                WorkoutHeader(startedAt = state.startedAt, elapsed = state.elapsed)
-                if (state.isResting) {
-                    RestBar(
-                        remaining = state.restSecondsRemaining,
-                        onSkip = onSkipRest,
-                        onAdjust = onAdjustRest,
-                    )
-                }
+                WorkoutHeader(startedAt = state.startedAt, clock = clock)
+                RestBar(clock = clock, onSkip = onSkipRest, onAdjust = onAdjustRest)
                 HorizontalDivider()
 
                 if (state.isEmpty) {
@@ -265,11 +269,16 @@ private fun WorkoutBody(
 
 @Composable
 private fun RestBar(
-    remaining: Int,
+    clock: State<WorkoutClock>,
     onSkip: () -> Unit,
     onAdjust: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Deciding whether to show this bar in the *parent* would recompose the exercise
+    // list once a second. Returning early here keeps the tick inside this composable.
+    val remaining = clock.value.restSecondsRemaining
+    if (remaining <= 0) return
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -486,7 +495,11 @@ private fun SetEditDialog(
 }
 
 @Composable
-private fun WorkoutHeader(startedAt: String, elapsed: String, modifier: Modifier = Modifier) {
+private fun WorkoutHeader(
+    startedAt: String,
+    clock: State<WorkoutClock>,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -496,7 +509,8 @@ private fun WorkoutHeader(startedAt: String, elapsed: String, modifier: Modifier
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(text = elapsed, style = MaterialTheme.typography.titleMedium)
+        // The only place the elapsed time is read, so a tick stops here.
+        Text(text = clock.value.elapsed, style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -555,9 +569,6 @@ private fun ActiveWorkoutScreenPreview() {
                 isLoading = false,
                 sessionId = "s1",
                 startedAt = "07:42",
-                elapsed = "12:05",
-                restSecondsRemaining = 83,
-                isResting = true,
                 exercises = listOf(
                     SessionExerciseRow(
                         id = "a",
@@ -574,6 +585,9 @@ private fun ActiveWorkoutScreenPreview() {
                     ),
                 ),
             ),
+            clock = remember {
+                mutableStateOf(WorkoutClock(elapsed = "12:05", restSecondsRemaining = 83))
+            },
             onAddExercise = {},
             onLogSet = {},
             onUpdateSet = { _, _, _ -> },

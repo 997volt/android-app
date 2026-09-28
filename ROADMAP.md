@@ -23,7 +23,7 @@ The repo is a working workout tracker, not a scaffold. Concretely it now has:
 - Repositories returning `DataResult` rather than throwing (F7), and an injected
   clock so session timing is testable.
 - Material 3 theming, edge-to-edge, `compileSdk`/`targetSdk` 37, `minSdk` 26.
-- 56 JVM tests and 23 instrumented tests, all passing.
+- 57 JVM tests and 23 instrumented tests, all passing.
 - CI on every push and PR (F10), with lint and detekt both failing the build on
   warnings (F12), and R8 + resource shrinking on `release`.
 - A manifest that opts out of cloud backup, device-to-device transfer, and iOS

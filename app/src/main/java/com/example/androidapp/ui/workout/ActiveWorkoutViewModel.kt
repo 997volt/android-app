@@ -52,14 +52,30 @@ data class SessionExerciseRow(
     val lastTime: SetRow? = null,
 )
 
+/**
+ * The values that change every second (ROADMAP F16).
+ *
+ * Deliberately **separate** from [ActiveWorkoutUiState]. Folding a one-second
+ * ticker into the screen's single state meant every tick produced a new state
+ * object, and because that object also holds `List`s — which Compose cannot treat
+ * as stable — the exercise list recomposed once a second along with everything
+ * else. The clock is read only by the two small composables that display it, so
+ * the list is off the per-second path entirely.
+ */
+data class WorkoutClock(
+    val elapsed: String = "",
+    val restSecondsRemaining: Int = 0,
+) {
+    /** One source of truth: "resting" is just "there is time left". */
+    val isResting: Boolean get() = restSecondsRemaining > 0
+}
+
 data class ActiveWorkoutUiState(
     val isLoading: Boolean = true,
     val sessionId: String? = null,
+    /** Fixed for the life of the session, so it does not belong on the clock. */
     val startedAt: String = "",
-    val elapsed: String = "",
     val exercises: List<SessionExerciseRow> = emptyList(),
-    val restSecondsRemaining: Int = 0,
-    val isResting: Boolean = false,
     /** A just-deleted set awaiting undo; the screen shows it as a snackbar. */
     val pendingUndo: SetEntry? = null,
     /** Set when a write failed, so the screen can say so instead of lying. */
@@ -149,13 +165,32 @@ class ActiveWorkoutViewModel @Inject constructor(
         snapshots,
         lastError,
         pendingUndo,
-        ticker,
-    ) { snapshot, error, undo, _ ->
+    ) { snapshot, error, undo ->
         snapshot.toUiState(error = error, undo = undo)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = ActiveWorkoutUiState(),
+    )
+
+    /**
+     * Ticks once a second.
+     *
+     * Nothing in the state above depends on it, so a tick can only recompose the
+     * two composables that read this — the elapsed header and the rest bar.
+     */
+    val clock: StateFlow<WorkoutClock> = combine(activeSession, ticker) { session, _ ->
+        val now = timeSource.now()
+        WorkoutClock(
+            elapsed = session
+                ?.let { WorkoutFormat.elapsed(Duration.between(it.startedAt, now)) }
+                .orEmpty(),
+            restSecondsRemaining = RestTimer.remainingSeconds(session?.restEndsAt, now),
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = WorkoutClock(),
     )
 
     init {
@@ -312,21 +347,15 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    private fun Snapshot.toUiState(error: DataError?, undo: SetEntry?): ActiveWorkoutUiState {
-        val now = timeSource.now()
-        val restEndsAt = session?.restEndsAt
-        return ActiveWorkoutUiState(
+    private fun Snapshot.toUiState(error: DataError?, undo: SetEntry?): ActiveWorkoutUiState =
+        ActiveWorkoutUiState(
             isLoading = false,
             sessionId = session?.id,
             startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
-            elapsed = session?.let { WorkoutFormat.elapsed(Duration.between(it.startedAt, now)) }.orEmpty(),
             exercises = exercises.map { it.toRow(sets = sets, previous = previous[it.exerciseId]) },
-            restSecondsRemaining = RestTimer.remainingSeconds(restEndsAt, now),
-            isResting = RestTimer.isRunning(restEndsAt, now),
             pendingUndo = undo,
             error = error,
         )
-    }
 
     private fun SessionExercise.toRow(
         sets: List<SetEntry>,
