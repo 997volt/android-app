@@ -58,15 +58,17 @@ Both gates **fail** the build rather than warn, so CI means something:
 **gitignored** `keystore.properties` at the repo root:
 
 ```properties
-storeFile=../release.jks
+storeFile=workout.jks
 storePassword=…
-keyAlias=…
+keyAlias=workout
 keyPassword=…
 ```
 
 Without that file the release build still succeeds and produces an unsigned APK —
 which is what CI does, since compiling through R8 on every change is the part
-worth enforcing.
+worth enforcing. With it, `assembleRelease` writes a **signed** `app-release.apk`,
+and [`tools/build-apk.sh`](tools/build-apk.sh) wraps that build, prints its hash,
+and can install it. See [Install on your own phone](#install-on-your-own-phone).
 
 R8 is left to the libraries' own consumer rules (Hilt, Compose and
 `kotlinx-serialization` all ship them) instead of blanket `-keep` rules, which
@@ -77,6 +79,67 @@ why in [`app/proguard-rules.pro`](app/proguard-rules.pro).
 
 CI uploads `app/build/outputs/mapping/release/mapping.txt`; without it an
 obfuscated release stack trace is unreadable.
+
+## Install on your own phone
+
+There is no Play Store step: the app ships as an APK you install yourself. There
+are two paths, and the choice is worth making deliberately.
+
+| | Debug APK | Signed release APK |
+| --- | --- | --- |
+| Build | `./gradlew assembleDebug` | [`tools/build-apk.sh`](tools/build-apk.sh) |
+| Output | `app/build/outputs/apk/debug/app-debug.apk` | `app/build/outputs/apk/release/app-release.apk` |
+| Signing | auto debug key | your keystore |
+| `debuggable` | **true** | false |
+| R8 / shrinking | off (~13 MB) | on (~1.5 MB) |
+
+Prefer the signed release. A debug build is `debuggable`, so anyone with adb
+access to the phone can `run-as` the app and read the workout database — the
+opposite of what the backup opt-out is protecting.
+
+### Creating the keystore (once)
+
+```bash
+keytool -genkeypair -v \
+  -keystore workout.jks -alias workout \
+  -keyalg RSA -keysize 4096 -validity 10000 -storetype PKCS12 \
+  -dname "CN=Workout Tracker, O=you, C=US"
+```
+
+Then create `keystore.properties` at the repo root with the shape shown in
+[Release builds and signing](#release-builds-and-signing) and the password you
+chose. Both files are gitignored.
+
+> **The signing key is permanent.** Every later build must be signed with the same
+> `workout.jks`, or Android refuses to update over the installed app
+> (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) and the only fix is to uninstall — which
+> deletes the workout history, because backup is off. Back up the keystore **and**
+> its password somewhere outside this repo. Moving from a debug build to a release
+> build has the same effect, since they share the `applicationId` but not the
+> signature.
+
+### Building and installing
+
+```bash
+tools/build-apk.sh              # build; print the path, version and sha256
+tools/build-apk.sh --install    # ...and `adb install -r` it onto the device
+```
+
+To install by hand, copy the APK to the phone and open it (allowing "install
+unknown apps" for the file manager), or go over USB:
+
+```bash
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+Verify what you built:
+
+```bash
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+Bump `versionCode` in [`version.properties`](version.properties) for each build you
+keep, so installs are tellable apart.
 
 ## Continuous integration
 
