@@ -126,9 +126,17 @@ android {
             "GradleDependency",
             "AndroidGradlePluginVersion",
         )
-        // If a warning ever has to be accepted, record it with
-        // `./gradlew updateLintBaseline` and reference the baseline here, rather
-        // than disabling the check for the whole project.
+        // No `baseline = file(...)` here, deliberately.
+        //
+        // Wiring one looks harmless, but AGP *creates* the file when it is missing:
+        // the first run that finds a warning writes it into the baseline, and every
+        // run after that silently accepts it. That turns "fail on every warning"
+        // into "fail once", which is the opposite of what this gate is for.
+        //
+        // If a warning ever genuinely has to be accepted, do it in two deliberate
+        // steps: run `./gradlew updateLintBaseline`, review the diff it produces,
+        // commit it, and only then add the `baseline = file("lint-baseline.xml")`
+        // line above.
     }
 }
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notification small icon (ROADMAP F13).
+
+  A notification small icon must be a flat, monochrome silhouette: the platform
+  masks it to the alpha channel and tints it, so a full-colour launcher icon (what
+  this used to reference) renders as a solid white blob.
+
+  An hourglass rather than a clock face, because at 24dp the hands of a clock
+  disappear and what is left reads as a circle.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6,2 L18,2 L18,5 L13,12 L18,19 L18,22 L6,22 L6,19 L11,12 L6,5 Z" />
+</vector>

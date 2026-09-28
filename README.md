@@ -37,8 +37,15 @@ Both gates **fail** the build rather than warn, so CI means something:
   [`app/build.gradle.kts`](app/build.gradle.kts). Version-freshness checks
   (`NewerVersionAvailable`, `GradleDependency`, `AndroidGradlePluginVersion`) are
   disabled because they consult the network and would fail for reasons unrelated
-  to this code. If a warning ever has to be accepted, record it with
-  `./gradlew updateLintBaseline` rather than switching the check off.
+  to this code.
+
+  There is deliberately **no** `baseline = file(...)`. Wiring one looks harmless
+  but AGP *creates* the file when it is missing: the first run to find a warning
+  writes it into the baseline, and every run after that silently accepts it —
+  "fail on every warning" quietly becomes "fail once". If a warning genuinely has
+  to be accepted, do it in two deliberate steps: run
+  `./gradlew updateLintBaseline`, review and commit the diff it produces, **then**
+  add the `baseline = file("lint-baseline.xml")` line.
 - **detekt** — [`config/detekt/detekt.yml`](config/detekt/detekt.yml), layered on
   detekt's defaults (`buildUponDefaultConfig = true`) plus the Compose ruleset.
   That ruleset is pinned to the **0.4.x** line deliberately: `0.5.0+` targets

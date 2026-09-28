@@ -55,6 +55,31 @@ class WeightTest {
     }
 
     @Test
+    fun parse_rejectsDoubleGrammarThatIsNotUserGrammar() {
+        // `toDoubleOrNull()` accepts all of these; a numeric keypad cannot produce
+        // any of them, so accepting them only ever means a paste or a bug.
+        assertNull(Weight.parseKilograms("1e10"))
+        assertNull(Weight.parseKilograms("1E3"))
+        assertNull(Weight.parseKilograms("0x1p3"))
+        assertNull(Weight.parseKilograms("8d"))
+        assertNull(Weight.parseKilograms("Infinity"))
+        assertNull(Weight.parseKilograms("NaN"))
+    }
+
+    @Test
+    fun parse_rejectsWeightsAboveTheCap() {
+        // Without a ceiling a fat-fingered entry becomes permanent history.
+        assertNull(Weight.parseKilograms("1001"))
+        assertEquals(1_000_000L, Weight.parseKilograms("1000"))
+    }
+
+    @Test
+    fun parse_rejectsMorePrecisionThanGrams() {
+        assertNull(Weight.parseKilograms("60.0001"))
+        assertEquals(60_000L, Weight.parseKilograms("60.0"))
+    }
+
+    @Test
     fun step_neverGoesNegative() {
         assertEquals(0L, Weight.step(1_000L, -5_000L))
         assertEquals(62_500L, Weight.step(60_000L, Weight.DEFAULT_STEP_GRAMS))

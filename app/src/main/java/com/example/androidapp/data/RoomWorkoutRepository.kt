@@ -111,6 +111,12 @@ class RoomWorkoutRepository @Inject constructor(
         weightGrams: Long,
         setType: SetType,
     ): DataResult<Unit> = dataResultOf {
+        // A stale screen can hold an id for an exercise that was removed, or whose
+        // session was already finished. Writing anyway would file the set under
+        // history the user cannot reach, so this fails as NotFound instead.
+        if (dao.countLoggableSessionExercise(sessionExerciseId) == 0) {
+            throw NotFoundException("session exercise $sessionExerciseId is not loggable")
+        }
         val now = timeSource.nowEpochMillis()
         dao.insertSet(
             SetEntryEntity(

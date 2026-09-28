@@ -112,6 +112,32 @@ class WorkoutDaoTest {
         assertEquals(emptyList<SessionExerciseDetail>(), dao.observeSessionExerciseDetails(session.id).first())
     }
 
+    @Test
+    fun countLoggableSessionExercise_requiresALiveExerciseInAnOpenSession() = runTest {
+        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        assertEquals(1, dao.countLoggableSessionExercise(rowId))
+
+        // A finished session must not accept more sets: a stale screen could
+        // otherwise file history the user can never reach.
+        dao.markFinished(id = session.id, at = 2_000L)
+
+        assertEquals(0, dao.countLoggableSessionExercise(rowId))
+    }
+
+    @Test
+    fun countLoggableSessionExercise_excludesARemovedExercise() = runTest {
+        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        dao.softDeleteSessionExercise(id = rowId, at = 2_000L)
+
+        assertEquals(0, dao.countLoggableSessionExercise(rowId))
+    }
+
     private suspend fun insertExercise(sessionId: String, exerciseId: String, position: Int) {
         // Seed the library row first: session_exercises has a foreign key to it.
         database.exerciseDao().insertAll(

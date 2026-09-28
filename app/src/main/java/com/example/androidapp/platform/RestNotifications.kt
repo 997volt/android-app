@@ -33,7 +33,10 @@ internal object RestNotifications {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            // A monochrome silhouette, not the launcher icon: the platform masks a
+            // small icon to its alpha channel and tints it, so anything with colour
+            // renders as a white blob.
+            .setSmallIcon(R.drawable.ic_rest_notification)
             .setContentTitle(context.getString(R.string.rest_over_title))
             .setContentText(context.getString(R.string.rest_over_text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

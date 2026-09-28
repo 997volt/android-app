@@ -143,6 +143,26 @@ interface WorkoutDao {
     @Insert
     suspend fun insertSet(row: SetEntryEntity)
 
+    /**
+     * 1 when [sessionExerciseId] can still receive a set: the row is live *and* its
+     * session is still open.
+     *
+     * Both halves matter. A stale screen can hold an id whose exercise was removed,
+     * or whose session was finished on another surface — attaching a set to either
+     * would create history that belongs to no workout the user can see.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM session_exercises se
+        JOIN workout_sessions ws ON ws.id = se.sessionId
+        WHERE se.id = :sessionExerciseId
+          AND se.deletedAt IS NULL
+          AND ws.finishedAt IS NULL
+          AND ws.deletedAt IS NULL
+        """,
+    )
+    suspend fun countLoggableSessionExercise(sessionExerciseId: String): Int
+
     /** Rows updated: 0 means the set does not exist or was deleted. */
     @Query(
         """
