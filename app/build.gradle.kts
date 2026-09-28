@@ -9,7 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.example.androidapp"
-        minSdk = 24
+        // API 26 is the floor for the Health Connect client (ROADMAP P4.1) and
+        // makes java.time available natively, so no core library desugaring is
+        // needed. Raising this from 24 was a deliberate trade: see ROADMAP F9.
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"

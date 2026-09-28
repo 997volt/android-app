@@ -12,7 +12,7 @@ An Android application written in Kotlin, using Jetpack Compose (Material 3).
 | Compose BOM | 2026.09.00 |
 | JDK | 21 (minimum supported by AGP 9.4 is 17) |
 | compileSdk / targetSdk | 37 |
-| minSdk | 24 |
+| minSdk | 26 |
 | Build Tools | 36.0.0 |
 
 Versions for libraries and plugins are declared in

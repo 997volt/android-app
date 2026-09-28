@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Extraction rules for Android 12+ (API 31+), used when the app targets 31+.
+
+  Why this file exists even though android:allowBackup is already "false":
+  android:allowBackup="false" disables *cloud* backup, but on Android 12+ a
+  missing <device-transfer> section leaves device-to-device transfer FULLY
+  ENABLED. Workout history, body measurements and progress photos are health
+  data, so both modes are excluded explicitly.
+
+  https://developer.android.com/identity/data/autobackup
+
+  Revisit when export/import (ROADMAP P1.12) lands: a user moving to a new
+  phone should get their data back through a path we control and can encrypt,
+  rather than by re-enabling platform transfer here.
+-->
+<data-extraction-rules>
+
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cloud-backup>
+
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </device-transfer>
+
+    <!--
+      Android-to-iOS transfer. Health data must not follow the user onto a
+      platform where we cannot enforce our own privacy policy.
+    -->
+    <cross-platform-transfer platform="ios">
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cross-platform-transfer>
+
+</data-extraction-rules>
