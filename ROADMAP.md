@@ -5,25 +5,32 @@ shippable workout tracker.
 
 ## Where the app stands today
 
-The repo is a Compose app with one real feature: an exercise library. Concretely
-it now has:
+The repo is a working workout tracker, not a scaffold. Concretely it now has:
 
 - One `ComponentActivity` ([MainActivity.kt](app/src/main/java/com/example/androidapp/MainActivity.kt))
   doing nothing but host the navigation graph (F2).
-- Type-safe navigation between the library and per-exercise detail
-  ([Routes.kt](app/src/main/java/com/example/androidapp/ui/navigation/Routes.kt)).
+- Type-safe navigation between the library, per-exercise detail, the active
+  workout, and the exercise picker ([Routes.kt](app/src/main/java/com/example/androidapp/ui/navigation/Routes.kt)).
 - `@HiltViewModel` ViewModels exposing `StateFlow<UiState>`, collected with
   `collectAsStateWithLifecycle` (F3) and injected with Hilt (F4).
-- A `domain`/`data` package split behind an `ExerciseRepository` interface, with
-  an in-memory implementation standing in for Room until F5.
+- A Room database (F5) at schema v3 with committed, migration-tested history:
+  the exercise library, workout sessions, the exercises inside them, and logged
+  sets. Sync-ready columns (`id`, `createdAt`, `updatedAt`, `deletedAt`) are in
+  place for P4.9.
+- The MVP loop: start a workout, add exercises, log sets with a
+  last-time prefill, rest between sets, and finish — with the session, its sets
+  and the rest timer all surviving a process death (P1.2, P1.3, P1.4, P1.8).
+- Repositories returning `DataResult` rather than throwing (F7), and an injected
+  clock so session timing is testable.
 - Material 3 theming, edge-to-edge, `compileSdk`/`targetSdk` 37, `minSdk` 26.
-- 11 JVM unit tests and 4 instrumented Compose tests, all passing.
+- 53 JVM tests and 19 instrumented tests, all passing.
 - CI on every push and PR (F10), with lint and detekt both failing the build on
   warnings (F12), and R8 + resource shrinking on `release`.
 - A manifest that opts out of cloud backup, device-to-device transfer, and iOS
   cross-platform transfer entirely (F1).
 
-Still missing: a local database (F5), networking, and WorkManager.
+Still missing: workout history and editing (P1.6, P1.7), unit display settings
+(P1.9), onboarding (P1.11), export (P1.12), and Health Connect (P4.1).
 
 The one thing that was a **correctness bug rather than a missing feature** —
 health data riding along in platform backups and transfers — is fixed, and the
