@@ -3,6 +3,10 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 
+# ---- Local Android toolchain (JDK + SDK + Gradle caches) ----
+# Installed per-machine by tools/android-env.sh; never committed.
+.toolchain/
+
 # ---- Secrets: NEVER commit these ----
 local.properties
 *.jks

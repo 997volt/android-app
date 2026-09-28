@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose supplies the real theming; this XML theme only dresses the window. -->
+    <style name="Theme.AndroidApp" parent="@android:style/Theme.Material.Light.NoActionBar" />
+</resources>

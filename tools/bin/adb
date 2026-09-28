@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# adb wrapper for the workspace-local Android SDK.
+#
+# adb hardcodes $HOME/.android for its key material and offers no environment
+# override for that path, so it is run here with a workspace-local HOME. Only
+# adb gets the redirected HOME -- the surrounding shell keeps the real one,
+# because git and ssh read ~/.ssh from it.
+#
+# Put on PATH by tools/android-env.sh, which shadows the raw platform-tools adb.
+
+if [ -z "${ANDROID_ENV_ROOT:-}" ]; then
+    _adb_src="${BASH_SOURCE:-$0}"
+    ANDROID_ENV_ROOT=$(CDPATH= cd -- "$(dirname -- "$_adb_src")/../.." 2>/dev/null && pwd)
+fi
+
+_adb_bin="$ANDROID_ENV_ROOT/.toolchain/android-sdk/platform-tools/adb"
+if [ ! -x "$_adb_bin" ]; then
+    echo "adb: no adb at $_adb_bin" >&2
+    echo "     run '. ./tools/android-env.sh' from the project root" >&2
+    exit 1
+fi
+
+_adb_home="$ANDROID_ENV_ROOT/.toolchain/home"
+mkdir -p "$_adb_home" 2>/dev/null || true
+
+HOME="$_adb_home" exec "$_adb_bin" "$@"

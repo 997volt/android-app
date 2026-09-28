@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Android App</string>
+    <string name="tap_to_increment">Tap the button to increment</string>
+    <string name="increment">Increment</string>
+</resources>
