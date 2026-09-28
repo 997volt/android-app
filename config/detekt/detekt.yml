@@ -1,0 +1,42 @@
+# Detekt configuration (ROADMAP F12).
+#
+# app/build.gradle.kts sets buildUponDefaultConfig = true, so this file holds
+# deltas only — anything not named here keeps detekt's own default, and the
+# library rulesets (including the Compose rules) bring their own defaults.
+#
+# Every entry below is either a false positive for this codebase or a narrowly
+# scoped file exclusion, with the reason recorded. No rule is switched off
+# wholesale, because a silent `active: false` is how a gate stops catching
+# anything.
+
+config:
+  validation: true
+
+naming:
+  FunctionNaming:
+    # Composables are PascalCase by Kotlin/Compose convention (`ExerciseLibraryScreen`),
+    # while this rule only knows camelCase. Without this, every composable in the
+    # project is reported.
+    ignoreAnnotated: ['Composable']
+
+style:
+  UnusedPrivateMember:
+    # `@Preview` composables are private and invoked by the Compose tooling
+    # rather than by code, so they always look unused.
+    ignoreAnnotated: ['Preview']
+
+  MagicNumber:
+    # The Material 3 colour palette is deliberately nothing but literal ARGB
+    # values; extracting them to constants would obscure the palette.
+    excludes: ['**/ui/theme/Color.kt']
+
+  MaxLineLength:
+    # One row per exercise keeps this seed table reviewable, and a wrapped row
+    # would bury a changed value in a large diff. It is data, not logic.
+    excludes: ['**/data/SeedExercises.kt']
+
+complexity:
+  LongParameterList:
+    # Same file: the terse `barbell(...)` builder exists precisely so each of the
+    # 30 seed rows stays a single line.
+    excludes: ['**/data/SeedExercises.kt']

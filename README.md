@@ -22,10 +22,78 @@ Versions for libraries and plugins are declared in
 
 ```bash
 ./gradlew assembleDebug      # debug APK -> app/build/outputs/apk/debug/
+./gradlew assembleRelease    # R8-minified release -> app/build/outputs/apk/release/
 ./gradlew testDebugUnitTest  # JVM unit tests
 ./gradlew connectedDebugAndroidTest   # instrumented tests (needs a device/emulator)
-./gradlew lint               # Android lint
+./gradlew lint               # Android lint (warnings are errors)
+./gradlew detekt             # static analysis + Compose rules
 ```
+
+## Quality gates
+
+Both gates **fail** the build rather than warn, so CI means something:
+
+- **Android lint** — `warningsAsErrors = true` in
+  [`app/build.gradle.kts`](app/build.gradle.kts). Version-freshness checks
+  (`NewerVersionAvailable`, `GradleDependency`, `AndroidGradlePluginVersion`) are
+  disabled because they consult the network and would fail for reasons unrelated
+  to this code. If a warning ever has to be accepted, record it with
+  `./gradlew updateLintBaseline` rather than switching the check off.
+- **detekt** — [`config/detekt/detekt.yml`](config/detekt/detekt.yml), layered on
+  detekt's defaults (`buildUponDefaultConfig = true`) plus the Compose ruleset.
+  That ruleset is pinned to the **0.4.x** line deliberately: `0.5.0+` targets
+  detekt 2.0 and, against detekt 1.23.x, loads successfully while registering no
+  rules at all — a gate that silently catches nothing.
+
+## Release builds and signing
+
+`release` runs R8 with resource shrinking. Signing material comes from a
+**gitignored** `keystore.properties` at the repo root:
+
+```properties
+storeFile=../release.jks
+storePassword=…
+keyAlias=…
+keyPassword=…
+```
+
+Without that file the release build still succeeds and produces an unsigned APK —
+which is what CI does, since compiling through R8 on every change is the part
+worth enforcing.
+
+R8 is left to the libraries' own consumer rules (Hilt, Compose and
+`kotlinx-serialization` all ship them) instead of blanket `-keep` rules, which
+would defeat shrinking. That is verified, not assumed: the signed minified build
+navigates between screens, exercising the generated route serializers. If a
+release-only crash ever appears, add the narrowest rule that fixes it and record
+why in [`app/proguard-rules.pro`](app/proguard-rules.pro).
+
+CI uploads `app/build/outputs/mapping/release/mapping.txt`; without it an
+obfuscated release stack trace is unreadable.
+
+## Continuous integration
+
+[`.github/workflows/android.yml`](.github/workflows/android.yml) has two jobs:
+
+| Job | Runs |
+| --- | --- |
+| `build` | `testDebugUnitTest`, `lint`, `detekt`, `assembleDebug`, `assembleRelease` |
+| `instrumented` | `connectedDebugAndroidTest` on a KVM-accelerated runner emulator |
+
+The workflow deliberately does **not** use `.toolchain/`: that is a per-machine,
+gitignored install, and `tools/android-env.sh` is a no-op without it, so CI uses
+the runner's own JDK and Android SDK.
+
+### Known flakiness
+
+`hiltJavaCompileDebug` / `hiltJavaCompileRelease` have been observed to fail
+intermittently — Hilt's aggregating task, most likely racing with parallel
+execution. It was seen three times, each time cleared by simply re-running, and
+five subsequent clean builds (including the exact sequences that had failed)
+passed, so it is **not** deterministically reproducible and is not worked around
+speculatively. If CI goes red on that task, re-run the job; if it recurs often,
+try `org.gradle.parallel=false` in [`gradle.properties`](gradle.properties) for
+that job and see whether it stops.
 
 ## Local toolchain in `.toolchain/`
 

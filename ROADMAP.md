@@ -17,16 +17,17 @@ it now has:
 - A `domain`/`data` package split behind an `ExerciseRepository` interface, with
   an in-memory implementation standing in for Room until F5.
 - Material 3 theming, edge-to-edge, `compileSdk`/`targetSdk` 37, `minSdk` 26.
-- 11 JVM unit tests and 4 instrumented Compose tests, all passing; lint clean.
+- 11 JVM unit tests and 4 instrumented Compose tests, all passing.
+- CI on every push and PR (F10), with lint and detekt both failing the build on
+  warnings (F12), and R8 + resource shrinking on `release`.
 - A manifest that opts out of cloud backup, device-to-device transfer, and iOS
   cross-platform transfer entirely (F1).
 
-Still missing: a local database (F5), networking, WorkManager, CI, and release
-signing (F10) — `release` builds still have `isMinifyEnabled = false`.
+Still missing: a local database (F5), networking, and WorkManager.
 
 The one thing that was a **correctness bug rather than a missing feature** —
-health data riding along in platform backups and transfers — is fixed. Release
-signing and CI remain the outstanding correctness gap.
+health data riding along in platform backups and transfers — is fixed, and the
+quality gates that would catch a regression now run on every change.
 
 ## How to read this
 
@@ -60,9 +61,9 @@ Work that every later feature leans on. Cheap now, expensive to retrofit.
 | F7 | **Result/error model** | P1 | S | A `Result`-like type plus a `DataError` taxonomy, so failures are values rather than thrown exceptions in repositories. |
 | F8 | **Design system layer** | P1 | M | Promote `ui/theme` into a real component library: buttons, list rows, empty/error/loading states, number pickers. Workout logging is number-entry heavy. |
 | F9 | ✅ **`java.time` on API 24** | P0 | S | Landed. `minSdk` raised to 26: `java.time` is native (no desugaring) and Health Connect's floor is met for P4.1. |
-| F10 | **Release pipeline** | P1 | M | CI (build → unit test → lint → `assembleRelease`), signing config from gitignored properties, `isMinifyEnabled = true` with R8 rules. |
+| F10 | ✅ **Release pipeline** | P1 | M | Landed. GitHub Actions runs `testDebugUnitTest`, `lint`, `detekt`, `assembleDebug` and `assembleRelease` on every push and PR, plus a second job for the instrumented tests on a KVM runner. Release has R8 + resource shrinking (12 MB debug → 1.4 MB release) and signs from a gitignored `keystore.properties`; without that file it still builds unsigned, which is what CI does. R8 mapping is uploaded for readable crash traces. |
 | F11 | **Crash + analytics** | P1 | S | Crash reporting with symbol upload; privacy-respecting product analytics with opt-out. |
-| F12 | **Lint/detekt gate** | P2 | S | Fail CI on new warnings; add a Compose-specific ruleset. |
+| F12 | ✅ **Lint/detekt gate** | P2 | S | Landed. Lint runs with `warningsAsErrors`; detekt runs on its defaults plus the Compose ruleset, with five narrowly-scoped, commented exceptions (Compose's PascalCase naming, `@Preview` "unused" members, the colour palette, and the seed table). The Compose ruleset is pinned to 0.4.x because 0.5.0+ targets detekt 2.0 and silently registers nothing against 1.23.x. |
 
 ✅ **Placeholder deleted:** `GreetingScreen`, `Greeting.kt`, and its test are
 gone. Their replacement keeps the same discipline — pure logic under `domain/`

@@ -1,0 +1,137 @@
+name: Android CI
+
+# Roadmap F10. Two jobs:
+#   build       - unit tests, lint, debug + release (R8) assembly. Fast, always run.
+#   instrumented - the Compose UI tests, which need a booted emulator. Slower.
+#
+# This workflow deliberately does NOT use the repo's .toolchain/ directory: that
+# is a per-machine, gitignored install, and tools/android-env.sh is a no-op
+# without it (see README), so the runner's own JDK and Android SDK are used.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch makes the in-flight run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, test, lint, detekt, R8
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # compileSdk and the build-tools version are pinned in app/build.gradle.kts,
+      # so they are requested explicitly rather than left to AGP's auto-download —
+      # a missing platform then fails with "package not found" instead of a
+      # confusing resource-linking error.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37 build-tools;36.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --console=plain
+
+      # Fails on any lint warning: warningsAsErrors is set in app/build.gradle.kts.
+      - name: Lint
+        run: ./gradlew lint --console=plain
+
+      # Lint covers Android-specific issues; detekt adds complexity checks and the
+      # Compose ruleset. The Compose rules are pinned to a detekt-1.x-compatible
+      # version in gradle/libs.versions.toml — a mismatched one loads silently and
+      # catches nothing.
+      - name: Static analysis (detekt)
+        run: ./gradlew detekt --console=plain
+
+      - name: Assemble debug
+        run: ./gradlew assembleDebug --console=plain
+
+      # No signing config is present in CI, so this produces an unsigned APK.
+      # That is the point: it proves R8 shrinking succeeds on every change.
+      - name: Assemble release (R8)
+        run: ./gradlew assembleRelease --console=plain
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests
+            app/build/reports/detekt
+            app/build/reports/lint-results-*.html
+            app/build/reports/lint-results-*.txt
+          if-no-files-found: ignore
+
+      # Without this, an obfuscated release crash trace is unreadable.
+      - name: Upload R8 mapping
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r8-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
+
+  instrumented:
+    name: Instrumented tests (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37 build-tools;36.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Runs on the KVM-accelerated runner emulator. This is the slowest and
+      # most environment-sensitive job; if it proves flaky, move it behind
+      # workflow_dispatch rather than deleting it, so the tests still exist.
+      - name: Run instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --console=plain
+
+      - name: Upload instrumented test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-reports
+          path: app/build/reports/androidTests
+          if-no-files-found: ignore

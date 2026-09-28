@@ -1,10 +1,44 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.detekt)
 }
+
+/**
+ * Static analysis gate (ROADMAP F12). Lint covers Android-specific issues;
+ * detekt adds complexity/maintainability checks plus the Compose ruleset, which
+ * catches things lint cannot (a composable taking a `Modifier` it never uses,
+ * an unstable collection parameter forcing recomposition, and similar).
+ */
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    // Only the deltas live here; detekt's defaults stay authoritative.
+    config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+}
+
+/**
+ * Release signing material is deliberately outside version control:
+ * `keystore.properties` is gitignored (see .gitignore), and a checkout or CI run
+ * without it still builds — the release APK is simply left unsigned, which is
+ * enough to prove R8 succeeds. Create the file with:
+ *
+ *   storeFile=../release.jks
+ *   storePassword=...
+ *   keyAlias=...
+ *   keyPassword=...
+ */
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val releaseStoreFile: String? = keystoreProperties.getProperty("storeFile")
+val hasReleaseSigning = releaseStoreFile != null
 
 android {
     namespace = "com.example.androidapp"
@@ -23,13 +57,35 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile.orEmpty())
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 on for the real build (ROADMAP F10). Shrinking is not just about
+            // APK size: it is the step that can silently strip reflection-based
+            // code, and this app leans on it in two places — Hilt's generated
+            // components and kotlinx-serialization's generated route serializers.
+            // Both ship consumer rules, so they are left to prove themselves in
+            // the signed-release smoke test rather than papered over with blanket
+            // -keep rules that would defeat shrinking.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -40,6 +96,23 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // The CI gate (ROADMAP F12) only means something if warnings fail the
+        // build. Version-freshness checks are excluded because they hit the
+        // network and would fail for reasons unrelated to this code — a
+        // dependency bump is a deliberate act, not a build error.
+        abortOnError = true
+        warningsAsErrors = true
+        disable += setOf(
+            "NewerVersionAvailable",
+            "GradleDependency",
+            "AndroidGradlePluginVersion",
+        )
+        // If a warning ever has to be accepted, record it with
+        // `./gradlew updateLintBaseline` and reference the baseline here, rather
+        // than disabling the check for the whole project.
     }
 }
 
@@ -78,4 +151,6 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    detektPlugins(libs.detekt.rules.compose)
 }
