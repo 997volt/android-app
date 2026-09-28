@@ -29,8 +29,17 @@ The repo is a working workout tracker, not a scaffold. Concretely it now has:
 - A manifest that opts out of cloud backup, device-to-device transfer, and iOS
   cross-platform transfer entirely (F1).
 
-Still missing: workout history and editing (P1.6, P1.7), unit display settings
-(P1.9), onboarding (P1.11), export (P1.12), and Health Connect (P4.1).
+Still missing: workout history and editing (P1.6, P1.7), the unit display setting
+(P1.9 — storage is already canonical, so only the UI remains), onboarding
+(P1.11), export (P1.12), custom exercises (P1.13), and Health Connect (P4.1).
+
+Several gaps are corrective rather than additive and now sit in Phase 0:
+**F13** (the rest alert's runtime permission is declared but never requested, so
+on API 33+ the notification cannot appear), **F15** (seed delivery is wrong on
+both first open and upgrade), **F16** (the per-second ticker recomposes the whole
+workout screen) and **F17** (input parsing is unbounded and a set write is
+unguarded). **F14** is the ship-identity work that is cheap now and not later, and
+**F18** is CI and repo hygiene.
 
 The one thing that was a **correctness bug rather than a missing feature** —
 health data riding along in platform backups and transfers — is fixed, and the
@@ -45,8 +54,12 @@ quality gates that would catch a regression now run on every change.
 
 Rows marked ✅ have landed; ◐ means partly landed. Local-only storage is the
 agreed starting point (sync, P4.9, is deferred), so schemas should be written
-sync-ready: UUID primary keys, soft deletes, and `createdAt`/`updatedAt`
-timestamps.
+sync-ready: UUID primary keys, soft deletes, `createdAt`/`updatedAt` timestamps,
+and — because "what day was this workout" is a local-time question — a stored
+zone offset alongside the UTC instant. Timestamps are epoch millis today and the
+UI formats them in the *current* zone, so a user who travels sees past workouts
+shift; P1.6 (grouping by week/month) and P4.1 (`ExerciseSessionRecord` requires
+`startZoneOffset`) both need the offset that was true at the time.
 
 Phases are ordered by dependency, not by calendar. Phase 0 and Phase 1 are the
 MVP.
@@ -69,8 +82,14 @@ Work that every later feature leans on. Cheap now, expensive to retrofit.
 | F8 | **Design system layer** | P1 | M | Promote `ui/theme` into a real component library: buttons, list rows, empty/error/loading states, number pickers. Workout logging is number-entry heavy. |
 | F9 | ✅ **`java.time` on API 24** | P0 | S | Landed. `minSdk` raised to 26: `java.time` is native (no desugaring) and Health Connect's floor is met for P4.1. |
 | F10 | ✅ **Release pipeline** | P1 | M | Landed. GitHub Actions runs `testDebugUnitTest`, `lint`, `detekt`, `assembleDebug` and `assembleRelease` on every push and PR, plus a second job for the instrumented tests on a KVM runner. Release has R8 + resource shrinking (12 MB debug → 1.4 MB release) and signs from a gitignored `keystore.properties`; without that file it still builds unsigned, which is what CI does. R8 mapping is uploaded for readable crash traces. |
-| F11 | **Crash + analytics** | P1 | S | Crash reporting with symbol upload; privacy-respecting product analytics with opt-out. |
-| F12 | ✅ **Lint/detekt gate** | P2 | S | Landed. Lint runs with `warningsAsErrors`; detekt runs on its defaults plus the Compose ruleset, with five narrowly-scoped, commented exceptions (Compose's PascalCase naming, `@Preview` "unused" members, the colour palette, and the seed table). The Compose ruleset is pinned to 0.4.x because 0.5.0+ targets detekt 2.0 and silently registers nothing against 1.23.x. |
+| F11 | **Crash + analytics** | P1 | S | Crash reporting with symbol upload; privacy-respecting product analytics with opt-out. Pick a GMS-free backend first (see the no-GMS quality bar note): Firebase would both break degoogled devices and sit badly with the on-device health-data posture — so this decision precedes P5.3, rather than P5.3 gating it. |
+| F12 | ✅ **Lint/detekt gate** | P2 | S | Landed. Lint runs with `warningsAsErrors`; detekt runs on its defaults plus the Compose ruleset, with five narrowly-scoped, commented exceptions (Compose's PascalCase naming, `@Preview` "unused" members, the colour palette, and the seed table). The Compose ruleset is pinned to 0.4.x because 0.5.0+ targets detekt 2.0 and silently registers nothing against 1.23.x. **One hole:** the documented escape hatch is not wired — the README and the `lint {}` comment both say to run `updateLintBaseline` and reference the baseline, but no `baseline = file(...)` exists, so a generated baseline would have no effect. Fix that before the first warning has to be accepted. |
+| F13 | **Request the permissions the rest alert needs** | P0 | S | `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM` are declared in the manifest but **never requested at runtime** — there is no `RequestPermission` call site anywhere. On API 33+ that means the permission is denied by default and the rest-over notification cannot appear until the user hunts down the toggle in Settings; on API 31+ the exact alarm silently degrades to inexact forever because the user is never sent to `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`. Ask on the first logged set, not at launch (context beats a cold prompt), and make refusal non-fatal — the in-app timer already degrades correctly. `RestNotifications` also posts `R.drawable.ic_launcher` as the small icon, which must be a monochrome silhouette or it renders as a white blob. |
+| F14 | **Ship identity + store readiness** | P0 | M | `applicationId` is still the `com.example.androidapp` placeholder, which Play rejects for new uploads and which cannot be changed later without orphaning Health Connect grants and any deep links; the label is "Android App"; the icon is one legacy vector with no adaptive/`mipmap-anydpi-v26` variant and no 512px Play asset; `versionCode`/`versionName` are hardcoded at 1/"1.0". Add the Play Console workstream: Data safety form, content rating, privacy-policy URL, Play App Signing. Health Connect (P4.1) adds its own declaration and is gated on this. |
+| F15 | **Seed delivery: first open *and* upgrade** | P0 | S | Two problems in one place. **(a) Upgrade:** seeding runs in `RoomDatabase.Callback.onCreate`, which fires exactly once per database, so a later app version cannot deliver new seed exercises to an existing install; `ExerciseDao.count()` exists for an idempotent top-up but is called only from tests. The trap is that `insertAll` uses `OnConflictStrategy.REPLACE` (DELETE + INSERT), which violates `session_exercises.exerciseId ON DELETE RESTRICT` the moment history references the row — the top-up must upsert and skip existing ids, not REPLACE. **(b) First open:** the insert is dispatched to `@ApplicationScope` (`Dispatchers.Default`, [CoroutineModule.kt](app/src/main/java/com/example/androidapp/di/CoroutineModule.kt)) instead of running on the callback's own SQLite connection, so `observeExercises()` emits an empty library first and the first launch can flash the empty state (which P1.1 cannot distinguish from "no search match"). Insert synchronously on the `SupportSQLiteDatabase` in `onCreate` — that is the callback's whole purpose — and the race disappears. While here: the seed timestamp uses `System.currentTimeMillis()` directly rather than the injected `TimeSource`, the one place the clock abstraction leaks. Do all of this before the library grows, not after. |
+| F16 | **Recomposition-safe clock** | P1 | M | The 1-second `ticker` is combined into the single `ActiveWorkoutUiState`, and `elapsed`/`startedAt` are pre-formatted strings ([ActiveWorkoutViewModel.kt](app/src/main/java/com/example/androidapp/ui/workout/ActiveWorkoutViewModel.kt)). That state also holds `List`s, which Compose treats as unstable, so `ActiveWorkoutScreen` → `WorkoutBody` → `ExerciseList` all recompose every tick, list included. Keep the ticking values in a separate state read only by the header and rest bar (or `derivedStateOf`), and the exercise list leaves the per-second path entirely. This is the concrete cause behind the "frame timing mid-set" the quality bar names. |
+| F17 | **Validate inputs at the boundary** | P1 | S | `Weight.parseKilograms` uses `toDoubleOrNull()` ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)), which accepts `Double` grammar rather than user grammar — `"1e10"`, `"8d"` and hex floats all parse — and there is no upper bound, so a fat-fingered entry can store an absurd weight. Reject exponent notation and cap at a sane maximum. Separately, `logSet` inserts against any `sessionExerciseId` without checking the row is still live or that the session is still open ([RoomWorkoutRepository.kt](app/src/main/java/com/example/androidapp/data/RoomWorkoutRepository.kt)), so a stale UI can attach a set to a removed exercise. |
+| F18 | **CI and repo hygiene** | P2 | S | No Dependabot/Renovate, and Actions are pinned to floating major tags rather than SHAs; no `gradle/wrapper-validation` even though the wrapper JAR is committed; test results are not annotated onto the PR, so a failure means digging through artifacts. Also absent repo-wide: `.editorconfig`, `LICENSE`, `CHANGELOG`. |
 
 ✅ **Placeholder deleted:** `GreetingScreen`, `Greeting.kt`, and its test are
 gone. Their replacement keeps the same discipline — pure logic under `domain/`
@@ -84,18 +103,23 @@ The smallest thing a lifter will actually keep installed.
 
 | # | Feature | Pri | Eff | Notes |
 | --- | --- | --- | --- | --- |
-| P1.1 | ✅ **Exercise library** | P0 | M | 30 seeded exercises with primary/secondary muscles, equipment, and movement pattern, persisted in Room and read through `ExerciseRepository`. Search filters on name, muscle, and equipment. |
-| P1.2 | ✅ **Start an empty workout** | P0 | M | "Start workout" on the library opens a session and an "Add exercise" picker that reuses the library list. Start/resume is a single atomic find-or-create in the DAO, so two taps cannot open two workouts. |
-| P1.3 | ◐ **Log sets/reps/weight** | P0 | M | Logging, prefill and undo landed. A "Log set" button writes a set using what you just did, else what you did last time, else a default; the exercise header shows "Last time: …"; tapping a set opens an editor; deleting offers an undo snackbar. Weights are stored as whole grams ([`Weight.kt`](app/src/main/java/com/example/androidapp/domain/Weight.kt)), so 0.5/1.25 kg steps stay exact and P1.9 becomes display-only. **Not yet:** swipe-to-delete (it is a button), and the non-working set types — `SetType` has WARMUP/DROP/FAILURE but only NORMAL is reachable from the UI, and bodyweight/duration/distance sets are still modelled as reps+weight. |
-| P1.4 | ◐ **Rest timer** | P0 | S | Auto-starts on set completion; +15s/−15s and skip; the alert is scheduled with a single `AlarmManager` alarm rather than a foreground service (that is P4.2), falling back to an inexact alarm when `SCHEDULE_EXACT_ALARM` is not granted. It is stored as an absolute end instant, so it survives a process death — verified on device: after a force-stop the workout resumed with its set *and* the rest still counting down. **Not yet:** the configurable default, which needs a settings screen (90s is a constant). |
+| P1.1 | ◐ **Exercise library** | P0 | M | 30 seeded exercises with primary/secondary muscles, equipment, and movement pattern, persisted in Room and read through `ExerciseRepository`. Search matches name, muscle, and equipment — but only `primaryMuscle.label`, so "forearms" misses a row whose forearms are *secondary*, and the movement pattern is unsearchable at all. It also matches the display label, which P5.4 moves into `strings.xml` and would silently change search behaviour. Fix both (search secondary muscles too; match on a locale-stable key or keyword list) before adding P1.13. The screen also cannot tell "the library is empty" from "no search matched" — both render `No exercises match “”` — and because seeding is asynchronous on first open, that is exactly what a first launch can flash. |
+| P1.2 | ✅ **Start an empty workout** | P0 | M | "Start workout" on the library opens a session and an "Add exercise" picker that reuses the library list. Start/resume is a single atomic find-or-create in the DAO, so two taps cannot open two workouts. **Two rough edges:** the picker lets the same exercise be added twice with no signal — decide whether that is intended (it is legitimate for separate blocks) and either mark already-added rows or state that it is allowed; and `ExercisePickerViewModel` silently swallows an `addExercise` failure, so the picker just fails to close with no explanation. |
+| P1.3 | ◐ **Log sets/reps/weight** | P0 | M | Logging, prefill and undo landed. A "Log set" button writes a set using what you just did, else what you did last time, else a default; the exercise header shows "Last time: …"; tapping a set opens an editor; deleting offers an undo snackbar. Weights are stored as whole grams ([`Weight.kt`](app/src/main/java/com/example/androidapp/domain/Weight.kt)), so 0.5/1.25 kg steps stay exact and P1.9 becomes display-only. **Not yet:** swipe-to-delete (it is a button); the non-working set types — `SetType` has WARMUP/DROP/FAILURE but only NORMAL is reachable from the UI; and bodyweight/duration/distance sets, which the schema still cannot represent as anything but reps+weight, so adding them later is a migration rather than a UI change — settle the row shape before history accumulates. The set editor also uses plain text fields with no numeric keyboard (`keyboardOptions` appears nowhere in the app), which is the wrong shape for the one screen reached mid-set. And the "Log set" button commits instantly with no way to adjust first: `Weight.step` and `Weight.DEFAULT_STEP_GRAMS` exist for a +/- stepper but are referenced only from `WeightTest`, so either wire the stepper — it is the "fast number entry" this row promises — or delete the dead API. |
+| P1.4 | ◐ **Rest timer** | P0 | S | Auto-starts on set completion; +15s/−15s and skip; the alert is scheduled with a single `AlarmManager` alarm rather than a foreground service (that is P4.2), falling back to an inexact alarm when `SCHEDULE_EXACT_ALARM` is not granted. It is stored as an absolute end instant, so it survives a process death — verified on device: after a force-stop the workout resumed with its set *and* the rest still counting down. **Not yet:** the configurable default, which needs a settings screen (90s is a constant); sound/haptic feedback (P1.14); and the fact that neither permission is ever actually requested, so the alert is likely dead on API 33+ — that is F13, and it is the highest-value fix in this table. |
 | P1.5 | **Notes & RPE** | P1 | S | Per-set and per-workout notes; optional RPE/RIR field, off by default. |
 | P1.6 | **Workout history** | P0 | M | Chronological list + detail view, grouped by week/month, with duration, volume, and set count. |
-| P1.7 | **Edit/delete past workouts** | P1 | S | Correcting a mis-typed set is the most common post-hoc action. |
+| P1.7 | **Edit/delete past workouts** | P1 | S | Correcting a mis-typed set is the most common post-hoc action. Until this (and P1.6) land, **Finish is irreversible from the UI** — one tap ends the workout and there is no screen to bring it back, so a confirmation dialog is cheap insurance now. |
 | P1.8 | ✅ **Crash-safe in-progress session** | P0 | M | Landed with no separate mechanism: the session row is written the moment the workout opens and `finishedAt IS NULL` *is* "in progress", so a kill leaves it recoverable. Verified on device by force-stopping mid-workout — the relaunch resumed the same session with the same exercise and the elapsed clock still running from the original start time. |
-| P1.9 | **Unit handling** | P1 | M | kg/lb (+ st) as a display setting, stored canonically in one unit. Getting this wrong corrupts every historical record. |
+| P1.9 | ◐ **Unit handling** | P1 | M | Storage landed ahead of schedule: weights are whole grams in a `Long` ([`Weight.kt`](app/src/main/java/com/example/androidapp/domain/Weight.kt)), so 0.5/1.25 kg steps stay exact and a unit change is pure presentation — the corruption this row warned about is already impossible. Remaining: the kg/lb (+ st) display setting and the parse/format switch behind it. |
 | P1.10 | **Wake lock / keep screen on** | P1 | S | Keep the screen awake during an active session, with a setting. |
 | P1.11 | **Onboarding + empty states** | P1 | S | Goal (strength/hypertrophy/fat loss), experience level, units, weekly target. Personalizes defaults and seeds the library ordering. |
 | P1.12 | **Backup/export** | P2 | M | CSV/JSON export and import. Cheap insurance against uninstall, and a real differentiator. |
+| P1.13 | **Custom exercises** | P1 | M | The entity and the domain model already carry `isCustom` and reserve UUID ids for user rows ([Exercise.kt](app/src/main/java/com/example/androidapp/domain/model/Exercise.kt)), yet nothing in this plan or the UI lets a user create one — so any movement outside the 30 seeds simply cannot be logged. Needs create/edit/soft-delete and a rule for history that references a user exercise. |
+| P1.14 | **Rest feedback** | P1 | S | The rest timer is silent: no sound and no vibration, in-app or from the notification. A rest timer a lifter cannot hear from across the gym is half a feature. Also carries the monochrome small icon from F13. |
+| P1.15 | **Repeat last workout** | P2 | S | One tap from the library into a fresh session holding the previous workout's exercises. `previousPerformance` already proves the query; this is the highest-retention action the app is currently missing. |
+| P1.16 | **Resume affordance on the library** | P1 | S | Backing out of a workout leaves the session active but invisible: the library's FAB still reads "Start workout" with no elapsed time or sign that anything is in progress. P1.8's crash recovery is careful work that the *normal* back-out path quietly undoes. Drive the FAB from the active session — "Resume workout · 12:05" — and show the exercise count. |
+| P1.17 | **Accessibility on the logging flow** | P1 | S | The concrete slice of P5.5, on the screen that matters most. Set rows are a bare `clickable` with no `onClickLabel`, so TalkBack says "double tap to activate" without saying it edits the set; the write-error `Text` has no live-region semantics, so a screen reader never hears that a set did not save (the exact failure F7 exists to surface); and the rest-over moment is only visual. Add `onClickLabel`, announce write failures, and add `testTag`s so the UI tests stop asserting on English literals P5.4 will change. |
 
 ---
 
@@ -158,21 +182,59 @@ Where a phone-only logger becomes an Android app.
 | P5.2 | **Friends / shared routines** | P2 | L | Needs accounts, servers, and moderation. Not before product-market fit. |
 | P5.3 | **Monetization** | P2 | M | Play Billing: free core logging, paid advanced analytics/auto-progression. Decide before building analytics, since it gates the boundary. |
 | P5.4 | **Localization** | P2 | M | Extract strings, RTL audit (`supportsRtl` is already on), metric/imperial per locale. |
-| P5.5 | **Accessibility** | P1 | M | TalkBack labels on set rows, ≥48dp targets, no color-only PR indicators, dynamic type at 200%. Number entry must work with a screen reader. |
+| P5.5 | **Accessibility** | P1 | M | TalkBack labels on set rows, ≥48dp targets, no color-only PR indicators, dynamic type at 200%. Number entry must work with a screen reader. Filed under Phase 5 only for scheduling: this is cross-cutting and should accompany each screen as it lands, not be retrofitted. Today set rows are bare `clickable` with no role or merged semantics, row subtitles join with `·` (announced as "middle dot"), and no screen exposes a `testTag`, so the UI tests assert on English literals that P5.4 will change. |
 
 ---
 
 ## Quality bar (applies throughout)
 
-- **Testing:** unit tests for all domain math (1RM, volume, unit conversion,
-  progression); Room migration tests; Compose UI tests for the logging flow;
-  a screenshot test for the design system.
-- **Performance:** baseline profiles, Compose stability (`@Stable`/immutable
-  collections), no main-thread DB access, frame timing on the logging screen
-  since it is used mid-set while breathing hard.
+- **Testing:** ✅ domain math is covered (`Weight`, `WorkoutFormat`, `RestTimer`,
+  `SetSuggestion`), ✅ schema history is guarded by `WorkoutDatabaseMigrationTest`
+  plus the DAO and converter tests, ✅ the logging flow has ViewModel tests.
+  **Not yet:** any Compose UI test for the workout screen — the one screen the
+  app exists for; `ActiveWorkoutScreenTest` and a picker test are the gap the
+  quality bar's own "Compose UI tests for the logging flow" names. Also missing:
+  a screenshot test for the design system; `hilt-android-testing`, without which
+  the Hilt-wired `Route` layers cannot be tested end-to-end — though
+  `ExerciseDetailViewModel`'s argument reading *is* testable without it by
+  constructing a `SavedStateHandle` directly, which is a cheap win; a test that
+  the DAO's soft-delete filters actually hide deleted rows through the joined
+  queries; a coverage signal in CI. And there is no test asserting the seed
+  list's ids are unique — a duplicate would crash `LazyColumn`
+  (`key = { it.id }`) and silently shadow the first row in `getExercise`.
+- **Errors:** F7 covers *writes*. `ExerciseRepository.getExercise` and the
+  `observeExercises()` flows are still unwrapped, so a Room failure there escapes
+  as an exception and takes the screen down rather than rendering a failure. The
+  detail screen also reads once (`flow { emit(getExercise(id)) }`) instead of
+  observing, so it cannot reflect an edit and its `when` has no `else` for the
+  loaded-but-null case. Make reads consistent with writes, or record why they are
+  exempt.
+- **Performance:** not yet measured, and one cause is already known — see **F16**,
+  where the per-second ticker recomposes the whole workout screen. Then: baseline
+  profiles, a Compose compiler stability report (every UI state here holds a
+  `List`, which Compose treats as unstable), and frame timing on the logging
+  screen since it is used mid-set while breathing hard.
+- **Simplicity / no dead weight:** `Weight.step` and `DEFAULT_STEP_GRAMS` are
+  referenced only from tests; `RestTimer.format` and `WorkoutFormat.elapsed` both
+  implement `m:ss` and should collapse before either grows hours support;
+  `SessionExerciseDetail.movementPattern` is selected by the join but dropped in
+  `toDomain()`. Each is trivial, and each is a lie about what the code does.
 - **Privacy:** health data stays on-device by default; any upload is explicit,
-  documented, and revocable. Ship a privacy policy before any Play release.
-- **Observability:** crash reporting, plus a debug-only session log.
+  documented, and revocable. Not yet decided: encryption at rest, an optional app
+  lock, and a "delete all data" action. Ship a privacy policy before any Play
+  release.
+- **Observability:** crash reporting, plus a debug-only session log. A crash
+  report must never carry set values, notes or body measurements.
+- **CI that fails usefully:** a red build should say *what* broke without a
+  download — see **F18** for Dependabot, SHA-pinned actions, wrapper validation,
+  and PR test-result annotations.
+- **No Google Play services at runtime:** the app is pure AndroidX today and runs
+  on a degoogled device (verified against GrapheneOS). Keep that deliberate:
+  F11 must not become Firebase (Crashlytics/Analytics need GMS), P4.5's
+  `play-services-wearable` and P5.3's Play Billing would both stop working there,
+  and Play Integrity must not be added. Consider a build check that fails if a
+  `com.google.android.gms` / `firebase` / `com.google.android.play` artifact
+  reaches a runtime classpath.
 
 ## Explicit non-goals (for now)
 
@@ -180,31 +242,53 @@ Nutrition/calorie tracking, social feeds, live GPS route tracking, and a
 web dashboard. Each is a product in its own right and would dilute the logging
 core.
 
-## Suggested first three PRs
+## Suggested PR sequence
 
 1. ✅ **F1 + F9** — backup rules and the `minSdk` decision. Landed: health data
    is excluded from every platform transfer path and `minSdk` is 26.
 2. ✅ **F2 + F3 + F4** — navigation, ViewModels, and Hilt landed, the greeting
    counter is deleted, and the exercise library is a real screen backed by a
    repository interface.
-3. **F5 + P1.2 + P1.3** — Room plus start-workout and set logging, behind a
-   repository interface with unit tests from the first commit.
+3. ✅ **F5 + P1.2 + P1.3 + P1.4 + P1.8** — Room (schema v3, migrations tested),
+   start/resume, set logging with prefill and undo, the rest timer, and
+   crash-safe recovery all landed. It did get split into three commits, which is
+   why the PR stayed reviewable.
+
+**Next, in order:**
+
+1. **F13 + F15 + F17** — the rest alert's permission is never requested, seed
+   delivery is wrong on both first open and upgrade, and the weight parser accepts
+   `Double` grammar. All three are small, all three are correctness, and all three
+   get harder once there is real history.
+2. **F16** — split the ticking clock out of the workout state before anything else
+   is added to that screen, so the perf baseline is meaningful.
+3. **F14** — ship identity (`applicationId`, label, adaptive icon, versioning) and
+   the Play Console workstream. After the first real upload none of it is cheap to
+   change.
+4. **P1.16 + P1.6 + P1.7** — make the active session visible again, then build
+   history and editing. The app can write history but cannot show or correct it,
+   which is the wrong half of the loop to hold.
+5. **P1.17 + F18 + F12's baseline wiring** — accessibility on the logging flow,
+   and the CI/repo hygiene that keeps the gates honest.
 
 ## Appendix — features implied dependencies
 
 | Feature | Library / API |
 | --- | --- |
-| F2, F8 | `navigation-compose`, `material3` + `material-icons-extended` |
+| F2, F8 | `navigation-compose`, `material3` + `material-icons-core` (`material-icons-extended` only if F8 needs it) |
 | F3 | `lifecycle-viewmodel-compose`, `lifecycle-runtime-compose` |
 | F4 | `hilt-android`, `hilt-compiler`, `hilt-navigation-compose`, KSP |
-| F5, P1.1 | `room-runtime`, `room-ktx`, `room-compiler` (prepackaged DB asset) |
-| F7, P4.9 | `kotlinx-serialization` or Moshi; `kotlinx-coroutines` |
+| F5, P1.1 | ✅ `room-runtime`, `room-compiler`, `room-testing` — seeded on first open, schema committed under `app/schemas/` |
+| F7, P4.9 | ✅ a `DataResult` type over `kotlinx-coroutines`; serialization is already present for routes |
+| F13 | `androidx.core` `NotificationManagerCompat` + `ActivityResultContracts.RequestPermission` |
 | P2.3 | Compose-native canvas charts, or a vetted charting library |
-| P4.1 | `androidx.health.connect:connect-client` |
+| P4.1 | `androidx.health.connect:connect-client`, plus a `ACTION_SHOW_PERMISSIONS_RATIONALE` activity and the Play Health Connect declaration |
+| P4.2, P4.7 | foreground service with the `health` type; `androidx.work` + `hilt-work` for reminders |
 | P4.3 | `glance-appwidget` |
-| P4.5 | `wear-compose` + `play-services-wearable` |
-| P5.3 | `billing-ktx` |
-| F12 | `lint`, `detekt`, `ktlint` |
+| P4.5 | `wear-compose` + `play-services-wearable` — ⚠️ the latter is a Play-services dependency; see the no-GMS quality bar note |
+| P5.3 | `billing-ktx` — also Play-services-dependent |
+| F12 | ✅ `lint`, `detekt` (`ktlint` is still referenced above but not configured) |
+| F18 | `dependabot.yml`, `gradle/actions/wrapper-validation`, a PR test-report action, `.editorconfig` |
 
 Platform notes drawn from the Android health & fitness developer guidance and
 the foreground service types reference:
