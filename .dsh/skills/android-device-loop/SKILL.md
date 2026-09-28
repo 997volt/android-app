@@ -49,6 +49,19 @@ conversion, progression) in pure Kotlin files with JVM tests — the
 `domain/ExerciseSearch.kt` + `ExerciseSearchTest.kt` pair is the pattern to copy.
 (The original `Greeting.kt` scaffold has been deleted; do not reintroduce it.)
 
+**`connectedDebugAndroidTest` uninstalls the app when it finishes.** AGP removes
+the app and its test APKs from the device, so afterwards the app is simply gone
+from the launcher — nothing is broken, but reinstalling (§3) is required before
+looking for it on screen or in a live panel.
+
+**Prefer the manual install path (§3) over the plugin's `android_build_run`.**
+`android_build_run` selects the *newest* APK rather than scoping strictly to
+`apk/<variant>/`, so once an androidTest build exists it picks up
+`apk/androidTest/debug/app-debug-androidTest.apk`, reads the test applicationId,
+and tries to launch `com.example.androidapp.test` — failing with
+`monkey ... exit 252`. Reinstall by hand, or delete
+`app/build/outputs/apk/androidTest` first.
+
 ## 2. A device or emulator
 
 Check what is already attached before starting anything — an emulator is often
@@ -236,5 +249,7 @@ online serial (`emulator-5554`).
 | Screenshot is a grey screen with a purple square | captured the splash | gate on `mCurrentFocus`, then capture |
 | Gradle re-downloads everything | `GRADLE_USER_HOME` not set | source the env script |
 | `connectedDebugAndroidTest` fails | no device/emulator attached | start one (§2) |
+| App gone from the launcher after a test run | `connectedDebugAndroidTest` uninstalls it | reinstall (§3) |
+| `android_build_run` fails: `monkey ... exit 252` on `<pkg>.test` | it picked the newer androidTest APK | install manually (§3) |
 | `android_*` tool: "adb is unavailable" | harness booted without `ADB` | add it to `$DSH_HOME/.env`, restart (§8) |
 | `android_find_text`/`android_tap_text`/`android_wait_for` fail with a swiftc hint | OCR helper needs macOS | use `android_ui_tree` + `android_tap_element` (§8) |
