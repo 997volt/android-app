@@ -6,6 +6,7 @@ lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 navigationCompose = "2.10.2"
+room = "2.8.5"
 kotlinxSerialization = "1.11.0"
 hilt = "2.60.1"
 androidxHilt = "1.4.0"
@@ -13,7 +14,13 @@ ksp = "2.3.12"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
 espressoCore = "3.7.0"
-coroutines = "1.11.0"
+# Pinned to what the dependency graph actually resolves for
+# kotlinx-coroutines-core. A kotlinx-coroutines-bom in the graph (via Room /
+# lifecycle) holds core at 1.9.0, so a newer coroutines-test compiles against
+# core internals that are not on the device classpath and every instrumented
+# test dies with NoSuchMethodError: runBlockingK$default. Bumping this means
+# bumping core too - check `./gradlew :app:dependencies` first.
+coroutines = "1.9.0"
 detekt = "1.23.8"
 # Pinned to the 0.4.x line on purpose: 0.5.0+ of these rules targets detekt 2.0
 # (dev.detekt), and against detekt 1.23.x they load but silently register nothing,
@@ -29,6 +36,11 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+
+# Room 2.7+ folded the coroutines/suspend support of room-ktx into room-runtime.
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }

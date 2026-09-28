@@ -56,7 +56,7 @@ Work that every later feature leans on. Cheap now, expensive to retrofit.
 | F2 | ✅ **Navigation** | P0 | S | Landed. `navigation-compose` type-safe routes (`@Serializable` destinations) in [AppNavHost.kt](app/src/main/java/com/example/androidapp/ui/navigation/AppNavHost.kt); the detail ViewModel reads its argument with `SavedStateHandle.toRoute()`. |
 | F3 | ✅ **Presentation layer** | P0 | S | Landed. `@HiltViewModel` + `StateFlow<UiState>` + `collectAsStateWithLifecycle`. Each screen splits into a stateful `…Route` and a stateless `…Screen`, so the UI is testable with no Hilt container. |
 | F4 | ✅ **Dependency injection** | P0 | M | Landed. Hilt 2.60.1 via KSP. Worth recording: KSP is now versioned independently of Kotlin, so KSP 2.3.12 works with Kotlin 2.4.20 even though its own API still targets 2.3.20 — a version probe settled that before any code was written. |
-| F5 | **Local persistence** | P0 | M | Room + KSP. Schema export on, migrations from day one (`exportSchema = true`, no `fallbackToDestructiveMigration` in release). |
+| F5 | ✅ **Local persistence** | P0 | M | Landed. Room 2.8.5 via KSP behind the existing `ExerciseRepository`. Schema exported to [`app/schemas/`](app/schemas/) and committed; enums stored by name via `Converters`, never ordinals; soft deletes filtered inside the DAO; no `fallbackToDestructiveMigration` anywhere, so a forgotten migration fails loudly instead of wiping history. Rows already carry the sync-ready `id`/`createdAt`/`updatedAt`/`deletedAt` shape (P4.9). Seeded on first open rather than shipped as a prepackaged `.db`. |
 | F6 | **Domain + data modules** | P1 | M | Split into `:app`, `:core:data`, `:core:domain`, `:feature:workout`, … so build times and ownership stay sane. Optional at MVP, painful later. |
 | F7 | **Result/error model** | P1 | S | A `Result`-like type plus a `DataError` taxonomy, so failures are values rather than thrown exceptions in repositories. |
 | F8 | **Design system layer** | P1 | M | Promote `ui/theme` into a real component library: buttons, list rows, empty/error/loading states, number pickers. Workout logging is number-entry heavy. |
@@ -77,7 +77,7 @@ The smallest thing a lifter will actually keep installed.
 
 | # | Feature | Pri | Eff | Notes |
 | --- | --- | --- | --- | --- |
-| P1.1 | ◐ **Exercise library** | P0 | M | 30 seeded exercises with primary/secondary muscles, equipment, and movement pattern, read through `ExerciseRepository`. Search filters on name, muscle, and equipment. Currently in-memory — the prepackaged Room DB lands with F5. |
+| P1.1 | ✅ **Exercise library** | P0 | M | 30 seeded exercises with primary/secondary muscles, equipment, and movement pattern, persisted in Room and read through `ExerciseRepository`. Search filters on name, muscle, and equipment. |
 | P1.2 | **Start an empty workout** | P0 | M | "Start workout" → timed session, add exercises as you go. This flow is the product; it must be ≤ 1 tap to first set. |
 | P1.3 | **Log sets/reps/weight** | P0 | M | Fast number entry, previous-session values pre-filled as placeholders, swipe to delete, undo. Support bodyweight/assisted/duration/distance set types. |
 | P1.4 | **Rest timer** | P0 | S | Auto-starts on set completion, configurable default, notification when backgrounded, +15s/−15s and skip. |

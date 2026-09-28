@@ -40,6 +40,15 @@ val keystoreProperties = Properties().apply {
 val releaseStoreFile: String? = keystoreProperties.getProperty("storeFile")
 val hasReleaseSigning = releaseStoreFile != null
 
+/**
+ * Room exports its schema as JSON so migrations can be tested against a real
+ * baseline (ROADMAP F5). The files under `app/schemas/` are committed on
+ * purpose: they are the record of every shipped schema version.
+ */
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.example.androidapp"
     compileSdk = 37
@@ -98,6 +107,13 @@ android {
         compose = true
     }
 
+    sourceSets {
+        // Makes the exported schema JSON visible to instrumented migration tests.
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
+
     lint {
         // The CI gate (ROADMAP F12) only means something if warnings fail the
         // build. Version-freshness checks are excluded because they hit the
@@ -141,6 +157,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.core)
 
+    // Local persistence (F5).
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 
@@ -148,6 +168,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

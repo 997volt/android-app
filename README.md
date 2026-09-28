@@ -84,16 +84,32 @@ The workflow deliberately does **not** use `.toolchain/`: that is a per-machine,
 gitignored install, and `tools/android-env.sh` is a no-op without it, so CI uses
 the runner's own JDK and Android SDK.
 
-### Known flakiness
+### Known flakiness: intermittent task failures under memory pressure
 
-`hiltJavaCompileDebug` / `hiltJavaCompileRelease` have been observed to fail
-intermittently — Hilt's aggregating task, most likely racing with parallel
-execution. It was seen three times, each time cleared by simply re-running, and
-five subsequent clean builds (including the exact sequences that had failed)
-passed, so it is **not** deterministically reproducible and is not worked around
-speculatively. If CI goes red on that task, re-run the job; if it recurs often,
-try `org.gradle.parallel=false` in [`gradle.properties`](gradle.properties) for
-that job and see whether it stops.
+Four different Gradle tasks have each failed once and then passed on an immediate
+re-run with **no code change**:
+
+| Task | Symptom seen |
+| --- | --- |
+| `hiltJavaCompileDebug` / `hiltJavaCompileRelease` | `cannot access com.example.androidapp` |
+| `expandReleaseArtProfileWildcards` | `getInputStream(...) must not be null` |
+| `lintAnalyzeDebugAndroidTest` | task failure, no findings in the report |
+
+The common factor looks like memory rather than one particular plugin. This
+sandbox has ~12 GB total with under 300 MB free while a booted emulator
+(~2–3 GB) competes with the Gradle and Kotlin daemons, and every one of those
+tasks is worker-based. `./gradlew clean` or a plain re-run has cleared every
+occurrence, and the same sequences have since passed repeatedly — so this is
+**not** deterministically reproducible, and nothing here is worked around
+speculatively.
+
+Practical consequence: if a build fails in one of these tasks with an error that
+does not point at your own code, **re-run before investigating**. If it becomes
+frequent, free memory (stop the emulator), cap concurrency with
+`--max-workers=2`, or drop `org.gradle.parallel` from
+[`gradle.properties`](gradle.properties). The CI `build` job runs on a dedicated
+runner with no emulator and should not hit this; the `instrumented` job does run
+an emulator, so it is the one to watch.
 
 ## Local toolchain in `.toolchain/`
 
