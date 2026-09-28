@@ -10,6 +10,11 @@
     <string name="exercise_library_loading">Loading exercises…</string>
     <string name="exercise_library_empty">No exercises match “%1$s”</string>
     <string name="library_start_workout">Start workout</string>
+    <string name="library_resume_workout">Resume workout</string>
+    <plurals name="library_exercises">
+        <item quantity="one">%1$d exercise</item>
+        <item quantity="other">%1$d exercises</item>
+    </plurals>
 
     <!-- Exercise detail -->
     <string name="exercise_detail_title">Exercise</string>

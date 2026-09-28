@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -34,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +43,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
+import com.example.androidapp.ui.workout.WorkoutClock
 import com.example.androidapp.ui.transfer.rememberDataTransferActions
 
 /**
@@ -67,6 +71,8 @@ fun ExerciseLibraryRoute(
     transferViewModel: DataTransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Not unwrapped with `by`: reading it here would rebuild the list every second.
+    val clock = viewModel.clock.collectAsStateWithLifecycle()
 
     // Held here rather than in the screen so the screen stays stateless and
     // testable with a fixed string.
@@ -76,6 +82,7 @@ fun ExerciseLibraryRoute(
     ExerciseLibraryScreen(
         state = state,
         title = stringResource(R.string.exercise_library_title),
+        clock = clock,
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
         onStartWorkout = onStartWorkout,
@@ -99,6 +106,7 @@ fun ExerciseLibraryRoute(
 @Composable
 fun ExerciseLibraryScreen(
     state: ExerciseLibraryUiState,
+    clock: State<WorkoutClock>,
     title: String,
     onQueryChange: (String) -> Unit,
     onExerciseClick: (String) -> Unit,
@@ -145,10 +153,10 @@ fun ExerciseLibraryScreen(
         },
         floatingActionButton = {
             if (onStartWorkout != null) {
-                ExtendedFloatingActionButton(
+                StartOrResumeButton(
+                    activeWorkout = state.activeWorkout,
+                    clock = clock,
                     onClick = onStartWorkout,
-                    text = { Text(stringResource(R.string.library_start_workout)) },
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 )
             }
         },
@@ -264,6 +272,56 @@ private fun LibraryDataMenu(
     }
 }
 
+/**
+ * The library's primary action (ROADMAP P1.16).
+ *
+ * Reads the clock — and is the only composable here that does, so the one-second
+ * tick stops at this button instead of rebuilding the list beneath it.
+ */
+@Composable
+private fun StartOrResumeButton(
+    activeWorkout: ActiveWorkoutInfo?,
+    clock: State<WorkoutClock>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val resuming = activeWorkout != null
+    val elapsed = if (resuming) clock.value.elapsed else ""
+    val exercises = if (resuming) {
+        pluralStringResource(
+            R.plurals.library_exercises,
+            activeWorkout.exerciseCount,
+            activeWorkout.exerciseCount,
+        )
+    } else {
+        ""
+    }
+
+    ExtendedFloatingActionButton(
+        modifier = modifier,
+        onClick = onClick,
+        text = {
+            Text(
+                text = if (resuming) {
+                    listOf(
+                        stringResource(R.string.library_resume_workout),
+                        elapsed,
+                        exercises,
+                    ).filter { it.isNotEmpty() }.joinToString(" \u00b7 ")
+                } else {
+                    stringResource(R.string.library_start_workout)
+                },
+            )
+        },
+        icon = {
+            Icon(
+                imageVector = if (resuming) Icons.Filled.PlayArrow else Icons.Filled.Add,
+                contentDescription = null,
+            )
+        },
+    )
+}
+
 /** The library's search box, split out so the screen composable stays readable. */
 @Composable
 private fun LibrarySearchField(
@@ -326,6 +384,7 @@ private fun ExerciseLibraryScreenPreview() {
                     ExerciseListItem("bench-press", "Barbell Bench Press", "Chest", "Barbell"),
                 ),
             ),
+            clock = remember { mutableStateOf(WorkoutClock()) },
             title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},
@@ -340,6 +399,7 @@ private fun ExerciseLibraryEmptyPreview() {
     AndroidAppTheme {
         ExerciseLibraryScreen(
             state = ExerciseLibraryUiState(query = "zzz", isLoading = false, items = emptyList()),
+            clock = remember { mutableStateOf(WorkoutClock()) },
             title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},

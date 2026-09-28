@@ -15,6 +15,17 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.example.androidapp.domain.DataResult
+import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.SessionExercise
+import com.example.androidapp.domain.model.SetEntry
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.repository.WorkoutRepository
+import java.time.Instant
+import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -47,7 +58,7 @@ class ExerciseLibraryViewModelTest {
 
     @Test
     fun publishesWholeLibraryOnceLoaded() = runTest(dispatcher) {
-        val viewModel = ExerciseLibraryViewModel(FakeRepository(listOf(squat, bench)))
+        val viewModel = viewModelFor(squat, bench)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -58,7 +69,7 @@ class ExerciseLibraryViewModelTest {
 
     @Test
     fun query_filtersItemsAndIsEchoedBackToTheField() = runTest(dispatcher) {
-        val viewModel = ExerciseLibraryViewModel(FakeRepository(listOf(squat, bench)))
+        val viewModel = viewModelFor(squat, bench)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -72,7 +83,7 @@ class ExerciseLibraryViewModelTest {
 
     @Test
     fun unmatchedQuery_isEmpty_butNotStillLoading() = runTest(dispatcher) {
-        val viewModel = ExerciseLibraryViewModel(FakeRepository(listOf(squat)))
+        val viewModel = viewModelFor(squat)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -86,7 +97,7 @@ class ExerciseLibraryViewModelTest {
 
     @Test
     fun itemExposesRowLabelsForTheListUi() = runTest(dispatcher) {
-        val viewModel = ExerciseLibraryViewModel(FakeRepository(listOf(squat)))
+        val viewModel = viewModelFor(squat)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -117,5 +128,63 @@ class ExerciseLibraryViewModelTest {
             equipment = Equipment.BARBELL,
             movementPattern = MovementPattern.HORIZONTAL_PUSH,
         )
+    }
+
+    @Test
+    fun withNoWorkoutRunning_thereIsNothingToResume() = runTest(dispatcher) {
+        val viewModel = viewModelFor(squat, bench)
+        observe(viewModel)
+        // Safe to settle fully: the clock only ticks while a workout is running,
+        // so an idle library screen holds no timer open.
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.uiState.value.activeWorkout)
+        assertEquals("", viewModel.clock.value.elapsed)
+    }
+
+    private fun viewModelFor(vararg exercises: Exercise) = ExerciseLibraryViewModel(
+        exerciseRepository = FakeRepository(exercises.toList()),
+        workoutRepository = NoActiveWorkout,
+        timeSource = clock,
+    )
+
+    private val clock = TimeSource { Instant.parse("2026-09-28T08:00:00Z") }
+
+    /**
+     * The library screen only asks two things of the workout repository: is a
+     * session running, and how many exercises does it hold. Everything else is
+     * `error(...)` so an accidental call shows up as a failure rather than a
+     * silent stub.
+     */
+    private object NoActiveWorkout : WorkoutRepository {
+        override fun observeActiveSession(): Flow<WorkoutSession?> = flowOf(null)
+        override fun observeSessionExercises(sessionId: String): Flow<List<SessionExercise>> =
+            flowOf(emptyList())
+
+        override fun observeSets(sessionId: String): Flow<List<SetEntry>> = flowOf(emptyList())
+        override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
+        override fun observeSession(sessionId: String): Flow<WorkoutSession?> = flowOf(null)
+        override suspend fun startOrResumeSession(): DataResult<String> = unused()
+        override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> = unused()
+        override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
+        override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
+        override suspend fun deleteSession(sessionId: String): DataResult<Unit> = unused()
+        override suspend fun logSet(
+            sessionExerciseId: String,
+            reps: Int,
+            weightGrams: Long,
+            setType: SetType,
+        ): DataResult<Unit> = unused()
+        override suspend fun updateSet(setId: String, reps: Int, weightGrams: Long): DataResult<Unit> = unused()
+        override suspend fun deleteSet(setId: String): DataResult<Unit> = unused()
+        override suspend fun previousPerformance(
+            exerciseId: String,
+            currentSessionId: String,
+        ): DataResult<PreviousPerformance> = unused()
+        override suspend fun startRest(seconds: Int): DataResult<Instant> = unused()
+        override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> = unused()
+        override suspend fun clearRest(): DataResult<Unit> = unused()
+
+        private fun unused(): Nothing = error("the library screen must not call this")
     }
 }

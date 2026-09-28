@@ -2,6 +2,8 @@ package com.example.androidapp.ui.workout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -36,6 +38,8 @@ fun ExercisePickerRoute(
 
     ExerciseLibraryScreen(
         state = state,
+        // The picker has no start/resume button, so its clock never ticks.
+        clock = remember { mutableStateOf(WorkoutClock()) },
         title = stringResource(R.string.picker_title),
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = viewModel::onExerciseSelected,

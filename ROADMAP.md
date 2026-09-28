@@ -43,14 +43,14 @@ the *Still to do* rows below. Everything unmarked here is done.
 | P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import is additive and idempotent (`INSERT OR IGNORE`), refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
 | P1.6 | Workout history | Chronological list grouped by month, with duration, volume and set count per workout, plus a read-only detail view. Totals are aggregated in SQL, and only finished sessions appear. |
 | P1.7 | Edit / delete | Correct or remove a past set, and delete a whole workout behind a confirmation. Makes `Finish` recoverable instead of a one-way door. |
+| P1.16 | Resume affordance | The library button reads "Resume workout" with the elapsed time and exercise count when a session is open, so backing out no longer hides a running workout. The clock is a separate flow only the button reads (see F16). |
 
-68 JVM tests and 37 instrumented tests, all passing.
+69 JVM tests and 39 instrumented tests, all passing.
 
 ### Still to do
 
 | # | Feature | Why it is MVP |
 | --- | --- | --- |
-| **P1.16** | **Resume affordance** | An active workout is currently invisible on the library screen; the button should read "Resume workout" with the elapsed time. |
 | **P1.1a** | **Fix search and the empty state** | Search matches only `primaryMuscle.label`, so "forearms" misses a row whose forearms are secondary, and it matches the display label, which would break the moment those strings are localized. Match secondary muscles too, and on a locale-stable key. The screen also cannot tell "the library is empty" from "nothing matched" — both render `No exercises match ""` — so give those two states separate messages. Small — do it with P1.6. |
 | **P1.3a** | **Number entry** | Numeric keyboard and a +/− stepper (wire the already-written `Weight.step`, or delete it); decide the bodyweight/duration/distance row shape before history accumulates. |
 
