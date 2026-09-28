@@ -13,6 +13,7 @@ import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.successUnit
 import java.io.IOException
@@ -405,6 +406,12 @@ class ActiveWorkoutViewModelTest {
         }
 
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = sets
+
+        // History is exercised by its own tests; the session tests only need the
+        // interface satisfied.
+        override fun observeHistory(): Flow<List<WorkoutSummary>> = MutableStateFlow(emptyList())
+
+        override fun observeSession(sessionId: String): Flow<WorkoutSession?> = MutableStateFlow(null)
 
         override suspend fun logSet(
             sessionExerciseId: String,

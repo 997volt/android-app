@@ -7,6 +7,7 @@ import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.WorkoutSummary
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
@@ -31,6 +32,18 @@ interface WorkoutRepository {
 
     /** Every live set in [sessionId], ordered by exercise position then set. */
     fun observeSets(sessionId: String): Flow<List<SetEntry>>
+
+    /**
+     * Finished workouts, newest first, with their totals already aggregated
+     * (ROADMAP P1.6).
+     *
+     * Only finished ones: an open session belongs on the workout screen, not in a
+     * history you are meant to be reading.
+     */
+    fun observeHistory(): Flow<List<WorkoutSummary>>
+
+    /** One session by id, so the detail screen observes rather than fetches. */
+    fun observeSession(sessionId: String): Flow<WorkoutSession?>
 
     /**
      * Returns the in-progress session, creating one if there is none.

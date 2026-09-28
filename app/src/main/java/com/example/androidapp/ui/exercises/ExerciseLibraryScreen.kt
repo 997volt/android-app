@@ -61,6 +61,7 @@ import com.example.androidapp.ui.transfer.rememberDataTransferActions
 fun ExerciseLibraryRoute(
     onExerciseClick: (String) -> Unit,
     onStartWorkout: () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseLibraryViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
@@ -78,6 +79,7 @@ fun ExerciseLibraryRoute(
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
         onStartWorkout = onStartWorkout,
+        onOpenHistory = onOpenHistory,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         transferMessage = transferMessage,
@@ -103,6 +105,7 @@ fun ExerciseLibraryScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onStartWorkout: (() -> Unit)? = null,
+    onOpenHistory: (() -> Unit)? = null,
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
     transferMessage: String? = null,
@@ -131,7 +134,11 @@ fun ExerciseLibraryScreen(
                     // Only the real library offers the data menu; the picker reuses
                     // this screen with neither callback, so no menu appears there.
                     if (onExportData != null && onImportData != null) {
-                        LibraryDataMenu(onExport = onExportData, onImport = onImportData)
+                        LibraryDataMenu(
+                            onOpenHistory = onOpenHistory,
+                            onExport = onExportData,
+                            onImport = onImportData,
+                        )
                     }
                 },
             )
@@ -213,6 +220,7 @@ private fun ShowTransferMessage(
 /** Export/import, behind an overflow so the app bar stays quiet (P1.12). */
 @Composable
 private fun LibraryDataMenu(
+    onOpenHistory: (() -> Unit)?,
     onExport: () -> Unit,
     onImport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -229,6 +237,15 @@ private fun LibraryDataMenu(
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (onOpenHistory != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.history_title)) },
+                    onClick = {
+                        open = false
+                        onOpenHistory()
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.transfer_export)) },
                 onClick = {

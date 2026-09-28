@@ -80,4 +80,17 @@
     </plurals>
     <string name="transfer_already_complete">Everything in that file was already here.</string>
     <string name="transfer_storage_error">Couldn’t read or write that file.</string>
+
+    <!-- Workout history (ROADMAP P1.6) -->
+    <string name="history_title">Workout history</string>
+    <string name="history_loading">Loading history…</string>
+    <string name="history_empty">No workouts yet</string>
+    <string name="history_empty_hint">Finished workouts will appear here.</string>
+    <string name="history_volume">%1$s kg</string>
+    <string name="history_detail_title">Workout</string>
+    <string name="history_detail_missing">That workout is no longer stored.</string>
+    <plurals name="history_sets">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
 </resources>

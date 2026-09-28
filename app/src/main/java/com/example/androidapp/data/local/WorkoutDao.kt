@@ -36,6 +36,46 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE id = :id AND deletedAt IS NULL")
     suspend fun findSession(id: String): WorkoutSessionEntity?
 
+    @Query("SELECT * FROM workout_sessions WHERE id = :id AND deletedAt IS NULL")
+    fun observeSession(id: String): Flow<WorkoutSessionEntity?>
+
+    /**
+     * Finished workouts with their totals (ROADMAP P1.6).
+     *
+     * The counts and the volume are computed in SQL rather than by loading every
+     * set and adding it up in Kotlin: a history screen may cover years, and the
+     * aggregates are exactly what an index is for. `COALESCE` keeps an empty
+     * workout at 0 rather than null.
+     *
+     * `weightGrams * reps` is gram-reps, summed as a Long — the same exactness
+     * argument as storing grams in the first place.
+     */
+    @Query(
+        """
+        SELECT ws.id AS id,
+               ws.startedAt AS startedAt,
+               ws.finishedAt AS finishedAt,
+               (
+                   SELECT COUNT(*) FROM session_exercises se
+                   WHERE se.sessionId = ws.id AND se.deletedAt IS NULL
+               ) AS exerciseCount,
+               (
+                   SELECT COUNT(*) FROM set_entries s
+                   JOIN session_exercises se ON se.id = s.sessionExerciseId
+                   WHERE se.sessionId = ws.id AND se.deletedAt IS NULL AND s.deletedAt IS NULL
+               ) AS setCount,
+               (
+                   SELECT COALESCE(SUM(s.weightGrams * s.reps), 0) FROM set_entries s
+                   JOIN session_exercises se ON se.id = s.sessionExerciseId
+                   WHERE se.sessionId = ws.id AND se.deletedAt IS NULL AND s.deletedAt IS NULL
+               ) AS volumeGrams
+        FROM workout_sessions ws
+        WHERE ws.finishedAt IS NOT NULL AND ws.deletedAt IS NULL
+        ORDER BY ws.finishedAt DESC
+        """,
+    )
+    fun observeHistory(): Flow<List<WorkoutSummaryRow>>
+
     /** Session exercises with their library details, in stored order. */
     @Query(
         """

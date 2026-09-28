@@ -13,6 +13,7 @@ import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.repository.WorkoutRepository
 import java.time.Instant
@@ -45,6 +46,12 @@ class RoomWorkoutRepository @Inject constructor(
 
     override fun observeSets(sessionId: String): Flow<List<SetEntry>> =
         dao.observeSetsForSession(sessionId).map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeHistory(): Flow<List<WorkoutSummary>> =
+        dao.observeHistory().map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeSession(sessionId: String): Flow<WorkoutSession?> =
+        dao.observeSession(sessionId).map { it?.toDomain() }
 
     override suspend fun startOrResumeSession(): DataResult<String> = dataResultOf {
         // find-or-create is a single transaction, so two taps cannot open two

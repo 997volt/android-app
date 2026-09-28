@@ -33,3 +33,11 @@ data object ActiveWorkout
 /** Exercise picker, shown over an active workout. */
 @Serializable
 data object ExercisePicker
+
+/** The history list (ROADMAP P1.6). */
+@Serializable
+data object WorkoutHistory
+
+/** One past workout, read-only. */
+@Serializable
+data class WorkoutDetail(val sessionId: String)
