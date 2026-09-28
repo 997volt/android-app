@@ -31,7 +31,7 @@ the *Still to do* rows below. Everything unmarked here is done.
 | F10 | Release pipeline | GitHub Actions: unit tests, lint, detekt, debug and R8-minified release. |
 | F12 | Lint / detekt gate | Warnings fail the build. The lint **baseline is deliberately not wired** — AGP auto-creates the file and would silently accept a warning on the next run; see the comment in [app/build.gradle.kts](app/build.gradle.kts). |
 | F13 | Rest-alert permissions | Requested on the first logged set, never at launch; refusal is non-fatal and not re-prompted. See [Built, but optional](#built-but-optional). |
-| F14 | ◐ Ship identity | Landed: `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), and `versionCode`/`versionName` read from a single [`version.properties`](version.properties). **Still to do:** the label (see *Publishing*) and a 512 px listing asset. |
+| F14 | ◐ Ship identity | Landed: `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), and `versionCode`/`versionName` read from a single [`version.properties`](version.properties). Landed in full apart from one item that only matters if the app is ever published: a 512 px listing asset. The launcher label is **Workout Log**. |
 | F15 | Seed delivery | Seeded on *every* open with `INSERT OR IGNORE`, so first launch and upgrades both work, the first read is never empty, and a user's delete survives a top-up. |
 | F16 | Recomposition-safe clock | The 1-second tick no longer rebuilds the workout screen's exercise list. |
 | F17 | Input validation | Weight parsing is bounded (no exponent/hex, capped); `logSet` fails unless the exercise is live and its session is open. |
@@ -81,7 +81,7 @@ runs once the "Still to do" rows above are green.
 | --- | --- | --- |
 | R1.1 | Keystore (`workout.jks`) and `keystore.properties` created, both gitignored | ✅ done |
 | R1.2 | [`tools/build-apk.sh`](tools/build-apk.sh) builds a **signed** release APK and refuses an unsigned one | ✅ done |
-| R1.3 | Change the app label from "Android App" to something recognisable | ☐ |
+| R1.3 | App label is **Workout Log** — verified in the built APK for every locale and on the launcher un-ellipsized | ✅ done |
 | R1.4 | First `adb install -r` on the phone, then log a workout end to end | ☐ |
 | R1.5 | Upgrade test — bump `versionCode`, rebuild, install over the running app, confirm history survives | ☐ |
 
