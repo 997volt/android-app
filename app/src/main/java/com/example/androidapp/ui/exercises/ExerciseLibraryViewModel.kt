@@ -69,7 +69,8 @@ class ExerciseLibraryViewModel @Inject constructor(
     }
 }
 
-private fun Exercise.toListItem() = ExerciseListItem(
+/** Shared with the workout screens' exercise picker, which renders the same rows. */
+internal fun Exercise.toListItem() = ExerciseListItem(
     id = id,
     name = name,
     muscleLabel = primaryMuscle.label,

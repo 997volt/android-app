@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Android App</string>
+    <string name="nav_back">Back</string>
 
     <!-- Exercise library -->
     <string name="exercise_library_title">Exercise library</string>
@@ -8,6 +9,7 @@
     <string name="exercise_search_clear">Clear search</string>
     <string name="exercise_library_loading">Loading exercises…</string>
     <string name="exercise_library_empty">No exercises match “%1$s”</string>
+    <string name="library_start_workout">Start workout</string>
 
     <!-- Exercise detail -->
     <string name="exercise_detail_title">Exercise</string>
@@ -19,4 +21,23 @@
     <string name="exercise_detail_none">None</string>
     <string name="exercise_detail_not_found">That exercise is no longer in the library.</string>
     <string name="exercise_detail_history_planned">Per-exercise history and personal records are planned (ROADMAP P2.1).</string>
+
+    <!-- Active workout -->
+    <string name="active_workout_title">Workout</string>
+    <string name="active_workout_loading">Loading workout…</string>
+    <string name="active_workout_none">No workout in progress.</string>
+    <string name="active_workout_started">Started %1$s</string>
+    <string name="active_workout_add_exercise">Add exercise</string>
+    <string name="active_workout_finish">Finish</string>
+    <string name="active_workout_discard">Discard workout</string>
+    <string name="active_workout_empty">No exercises yet</string>
+    <string name="active_workout_empty_hint">Add your first exercise to start tracking this workout.</string>
+    <string name="active_workout_remove">Remove %1$s</string>
+
+    <!-- Exercise picker -->
+    <string name="picker_title">Add exercise</string>
+
+    <!-- Write failures (ROADMAP F7) -->
+    <string name="workout_error_not_found">That workout is no longer open.</string>
+    <string name="workout_error_storage">Couldn’t save that. Your last change may not be stored.</string>
 </resources>

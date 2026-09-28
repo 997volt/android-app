@@ -8,9 +8,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.androidapp.ui.exercises.ExerciseDetailRoute
 import com.example.androidapp.ui.exercises.ExerciseLibraryRoute
+import com.example.androidapp.ui.workout.ActiveWorkoutRoute
+import com.example.androidapp.ui.workout.ExercisePickerRoute
 
 /**
- * The app's single navigation graph (ROADMAP F2).
+ * The app's single navigation graph (ROADMAP F2, P1.2).
  *
  * Destinations are registered by route *type*, so [ExerciseDetail]'s
  * `exerciseId` is read back with `SavedStateHandle.toRoute()` in its ViewModel
@@ -31,11 +33,27 @@ fun AppNavHost(
                 onExerciseClick = { exerciseId ->
                     navController.navigate(ExerciseDetail(exerciseId))
                 },
+                onStartWorkout = { navController.navigate(ActiveWorkout) },
             )
         }
 
         composable<ExerciseDetail> {
             ExerciseDetailRoute(onBack = { navController.popBackStack() })
+        }
+
+        composable<ActiveWorkout> {
+            ActiveWorkoutRoute(
+                onAddExercise = { navController.navigate(ExercisePicker) },
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<ExercisePicker> {
+            ExercisePickerRoute(
+                onAddExercise = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }

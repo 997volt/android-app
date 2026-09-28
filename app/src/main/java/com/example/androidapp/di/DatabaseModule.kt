@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.androidapp.data.SeedExercises
+import com.example.androidapp.data.local.ALL_MIGRATIONS
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toEntity
 import dagger.Module
@@ -20,6 +21,9 @@ import kotlinx.coroutines.launch
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    // Room takes migrations as a vararg, so the array must be spread — the
+    // suppressed copy is a handful of Migration objects, built once per process.
+    @Suppress("SpreadOperator")
     @Provides
     @Singleton
     fun provideDatabase(
@@ -29,6 +33,9 @@ object DatabaseModule {
         lateinit var database: WorkoutDatabase
 
         database = Room.databaseBuilder(context, WorkoutDatabase::class.java, WorkoutDatabase.NAME)
+            // No fallbackToDestructiveMigration: a forgotten migration must fail
+            // loudly rather than silently wipe a user's training history.
+            .addMigrations(*ALL_MIGRATIONS)
             .addCallback(
                 object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

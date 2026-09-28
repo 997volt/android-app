@@ -1,7 +1,9 @@
 package com.example.androidapp.di
 
 import com.example.androidapp.data.RoomExerciseRepository
+import com.example.androidapp.data.RoomWorkoutRepository
 import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.repository.WorkoutRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -22,4 +24,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindExerciseRepository(impl: RoomExerciseRepository): ExerciseRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWorkoutRepository(impl: RoomWorkoutRepository): WorkoutRepository
 }

@@ -18,3 +18,18 @@ data object ExerciseLibrary
 /** Detail for a single exercise. */
 @Serializable
 data class ExerciseDetail(val exerciseId: String)
+
+/**
+ * The in-progress workout (ROADMAP P1.2).
+ *
+ * Carries no session id: the open session is already the single source of truth
+ * in the database — which is precisely what makes recovery after process death
+ * work (P1.8) — so copying it into the back stack would only create a second,
+ * staleable answer to "which workout am I in".
+ */
+@Serializable
+data object ActiveWorkout
+
+/** Exercise picker, shown over an active workout. */
+@Serializable
+data object ExercisePicker

@@ -15,14 +15,20 @@ import androidx.room.TypeConverters
  * history. A missing migration must fail loudly in development instead.
  */
 @Database(
-    entities = [ExerciseEntity::class],
-    version = 1,
+    entities = [
+        ExerciseEntity::class,
+        WorkoutSessionEntity::class,
+        SessionExerciseEntity::class,
+    ],
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class WorkoutDatabase : RoomDatabase() {
 
     abstract fun exerciseDao(): ExerciseDao
+
+    abstract fun workoutDao(): WorkoutDao
 
     companion object {
         const val NAME = "workout.db"

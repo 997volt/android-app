@@ -5,9 +5,11 @@
 # library rulesets (including the Compose rules) bring their own defaults.
 #
 # Every entry below is either a false positive for this codebase or a narrowly
-# scoped file exclusion, with the reason recorded. No rule is switched off
-# wholesale, because a silent `active: false` is how a gate stops catching
-# anything.
+# scoped exclusion, with the reason recorded. No rule is switched off wholesale,
+# because a silent `active: false` is how a gate stops catching anything.
+#
+# NOTE: YAML duplicate keys silently let the last one win, which would drop part
+# of a configuration without any warning. Keep one entry per rule.
 
 config:
   validation: true
@@ -27,8 +29,9 @@ style:
 
   MagicNumber:
     # The Material 3 colour palette is deliberately nothing but literal ARGB
-    # values; extracting them to constants would obscure the palette.
-    excludes: ['**/ui/theme/Color.kt']
+    # values; constants would obscure it. Test sources are excluded too, because
+    # there the literal IS the expectation.
+    excludes: ['**/ui/theme/Color.kt', '**/test/**', '**/androidTest/**']
 
   MaxLineLength:
     # One row per exercise keeps this seed table reviewable, and a wrapped row
@@ -37,6 +40,15 @@ style:
 
 complexity:
   LongParameterList:
-    # Same file: the terse `barbell(...)` builder exists precisely so each of the
-    # 30 seed rows stays a single line.
+    # A composable's parameter list is its state plus one callback per event;
+    # that is the intended shape, not a design smell. The seed table is excluded
+    # for the separate reason that its terse `barbell(...)` builder exists so each
+    # of the 30 rows stays a single line.
+    ignoreAnnotated: ['Composable']
     excludes: ['**/data/SeedExercises.kt']
+
+  TooManyFunctions:
+    # A DAO is a collection of queries by nature — one per read or write it
+    # supports. The default interface threshold is tuned for behavioural
+    # interfaces, not query surfaces.
+    thresholdInInterfaces: 25

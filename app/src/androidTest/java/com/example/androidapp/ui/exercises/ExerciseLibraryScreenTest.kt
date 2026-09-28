@@ -41,6 +41,7 @@ class ExerciseLibraryScreenTest {
         composeTestRule.setContent {
             ExerciseLibraryScreen(
                 state = state,
+                title = "Exercise library",
                 onQueryChange = onQueryChange,
                 onExerciseClick = onExerciseClick,
             )

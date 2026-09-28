@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,30 +47,64 @@ import com.example.androidapp.ui.theme.AndroidAppTheme
 @Composable
 fun ExerciseLibraryRoute(
     onExerciseClick: (String) -> Unit,
+    onStartWorkout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseLibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ExerciseLibraryScreen(
         state = state,
+        title = stringResource(R.string.exercise_library_title),
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
+        onStartWorkout = onStartWorkout,
         modifier = modifier,
     )
 }
 
+/**
+ * The library list.
+ *
+ * [onBack] and [onStartWorkout] are optional so the same composable serves both
+ * the standalone library destination and the in-workout exercise picker, which
+ * differs only in its title and what a tap does.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseLibraryScreen(
     state: ExerciseLibraryUiState,
+    title: String,
     onQueryChange: (String) -> Unit,
     onExerciseClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    onStartWorkout: (() -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.exercise_library_title)) })
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.nav_back),
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        floatingActionButton = {
+            if (onStartWorkout != null) {
+                ExtendedFloatingActionButton(
+                    onClick = onStartWorkout,
+                    text = { Text(stringResource(R.string.library_start_workout)) },
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                )
+            }
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -138,7 +175,8 @@ private fun ExerciseList(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp),
+        // Leaves room for the "start workout" button so it cannot cover the last row.
+        contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         items(items = items, key = { it.id }) { item ->
             ListItem(
@@ -164,8 +202,10 @@ private fun ExerciseLibraryScreenPreview() {
                     ExerciseListItem("bench-press", "Barbell Bench Press", "Chest", "Barbell"),
                 ),
             ),
+            title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},
+            onStartWorkout = {},
         )
     }
 }
@@ -176,6 +216,7 @@ private fun ExerciseLibraryEmptyPreview() {
     AndroidAppTheme {
         ExerciseLibraryScreen(
             state = ExerciseLibraryUiState(query = "zzz", isLoading = false, items = emptyList()),
+            title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},
         )
