@@ -63,7 +63,7 @@ interface WorkoutRepository {
     suspend fun finishSession(sessionId: String): DataResult<Unit>
 
     /** Soft-deletes the session and everything in it. */
-    suspend fun discardSession(sessionId: String): DataResult<Unit>
+    suspend fun deleteSession(sessionId: String): DataResult<Unit>
 
     /** Logs a set at the end of [sessionExerciseId] (P1.3). */
     suspend fun logSet(

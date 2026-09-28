@@ -93,4 +93,9 @@
         <item quantity="one">%1$d set</item>
         <item quantity="other">%1$d sets</item>
     </plurals>
+    <string name="history_delete_workout">Delete workout</string>
+    <string name="history_delete_confirm_title">Delete this workout?</string>
+    <string name="history_delete_confirm_text">It disappears from your history. There is no undo in the app — only an exported backup would bring it back.</string>
+    <string name="history_delete_confirm">Delete</string>
+    <string name="history_cancel">Cancel</string>
 </resources>

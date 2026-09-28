@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -23,7 +22,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -50,9 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
-import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.ui.components.SetEditorDialog
+import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
@@ -127,7 +126,7 @@ fun ActiveWorkoutScreen(
     ShowUndoSnackbar(state.pendingUndo, snackbarHostState, onUndoDelete, onDismissUndo)
 
     // The set being edited, held here so the caller does not have to track it.
-    var editing by remember { mutableStateOf<EditTarget?>(null) }
+    var editing by remember { mutableStateOf<SetRow?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -152,7 +151,7 @@ fun ActiveWorkoutScreen(
             clock = clock,
             onLogSet = onLogSet,
             onRemoveExercise = onRemoveExercise,
-            onEditSet = { row -> editing = EditTarget(row) },
+            onEditSet = { row -> editing = row },
             onDeleteSet = onDeleteSet,
             onSkipRest = onSkipRest,
             onAdjustRest = onAdjustRest,
@@ -161,12 +160,13 @@ fun ActiveWorkoutScreen(
         )
     }
 
-    editing?.let { target ->
-        SetEditDialog(
-            target = target,
+    editing?.let { set ->
+        SetEditorDialog(
+            initialReps = set.reps,
+            initialWeightGrams = set.weightGrams,
             onDismiss = { editing = null },
             onSave = { reps, weightGrams ->
-                onUpdateSet(target.row.id, reps, weightGrams)
+                onUpdateSet(set.id, reps, weightGrams)
                 editing = null
             },
         )
@@ -234,7 +234,7 @@ private fun WorkoutBody(
     Column(modifier = modifier.fillMaxSize()) {
         state.error?.let { error ->
             Text(
-                text = errorMessage(error),
+                text = dataErrorMessage(error),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -444,56 +444,6 @@ private fun SetLine(
     }
 }
 
-/** Which set the edit dialog is open for, and its current values. */
-private data class EditTarget(val row: SetRow)
-
-@Composable
-private fun SetEditDialog(
-    target: EditTarget,
-    onDismiss: () -> Unit,
-    onSave: (reps: Int, weightGrams: Long) -> Unit,
-) {
-    var weightText by remember { mutableStateOf(Weight.kilograms(target.row.weightGrams)) }
-    var repsText by remember { mutableStateOf(target.row.reps.toString()) }
-
-    // Null for an unusable entry, so Save stays disabled rather than writing a
-    // silently-wrong value.
-    val parsedWeight = Weight.parseKilograms(weightText)
-    val parsedReps = repsText.toIntOrNull()?.takeIf { it > 0 }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.set_edit_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = weightText,
-                    onValueChange = { weightText = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.set_weight_label)) },
-                )
-                OutlinedTextField(
-                    value = repsText,
-                    onValueChange = { repsText = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.set_reps_label)) },
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onSave(parsedReps ?: 0, parsedWeight ?: 0L) },
-                enabled = parsedWeight != null && parsedReps != null,
-            ) {
-                Text(stringResource(R.string.set_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.set_cancel)) }
-        },
-    )
-}
-
 @Composable
 private fun WorkoutHeader(
     startedAt: String,
@@ -551,15 +501,6 @@ private fun CenteredMessage(text: String, showSpinner: Boolean, modifier: Modifi
             modifier = Modifier.padding(16.dp),
         )
     }
-}
-
-/** Maps a storage failure to something the user can act on. */
-@Composable
-private fun errorMessage(error: DataError): String = when (error) {
-    DataError.NotFound -> stringResource(R.string.workout_error_not_found)
-    // Already written for the user, so it is shown verbatim.
-    is DataError.Invalid -> error.message
-    is DataError.Storage -> stringResource(R.string.workout_error_storage)
 }
 
 @Preview(showBackground = true)

@@ -303,7 +303,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     }
 
     fun onDiscard() = write(closeAfterwards = true) { sessionId ->
-        workoutRepository.discardSession(sessionId)
+        workoutRepository.deleteSession(sessionId)
     }
 
     private suspend fun startRest() {

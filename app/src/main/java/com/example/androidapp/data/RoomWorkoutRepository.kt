@@ -101,7 +101,7 @@ class RoomWorkoutRepository @Inject constructor(
         dao.updateRestTimer(id = sessionId, restEndsAt = null, at = now)
     }
 
-    override suspend fun discardSession(sessionId: String): DataResult<Unit> = dataResultOf {
+    override suspend fun deleteSession(sessionId: String): DataResult<Unit> = dataResultOf {
         if (dao.findSession(sessionId) == null) {
             throw NotFoundException("session $sessionId")
         }

@@ -399,7 +399,7 @@ class ActiveWorkoutViewModelTest {
             return successUnit()
         }
 
-        override suspend fun discardSession(sessionId: String): DataResult<Unit> {
+        override suspend fun deleteSession(sessionId: String): DataResult<Unit> {
             sessions.value = null
             exercises.value = emptyList()
             return successUnit()
