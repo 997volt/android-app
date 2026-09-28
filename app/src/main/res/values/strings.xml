@@ -64,4 +64,20 @@
     <!-- Write failures (ROADMAP F7) -->
     <string name="workout_error_not_found">That workout is no longer open.</string>
     <string name="workout_error_storage">Couldn’t save that. Your last change may not be stored.</string>
+
+    <!-- Backup and restore (ROADMAP P1.12) -->
+    <string name="transfer_more">More options</string>
+    <string name="transfer_export">Export data</string>
+    <string name="transfer_import">Import data</string>
+    <string name="transfer_exported">Backup written.</string>
+    <string name="transfer_export_failed">Couldn’t write the backup file.</string>
+    <string name="transfer_read_failed">Couldn’t read that file.</string>
+    <!-- A plural, not a formatted string: "Added 1 records" is wrong in English
+         and the quantity rule differs in other languages. -->
+    <plurals name="transfer_imported">
+        <item quantity="one">Added %1$d record.</item>
+        <item quantity="other">Added %1$d records.</item>
+    </plurals>
+    <string name="transfer_already_complete">Everything in that file was already here.</string>
+    <string name="transfer_storage_error">Couldn’t read or write that file.</string>
 </resources>

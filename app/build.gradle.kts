@@ -179,6 +179,7 @@ dependencies {
     // Navigation with type-safe routes (F2).
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.serialization.json)
 
     // Dependency injection (F4).
     implementation(libs.hilt.android)

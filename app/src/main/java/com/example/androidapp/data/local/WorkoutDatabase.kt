@@ -31,6 +31,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
 
     abstract fun workoutDao(): WorkoutDao
 
+    /** Whole-table reads and additive inserts for backup/restore (P1.12). */
+    abstract fun backupDao(): BackupDao
+
     companion object {
         const val NAME = "workout.db"
     }

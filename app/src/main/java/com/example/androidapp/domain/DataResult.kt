@@ -24,6 +24,12 @@ sealed interface DataError {
     /** The referenced row does not exist, or was already soft-deleted. */
     data object NotFound : DataError
 
+    /**
+     * The caller handed us something we cannot use — a backup file from a newer
+     * app, say. [message] is written for the user, not for a log.
+     */
+    data class Invalid(val message: String) : DataError
+
     /** The write did not reach the database. */
     data class Storage(val cause: Throwable) : DataError
 }
@@ -34,6 +40,14 @@ sealed interface DataError {
  * linear while still producing a typed failure.
  */
 class NotFoundException(message: String) : Exception(message)
+
+/**
+ * Thrown when input cannot be used, carrying a message meant for the user.
+ *
+ * Distinct from a storage failure because the two need different words on screen:
+ * "your file is from a newer version" is actionable, "could not save" is not.
+ */
+class InvalidInputException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** `Success(Unit)`, for writes that have nothing to return. */
 fun successUnit(): DataResult<Unit> = DataResult.Success(Unit)
@@ -62,6 +76,9 @@ suspend fun <T> dataResultOf(block: suspend () -> T): DataResult<T> =
         @Suppress("SwallowedException") notFound: NotFoundException,
     ) {
         DataResult.Failure(DataError.NotFound)
+    } catch (invalid: InvalidInputException) {
+        // The message is the whole point of this case: it is written for the user.
+        DataResult.Failure(DataError.Invalid(invalid.message.orEmpty()))
     } catch (throwable: Throwable) {
         DataResult.Failure(DataError.Storage(throwable))
     }

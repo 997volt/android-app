@@ -2,6 +2,7 @@ package com.example.androidapp.ui.exercises
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,11 +14,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -27,7 +33,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,6 +48,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.ui.theme.AndroidAppTheme
+import com.example.androidapp.ui.transfer.DataTransferViewModel
+import com.example.androidapp.ui.transfer.rememberDataTransferActions
 
 /**
  * Stateful entry point: wires the ViewModel to the stateless screen.
@@ -50,14 +63,25 @@ fun ExerciseLibraryRoute(
     onStartWorkout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseLibraryViewModel = hiltViewModel(),
+    transferViewModel: DataTransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Held here rather than in the screen so the screen stays stateless and
+    // testable with a fixed string.
+    var transferMessage by remember { mutableStateOf<String?>(null) }
+    val transferActions = rememberDataTransferActions(transferViewModel) { transferMessage = it }
+
     ExerciseLibraryScreen(
         state = state,
         title = stringResource(R.string.exercise_library_title),
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
         onStartWorkout = onStartWorkout,
+        onExportData = transferActions.export,
+        onImportData = transferActions.import,
+        transferMessage = transferMessage,
+        onDismissTransferMessage = { transferMessage = null },
         modifier = modifier,
     )
 }
@@ -79,9 +103,17 @@ fun ExerciseLibraryScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onStartWorkout: (() -> Unit)? = null,
+    onExportData: (() -> Unit)? = null,
+    onImportData: (() -> Unit)? = null,
+    transferMessage: String? = null,
+    onDismissTransferMessage: () -> Unit = {},
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    ShowTransferMessage(transferMessage, snackbarHostState, onDismissTransferMessage)
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(title) },
@@ -93,6 +125,13 @@ fun ExerciseLibraryScreen(
                                 contentDescription = stringResource(R.string.nav_back),
                             )
                         }
+                    }
+                },
+                actions = {
+                    // Only the real library offers the data menu; the picker reuses
+                    // this screen with neither callback, so no menu appears there.
+                    if (onExportData != null && onImportData != null) {
+                        LibraryDataMenu(onExport = onExportData, onImport = onImportData)
                     }
                 },
             )
@@ -108,24 +147,7 @@ fun ExerciseLibraryScreen(
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                singleLine = true,
-                label = { Text(stringResource(R.string.exercise_search_hint)) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Filled.Clear,
-                                contentDescription = stringResource(R.string.exercise_search_clear),
-                            )
-                        }
-                    }
-                },
-            )
+            LibrarySearchField(query = state.query, onQueryChange = onQueryChange)
 
             when {
                 state.isLoading -> LoadingState()
@@ -165,6 +187,91 @@ private fun EmptyState(query: String, modifier: Modifier = Modifier) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
+}
+
+/**
+ * Shows the transfer result once, then clears it.
+ *
+ * `LaunchedEffect` on the message rather than a one-shot event channel: the
+ * message is already state the route owns, and showing a snackbar is idempotent
+ * for a given string.
+ */
+@Composable
+private fun ShowTransferMessage(
+    message: String?,
+    hostState: SnackbarHostState,
+    onDismiss: () -> Unit,
+) {
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        hostState.showSnackbar(message)
+        currentOnDismiss()
+    }
+}
+
+/** Export/import, behind an overflow so the app bar stays quiet (P1.12). */
+@Composable
+private fun LibraryDataMenu(
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    // Boxed so the menu anchors to the button: a composable emitting two siblings
+    // at the top level has no defined anchor for the popup.
+    Box(modifier = modifier) {
+        IconButton(onClick = { open = true }) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.transfer_more),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.transfer_export)) },
+                onClick = {
+                    open = false
+                    onExport()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.transfer_import)) },
+                onClick = {
+                    open = false
+                    onImport()
+                },
+            )
+        }
+    }
+}
+
+/** The library's search box, split out so the screen composable stays readable. */
+@Composable
+private fun LibrarySearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        singleLine = true,
+        label = { Text(stringResource(R.string.exercise_search_hint)) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = stringResource(R.string.exercise_search_clear),
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable

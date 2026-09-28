@@ -557,6 +557,8 @@ private fun CenteredMessage(text: String, showSpinner: Boolean, modifier: Modifi
 @Composable
 private fun errorMessage(error: DataError): String = when (error) {
     DataError.NotFound -> stringResource(R.string.workout_error_not_found)
+    // Already written for the user, so it is shown verbatim.
+    is DataError.Invalid -> error.message
     is DataError.Storage -> stringResource(R.string.workout_error_storage)
 }
 

@@ -36,6 +36,8 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+# Needed by the backup file format (P1.12); the core artifact alone has no JSON codec.
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # Room 2.7+ folded the coroutines/suspend support of room-ktx into room-runtime.
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

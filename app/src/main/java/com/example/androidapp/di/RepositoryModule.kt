@@ -1,7 +1,9 @@
 package com.example.androidapp.di
 
+import com.example.androidapp.data.RoomBackupRepository
 import com.example.androidapp.data.RoomExerciseRepository
 import com.example.androidapp.data.RoomWorkoutRepository
+import com.example.androidapp.domain.repository.BackupRepository
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.RestNotifier
@@ -30,6 +32,11 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindWorkoutRepository(impl: RoomWorkoutRepository): WorkoutRepository
+
+    /** Backup/restore is a repository like any other (P1.12). */
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: RoomBackupRepository): BackupRepository
 
     /** The rest-timer alert is an output port, bound to its Android implementation. */
     @Binds
