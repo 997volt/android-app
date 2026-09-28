@@ -14,7 +14,10 @@ or [parked on purpose](#parked--deliberately-not-planned). Feature ids (`F#`,
 
 Nothing else is required to call this app usable.
 
-### Done
+### Landed
+
+A `◐` marks a row that works but still has an open follow-up; those follow-ups are
+the *Still to do* rows below. Everything unmarked here is done.
 
 | # | Feature | Notes |
 | --- | --- | --- |
@@ -28,12 +31,13 @@ Nothing else is required to call this app usable.
 | F10 | Release pipeline | GitHub Actions: unit tests, lint, detekt, debug and R8-minified release. |
 | F12 | Lint / detekt gate | Warnings fail the build. The lint **baseline is deliberately not wired** — AGP auto-creates the file and would silently accept a warning on the next run; see the comment in [app/build.gradle.kts](app/build.gradle.kts). |
 | F13 | Rest-alert permissions | Requested on the first logged set, never at launch; refusal is non-fatal and not re-prompted. See [Built, but optional](#built-but-optional). |
+| F14 | ◐ Ship identity | Landed: `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), and `versionCode`/`versionName` read from a single [`version.properties`](version.properties). **Still to do:** the label (see *Publishing*) and a 512 px listing asset. |
 | F15 | Seed delivery | Seeded on *every* open with `INSERT OR IGNORE`, so first launch and upgrades both work, the first read is never empty, and a user's delete survives a top-up. |
 | F16 | Recomposition-safe clock | The 1-second tick no longer rebuilds the workout screen's exercise list. |
 | F17 | Input validation | Weight parsing is bounded (no exponent/hex, capped); `logSet` fails unless the exercise is live and its session is open. |
-| P1.1 | Exercise library | 30 seeded movements with primary/secondary muscles, equipment and pattern, persisted in Room. Search bug still open — see below. |
+| P1.1 | ◐ Exercise library | 30 seeded movements with primary/secondary muscles, equipment and pattern, persisted in Room. The search bug and the empty-vs-no-match state are still open — see P1.1a below. |
 | P1.2 | Start a workout | Atomic find-or-create, so two taps cannot open two sessions. |
-| P1.3 | Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. |
+| P1.3 | ◐ Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Number entry is still crude — see P1.3a below. |
 | P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
 | P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
 
@@ -43,11 +47,11 @@ Nothing else is required to call this app usable.
 
 | # | Feature | Why it is MVP |
 | --- | --- | --- |
-| **P1.12** | **Export / import** | Platform backup is off, so a local file is the only escape hatch — uninstall currently means permanent loss. **Promoted from P2 to P0.** |
+| **P1.12** | **Export / import** | Platform backup is off, so a local file is the only escape hatch — uninstall currently means permanent loss. **Promoted to the first MVP item.** |
 | **P1.6** | **Workout history** | Logging you cannot see is not a log. Chronological list plus a detail view with duration, volume and set count. |
 | **P1.7** | **Edit / delete a past set or workout** | Correcting a mis-tap is the most common post-hoc action, and it makes Finish recoverable. |
 | **P1.16** | **Resume affordance** | An active workout is currently invisible on the library screen; the button should read "Resume workout" with the elapsed time. |
-| **P1.1a** | **Fix search** | It matches only `primaryMuscle.label`, so "forearms" misses a row whose forearms are secondary, and it matches the display label that P5.4 would move into `strings.xml`. Match secondary muscles, and on a locale-stable key. Small — do it with P1.6. |
+| **P1.1a** | **Fix search and the empty state** | Search matches only `primaryMuscle.label`, so "forearms" misses a row whose forearms are secondary, and it matches the display label, which would break the moment those strings are localized. Match secondary muscles too, and on a locale-stable key. The screen also cannot tell "the library is empty" from "nothing matched" — both render `No exercises match ""` — so give those two states separate messages. Small — do it with P1.6. |
 | **P1.3a** | **Number entry** | Numeric keyboard and a +/− stepper (wire the already-written `Weight.step`, or delete it); decide the bodyweight/duration/distance row shape before history accumulates. |
 
 ## First release (when the MVP is done)
@@ -60,7 +64,7 @@ runs once the "Still to do" rows above are green.
 | # | Step | State |
 | --- | --- | --- |
 | R1.1 | Keystore (`workout.jks`) and `keystore.properties` created, both gitignored | ✅ done |
-| R1.2 | [`tools/build-apk.sh`](tools/build-apk.sh) builds and verifies a **signed** release APK | ✅ done |
+| R1.2 | [`tools/build-apk.sh`](tools/build-apk.sh) builds a **signed** release APK and refuses an unsigned one | ✅ done |
 | R1.3 | Change the app label from "Android App" to something recognisable | ☐ |
 | R1.4 | First `adb install -r` on the phone, then log a workout end to end | ☐ |
 | R1.5 | Upgrade test — bump `versionCode`, rebuild, install over the running app, confirm history survives | ☐ |
@@ -98,13 +102,22 @@ phone-in-pocket case matters — and do not let anything else grow to depend on 
   Firebase, `play-services-*`, Play Billing and Play Integrity are out by default
   — a future integration has to argue its way past this line.
 - **Testing:** domain math, DAO and migration tests are covered. Missing: a Compose
-  UI test for the workout screen (the one screen the app exists for), and a test
-  that seed ids are unique.
+  UI test for the workout screen (the one screen the app exists for); a test that
+  seed ids are unique; `hilt-android-testing`, without which the Hilt-wired `Route`
+  layers cannot be tested end to end — though `ExerciseDetailViewModel`'s argument
+  reading is testable without it by constructing a `SavedStateHandle` directly, a
+  cheap win; a test that the DAO's soft-delete filters actually hide deleted rows
+  through the joined queries; a screenshot test for the design system; and any
+  coverage signal in CI.
 - **Errors:** writes return `DataResult`, but `ExerciseRepository.getExercise` and
   the `observeExercises()` flows can still throw and take a screen down. Make reads
   match writes, or record why they are exempt.
 - **Performance:** not measured yet. Baseline profile and a Compose stability
   report once the logging screen stops changing.
+- **Simplicity / no dead weight:** `RestTimer.format` and `WorkoutFormat.elapsed`
+  both implement `m:ss`, and should be collapsed before either grows hours support;
+  `SessionExerciseDetail.movementPattern` is selected by the join but dropped in
+  `toDomain()`. Each is trivial, and each misleads the next reader.
 
 ## Later (still self-contained)
 
@@ -190,9 +203,9 @@ part that is painful to change later.
 | Area | Library / API |
 | --- | --- |
 | Present | `room-runtime` + KSP, Hilt, `navigation-compose`, Compose BOM + Material 3, `kotlinx-serialization`, `kotlinx-coroutines` |
-| P1.12 export / import | Storage Access Framework file picker + `kotlinx-serialization` (already present) |
+| P1.12 export / import | Storage Access Framework file picker + **`kotlinx-serialization-json`**, which is a *new* artifact — only `-core` is declared today. |
 | P2.3 charts | Compose canvas, or a vetted library — decide before starting |
-| Deliberately absent | No Google Play services, no Firebase, no Health Connect, no WorkManager, no billing |
+| Deliberately absent | No Google Play services, no Firebase, no Health Connect, no WorkManager, no billing. Note `kotlinx-coroutines` is transitive only: the single declared coroutines artifact is `kotlinx-coroutines-test`. |
 
 ## Suggested next PRs
 
