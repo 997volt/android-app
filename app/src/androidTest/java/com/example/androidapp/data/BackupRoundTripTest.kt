@@ -13,6 +13,7 @@ import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
 import java.time.Instant
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,6 +36,9 @@ class BackupRoundTripTest {
     private lateinit var database: WorkoutDatabase
     private lateinit var repository: RoomBackupRepository
 
+    /** The real delete path, so the test exercises what the UI does. */
+    private lateinit var workouts: RoomWorkoutRepository
+
     private val clock = TimeSource { Instant.parse("2026-09-28T08:00:00Z") }
 
     @Before
@@ -44,6 +48,7 @@ class BackupRoundTripTest {
             WorkoutDatabase::class.java,
         ).build()
         repository = RoomBackupRepository(database, clock)
+        workouts = RoomWorkoutRepository(database, clock)
     }
 
     @After
@@ -113,6 +118,52 @@ class BackupRoundTripTest {
         assertEquals("the soft delete is data too", 999L, restored.deletedAt)
     }
 
+    @Test
+    fun importingAfterDeletingAWorkout_bringsItBack() = runTest {
+        // The scenario a user actually has: export, delete something by mistake,
+        // import to undo it. The old additive-only import could not do this,
+        // because a soft delete leaves the row (and its id) in the database, so
+        // INSERT OR IGNORE skipped every row it was meant to restore.
+        seedAWorkout()
+        val json = exportedJson()
+        val sessionId = database.backupDao().allSessions().single().id
+
+        workouts.deleteSession(sessionId)
+        assertTrue(
+            "the workout should be gone from history first",
+            database.workoutDao().observeHistory().first().isEmpty(),
+        )
+
+        val summary = (repository.import(json) as DataResult.Success).data
+
+        assertTrue("the import reported nothing to do: $summary", summary.total > 0)
+        assertEquals(
+            "the deleted workout should be back in history",
+            1,
+            database.workoutDao().observeHistory().first().size,
+        )
+    }
+
+    @Test
+    fun importing_doesNotOverwriteARowThatIsStillLive() = runTest {
+        // The other half of "bring back what is gone; never overwrite what is
+        // there": a local edit may be newer than the file, and clobbering it would
+        // lose work done after the export.
+        seedAWorkout()
+        val json = exportedJson()
+        val setId = database.backupDao().allSets().single().id
+
+        workouts.updateSet(setId, reps = 20, weightGrams = 100_000L)
+
+        repository.import(json)
+
+        assertEquals(
+            "the local edit must survive an import",
+            20,
+            database.backupDao().allSets().single().reps,
+        )
+    }
+
     private suspend fun exportedJson(): String =
         (repository.export() as DataResult.Success).data
 
@@ -165,6 +216,9 @@ class BackupRoundTripTest {
                 deletedAt = null,
             ),
         )
+        // Finish it: history only holds finished sessions, so without this the
+        // workout is never in the history the restore is asserted against.
+        workoutDao.markFinished(id = session.id, at = 2_000L)
     }
 
     private fun seedExercise() = ExerciseEntity(

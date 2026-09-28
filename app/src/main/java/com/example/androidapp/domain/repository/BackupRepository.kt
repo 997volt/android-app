@@ -16,11 +16,20 @@ interface BackupRepository {
     suspend fun export(): DataResult<String>
 
     /**
-     * Merges [text] into the database.
+     * Brings the database up to what [text] describes.
      *
-     * Additive by design, never destructive: ids are stable, so anything already
-     * present is skipped and nothing on the device is overwritten. That makes the
-     * operation idempotent and means a mistaken import cannot cost the user data.
+     * The rule is **"bring back what is gone; never overwrite what is there"**,
+     * which gives three cases per row:
+     *
+     *  - **Missing locally** → inserted.
+     *  - **Present but deleted** → restored from the file, `deletedAt` cleared.
+     *  - **Present and live** → left alone. A local edit could be newer than the
+     *    file, and guessing wrong there loses work the user did after exporting.
+     *
+     * The middle case is why this cannot be insert-only. A delete in this app is a
+     * *soft* delete, so the row and its id survive: an insert-only import skipped
+     * exactly the rows a restore is for, and reported "nothing to do" — the bug
+     * that motivated this shape.
      */
     suspend fun import(text: String): DataResult<ImportSummary>
 }
@@ -31,13 +40,13 @@ interface BackupRepository {
  * there.
  */
 data class ImportSummary(
-    val exercises: Int,
-    val sessions: Int,
-    val sessionExercises: Int,
-    val sets: Int,
+    /** Rows the file had and the database did not. */
+    val added: Int,
+    /** Rows that were deleted locally and came back from the file. */
+    val restored: Int,
 ) {
-    val total: Int get() = exercises + sessions + sessionExercises + sets
+    val total: Int get() = added + restored
 
-    /** Everything in the file was already present. A success, not a no-op. */
+    /** Everything in the file was already present and live. A success, not a no-op. */
     val wasAlreadyComplete: Boolean get() = total == 0
 }

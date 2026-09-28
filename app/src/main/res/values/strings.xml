@@ -86,8 +86,8 @@
     <!-- A plural, not a formatted string: "Added 1 records" is wrong in English
          and the quantity rule differs in other languages. -->
     <plurals name="transfer_imported">
-        <item quantity="one">Added %1$d record.</item>
-        <item quantity="other">Added %1$d records.</item>
+        <item quantity="one">Imported %1$d record.</item>
+        <item quantity="other">Imported %1$d records.</item>
     </plurals>
     <string name="transfer_already_complete">Everything in that file was already here.</string>
     <string name="transfer_storage_error">Couldn’t read or write that file.</string>

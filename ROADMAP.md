@@ -40,14 +40,14 @@ the *Still to do* rows below. Everything unmarked here is done.
 | P1.3 | ◐ Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Number entry is still crude — see P1.3a below. |
 | P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
 | P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
-| P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import is additive and idempotent (`INSERT OR IGNORE`), refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
+| P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import follows one rule — **bring back what is gone, never overwrite what is there**: missing rows are inserted, locally *deleted* rows are restored from the file (clearing `deletedAt`), and live rows are left alone. Idempotent, refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
 | P1.6 | Workout history | Chronological list grouped by month, with duration, volume and set count per workout, plus a read-only detail view. Totals are aggregated in SQL, and only finished sessions appear. |
 | P1.7 | Edit / delete | Correct or remove a past set, and delete a whole workout behind a confirmation. Makes `Finish` recoverable instead of a one-way door. |
 | P1.16 | Resume affordance | The library button reads "Resume workout" with the elapsed time and exercise count when a session is open, so backing out no longer hides a running workout. The clock is a separate flow only the button reads (see F16). |
 | P1.3a | Number entry | Numeric keyboards on both fields plus −/+ steppers wired to the already-written `Weight.step`. Typing stays unrestricted; validation happens on save. |
 | P1.1a | Search and empty states | Search matches primary *and* secondary muscles, and both the display label and the locale-stable enum name, so it survives translation. An empty library and a search with no hits now say different things. |
 
-74 JVM tests and 46 instrumented tests, all passing.
+74 JVM tests and 48 instrumented tests, all passing.
 
 ### Still to do
 

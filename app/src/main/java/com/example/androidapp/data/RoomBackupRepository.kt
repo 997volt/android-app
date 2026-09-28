@@ -49,24 +49,55 @@ class RoomBackupRepository @Inject constructor(
         val file = BackupCodec.decode(text)
 
         // One transaction, so a failure part-way cannot leave sessions without
-        // their sets. Room returns one rowid per input row and -1 for a row that
-        // was skipped as a duplicate, which is how the counts stay honest.
+        // their sets.
         database.withTransaction {
+            // A delete in this app is a *soft* delete, so a deleted row is still
+            // present under its own id and an insert-only import skips it. That is
+            // the bug this shape fixes: restoring a workout you deleted reported
+            // "nothing to do", because every row it needed to restore was already
+            // there, just hidden. Find the hidden ids, restore those rows from the
+            // file (which also clears `deletedAt`), then insert what is genuinely
+            // missing. Live rows are touched by neither step.
+            val hiddenExercises = dao.softDeletedExerciseIds().toSet()
+            val hiddenSessions = dao.softDeletedSessionIds().toSet()
+            val hiddenSessionExercises = dao.softDeletedSessionExerciseIds().toSet()
+            val hiddenSets = dao.softDeletedSetIds().toSet()
+
+            val exercisesToRestore = file.exercises.filter { it.id in hiddenExercises }
+            val sessionsToRestore = file.sessions.filter { it.id in hiddenSessions }
+            val sessionExercisesToRestore = file.sessionExercises.filter { it.id in hiddenSessionExercises }
+            val setsToRestore = file.sets.filter { it.id in hiddenSets }
+
+            // Updates, so no foreign-key ordering is involved: every row already
+            // exists, and only its own columns change.
+            dao.restoreExercises(exercisesToRestore.map { it.toEntity() })
+            dao.restoreSessions(sessionsToRestore.map { it.toEntity() })
+            dao.restoreSessionExercises(sessionExercisesToRestore.map { it.toEntity() })
+            dao.restoreSets(setsToRestore.map { it.toEntity() })
+
+            // Only a row the file itself has *live* actually came back. One the
+            // file also records as deleted is still deleted, and counting it as
+            // restored would overstate what the user got.
+            val restored = exercisesToRestore.count { it.deletedAt == null } +
+                sessionsToRestore.count { it.deletedAt == null } +
+                sessionExercisesToRestore.count { it.deletedAt == null } +
+                setsToRestore.count { it.deletedAt == null }
+
             // Parents before children: the foreign keys have to hold as rows go in.
-            val exercises = dao.insertExercises(file.exercises.map { it.toEntity() })
+            // IGNORE skips live rows and the ones just restored, so this counts
+            // only what was genuinely missing — Room returns -1 for a skipped row.
+            val addedExercises = dao.insertExercises(file.exercises.map { it.toEntity() })
                 .count { it != SKIPPED }
-            val sessions = dao.insertSessions(file.sessions.map { it.toEntity() })
+            val addedSessions = dao.insertSessions(file.sessions.map { it.toEntity() })
                 .count { it != SKIPPED }
-            val sessionExercises = dao.insertSessionExercises(file.sessionExercises.map { it.toEntity() })
+            val addedSessionExercises = dao.insertSessionExercises(file.sessionExercises.map { it.toEntity() })
                 .count { it != SKIPPED }
-            val sets = dao.insertSets(file.sets.map { it.toEntity() })
+            val addedSets = dao.insertSets(file.sets.map { it.toEntity() })
                 .count { it != SKIPPED }
 
             ImportSummary(
-                exercises = exercises,
-                sessions = sessions,
-                sessionExercises = sessionExercises,
-                sets = sets,
+                added = addedExercises + addedSessions + addedSessionExercises + addedSets,
+                restored = restored,
             )
         }
     }

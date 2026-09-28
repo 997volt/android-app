@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 /**
  * Whole-table reads and inserts for backup and restore (ROADMAP P1.12).
@@ -33,6 +34,43 @@ interface BackupDao {
 
     @Query("SELECT * FROM set_entries")
     suspend fun allSets(): List<SetEntryEntity>
+
+    /**
+     * Ids of rows the user deleted, which are still present with `deletedAt` set.
+     *
+     * This is what an insert-only import gets wrong: a soft delete keeps the row
+     * (and its id), so `INSERT OR IGNORE` skips precisely the rows a restore is
+     * supposed to bring back. Knowing which ids are *hidden* rather than *absent*
+     * is what separates the two cases.
+     */
+    @Query("SELECT id FROM exercises WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedExerciseIds(): List<String>
+
+    @Query("SELECT id FROM workout_sessions WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedSessionIds(): List<String>
+
+    @Query("SELECT id FROM session_exercises WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedSessionExerciseIds(): List<String>
+
+    @Query("SELECT id FROM set_entries WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedSetIds(): List<String>
+
+    /**
+     * Rewrites rows by primary key, which restores a soft-deleted row *and* clears
+     * its `deletedAt` because the file's value overwrites it. Only ever called for
+     * ids that are already soft-deleted, so a live row is never clobbered.
+     */
+    @Update
+    suspend fun restoreExercises(rows: List<ExerciseEntity>): Int
+
+    @Update
+    suspend fun restoreSessions(rows: List<WorkoutSessionEntity>): Int
+
+    @Update
+    suspend fun restoreSessionExercises(rows: List<SessionExerciseEntity>): Int
+
+    @Update
+    suspend fun restoreSets(rows: List<SetEntryEntity>): Int
 
     /** Returns one rowid per input row, `-1` where a row was skipped as a duplicate. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
