@@ -5,23 +5,28 @@ shippable workout tracker.
 
 ## Where the app stands today
 
-The repo is a working but bare Compose scaffold. Concretely, it has:
+The repo is a Compose app with one real feature: an exercise library. Concretely
+it now has:
 
 - One `ComponentActivity` ([MainActivity.kt](app/src/main/java/com/example/androidapp/MainActivity.kt))
-  hosting a single `GreetingScreen` counter — no navigation, no second screen.
-- Pure logic extracted into [Greeting.kt](app/src/main/java/com/example/androidapp/Greeting.kt)
-  with a JVM test — a good pattern to keep.
-- Material 3 theming, edge-to-edge enabled, `compileSdk`/`targetSdk` 37, `minSdk` 26.
-- **No** ViewModel beyond `lifecycle-runtime-ktx`, no DI, no local database, no
-  networking, no serialization, no image loading, no pagination, no WorkManager,
-  no CI, and `release` builds with `isMinifyEnabled = false`.
+  doing nothing but host the navigation graph (F2).
+- Type-safe navigation between the library and per-exercise detail
+  ([Routes.kt](app/src/main/java/com/example/androidapp/ui/navigation/Routes.kt)).
+- `@HiltViewModel` ViewModels exposing `StateFlow<UiState>`, collected with
+  `collectAsStateWithLifecycle` (F3) and injected with Hilt (F4).
+- A `domain`/`data` package split behind an `ExerciseRepository` interface, with
+  an in-memory implementation standing in for Room until F5.
+- Material 3 theming, edge-to-edge, `compileSdk`/`targetSdk` 37, `minSdk` 26.
+- 11 JVM unit tests and 4 instrumented Compose tests, all passing; lint clean.
 - A manifest that opts out of cloud backup, device-to-device transfer, and iOS
-  cross-platform transfer entirely (F1, landed).
-- Still missing: release signing and CI (F10).
+  cross-platform transfer entirely (F1).
 
-One of those was a **correctness bug rather than a missing feature** — health
-data could ride along in platform backups and transfers — and it is fixed.
-Release signing and CI remain the outstanding correctness gap.
+Still missing: a local database (F5), networking, WorkManager, CI, and release
+signing (F10) — `release` builds still have `isMinifyEnabled = false`.
+
+The one thing that was a **correctness bug rather than a missing feature** —
+health data riding along in platform backups and transfers — is fixed. Release
+signing and CI remain the outstanding correctness gap.
 
 ## How to read this
 
@@ -30,9 +35,10 @@ Release signing and CI remain the outstanding correctness gap.
 | **Priority** | `P0` blocks the MVP · `P1` makes it good · `P2` makes it grow |
 | **Effort** | `S` ≤ 1 day · `M` 2–5 days · `L` ≥ 1 week, or needs a design spike |
 
-Rows marked ✅ have landed. Local-only storage is the agreed starting point
-(sync, P4.9, is deferred), so schemas should be written sync-ready: UUID
-primary keys, soft deletes, and `createdAt`/`updatedAt` timestamps.
+Rows marked ✅ have landed; ◐ means partly landed. Local-only storage is the
+agreed starting point (sync, P4.9, is deferred), so schemas should be written
+sync-ready: UUID primary keys, soft deletes, and `createdAt`/`updatedAt`
+timestamps.
 
 Phases are ordered by dependency, not by calendar. Phase 0 and Phase 1 are the
 MVP.
@@ -46,9 +52,9 @@ Work that every later feature leans on. Cheap now, expensive to retrofit.
 | # | Feature | Pri | Eff | Notes |
 | --- | --- | --- | --- | --- |
 | F1 | ✅ **Fix backup exposure** | P0 | S | Landed. `allowBackup="false"` plus rules excluding every domain from cloud backup, D2D transfer, and iOS cross-platform transfer. Note `allowBackup="false"` alone does *not* stop D2D — the `<device-transfer>` section is what does. |
-| F2 | **Navigation** | P0 | S | `androidx.navigation:navigation-compose` with type-safe routes. Needed the moment there is a second screen. |
-| F3 | **Presentation layer** | P0 | S | `lifecycle-viewmodel-compose` + `collectAsStateWithLifecycle`, a `UiState` sealed type per screen. Replaces `rememberSaveable` counters. |
-| F4 | **Dependency injection** | P0 | M | Hilt (KSP) with `hilt-navigation-compose`. Doing this after 15 screens exist is a rewrite. |
+| F2 | ✅ **Navigation** | P0 | S | Landed. `navigation-compose` type-safe routes (`@Serializable` destinations) in [AppNavHost.kt](app/src/main/java/com/example/androidapp/ui/navigation/AppNavHost.kt); the detail ViewModel reads its argument with `SavedStateHandle.toRoute()`. |
+| F3 | ✅ **Presentation layer** | P0 | S | Landed. `@HiltViewModel` + `StateFlow<UiState>` + `collectAsStateWithLifecycle`. Each screen splits into a stateful `…Route` and a stateless `…Screen`, so the UI is testable with no Hilt container. |
+| F4 | ✅ **Dependency injection** | P0 | M | Landed. Hilt 2.60.1 via KSP. Worth recording: KSP is now versioned independently of Kotlin, so KSP 2.3.12 works with Kotlin 2.4.20 even though its own API still targets 2.3.20 — a version probe settled that before any code was written. |
 | F5 | **Local persistence** | P0 | M | Room + KSP. Schema export on, migrations from day one (`exportSchema = true`, no `fallbackToDestructiveMigration` in release). |
 | F6 | **Domain + data modules** | P1 | M | Split into `:app`, `:core:data`, `:core:domain`, `:feature:workout`, … so build times and ownership stay sane. Optional at MVP, painful later. |
 | F7 | **Result/error model** | P1 | S | A `Result`-like type plus a `DataError` taxonomy, so failures are values rather than thrown exceptions in repositories. |
@@ -58,8 +64,9 @@ Work that every later feature leans on. Cheap now, expensive to retrofit.
 | F11 | **Crash + analytics** | P1 | S | Crash reporting with symbol upload; privacy-respecting product analytics with opt-out. |
 | F12 | **Lint/detekt gate** | P2 | S | Fail CI on new warnings; add a Compose-specific ruleset. |
 
-**Delete the placeholder:** `GreetingScreen`, `Greeting.kt`, and its test are
-scaffold artifacts. Confirm the counter is gone rather than left dead in the tree.
+✅ **Placeholder deleted:** `GreetingScreen`, `Greeting.kt`, and its test are
+gone. Their replacement keeps the same discipline — pure logic under `domain/`
+with JVM tests, composables under `ui/`.
 
 ---
 
@@ -69,7 +76,7 @@ The smallest thing a lifter will actually keep installed.
 
 | # | Feature | Pri | Eff | Notes |
 | --- | --- | --- | --- | --- |
-| P1.1 | **Exercise library** | P0 | M | Seeded with common lifts (name, primary/secondary muscles, equipment, movement pattern). Bundled as a prepackaged Room DB so first launch is offline-instant. |
+| P1.1 | ◐ **Exercise library** | P0 | M | 30 seeded exercises with primary/secondary muscles, equipment, and movement pattern, read through `ExerciseRepository`. Search filters on name, muscle, and equipment. Currently in-memory — the prepackaged Room DB lands with F5. |
 | P1.2 | **Start an empty workout** | P0 | M | "Start workout" → timed session, add exercises as you go. This flow is the product; it must be ≤ 1 tap to first set. |
 | P1.3 | **Log sets/reps/weight** | P0 | M | Fast number entry, previous-session values pre-filled as placeholders, swipe to delete, undo. Support bodyweight/assisted/duration/distance set types. |
 | P1.4 | **Rest timer** | P0 | S | Auto-starts on set completion, configurable default, notification when backgrounded, +15s/−15s and skip. |
@@ -169,8 +176,9 @@ core.
 
 1. ✅ **F1 + F9** — backup rules and the `minSdk` decision. Landed: health data
    is excluded from every platform transfer path and `minSdk` is 26.
-2. **F2 + F3 + F4** — navigation, ViewModel, and Hilt, then delete the greeting
-   counter and land one real screen (the exercise library).
+2. ✅ **F2 + F3 + F4** — navigation, ViewModels, and Hilt landed, the greeting
+   counter is deleted, and the exercise library is a real screen backed by a
+   repository interface.
 3. **F5 + P1.2 + P1.3** — Room plus start-workout and set logging, behind a
    repository interface with unit tests from the first commit.
 

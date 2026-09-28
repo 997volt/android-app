@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Android App</string>
-    <string name="tap_to_increment">Tap the button to increment</string>
-    <string name="increment">Increment</string>
+
+    <!-- Exercise library -->
+    <string name="exercise_library_title">Exercise library</string>
+    <string name="exercise_search_hint">Search exercises</string>
+    <string name="exercise_search_clear">Clear search</string>
+    <string name="exercise_library_loading">Loading exercises…</string>
+    <string name="exercise_library_empty">No exercises match “%1$s”</string>
+
+    <!-- Exercise detail -->
+    <string name="exercise_detail_title">Exercise</string>
+    <string name="exercise_detail_back">Back</string>
+    <string name="exercise_detail_primary">Primary muscle</string>
+    <string name="exercise_detail_secondary">Secondary muscles</string>
+    <string name="exercise_detail_equipment">Equipment</string>
+    <string name="exercise_detail_pattern">Movement pattern</string>
+    <string name="exercise_detail_none">None</string>
+    <string name="exercise_detail_not_found">That exercise is no longer in the library.</string>
+    <string name="exercise_detail_history_planned">Per-exercise history and personal records are planned (ROADMAP P2.1).</string>
 </resources>

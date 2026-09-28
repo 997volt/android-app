@@ -12,6 +12,7 @@
       See app/src/main/res/xml/data_extraction_rules.xml
     -->
     <application
+        android:name=".AndroidApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
