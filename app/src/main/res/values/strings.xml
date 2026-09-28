@@ -54,6 +54,9 @@
     <string name="set_reps_label">Reps</string>
     <string name="set_save">Save</string>
     <string name="set_cancel">Cancel</string>
+    <!-- Steppers (ROADMAP P1.3a); %1$s is the field label, e.g. "Weight". -->
+    <string name="set_stepper_decrease">Decrease %1$s</string>
+    <string name="set_stepper_increase">Increase %1$s</string>
     <string name="set_deleted">Set deleted</string>
     <string name="set_delete">Delete set</string>
     <string name="set_undo">Undo</string>

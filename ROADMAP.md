@@ -44,15 +44,31 @@ the *Still to do* rows below. Everything unmarked here is done.
 | P1.6 | Workout history | Chronological list grouped by month, with duration, volume and set count per workout, plus a read-only detail view. Totals are aggregated in SQL, and only finished sessions appear. |
 | P1.7 | Edit / delete | Correct or remove a past set, and delete a whole workout behind a confirmation. Makes `Finish` recoverable instead of a one-way door. |
 | P1.16 | Resume affordance | The library button reads "Resume workout" with the elapsed time and exercise count when a session is open, so backing out no longer hides a running workout. The clock is a separate flow only the button reads (see F16). |
+| P1.3a | Number entry | Numeric keyboards on both fields plus −/+ steppers wired to the already-written `Weight.step`. Typing stays unrestricted; validation happens on save. |
 | P1.1a | Search and empty states | Search matches primary *and* secondary muscles, and both the display label and the locale-stable enum name, so it survives translation. An empty library and a search with no hits now say different things. |
 
-74 JVM tests and 41 instrumented tests, all passing.
+74 JVM tests and 46 instrumented tests, all passing.
 
 ### Still to do
 
-| # | Feature | Why it is MVP |
-| --- | --- | --- |
-| **P1.3a** | **Number entry** | Numeric keyboard and a +/− stepper (wire the already-written `Weight.step`, or delete it); decide the bodyweight/duration/distance row shape before history accumulates. |
+Nothing. Every MVP row is in *Landed* above, which is what makes the release
+checklist below the next thing to work through.
+
+### Recorded decision: the set row shape (P1.3a)
+
+`reps × weight` is the v1 row shape, and **bodyweight is already expressible**: a
+push-up is reps at 0 kg, which the parser accepts, which `Weight.step` clamps at,
+and which a set-editor test asserts actually saves. Such a set contributes 0 to
+volume — correct, because bodyweight is not external load.
+
+**Duration and distance are deliberately out of scope for v1.** The reason this
+decision was wanted before history accumulated is retrofit cost. That cost is
+bounded here: the schema already carries hand-written migrations with exported
+schemas and `MigrationTestHelper` coverage, so a `measure` column on `set_entries`
+(defaulting to weight-and-reps, which is what every existing row is) arrives as
+migration 3→4 and a routine test — not a rewrite. Deciding that they are not in v1
+*is* the decision; adding them later is a migration, a path this app has walked
+twice already.
 
 ## First release (when the MVP is done)
 
