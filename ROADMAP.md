@@ -41,14 +41,14 @@ the *Still to do* rows below. Everything unmarked here is done.
 | P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
 | P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
 | P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import is additive and idempotent (`INSERT OR IGNORE`), refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
+| P1.6 | Workout history | Chronological list grouped by month, with duration, volume and set count per workout, plus a read-only detail view. Totals are aggregated in SQL, and only finished sessions appear. |
 
-63 JVM tests and 27 instrumented tests, all passing.
+68 JVM tests and 31 instrumented tests, all passing.
 
 ### Still to do
 
 | # | Feature | Why it is MVP |
 | --- | --- | --- |
-| **P1.6** | **Workout history** | Logging you cannot see is not a log. Chronological list plus a detail view with duration, volume and set count. |
 | **P1.7** | **Edit / delete a past set or workout** | Correcting a mis-tap is the most common post-hoc action, and it makes Finish recoverable. |
 | **P1.16** | **Resume affordance** | An active workout is currently invisible on the library screen; the button should read "Resume workout" with the elapsed time. |
 | **P1.1a** | **Fix search and the empty state** | Search matches only `primaryMuscle.label`, so "forearms" misses a row whose forearms are secondary, and it matches the display label, which would break the moment those strings are localized. Match secondary muscles too, and on a locale-stable key. The screen also cannot tell "the library is empty" from "nothing matched" — both render `No exercises match ""` — so give those two states separate messages. Small — do it with P1.6. |
