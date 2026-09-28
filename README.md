@@ -162,7 +162,9 @@ emulator -avd pixel6_api36 -no-window -no-audio -no-boot-anim \
     -gpu swiftshader_indirect -accel on &
 adb wait-for-device
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.example.androidapp/.MainActivity
+# `-n` needs the full activity name, not `io.github.volt997.workout/.MainActivity`:
+# the applicationId and the source namespace differ (see app/build.gradle.kts).
+adb shell am start -n io.github.volt997.workout/com.example.androidapp.MainActivity
 adb exec-out screencap -p > shot.png
 ```
 

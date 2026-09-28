@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Adaptive-icon background layer (ROADMAP F14).
+
+      A flat colour rather than a gradient: it is the layer the launcher is most
+      likely to animate or parallax, and a flat fill cannot develop a seam. The
+      value is dark enough that the white foreground keeps contrast against both
+      light and dark launcher themes.
+    -->
+    <color name="ic_launcher_background">#1F2430</color>
+</resources>

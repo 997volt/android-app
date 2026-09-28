@@ -38,6 +38,11 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 val releaseStoreFile: String? = keystoreProperties.getProperty("storeFile")
+
+/** The app's version, kept in one file (ROADMAP F14). */
+val versionProperties = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
 val hasReleaseSigning = releaseStoreFile != null
 
 /**
@@ -54,14 +59,36 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.androidapp"
+        // The permanent install identity (ROADMAP F14).
+        //
+        // `io.github.997volt` was the natural choice — this project publishes from
+        // github.com/997volt — but a Java package segment may not begin with a
+        // digit, so AAPT rejects it outright. Hence `volt997`: the same handle with
+        // the digits moved so the segment is a legal identifier.
+        //
+        // Changeable with this one line until the first upload; after that it is
+        // permanent (it is what Health Connect grants and any deep links bind to).
+        // If the project ever owns a domain, its reverse-DNS belongs here instead.
+        //
+        // `namespace` above is left as-is on purpose: it only affects the generated
+        // R class and source packages, is invisible to users, and moving it would
+        // also rename the committed Room schema directory. That is a separate,
+        // deliberate refactor rather than part of shipping.
+        applicationId = "io.github.volt997.workout"
         // API 26 is the floor for the Health Connect client (ROADMAP P4.1) and
         // makes java.time available natively, so no core library desugaring is
         // needed. Raising this from 24 was a deliberate trade: see ROADMAP F9.
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // Read from version.properties so the two values cannot drift apart and a
+        // bump never means editing Kotlin. Missing values fail the build here
+        // rather than shipping a silent default.
+        versionCode = requireNotNull(versionProperties.getProperty("versionCode")) {
+            "versionCode is missing from version.properties"
+        }.toInt()
+        versionName = requireNotNull(versionProperties.getProperty("versionName")) {
+            "versionName is missing from version.properties"
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

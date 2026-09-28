@@ -58,7 +58,7 @@ looking for it on screen or in a live panel.
 `android_build_run` selects the *newest* APK rather than scoping strictly to
 `apk/<variant>/`, so once an androidTest build exists it picks up
 `apk/androidTest/debug/app-debug-androidTest.apk`, reads the test applicationId,
-and tries to launch `com.example.androidapp.test` — failing with
+and tries to launch `io.github.volt997.workout.test` — failing with
 `monkey ... exit 252`. Reinstall by hand, or delete
 `app/build/outputs/apk/androidTest` first.
 
@@ -97,10 +97,14 @@ the device shows as `unauthorized`. Everything after launch (`adb`, `install`,
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -W -n com.example.androidapp/.MainActivity
+adb shell am start -W -n io.github.volt997.workout/com.example.androidapp.MainActivity
 ```
 
-Package is `com.example.androidapp`; the launcher activity is `.MainActivity`.
+Package is `io.github.volt997.workout`; the launcher activity is
+`com.example.androidapp.MainActivity`. The two differ on purpose (ROADMAP F14):
+the applicationId is the shipped identity while the source namespace was left
+alone, so `am start -n io.github.volt997.workout/.MainActivity` does **not**
+resolve — always give the full activity name.
 
 ## 4. Verify it actually rendered — gate on the focused window
 
@@ -113,7 +117,7 @@ Gate on the focused window instead, then capture:
 
 ```sh
 adb shell dumpsys window | grep -i mCurrentFocus
-# expect: mCurrentFocus=Window{... com.example.androidapp/com.example.androidapp.MainActivity}
+# expect: mCurrentFocus=Window{... io.github.volt997.workout/com.example.androidapp.MainActivity}
 
 adb exec-out screencap -p > /tmp/shot.png
 ```
@@ -151,9 +155,9 @@ screen looks right visually but reads badly.
 
 ```sh
 adb logcat -d -t 200                                    # last 200 lines
-adb logcat -d -t 400 | grep -iE "AndroidRuntime|FATAL|com.example.androidapp"
-adb shell pidof com.example.androidapp                  # filter to just this app
-adb logcat -d --pid=$(adb shell pidof com.example.androidapp) -t 200
+adb logcat -d -t 400 | grep -iE "AndroidRuntime|FATAL|io.github.volt997.workout"
+adb shell pidof io.github.volt997.workout                  # filter to just this app
+adb logcat -d --pid=$(adb shell pidof io.github.volt997.workout) -t 200
 ```
 
 Note the emulator is noisy: `FrameTracker` / `Missed App frame` / `JANK_*`
@@ -162,8 +166,8 @@ lines are normal emulator telemetry, not app defects.
 Useful resets while iterating:
 
 ```sh
-adb shell am force-stop com.example.androidapp          # kill the app
-adb shell pm clear com.example.androidapp               # wipe app data (destructive)
+adb shell am force-stop io.github.volt997.workout          # kill the app
+adb shell pm clear io.github.volt997.workout               # wipe app data (destructive)
 ```
 
 ## 7. Privacy constraint — do not break this
