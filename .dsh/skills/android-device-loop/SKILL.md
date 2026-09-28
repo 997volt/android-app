@@ -45,8 +45,9 @@ env was **not** sourced. Use `adb` from `tools/bin/adb`, not a system `adb`.
 ```
 
 Prefer `testDebugUnitTest` for logic. Keep domain math (1RM, volume, unit
-conversion, progression) in pure Kotlin files with JVM tests — the existing
-`Greeting.kt` / `GreetingTest.kt` split is the pattern to copy.
+conversion, progression) in pure Kotlin files with JVM tests — the
+`domain/ExerciseSearch.kt` + `ExerciseSearchTest.kt` pair is the pattern to copy.
+(The original `Greeting.kt` scaffold has been deleted; do not reintroduce it.)
 
 ## 2. A device or emulator
 
@@ -124,10 +125,14 @@ adb shell uiautomator dump /sdcard/ui.xml
 adb shell cat /sdcard/ui.xml | grep -o 'text="[^"]*"' | sort -u
 ```
 
-For the current scaffold this prints `Hello, Android!`, `0`, `Increment`, and
-`Tap the button to increment`. Accessibility labels matter here: `content-desc`
-is what a screen reader announces, so a missing label shows up as an empty
-`content-desc` in this dump.
+Read the labels rather than assuming them: they track whatever screen is
+currently up, so they change as the app grows. A screen that returns **no**
+labels at all is the real signal — it means Compose semantics are missing (see
+§8), which breaks this check, TalkBack, and Compose UI tests alike.
+
+`content-desc` is what a screen reader announces, so an icon-only control with a
+missing label shows up here as an empty `content-desc` — check for that when a
+screen looks right visually but reads badly.
 
 ## 6. Logcat and crashes
 
@@ -182,11 +187,26 @@ Three host-specific constraints:
 
 **It needs `ADB` in the harness process.** The plugin resolves adb as
 `$ADB` → `adb` on PATH → `<sdk>/platform-tools/adb` (`lib/adb.js`), and it does
-**not** source `tools/android-env.sh`. Since the harness does not inherit this
-project's PATH, `.env` in the repo root sets `ADB` (and `ANDROID_HOME` for AVD
-discovery). DSH loads the invoking directory's `.env` at **boot**, so a change
-there needs a harness restart. Symptom when it is missing: every `android_*` call
-fails with *"adb is unavailable — adb was not found"*.
+**not** source `tools/android-env.sh`, so it never sees this project's PATH.
+
+The value has to arrive through an `.env` layer, and it must be the
+**harness-home** one — `$DSH_HOME/.env`, i.e. `~/.dsh/.env`:
+
+| Layer | Read from | Works here? |
+| --- | --- | --- |
+| inherited process env | whatever launched `dsh web` | only if exported by hand |
+| invoking directory `.env` | the cwd of `dsh web` | **no** — the launcher does not start in this repo |
+| **harness home** `.env` | `$DSH_HOME/.env` | **yes** — independent of launch directory |
+
+The repo also carries a `.env` with the same two values, so a session launched
+*from* the repo works as well — but do not rely on it. The launcher's cwd is not
+this directory, which is exactly why a repo-root-only fix appeared to do nothing
+even after a restart. `$DSH_HOME` is readable in the environment as `DSH_HOME`.
+
+Both layers apply at **boot**, so editing either needs a harness restart. Symptom
+when the value is missing: every `android_*` call fails with *"adb is
+unavailable — adb was not found"*. To see which layer won, `echo $ADB` in a
+shell — the tool shell inherits the harness environment.
 
 Point `ADB` at `tools/bin/adb`, never at `platform-tools/adb` directly: the
 wrapper is what redirects `HOME` so adb can write its key material, otherwise
@@ -216,5 +236,5 @@ online serial (`emulator-5554`).
 | Screenshot is a grey screen with a purple square | captured the splash | gate on `mCurrentFocus`, then capture |
 | Gradle re-downloads everything | `GRADLE_USER_HOME` not set | source the env script |
 | `connectedDebugAndroidTest` fails | no device/emulator attached | start one (§2) |
-| `android_*` tool: "adb is unavailable" | harness started without `ADB` | set it in `.env`, restart the harness (§8) |
+| `android_*` tool: "adb is unavailable" | harness booted without `ADB` | add it to `$DSH_HOME/.env`, restart (§8) |
 | `android_find_text`/`android_tap_text`/`android_wait_for` fail with a swiftc hint | OCR helper needs macOS | use `android_ui_tree` + `android_tap_element` (§8) |
