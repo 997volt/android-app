@@ -52,6 +52,14 @@ data class ExerciseLibraryUiState(
     val items: List<ExerciseListItem> = emptyList(),
     val isLoading: Boolean = true,
     val activeWorkout: ActiveWorkoutInfo? = null,
+    /**
+     * No exercises exist at all, as opposed to none matching the query.
+     *
+     * The two looked identical on screen — both rendered "No exercises match \"\"" —
+     * which told the user nothing about whether to clear the search or something
+     * was actually wrong (ROADMAP P1.1a).
+     */
+    val libraryIsEmpty: Boolean = false,
 ) {
     /**
      * A search that matched nothing — deliberately distinct from [isLoading] so
@@ -102,6 +110,7 @@ class ExerciseLibraryViewModel @Inject constructor(
             items = ExerciseSearch.filter(exercises, currentQuery).map { it.toListItem() },
             isLoading = false,
             activeWorkout = workout,
+            libraryIsEmpty = exercises.isEmpty(),
         )
     }.stateIn(
         scope = viewModelScope,

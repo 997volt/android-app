@@ -56,15 +56,48 @@ class ExerciseSearchTest {
         assertEquals(listOf(squat, bench), ExerciseSearch.filter(library, "barbell"))
     }
 
+    @Test
+    fun matchesASecondaryMuscle_notJustThePrimaryOne() {
+        // The bug P1.1a fixes: "forearms" found nothing when forearms were a
+        // secondary muscle, even though the row was visible on screen.
+        val deadlift = exercise(
+            id = "deadlift",
+            name = "Deadlift",
+            muscle = MuscleGroup.BACK,
+            equipment = Equipment.BARBELL,
+            secondary = listOf(MuscleGroup.FOREARMS, MuscleGroup.GLUTES),
+        )
+
+        assertEquals(
+            listOf(deadlift),
+            ExerciseSearch.filter(listOf(squat, deadlift), "forearms"),
+        )
+    }
+
+    @Test
+    fun matchesTheLocaleStableKey_asWellAsTheDisplayLabel() {
+        // The label is translated; the enum name is not. Matching only the label
+        // means the search silently stops working in another language.
+        assertEquals(listOf(bench), ExerciseSearch.filter(library, "CHEST"))
+        assertEquals(listOf(curl), ExerciseSearch.filter(library, "DUMBBELL"))
+    }
+
+    @Test
+    fun matchesTheMovementPattern() {
+        assertEquals(library, ExerciseSearch.filter(library, "isolation"))
+    }
+
     private fun exercise(
         id: String,
         name: String,
         muscle: MuscleGroup,
         equipment: Equipment,
+        secondary: List<MuscleGroup> = emptyList(),
     ) = Exercise(
         id = id,
         name = name,
         primaryMuscle = muscle,
+        secondaryMuscles = secondary,
         equipment = equipment,
         movementPattern = MovementPattern.ISOLATION,
     )

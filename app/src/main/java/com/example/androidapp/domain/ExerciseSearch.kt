@@ -18,9 +18,28 @@ object ExerciseSearch {
         return exercises.filter { it.matches(trimmed) }
     }
 
-    /** True when [query] appears in the name, muscle group or equipment. */
+    /**
+     * True when [query] appears anywhere we describe an exercise: its name, either
+     * muscle group, its equipment or its movement pattern.
+     *
+     * Two deliberate choices (ROADMAP P1.1a):
+     *
+     *  - **Secondary muscles are searched too.** They were not, so typing
+     *    "forearms" missed every row where forearms were *secondary* — a dead end,
+     *    because nothing on screen explained why a row the user could see was not
+     *    found.
+     *  - **The enum name is matched as well as the label.** `label` is user-facing
+     *    text that localization translates, so a search keyed only on it quietly
+     *    stops working in another language. `name` is locale-stable, so
+     *    `FOREARMS` still matches "forearms" whatever the display language says.
+     */
     private fun Exercise.matches(query: String): Boolean =
-        name.contains(query, ignoreCase = true) ||
-            primaryMuscle.label.contains(query, ignoreCase = true) ||
-            equipment.label.contains(query, ignoreCase = true)
+        matches(query, name, name) ||
+            (listOf(primaryMuscle) + secondaryMuscles).any { matches(query, it.label, it.name) } ||
+            matches(query, equipment.label, equipment.name) ||
+            matches(query, movementPattern.label, movementPattern.name)
+
+    /** Matches against the display text *and* the locale-stable key. */
+    private fun matches(query: String, label: String, stableKey: String): Boolean =
+        label.contains(query, ignoreCase = true) || stableKey.contains(query, ignoreCase = true)
 }

@@ -82,6 +82,31 @@ class ExerciseLibraryScreenTest {
         composeTestRule.onNodeWithText("Start workout").assertDoesNotExist()
     }
 
+    @Test
+    fun anEmptyLibrary_saysSo_ratherThanBlamingTheSearch() {
+        setScreen(
+            ExerciseLibraryUiState(isLoading = false, items = emptyList(), libraryIsEmpty = true),
+        )
+
+        composeTestRule.onNodeWithText("No exercises yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("match", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSearchWithNoHits_namesTheQuery() {
+        setScreen(
+            ExerciseLibraryUiState(
+                isLoading = false,
+                items = emptyList(),
+                libraryIsEmpty = false,
+                query = "zzz",
+            ),
+        )
+
+        composeTestRule.onNodeWithText("No exercises match “zzz”").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No exercises yet").assertDoesNotExist()
+    }
+
     private fun setScreen(
         state: ExerciseLibraryUiState,
         onQueryChange: (String) -> Unit = {},

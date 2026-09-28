@@ -9,6 +9,9 @@
     <string name="exercise_search_clear">Clear search</string>
     <string name="exercise_library_loading">Loading exercises…</string>
     <string name="exercise_library_empty">No exercises match “%1$s”</string>
+    <!-- Distinct from a failed search: the library itself is empty. -->
+    <string name="exercise_library_no_exercises">No exercises yet</string>
+    <string name="exercise_library_no_exercises_hint">Your exercise library is empty.</string>
     <string name="library_start_workout">Start workout</string>
     <string name="library_resume_workout">Resume workout</string>
     <plurals name="library_exercises">

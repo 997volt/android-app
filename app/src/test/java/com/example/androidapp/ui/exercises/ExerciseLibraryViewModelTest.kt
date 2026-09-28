@@ -142,6 +142,27 @@ class ExerciseLibraryViewModelTest {
         assertEquals("", viewModel.clock.value.elapsed)
     }
 
+    @Test
+    fun anEmptyLibrary_isReportedSeparatelyFromAFailedSearch() = runTest(dispatcher) {
+        val viewModel = viewModelFor()
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertTrue("nothing exists at all", viewModel.uiState.value.libraryIsEmpty)
+        assertTrue(viewModel.uiState.value.isEmpty)
+    }
+
+    @Test
+    fun aSearchWithNoHits_isNotAnEmptyLibrary() = runTest(dispatcher) {
+        val viewModel = viewModelFor(squat)
+        observe(viewModel)
+        viewModel.onQueryChange("zzz")
+        advanceUntilIdle()
+
+        assertTrue("the search found nothing", viewModel.uiState.value.isEmpty)
+        assertFalse("but the library is not empty", viewModel.uiState.value.libraryIsEmpty)
+    }
+
     private fun viewModelFor(vararg exercises: Exercise) = ExerciseLibraryViewModel(
         exerciseRepository = FakeRepository(exercises.toList()),
         workoutRepository = NoActiveWorkout,
