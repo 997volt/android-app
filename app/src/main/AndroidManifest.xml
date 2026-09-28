@@ -3,6 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
+      Rest-timer alert (ROADMAP P1.4). POST_NOTIFICATIONS is a runtime permission
+      on API 33+; if it is refused the timer still runs in-app and the alert is
+      simply not posted.
+
+      SCHEDULE_EXACT_ALARM is a special permission the user grants in Settings.
+      It is requested so a rest can end on time, but the scheduler falls back to
+      an inexact alarm when it is not granted rather than failing.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!--
       Workout history is health data, so it must not leave the device through
       the platform's backup or transfer mechanisms.
 
@@ -31,6 +43,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Posts the rest-over notification when the alarm fires. Not exported:
+             nothing outside the app should be able to trigger it. -->
+        <receiver
+            android:name=".platform.RestAlarmReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

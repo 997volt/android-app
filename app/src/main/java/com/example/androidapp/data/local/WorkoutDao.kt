@@ -94,6 +94,7 @@ interface WorkoutDao {
             startedAt = now,
             finishedAt = null,
             notes = null,
+            restEndsAt = null,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
@@ -121,4 +122,84 @@ interface WorkoutDao {
     /** Rows updated: 0 means the row does not exist or was already deleted. */
     @Query("UPDATE session_exercises SET deletedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun softDeleteSessionExercise(id: String, at: Long): Int
+
+    // ---------------------------------------------------------------- sets (P1.3)
+
+    /** Every live set in the session, ordered by exercise position then set index. */
+    @Query(
+        """
+        SELECT s.* FROM set_entries s
+        JOIN session_exercises se ON se.id = s.sessionExerciseId
+        WHERE se.sessionId = :sessionId AND s.deletedAt IS NULL AND se.deletedAt IS NULL
+        ORDER BY se.position ASC, s.setIndex ASC
+        """,
+    )
+    fun observeSetsForSession(sessionId: String): Flow<List<SetEntryEntity>>
+
+    /** Next free set index; -1 on an exercise with no sets, so callers add 1. */
+    @Query("SELECT COALESCE(MAX(setIndex), -1) FROM set_entries WHERE sessionExerciseId = :sessionExerciseId")
+    suspend fun maxSetIndex(sessionExerciseId: String): Int
+
+    @Insert
+    suspend fun insertSet(row: SetEntryEntity)
+
+    /** Rows updated: 0 means the set does not exist or was deleted. */
+    @Query(
+        """
+        UPDATE set_entries
+        SET reps = :reps, weightGrams = :weightGrams, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun updateSet(id: String, reps: Int, weightGrams: Long, at: Long): Int
+
+    @Query("UPDATE set_entries SET deletedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
+    suspend fun softDeleteSet(id: String, at: Long): Int
+
+    /**
+     * The most recent *completed* session containing [exerciseId], excluding the
+     * one in progress — the source of the "last time" prefill (P1.3).
+     *
+     * Ordered by `finishedAt` rather than `startedAt`: a workout finished later is
+     * the more recent performance even if it was begun earlier.
+     */
+    @Query(
+        """
+        SELECT ws.id FROM workout_sessions ws
+        JOIN session_exercises se ON se.sessionId = ws.id
+        WHERE se.exerciseId = :exerciseId
+          AND ws.id != :currentSessionId
+          AND ws.finishedAt IS NOT NULL
+          AND ws.deletedAt IS NULL
+          AND se.deletedAt IS NULL
+        ORDER BY ws.finishedAt DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun findPreviousSessionIdFor(exerciseId: String, currentSessionId: String): String?
+
+    @Query(
+        """
+        SELECT s.* FROM set_entries s
+        JOIN session_exercises se ON se.id = s.sessionExerciseId
+        WHERE se.sessionId = :sessionId
+          AND se.exerciseId = :exerciseId
+          AND s.deletedAt IS NULL
+          AND se.deletedAt IS NULL
+        ORDER BY s.setIndex ASC
+        """,
+    )
+    suspend fun findSetsFor(sessionId: String, exerciseId: String): List<SetEntryEntity>
+
+    // ------------------------------------------------------- rest timer (P1.4)
+
+    /** [restEndsAt] null stops the rest timer. */
+    @Query(
+        """
+        UPDATE workout_sessions
+        SET restEndsAt = :restEndsAt, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun updateRestTimer(id: String, restEndsAt: Long?, at: Long): Int
 }

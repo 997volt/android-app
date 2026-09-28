@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,6 +63,31 @@ class WorkoutDatabaseMigrationTest {
         migrated.query("SELECT COUNT(*) FROM workout_sessions").use { cursor ->
             cursor.moveToFirst()
             assertEquals(0, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
+
+    @Test
+    fun migration2To3_addsSetEntriesAndTheRestColumn() {
+        // Start from a real v2 database so the ALTER runs against a table that
+        // already has rows — the case a fresh-install test would never cover.
+        helper.createDatabase(TEST_DB, 2).apply {
+            execSQL("INSERT INTO workout_sessions (id, startedAt, finishedAt, notes, createdAt, updatedAt, deletedAt) VALUES ('s1', 1, NULL, NULL, 1, 1, NULL)")
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 3, true, MIGRATION_2_3)
+
+        migrated.query("SELECT COUNT(*) FROM set_entries").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+        // The pre-existing session survives, and its new column reads as "not resting".
+        migrated.query("SELECT restEndsAt FROM workout_sessions WHERE id = 's1'").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.count)
+            assertTrue("restEndsAt must default to null", cursor.isNull(0))
         }
 
         migrated.close()

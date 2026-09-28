@@ -1,5 +1,6 @@
 package com.example.androidapp.data.local
 
+import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.WorkoutSession
 import java.time.Instant
 
@@ -13,4 +14,15 @@ internal fun WorkoutSessionEntity.toDomain(): WorkoutSession = WorkoutSession(
     id = id,
     startedAt = Instant.ofEpochMilli(startedAt),
     finishedAt = finishedAt?.let(Instant::ofEpochMilli),
+    restEndsAt = restEndsAt?.let(Instant::ofEpochMilli),
+)
+
+internal fun SetEntryEntity.toDomain(): SetEntry = SetEntry(
+    id = id,
+    sessionExerciseId = sessionExerciseId,
+    setIndex = setIndex,
+    reps = reps,
+    weightGrams = weightGrams,
+    setType = setType,
+    completedAt = completedAt?.let(Instant::ofEpochMilli),
 )

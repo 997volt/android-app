@@ -2,10 +2,16 @@ package com.example.androidapp.ui.workout
 
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
+import com.example.androidapp.domain.RestNotifier
+import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
+import com.example.androidapp.domain.model.SetEntry
+import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.successUnit
@@ -15,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -36,7 +43,7 @@ class ActiveWorkoutViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
 
-    private val clock = TimeSource { Instant.parse("2026-09-28T08:00:00Z") }
+    private val clock = TimeSource { FIXED_INSTANT }
 
     @Before
     fun setUp() {
@@ -62,10 +69,15 @@ class ActiveWorkoutViewModelTest {
         backgroundScope.launch { viewModel.uiState.collect {} }
     }
 
+    private fun viewModelFor(
+        repository: FakeWorkoutRepository,
+        notifier: FakeRestNotifier = FakeRestNotifier(),
+    ) = ActiveWorkoutViewModel(repository, clock, notifier)
+
     @Test
     fun startsASessionOnEntry_soNothingCanBeLostBeforeItExists() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -85,7 +97,7 @@ class ActiveWorkoutViewModelTest {
         val repository = FakeWorkoutRepository().apply {
             sessions.value = WorkoutSession(id = "existing", startedAt = Instant.parse("2026-09-28T07:30:00Z"))
         }
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -95,7 +107,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun addingAnExercise_showsItAsARow() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -112,7 +124,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun aFailedWrite_isSurfacedAsState_notThrown() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -129,7 +141,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun aSuccessfulWrite_clearsAPreviousError() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -148,7 +160,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun finishingMarksTheScreenClosed_andClearsTheSession() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -162,7 +174,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun discarding_alsoClosesTheScreen() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -175,7 +187,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun removingAnExercise_dropsTheRow() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = ActiveWorkoutViewModel(repository, clock)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -189,9 +201,129 @@ class ActiveWorkoutViewModelTest {
         assertTrue(viewModel.uiState.value.exercises.isEmpty())
     }
 
+    @Test
+    fun loggingASet_storesTheSuggestion_andArmsTheRestAlert() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val notifier = FakeRestNotifier()
+        val viewModel = viewModelFor(repository, notifier)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        val logged = repository.sets.value.single()
+        assertEquals(DEFAULT_REPS, logged.reps)
+        assertEquals(Weight.DEFAULT_GRAMS, logged.weightGrams)
+        assertEquals("a rest must be armed on set completion", 1, notifier.scheduled.size)
+    }
+
+    @Test
+    fun theNextSet_prefillsWhatWasJustDone() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        // The suggestion for set 2 must echo set 1, not fall back to the default.
+        val row = viewModel.uiState.value.exercises.single()
+        assertEquals(1, row.sets.size)
+        assertEquals(row.sets.single().reps, row.suggestion.reps)
+        assertEquals(row.sets.single().weightGrams, row.suggestion.weightGrams)
+    }
+
+    @Test
+    fun previousPerformance_prefillsTheFirstEverSet() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository().apply {
+            previous = PreviousPerformance(
+                listOf(
+                    SetEntry(
+                        id = "old",
+                        sessionExerciseId = "old-ex",
+                        setIndex = 0,
+                        reps = 5,
+                        weightGrams = 100_000,
+                    ),
+                ),
+            )
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val row = viewModel.uiState.value.exercises.single()
+        assertEquals(5, row.suggestion.reps)
+        assertEquals(100_000, row.suggestion.weightGrams)
+        assertEquals("last time should be shown, not just used", 100_000L, row.lastTime?.weightGrams)
+    }
+
+    @Test
+    fun deletingASet_thenUndoing_restoresIt() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        val logged = repository.sets.value.single()
+        viewModel.onDeleteSet(logged.id)
+        settle()
+        assertTrue("the set should be gone", repository.sets.value.isEmpty())
+        assertNotNull("an undo must be offered", viewModel.uiState.value.pendingUndo)
+
+        viewModel.onUndoDelete()
+        settle()
+
+        assertEquals(1, repository.sets.value.size)
+        assertEquals(logged.reps, repository.sets.value.single().reps)
+        assertEquals(null, viewModel.uiState.value.pendingUndo)
+    }
+
+    @Test
+    fun skippingTheRest_cancelsTheAlert() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val notifier = FakeRestNotifier()
+        val viewModel = viewModelFor(repository, notifier)
+        observe(viewModel)
+        settle()
+
+        viewModel.onSkipRest()
+        settle()
+
+        assertEquals(1, notifier.cancelCount)
+    }
+
+    @Test
+    fun adjustingTheRest_reschedulesTheAlert() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val notifier = FakeRestNotifier()
+        val viewModel = viewModelFor(repository, notifier)
+        observe(viewModel)
+        settle()
+
+        viewModel.onAdjustRest(RestTimer.ADJUST_STEP_SECONDS)
+        settle()
+
+        assertEquals(1, notifier.scheduled.size)
+    }
+
     private class FakeWorkoutRepository : WorkoutRepository {
         val sessions = MutableStateFlow<WorkoutSession?>(null)
         val exercises = MutableStateFlow<List<SessionExercise>>(emptyList())
+        val sets = MutableStateFlow<List<SetEntry>>(emptyList())
+        var previous: PreviousPerformance = PreviousPerformance(emptyList())
         var failWrites = false
 
         override fun observeActiveSession(): Flow<WorkoutSession?> = sessions
@@ -234,5 +366,71 @@ class ActiveWorkoutViewModelTest {
             exercises.value = emptyList()
             return successUnit()
         }
+
+        override fun observeSets(sessionId: String): Flow<List<SetEntry>> = sets
+
+        override suspend fun logSet(
+            sessionExerciseId: String,
+            reps: Int,
+            weightGrams: Long,
+            setType: SetType,
+        ): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            sets.value = sets.value + SetEntry(
+                id = "set-${sets.value.size}",
+                sessionExerciseId = sessionExerciseId,
+                setIndex = sets.value.size,
+                reps = reps,
+                weightGrams = weightGrams,
+                setType = setType,
+            )
+            return successUnit()
+        }
+
+        override suspend fun updateSet(setId: String, reps: Int, weightGrams: Long): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            sets.value = sets.value.map {
+                if (it.id == setId) it.copy(reps = reps, weightGrams = weightGrams) else it
+            }
+            return successUnit()
+        }
+
+        override suspend fun deleteSet(setId: String): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            sets.value = sets.value.filterNot { it.id == setId }
+            return successUnit()
+        }
+
+        override suspend fun previousPerformance(
+            exerciseId: String,
+            currentSessionId: String,
+        ): DataResult<PreviousPerformance> = DataResult.Success(previous)
+
+        override suspend fun startRest(seconds: Int): DataResult<Instant> =
+            DataResult.Success(FIXED_INSTANT.plusSeconds(seconds.toLong()))
+
+        override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> =
+            DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))
+
+        override suspend fun clearRest(): DataResult<Unit> = successUnit()
+    }
+
+    /** Records what the screen asked to be alerted about, with no Android involved. */
+    private class FakeRestNotifier : RestNotifier {
+        val scheduled = mutableListOf<Instant>()
+        var cancelCount = 0
+            private set
+
+        override fun schedule(endsAt: Instant) {
+            scheduled += endsAt
+        }
+
+        override fun cancel() {
+            cancelCount++
+        }
+    }
+
+    private companion object {
+        val FIXED_INSTANT: Instant = Instant.parse("2026-09-28T08:00:00Z")
     }
 }

@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.SetType
 
 /**
  * Stores the domain enums as their **names**, never their ordinals.
@@ -32,6 +33,12 @@ class Converters {
 
     @TypeConverter
     fun toMovementPattern(value: String): MovementPattern = MovementPattern.valueOf(value)
+
+    @TypeConverter
+    fun fromSetType(value: SetType): String = value.name
+
+    @TypeConverter
+    fun toSetType(value: String): SetType = SetType.valueOf(value)
 
     @TypeConverter
     fun fromMuscleGroups(values: List<MuscleGroup>): String =

@@ -24,6 +24,13 @@ data class WorkoutSessionEntity(
     val startedAt: Long,
     val finishedAt: Long?,
     val notes: String?,
+    /**
+     * When the current rest ends, or null when not resting (ROADMAP P1.4).
+     *
+     * Stored as an absolute instant rather than a countdown so the timer stays
+     * correct across a process death — and so no work is needed per tick.
+     */
+    val restEndsAt: Long?,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

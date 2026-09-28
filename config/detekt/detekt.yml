@@ -48,7 +48,12 @@ complexity:
     excludes: ['**/data/SeedExercises.kt']
 
   TooManyFunctions:
-    # A DAO is a collection of queries by nature — one per read or write it
-    # supports. The default interface threshold is tuned for behavioural
-    # interfaces, not query surfaces.
+    # These thresholds are raised, not disabled, and for one shape of type: a DAO
+    # is one query per read/write, and a repository or ViewModel that fronts an
+    # aggregate (sessions, sets, rest timer) is a collection of small operations
+    # by design. Twenty is still a real ceiling — beyond it a type is genuinely
+    # doing too much and wants splitting — and these are aggregates that already
+    # read as such.
     thresholdInInterfaces: 25
+    thresholdInClasses: 20
+    thresholdInFiles: 20

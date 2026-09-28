@@ -17,6 +17,8 @@ data class WorkoutSession(
     val id: String,
     val startedAt: Instant,
     val finishedAt: Instant? = null,
+    /** When the current rest ends, or null when not resting (P1.4). */
+    val restEndsAt: Instant? = null,
 ) {
     val isActive: Boolean get() = finishedAt == null
 }

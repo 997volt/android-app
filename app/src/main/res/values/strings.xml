@@ -37,6 +37,30 @@
     <!-- Exercise picker -->
     <string name="picker_title">Add exercise</string>
 
+    <!-- Set logging (P1.3) -->
+    <string name="set_log">Log set · %1$s</string>
+    <string name="set_number">%1$d</string>
+    <string name="set_summary">%1$s kg × %2$d</string>
+    <string name="set_edit_title">Edit set</string>
+    <string name="set_weight_label">Weight (kg)</string>
+    <string name="set_reps_label">Reps</string>
+    <string name="set_save">Save</string>
+    <string name="set_cancel">Cancel</string>
+    <string name="set_deleted">Set deleted</string>
+    <string name="set_delete">Delete set</string>
+    <string name="set_undo">Undo</string>
+    <string name="set_last_time">Last time: %1$s</string>
+
+    <!-- Rest timer (P1.4) -->
+    <string name="rest_remaining">Rest %1$s</string>
+    <string name="rest_add">+15s</string>
+    <string name="rest_subtract">−15s</string>
+    <string name="rest_skip">Skip rest</string>
+    <string name="rest_over_title">Rest over</string>
+    <string name="rest_over_text">Time for your next set.</string>
+    <string name="rest_channel_name">Rest timer</string>
+    <string name="rest_channel_description">Alerts when a rest between sets is over.</string>
+
     <!-- Write failures (ROADMAP F7) -->
     <string name="workout_error_not_found">That workout is no longer open.</string>
     <string name="workout_error_storage">Couldn’t save that. Your last change may not be stored.</string>

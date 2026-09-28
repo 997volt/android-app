@@ -4,6 +4,8 @@ import com.example.androidapp.data.RoomExerciseRepository
 import com.example.androidapp.data.RoomWorkoutRepository
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
+import com.example.androidapp.domain.RestNotifier
+import com.example.androidapp.platform.RestAlarmScheduler
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -28,4 +30,9 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindWorkoutRepository(impl: RoomWorkoutRepository): WorkoutRepository
+
+    /** The rest-timer alert is an output port, bound to its Android implementation. */
+    @Binds
+    @Singleton
+    abstract fun bindRestNotifier(impl: RestAlarmScheduler): RestNotifier
 }
