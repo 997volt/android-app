@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -307,13 +308,7 @@ private fun ExerciseBlock(
 
 @Composable
 private fun DetailMessage(text: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = text, style = MaterialTheme.typography.titleMedium)
-    }
+    CenteredMessage(text = text, modifier = modifier)
 }
 
 @Preview(showBackground = true)

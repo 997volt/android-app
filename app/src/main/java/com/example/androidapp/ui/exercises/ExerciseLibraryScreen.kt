@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
@@ -200,37 +201,21 @@ private fun EmptyState(
     libraryIsEmpty: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .testTag(
-                if (libraryIsEmpty) TestTags.LIBRARY_EMPTY_LIBRARY else TestTags.LIBRARY_NO_MATCH,
-            ),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // An empty library and a search with no hits look the same unless the
-        // screen distinguishes them, and the user's next move differs: one wants
-        // the search cleared, the other is not about the search at all.
-        if (libraryIsEmpty) {
-            Text(
-                text = stringResource(R.string.exercise_library_no_exercises),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = stringResource(R.string.exercise_library_no_exercises_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        } else {
-            Text(
-                text = stringResource(R.string.exercise_library_empty, query),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-        }
+    // An empty library and a search with no hits look the same unless the screen
+    // distinguishes them, and the user's next move differs: one wants the search
+    // cleared, the other is not about the search at all.
+    if (libraryIsEmpty) {
+        CenteredMessage(
+            text = stringResource(R.string.exercise_library_no_exercises),
+            hint = stringResource(R.string.exercise_library_no_exercises_hint),
+            modifier = modifier.testTag(TestTags.LIBRARY_EMPTY_LIBRARY),
+        )
+    } else {
+        CenteredMessage(
+            text = stringResource(R.string.exercise_library_empty, query),
+            textStyle = MaterialTheme.typography.bodyLarge,
+            modifier = modifier.testTag(TestTags.LIBRARY_NO_MATCH),
+        )
     }
 }
 

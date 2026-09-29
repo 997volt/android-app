@@ -169,7 +169,7 @@ Post-MVP, same local-only premise. Ordered loosely by value.
 | P3.3, P3.4 | Programs / mesocycles and auto-progression (only once there is history) |
 | P3.5, P3.6 | Weekly scheduling, supersets / circuits |
 | P2.4, P2.5 | Body measurements, progress photos |
-| F8 | Design-system layer: reusable buttons, rows, number pickers, empty/error states |
+| F8 | ✅ Design system, to the point of real reuse | Shared pieces in [`ui/components/`](app/src/main/java/com/example/androidapp/ui/components): `CenteredMessage`, `SetEditorDialog`, `dataErrorMessage`, `TestTags`. **Deliberately not the whole original list** — buttons, rows and number pickers still have a single caller each, and extracting a component with one use is indirection rather than reuse. Pull them out when a second screen needs them. |
 
 ## Parked — deliberately not planned
 
