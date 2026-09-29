@@ -23,6 +23,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -44,9 +46,12 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.MessageSnackbar
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.history.HistoryFormat
 import com.example.androidapp.ui.theme.AndroidAppTheme
+import com.example.androidapp.ui.transfer.DataTransferViewModel
+import com.example.androidapp.ui.transfer.rememberDataTransferActions
 import com.example.androidapp.ui.workout.WorkoutClock
 import com.example.androidapp.ui.workout.WorkoutFormat
 import java.time.Instant
@@ -61,10 +66,17 @@ fun WorkoutsHomeRoute(
     onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
+    transferViewModel: DataTransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Not unwrapped with `by`: reading it here would rebuild the list every second.
     val clock = viewModel.clock.collectAsStateWithLifecycle()
+
+    // Export and import live here now (ROADMAP B1): they are app-level data
+    // management, and the library N1 demoted to a reference screen was the wrong
+    // home for them — two overflows deep from where the user starts.
+    var message by remember { mutableStateOf<String?>(null) }
+    val transferActions = rememberDataTransferActions(transferViewModel) { message = it }
 
     WorkoutsHomeScreen(
         state = state,
@@ -75,6 +87,10 @@ fun WorkoutsHomeRoute(
         onOpenHistory = onOpenHistory,
         onOpenLibrary = onOpenLibrary,
         onOpenTemplates = onOpenTemplates,
+        onExportData = transferActions.export,
+        onImportData = transferActions.import,
+        message = message,
+        onDismissMessage = { message = null },
         modifier = modifier,
     )
 }
@@ -91,14 +107,24 @@ fun WorkoutsHomeScreen(
     onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
     onStartFromTemplate: () -> Unit = {},
+    onExportData: (() -> Unit)? = null,
+    onImportData: (() -> Unit)? = null,
+    message: String? = null,
+    onDismissMessage: () -> Unit = {},
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    MessageSnackbar(message, snackbarHostState, onDismissMessage)
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeTopBar(
                 onOpenLibrary = onOpenLibrary,
                 onOpenHistory = onOpenHistory,
                 onOpenTemplates = onOpenTemplates,
+                onExport = onExportData,
+                onImport = onImportData,
             )
         },
         floatingActionButton = {
@@ -325,6 +351,8 @@ private fun HomeTopBar(
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenTemplates: () -> Unit,
+    onExport: (() -> Unit)?,
+    onImport: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -348,29 +376,76 @@ private fun HomeTopBar(
                 )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.exercise_library_title)) },
-                    onClick = {
-                        menuOpen = false
-                        onOpenLibrary()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.history_title)) },
-                    onClick = {
-                        menuOpen = false
-                        onOpenHistory()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.home_templates)) },
-                    onClick = {
-                        menuOpen = false
-                        onOpenTemplates()
-                    },
-                    modifier = Modifier.testTag(TestTags.HOME_TEMPLATES),
+                HomeMenuItems(
+                    onOpenLibrary = onOpenLibrary,
+                    onOpenHistory = onOpenHistory,
+                    onOpenTemplates = onOpenTemplates,
+                    onExport = onExport,
+                    onImport = onImport,
+                    onDismiss = { menuOpen = false },
                 )
             }
         },
     )
+}
+
+/**
+ * The menu's entries, split out so the app bar stays a title and a button.
+ *
+ * Export and import are the newest members (ROADMAP B1), and are null on a preview
+ * or a screen test that does not exercise them — so the menu is exactly as long as
+ * it has something to offer.
+ */
+@Composable
+private fun HomeMenuItems(
+    onOpenLibrary: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenTemplates: () -> Unit,
+    onExport: (() -> Unit)?,
+    onImport: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    Column {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.exercise_library_title)) },
+            onClick = {
+                onDismiss()
+                onOpenLibrary()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.history_title)) },
+            onClick = {
+                onDismiss()
+                onOpenHistory()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.home_templates)) },
+            onClick = {
+                onDismiss()
+                onOpenTemplates()
+            },
+            modifier = Modifier.testTag(TestTags.HOME_TEMPLATES),
+        )
+        // Export and import, moved down from the library (ROADMAP B1).
+        if (onExport != null && onImport != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.transfer_export)) },
+                onClick = {
+                    onDismiss()
+                    onExport()
+                },
+                modifier = Modifier.testTag(TestTags.DATA_EXPORT),
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.transfer_import)) },
+                onClick = {
+                    onDismiss()
+                    onImport()
+                },
+                modifier = Modifier.testTag(TestTags.DATA_IMPORT),
+            )
+        }
+    }
 }

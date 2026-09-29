@@ -1,5 +1,10 @@
 package com.example.androidapp.ui.exercises
 
+import java.io.IOException
+import com.example.androidapp.domain.DataError
+import com.example.androidapp.R
+import androidx.test.core.app.ApplicationProvider
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -224,4 +229,18 @@ class ExerciseDetailScreenTest {
             isCustom = true,
         )
     }
+
+    @Test
+    fun aFailedRead_isShownAsAFailure_notAsAMissingExercise() {
+        // ROADMAP B4 and the distinction that matters: "we could not read it" and
+        // "it is not there" are different sentences, and the state says which.
+        show(ExerciseDetailUiState(isLoading = false, error = DataError.Storage(IOException("locked"))))
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_READ_ERROR).assertIsDisplayed()
+        composeTestRule.onNodeWithText(notFoundMessage()).assertDoesNotExist()
+    }
+
+    /** The "no such exercise" line, read from resources so wording can change. */
+    private fun notFoundMessage(): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(R.string.exercise_detail_not_found)
 }

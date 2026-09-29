@@ -7,6 +7,25 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Export and import are back where you start.** They lived two overflow menus
+  deep — home, then the exercise library N1 demoted to a reference screen — so the
+  feature read as missing. They are in the home overflow now, beside Library,
+  History and Templates, and the library's copy is gone: one path, not two.
+- **Removing an exercise asks first.** It takes the exercise's sets with it and has
+  no undo, so a mis-tap silently reshaped the workout. It now asks, and the dialog
+  says what goes rather than posing a bare question.
+- **An Undo can no longer act on something that is gone.** The deleted-set and Done
+  snackbars share one host, so a deleted set's Undo could outlive its exercise: the
+  row was gone, the button stayed, and tapping it failed the loggable-exercise guard
+  without saying anything. An undo is now offered only while its subject is still in
+  the session, and if one is tapped anyway the app says so instead of doing nothing.
+- **A library read that fails is a message, not a crash.** `observeExercises` and
+  `getExercise` were the last calls that could throw out of a flow and take a screen
+  down. Both return the same `DataResult` the writes do, and the failure is shown
+  where the list or the exercise would have been — "we could not read it" and "it is
+  not there" are different sentences, and they used to be the same one.
+
 ## [1.3] — 2026-09-29 (versionCode 4)
 
 ### Added

@@ -45,8 +45,14 @@ data class ExerciseDetailUiState(
     val isEditing: Boolean = false,
     val error: DataError? = null,
 ) {
-    /** Loaded, but no such exercise — a real state, not an error to hide. */
-    val notFound: Boolean get() = !isLoading && exercise == null
+    /**
+     * Loaded, but no such exercise — a real state, not an error to hide.
+     *
+     * Excludes a failed read (ROADMAP B4): that is a different sentence on screen,
+     * and telling the user the exercise does not exist when the database is the
+     * thing that failed would be a lie.
+     */
+    val notFound: Boolean get() = !isLoading && exercise == null && error == null
 
     /**
      * Any exercise can be corrected here (ROADMAP N5). Seeded rows included, and
@@ -76,11 +82,17 @@ class ExerciseDetailViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // A plain one-shot read, held in state so a successful edit is
-            // reflected without a second round trip. Reads can still throw out of
-            // the repository (the quality-bar gap the roadmap records); this is
-            // the previous behaviour in a coroutine, not a new failure mode.
-            _uiState.update {
-                it.copy(exercise = repository.getExercise(exerciseId), isLoading = false)
+            // reflected without a second round trip. Wrapped like the writes
+            // (ROADMAP B4), so a failed read is a message on the screen rather
+            // than an exception lost inside this coroutine.
+            when (val result = repository.getExercise(exerciseId)) {
+                is DataResult.Success -> _uiState.update {
+                    it.copy(exercise = result.data, isLoading = false, error = null)
+                }
+
+                is DataResult.Failure -> _uiState.update {
+                    it.copy(exercise = null, isLoading = false, error = result.error)
+                }
             }
         }
     }

@@ -54,65 +54,14 @@ left alone without being forgotten.
 
 ## Next
 
-Queued in order: the defects first, then three additions to what a workout records.
-N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
-
-**Fixes first.**
-
-| # | Defect | Decision |
-| --- | --- | --- |
-| B1 | Export and import are two overflow menus deep | Move them to the home overflow |
-| B2 | Removing an exercise is irreversible | Ask first — a confirmation dialog |
-| B3 | An **Undo** can act on something that is already gone | Check the precondition and report, instead of doing nothing |
-| B4 | A repository read can throw and take a screen down | Wrap it in `DataResult`, as the writes already are |
-
-**Then three additions to what a workout records.**
+Three additions to what a workout records. N1–N8 shipped in v1.3, and the B1–B4 fix
+batch after it; both live in [CHANGELOG.md](CHANGELOG.md).
 
 | # | Addition | Decision |
 | --- | --- | --- |
 | N9 | Joint pain location | A text box under the rating — the batch's only migration |
 | N10 | Ratings before finishing | Editable at any time, not only at the Done prompt |
 | N11 | A workout comment | A skippable prompt on Finish; no migration |
-
-### B1 — Export and import move to the home overflow
-
-App-level data management belongs at home. Today's path is Home ⋮ → *Exercise
-library* → ⋮ → *Export*, because N1 turned the library into a reference screen you
-have to navigate to on purpose — so the feature reads as missing. The home menu
-already carries Library, History and Templates; Export and Import join them, and the
-library's copy goes, so there is one path rather than two.
-
-### B2 — Removing an exercise asks first
-
-Removing an exercise soft-deletes it and — unlike deleting a set or marking one Done
-— has **no undo**, so a mis-tap silently reshapes the session. **Decided: a
-confirmation dialog**, not an undo snackbar. It is a rare action, and a confirm is
-easier to reason about than restoring a row whose sets went with it.
-
-### B3 — An Undo must not act on something that is gone
-
-Two actions offer a button labelled **Undo** — a deleted set and a Done exercise — and
-they share one `SnackbarHostState`, so the button can outlive what it refers to. The
-reported sequence: delete a set, remove its exercise, then tap the *Undo* still on
-screen. It undoes the **set**, not the removal, and that undo then fails the
-loggable-exercise guard — so nothing happens, silently.
-
-Fix: each undo checks its precondition and says so when it cannot proceed, and a
-snackbar is dismissed when the state it refers to disappears. It gets a regression
-test, because this is a stale-state path: a deleted set's undo, tapped after its
-exercise is gone, must report rather than no-op. The full diagnosis is in the commit
-that wrote this row; B2 removes the mis-tap, but the silent failure is its own bug.
-
-### B4 — Reads return a value, like writes
-
-`ExerciseRepository.getExercise` and `observeExercises` are the last calls that can
-throw out of a flow and take a screen down. Every write already returns `DataResult`,
-and F7's argument applies here unchanged: a failure the UI can render beats an
-exception that disappears inside a coroutine.
-
-Wrap both and map them the way `dataResultOf` maps a write, showing the failure where
-the screen would otherwise have shown data. When this lands, the quality bar's *Errors*
-line goes back to being a rule rather than a standing defect.
 
 ### N9 — Joint pain location
 
@@ -234,10 +183,10 @@ Rules to follow, not a status report.
 - **No Google Play services at runtime.** The app runs on a degoogled device.
   Firebase, `play-services-*`, Play Billing and Play Integrity are out by default; a
   future integration has to argue past this line.
-- **Errors are values.** Writes return `DataResult`; reads do not yet —
-  `ExerciseRepository` can still throw out of a flow and take a screen down. That gap is
-  **B4**, scheduled rather than left as standing furniture, and this line returns to
-  being a rule once it holds.
+- **Errors are values.** Reads and writes both return `DataResult`, so a failure is
+  something a screen can render rather than an exception that disappears inside a
+  coroutine. The last two hold-outs — `ExerciseRepository`'s two reads — were closed
+  by B4; keep it that way for anything new.
 - **Measure before optimizing.** The one known hot spot — a per-second recomposition
   of the workout list — was found by reading the code and is fixed. Any further
   performance claim should come with a measurement.

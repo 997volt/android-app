@@ -5,6 +5,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.model.WorkoutSummary
@@ -32,33 +33,41 @@ class WorkoutsHomeScreenTest {
     val composeTestRule = createComposeRule()
 
     /**
-     * The top bar's menu actions, grouped rather than passed one by one: the
-     * helper is a screen setter, and four flat callbacks plus state is already at
-     * the limit of what reads as a call site.
+     * Every callback the screen takes, grouped: the helper is a screen setter, and
+     * one flat parameter per event stops reading as a call site long before it
+     * stops compiling.
      */
-    private data class MenuActions(
+    private data class Actions(
+        val onStartWorkout: () -> Unit = {},
+        val onStartFromTemplate: () -> Unit = {},
+        val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
         val onOpenTemplates: () -> Unit = {},
+        // Null by default, mirroring the screen: a host that wired no transfer
+        // actions gets no dead menu entries (ROADMAP B1).
+        val onExportData: (() -> Unit)? = null,
+        val onImportData: (() -> Unit)? = null,
     )
 
     private fun setScreen(
         state: WorkoutsHomeUiState,
-        onStartWorkout: () -> Unit = {},
-        onStartFromTemplate: () -> Unit = {},
-        onOpenWorkout: (String) -> Unit = {},
-        menu: MenuActions = MenuActions(),
+        actions: Actions = Actions(),
+        message: String? = null,
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
                 WorkoutsHomeScreen(
                     state = state,
                     clock = remember { mutableStateOf(WorkoutClock()) },
-                    onStartWorkout = onStartWorkout,
-                    onStartFromTemplate = onStartFromTemplate,
-                    onOpenWorkout = onOpenWorkout,
-                    onOpenHistory = menu.onOpenHistory,
+                    onStartWorkout = actions.onStartWorkout,
+                    onStartFromTemplate = actions.onStartFromTemplate,
+                    onOpenWorkout = actions.onOpenWorkout,
+                    onOpenHistory = actions.onOpenHistory,
                     onOpenLibrary = {},
-                    onOpenTemplates = menu.onOpenTemplates,
+                    onOpenTemplates = actions.onOpenTemplates,
+                    onExportData = actions.onExportData,
+                    onImportData = actions.onImportData,
+                    message = message,
                 )
             }
         }
@@ -67,7 +76,7 @@ class WorkoutsHomeScreenTest {
     @Test
     fun withNothingLogged_theScreenPointsAtStart() {
         var started = false
-        setScreen(WorkoutsHomeUiState(isLoading = false), onStartWorkout = { started = true })
+        setScreen(WorkoutsHomeUiState(isLoading = false), Actions(onStartWorkout = { started = true }))
 
         // An empty list with no explanation tells a first-run user nothing.
         composeTestRule.onNodeWithTag(TestTags.HOME_FIRST_RUN).assertIsDisplayed()
@@ -99,7 +108,7 @@ class WorkoutsHomeScreenTest {
         var fromTemplate = false
         setScreen(
             WorkoutsHomeUiState(isLoading = false),
-            onStartFromTemplate = { fromTemplate = true },
+            Actions(onStartFromTemplate = { fromTemplate = true }),
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_START).assertIsDisplayed()
@@ -128,7 +137,7 @@ class WorkoutsHomeScreenTest {
         var opened = false
         setScreen(
             WorkoutsHomeUiState(isLoading = false),
-            menu = MenuActions(onOpenTemplates = { opened = true }),
+            Actions(onOpenTemplates = { opened = true }),
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
@@ -138,11 +147,48 @@ class WorkoutsHomeScreenTest {
     }
 
     @Test
+    fun theOverflowMenu_offersExportAndImport() {
+        // ROADMAP B1: these used to be two menus deep — home, then the library.
+        var exported = false
+        var imported = false
+        setScreen(
+            WorkoutsHomeUiState(isLoading = false),
+            Actions(onExportData = { exported = true }, onImportData = { imported = true }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
+        composeTestRule.onNodeWithTag(TestTags.DATA_EXPORT).performClick()
+        assert(exported) { "Export did not reach the transfer action" }
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
+        composeTestRule.onNodeWithTag(TestTags.DATA_IMPORT).performClick()
+        assert(imported) { "Import did not reach the transfer action" }
+    }
+
+    @Test
+    fun withoutTransferActions_theMenuDoesNotOfferThem() {
+        // A preview or a host that wired none; the entries must not appear dead.
+        setScreen(WorkoutsHomeUiState(isLoading = false))
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.DATA_EXPORT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.DATA_IMPORT).assertDoesNotExist()
+    }
+
+    @Test
+    fun aTransferMessage_isShown() {
+        setScreen(WorkoutsHomeUiState(isLoading = false), message = "Exported 42 rows")
+
+        composeTestRule.onNodeWithText("Exported 42 rows").assertIsDisplayed()
+    }
+
+    @Test
     fun recentWorkouts_areListed_andOpenTheirDetail() {
         var opened: String? = null
         setScreen(
             WorkoutsHomeUiState(isLoading = false, recent = listOf(summary("session-1"))),
-            onOpenWorkout = { opened = it },
+            Actions(onOpenWorkout = { opened = it }),
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_RECENT_ROW).performClick()
@@ -156,7 +202,7 @@ class WorkoutsHomeScreenTest {
         var openedHistory = false
         setScreen(
             WorkoutsHomeUiState(isLoading = false, recent = listOf(summary("session-1"))),
-            menu = MenuActions(onOpenHistory = { openedHistory = true }),
+            Actions(onOpenHistory = { openedHistory = true }),
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_SEE_ALL).performClick()

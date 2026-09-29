@@ -111,6 +111,22 @@ data class ActiveWorkoutUiState(
     /** Set when a write failed, so the screen can say so instead of lying. */
     val error: DataError? = null,
 ) {
+    /**
+     * The deleted set the screen may offer to bring back, or null (ROADMAP B3).
+     *
+     * An undo is only offered while its subject is still in the session. The two undo
+     * snackbars share one host, so without this a deleted set's Undo can outlive its
+     * exercise: the row is gone, the button stays, and the write it fires is refused.
+     * The rule lives here, named, rather than in the rendering — and the ViewModel
+     * still reports if a tap races through before this turns null.
+     */
+    val undoableSet: SetEntry?
+        get() = pendingUndo?.takeIf { set -> exercises.any { it.id == set.sessionExerciseId } }
+
+    /** The Done undo, offered on the same terms (ROADMAP B3). */
+    val undoableFinishedExerciseId: String?
+        get() = pendingFinishedExerciseId?.takeIf { id -> exercises.any { it.id == id } }
+
     /** An open session with nothing in it — the state a user can abandon. */
     val isEmpty: Boolean get() = !isLoading && sessionId != null && exercises.isEmpty()
 
@@ -321,10 +337,20 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    /** Puts a just-finished exercise back into edit, from the snackbar (N7). */
+    /**
+     * Puts a just-finished exercise back into edit, from the snackbar (N7).
+     *
+     * Checks its subject first (ROADMAP B3): the snackbar can outlive the exercise
+     * it refers to, and a doomed write would report `NotFound` about a row the user
+     * never asked about.
+     */
     fun onUndoFinishExercise() {
         val id = pendingFinishedExercise.value ?: return
         pendingFinishedExercise.value = null
+        if (!hasLiveExercise(id)) {
+            lastError.value = GONE_FROM_SESSION
+            return
+        }
         reopen(id)
     }
 
@@ -390,6 +416,14 @@ class ActiveWorkoutViewModel @Inject constructor(
     fun onUndoDelete() {
         val set = pendingUndo.value ?: return
         pendingUndo.value = null
+        // The reason this reports rather than no-ops (ROADMAP B3): the set can only
+        // come back onto a live exercise, and the repository's loggable guard would
+        // otherwise refuse the write and leave the user with nothing on screen —
+        // the reported bug was exactly this, with the Undo still visible.
+        if (!hasLiveExercise(set.sessionExerciseId)) {
+            lastError.value = GONE_FROM_SESSION
+            return
+        }
         viewModelScope.launch {
             handle(
                 workoutRepository.logSet(
@@ -462,6 +496,10 @@ class ActiveWorkoutViewModel @Inject constructor(
             is DataResult.Failure -> lastError.value = result.error
         }
     }
+
+    /** True while the exercise is still part of the open session's list. */
+    private fun hasLiveExercise(sessionExerciseId: String): Boolean =
+        uiState.value.exercises.any { it.id == sessionExerciseId }
 
     private fun handle(result: DataResult<*>) {
         when (result) {
@@ -554,6 +592,13 @@ class ActiveWorkoutViewModel @Inject constructor(
     }
 
     private companion object {
+        /**
+         * Reported when an undo's subject has gone. `Invalid` because it is the only
+         * error that carries a sentence written for the user, which is what this is
+         * — the one case where no write should be attempted at all.
+         */
+        val GONE_FROM_SESSION = DataError.Invalid("That exercise is no longer in this workout.")
+
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val TICK_MILLIS = 1_000L
     }

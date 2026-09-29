@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -123,12 +124,7 @@ private fun ExerciseSection(
                     onFinish = onFinishExercise,
                 )
             }
-            IconButton(onClick = onRemoveExercise) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.active_workout_remove, row.name),
-                )
-            }
+            RemoveExerciseAction(name = row.name, onRemove = onRemoveExercise)
         }
 
         if (row.isFinished) {
@@ -186,6 +182,59 @@ private fun FinishExerciseAction(
             onSave = { feel, pain ->
                 rating = false
                 onFinish(exerciseId, feel, pain)
+            },
+        )
+    }
+}
+
+/**
+ * The remove control, and the confirmation behind it (ROADMAP B2).
+ *
+ * Removing an exercise soft-deletes it *and* takes its sets out of the session, and
+ * — unlike deleting a set or marking one done — there is no undo to reach for. So
+ * the guard is a question rather than a way back: a rare action, and easier to
+ * reason about than restoring a row whose sets went with it.
+ */
+@Composable
+private fun RemoveExerciseAction(
+    name: String,
+    onRemove: () -> Unit,
+) {
+    var confirming by remember { mutableStateOf(false) }
+
+    IconButton(
+        onClick = { confirming = true },
+        modifier = Modifier.testTag(TestTags.EXERCISE_REMOVE),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = stringResource(R.string.active_workout_remove, name),
+        )
+    }
+
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.active_workout_remove_confirm_title)) },
+            text = { Text(stringResource(R.string.active_workout_remove_confirm_text, name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirming = false
+                        onRemove()
+                    },
+                    modifier = Modifier.testTag(TestTags.EXERCISE_REMOVE_CONFIRM),
+                ) {
+                    Text(stringResource(R.string.active_workout_remove_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirming = false },
+                    modifier = Modifier.testTag(TestTags.EXERCISE_REMOVE_CANCEL),
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             },
         )
     }

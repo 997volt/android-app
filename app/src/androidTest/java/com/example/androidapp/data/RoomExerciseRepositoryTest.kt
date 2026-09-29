@@ -71,7 +71,9 @@ class RoomExerciseRepositoryTest {
         assertNull(created.restSeconds)
         assertNull(created.techniqueNote)
 
-        assertEquals(listOf("Sled Push"), repository.observeExercises().first().map { it.name })
+        // The reads are values now (ROADMAP B4), so a test unwraps them like one.
+        val library = (repository.observeExercises().first() as DataResult.Success).data
+        assertEquals(listOf("Sled Push"), library.map { it.name })
     }
 
     @Test
@@ -79,7 +81,8 @@ class RoomExerciseRepositoryTest {
         val failure = repository.createCustomExercise("   ") as DataResult.Failure
 
         assertTrue(failure.error is DataError.Invalid)
-        assertTrue(repository.observeExercises().first().isEmpty())
+        val library = (repository.observeExercises().first() as DataResult.Success).data
+        assertTrue("a refused create must store nothing", library.isEmpty())
     }
 
     @Test
@@ -98,7 +101,7 @@ class RoomExerciseRepositoryTest {
         )
         assertTrue(repository.updateExercise(edited) is DataResult.Success)
 
-        val stored = repository.getExercise(created.id)!!
+        val stored = (repository.getExercise(created.id) as DataResult.Success).data!!
         assertEquals("Sled Push Heavy", stored.name)
         assertEquals(MuscleGroup.QUADS, stored.primaryMuscle)
         assertEquals(listOf(MuscleGroup.GLUTES), stored.secondaryMuscles)
@@ -114,6 +117,11 @@ class RoomExerciseRepositoryTest {
         assertNotEquals("an edit must bump updatedAt", row.createdAt, row.updatedAt)
     }
 
+    /** Reads are values now (ROADMAP B4); a test unwraps them in one place. */
+    private suspend fun stored(id: String): Exercise =
+        (repository.getExercise(id) as DataResult.Success).data
+            ?: error("exercise $id should exist")
+
     @Test
     fun updateExercise_refusesANonPositiveRest() = runTest {
         val created = created("Sled Push")
@@ -122,19 +130,19 @@ class RoomExerciseRepositoryTest {
 
         assertTrue(failure.error is DataError.Invalid)
         // Nothing was written, so the exercise still reads as "use the default".
-        assertNull(repository.getExercise(created.id)!!.restSeconds)
+        assertNull(stored(created.id).restSeconds)
     }
 
     @Test
     fun updateExercise_storesAClearedCueAsNull_ratherThanAnEmptyString() = runTest {
         val created = created("Sled Push")
         repository.updateExercise(created.copy(techniqueNote = "Brace"))
-        assertEquals("Brace", repository.getExercise(created.id)!!.techniqueNote)
+        assertEquals("Brace", stored(created.id).techniqueNote)
 
         repository.updateExercise(created.copy(techniqueNote = "   "))
 
         // Two representations of "nothing" would render differently on screen.
-        assertNull(repository.getExercise(created.id)!!.techniqueNote)
+        assertNull(stored(created.id).techniqueNote)
     }
 
     @Test

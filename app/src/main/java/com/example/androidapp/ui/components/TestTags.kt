@@ -31,6 +31,11 @@ object TestTags {
     const val EXERCISE_REOPEN = "exercise_reopen"
     const val EXERCISE_FINISHED_LABEL = "exercise_finished_label"
 
+    /** Removing an exercise, and the confirmation it now asks for (ROADMAP B2). */
+    const val EXERCISE_REMOVE = "exercise_remove"
+    const val EXERCISE_REMOVE_CONFIRM = "exercise_remove_confirm"
+    const val EXERCISE_REMOVE_CANCEL = "exercise_remove_cancel"
+
     /**
      * How an exercise felt (ROADMAP N8): the dialog's two fields and the workout
      * detail's row that reaches it.
@@ -44,6 +49,14 @@ object TestTags {
     const val HOME_TITLE = "home_title"
     const val HOME_START = "home_start"
     const val HOME_RESUME = "home_resume"
+
+    /**
+     * Export and import (ROADMAP B1). Tagged generically because the point of the
+     * fix is *which screen* offers them, so a test asserts presence at home and
+     * absence in the library using the same two tags.
+     */
+    const val DATA_EXPORT = "data_export"
+    const val DATA_IMPORT = "data_import"
 
     /** The other half of the start action (ROADMAP N3): begin from a template. */
     const val HOME_START_FROM_TEMPLATE = "home_start_from_template"
@@ -74,6 +87,14 @@ object TestTags {
 
     /** A library row, addressed by exercise id so tests need no display name. */
     fun exerciseRow(id: String) = "library_row_$id"
+
+    /** A read that failed, shown where the data would have been (ROADMAP B4). */
+    const val LIBRARY_READ_ERROR = "library_read_error"
+    const val EXERCISE_READ_ERROR = "exercise_read_error"
+
+    /** The library's overflow and the one entry left in it after B1. */
+    const val LIBRARY_MENU = "library_menu"
+    const val LIBRARY_HISTORY = "library_history"
 
     /**
      * The picker's "new exercise" action (ROADMAP N2) and the dialog it opens.

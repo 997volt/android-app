@@ -110,33 +110,64 @@ fun ExerciseDetailScreen(
             )
         },
     ) { innerPadding ->
-        val exercise = state.exercise
-        when {
-            state.isLoading -> CenteredMessage(
-                text = stringResource(R.string.exercise_library_loading),
-                showSpinner = true,
-                modifier = Modifier.padding(innerPadding),
-            )
+        ExerciseDetailBody(
+            state = state,
+            onCancelEdit = onCancelEdit,
+            onSave = onSave,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
 
-            state.notFound -> CenteredMessage(
-                text = stringResource(R.string.exercise_detail_not_found),
-                showSpinner = false,
-                modifier = Modifier.padding(innerPadding),
-            )
+/**
+ * What the screen shows once it has a state: a spinner, a failure, "no such
+ * exercise", the edit form, or the exercise itself.
+ *
+ * Split out because the screen crossed the method limit when B4 added the failure
+ * branch — and because the branch order *is* the behaviour worth reading in one
+ * piece: a failure must be named before "not found", or a broken read would be
+ * reported as a missing exercise.
+ */
+@Composable
+private fun ExerciseDetailBody(
+    state: ExerciseDetailUiState,
+    onCancelEdit: () -> Unit,
+    onSave: (ExerciseEdit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val exercise = state.exercise
+    when {
+        state.isLoading -> CenteredMessage(
+            text = stringResource(R.string.exercise_library_loading),
+            showSpinner = true,
+            modifier = modifier,
+        )
 
-            exercise != null && state.isEditing -> ExerciseEditForm(
-                exercise = exercise,
-                error = state.error,
-                onCancel = onCancelEdit,
-                onSave = onSave,
-                modifier = Modifier.padding(innerPadding),
-            )
+        // A failed read says so, where the exercise would have been (B4).
+        state.error != null && !state.isEditing -> CenteredMessage(
+            text = dataErrorMessage(state.error),
+            showSpinner = false,
+            modifier = modifier.testTag(TestTags.EXERCISE_READ_ERROR),
+        )
 
-            exercise != null -> ExerciseDetails(
-                exercise = exercise,
-                modifier = Modifier.padding(innerPadding),
-            )
-        }
+        state.notFound -> CenteredMessage(
+            text = stringResource(R.string.exercise_detail_not_found),
+            showSpinner = false,
+            modifier = modifier,
+        )
+
+        exercise != null && state.isEditing -> ExerciseEditForm(
+            exercise = exercise,
+            error = state.error,
+            onCancel = onCancelEdit,
+            onSave = onSave,
+            modifier = modifier,
+        )
+
+        exercise != null -> ExerciseDetails(
+            exercise = exercise,
+            modifier = modifier,
+        )
     }
 }
 

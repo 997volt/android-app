@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.ExerciseSearch
+import com.example.androidapp.domain.getOrNull
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
@@ -70,11 +71,14 @@ class ExercisePickerViewModel @Inject constructor(
     val uiState: StateFlow<ExerciseLibraryUiState> = combine(
         exerciseRepository.observeExercises(),
         query,
-    ) { exercises, currentQuery ->
+    ) { result, currentQuery ->
+        // The picker shows a read failure the same way the library does (B4).
+        val exercises = result.getOrNull().orEmpty()
         ExerciseLibraryUiState(
             query = currentQuery,
             items = ExerciseSearch.filter(exercises, currentQuery).map { it.toListItem() },
             isLoading = false,
+            error = (result as? DataResult.Failure)?.error,
         )
     }.stateIn(
         scope = viewModelScope,

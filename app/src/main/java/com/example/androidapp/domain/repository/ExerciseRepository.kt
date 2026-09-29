@@ -13,11 +13,21 @@ import kotlinx.coroutines.flow.Flow
  */
 interface ExerciseRepository {
 
-    /** Observes the whole library, re-emitting whenever it changes. */
-    fun observeExercises(): Flow<List<Exercise>>
+    /**
+     * Observes the whole library, re-emitting whenever it changes.
+     *
+     * A [DataResult] rather than a bare list (ROADMAP B4): a database failure used
+     * to escape this flow and take the screen down, and a failure the UI can render
+     * beats an exception that disappears inside a coroutine. The same argument F7
+     * made for the writes, applied to the two reads that were still exempt.
+     */
+    fun observeExercises(): Flow<DataResult<List<Exercise>>>
 
-    /** Returns the exercise with [id], or null when it does not exist. */
-    suspend fun getExercise(id: String): Exercise?
+    /**
+     * The exercise with [id], as a value: `Success(null)` means it does not exist,
+     * `Failure` means the read itself failed. The two used to be indistinguishable.
+     */
+    suspend fun getExercise(id: String): DataResult<Exercise?>
 
     /**
      * Stores a new custom exercise named [name] and returns it (ROADMAP N2).

@@ -69,19 +69,25 @@ suspend fun <T> dataResultOf(block: suspend () -> T): DataResult<T> =
         DataResult.Success(block())
     } catch (cancellation: CancellationException) {
         throw cancellation
-    } catch (
-        // NotFoundException is a control-flow signal raised by repositories, not
-        // an error to preserve — hence "swallowed" on purpose, and mapped to the
-        // typed DataError.NotFound below.
-        @Suppress("SwallowedException") notFound: NotFoundException,
-    ) {
-        DataResult.Failure(DataError.NotFound)
-    } catch (invalid: InvalidInputException) {
-        // The message is the whole point of this case: it is written for the user.
-        DataResult.Failure(DataError.Invalid(invalid.message.orEmpty()))
     } catch (throwable: Throwable) {
-        DataResult.Failure(DataError.Storage(throwable))
+        DataResult.Failure(throwable.toDataError())
     }
+
+/**
+ * Maps a thrown failure to the typed [DataError] a screen can render.
+ *
+ * Shared with the reads (ROADMAP B4), which fail from inside a `Flow` rather than
+ * from a suspending call: one mapping means a read and a write cannot disagree
+ * about what a missing row or an unusable value looks like.
+ */
+fun Throwable.toDataError(): DataError = when (this) {
+    // NotFoundException is a control-flow signal raised by repositories, not an
+    // error to preserve — hence the swallowed message, mapped to the typed error.
+    is NotFoundException -> DataError.NotFound
+    // The message is the whole point of this case: it is written for the user.
+    is InvalidInputException -> DataError.Invalid(message.orEmpty())
+    else -> DataError.Storage(this)
+}
 
 /** Maps the success value, leaving a failure untouched. */
 inline fun <T, R> DataResult<T>.map(transform: (T) -> R): DataResult<R> = when (this) {

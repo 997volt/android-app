@@ -2,7 +2,10 @@ package com.example.androidapp.ui.exercises
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.androidapp.domain.DataError
+import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.ExerciseSearch
+import com.example.androidapp.domain.getOrNull
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.WorkoutSession
@@ -67,6 +70,11 @@ data class ExerciseLibraryUiState(
      * was actually wrong (ROADMAP P1.1a).
      */
     val libraryIsEmpty: Boolean = false,
+    /**
+     * The library could not be read (ROADMAP B4). Shown in place of the list, since
+     * an empty list would be a lie about what is on the device.
+     */
+    val error: DataError? = null,
 ) {
     /**
      * A search that matched nothing — deliberately distinct from [isLoading] so
@@ -111,13 +119,17 @@ class ExerciseLibraryViewModel @Inject constructor(
         exerciseRepository.observeExercises(),
         query,
         workoutInfo,
-    ) { exercises, currentQuery, workout ->
+    ) { result, currentQuery, workout ->
+        // A read failure is rendered where the list would have been (ROADMAP B4),
+        // instead of escaping the flow and taking the screen down.
+        val exercises = result.getOrNull().orEmpty()
         ExerciseLibraryUiState(
             query = currentQuery,
             items = ExerciseSearch.filter(exercises, currentQuery).map { it.toListItem() },
             isLoading = false,
             activeWorkout = workout,
             libraryIsEmpty = exercises.isEmpty(),
+            error = (result as? DataResult.Failure)?.error,
         )
     }.stateIn(
         scope = viewModelScope,

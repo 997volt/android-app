@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.exercises
 
+import kotlinx.coroutines.flow.map
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
@@ -144,14 +145,36 @@ class ExerciseDetailViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf("exerciseId" to exerciseId)),
     )
 
+    @Test
+    fun aFailedRead_saysSo_ratherThanClaimingTheExerciseDoesNotExist() = runTest(dispatcher) {
+        val repository = FakeRepository(mutableListOf(seeded)).apply { failReads = true }
+        val viewModel = viewModelFor(repository, exerciseId = seeded.id)
+        advanceUntilIdle()
+
+        assertNotNull("the failure must reach the screen", viewModel.uiState.value.error)
+        assertFalse(
+            "a failed read is not the same as a missing exercise",
+            viewModel.uiState.value.notFound,
+        )
+    }
+
     private class FakeRepository(initial: MutableList<Exercise>) : ExerciseRepository {
         private val state = MutableStateFlow(initial.toList())
         var saved: Exercise? = null
         var failWrites = false
 
-        override fun observeExercises(): Flow<List<Exercise>> = state
-        override suspend fun getExercise(id: String): Exercise? =
-            state.value.firstOrNull { it.id == id }
+        /** Lets a test drive the B4 path: a read that fails rather than throws. */
+        var failReads = false
+
+        override fun observeExercises(): Flow<DataResult<List<Exercise>>> =
+            state.map { DataResult.Success(it) }
+
+        override suspend fun getExercise(id: String): DataResult<Exercise?> =
+            if (failReads) {
+                DataResult.Failure(DataError.Storage(IOException("database is locked")))
+            } else {
+                DataResult.Success(state.value.firstOrNull { it.id == id })
+            }
 
         override suspend fun createCustomExercise(name: String): DataResult<Exercise> =
             error("the detail screen must not create exercises")

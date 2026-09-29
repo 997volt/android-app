@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.exercises
 
+import java.io.IOException
+import com.example.androidapp.domain.DataError
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -69,6 +71,7 @@ class ExerciseLibraryScreenTest {
         onQueryChange: (String) -> Unit = {},
         onExerciseClick: (String) -> Unit = {},
         onNewExercise: (() -> Unit)? = null,
+        onOpenHistory: (() -> Unit)? = null,
     ) {
         composeTestRule.setContent {
             ExerciseLibraryScreen(
@@ -77,6 +80,7 @@ class ExerciseLibraryScreenTest {
                 onQueryChange = onQueryChange,
                 onExerciseClick = onExerciseClick,
                 onNewExercise = onNewExercise,
+                onOpenHistory = onOpenHistory,
             )
         }
     }
@@ -149,5 +153,32 @@ class ExerciseLibraryScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.LIBRARY_NO_MATCH).assertIsDisplayed()
         composeTestRule.onNodeWithText("Loading exercises…").assertDoesNotExist()
+    }
+
+    @Test
+    fun theLibrarysMenu_noLongerOffersExportOrImport() {
+        // ROADMAP B1: they moved to the home overflow, and leaving a second copy
+        // here is the drift the fix exists to remove — one path, not two.
+        setScreen(ExerciseLibraryUiState(isLoading = false), onOpenHistory = {})
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_MENU).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.DATA_EXPORT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.DATA_IMPORT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_HISTORY).assertIsDisplayed()
+    }
+
+    @Test
+    fun aFailedRead_isShown_inPlaceOfTheList() {
+        // ROADMAP B4: the failure is rendered where the data would have been, so an
+        // empty list cannot be mistaken for an empty library.
+        setScreen(
+            ExerciseLibraryUiState(
+                isLoading = false,
+                error = DataError.Storage(IOException("database is locked")),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_READ_ERROR).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_EMPTY_LIBRARY).assertDoesNotExist()
     }
 }

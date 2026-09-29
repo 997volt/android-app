@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.exercises
 
+import java.io.IOException
+import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.MovementPattern
@@ -27,9 +29,11 @@ import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import java.time.Instant
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -119,9 +123,22 @@ class ExerciseLibraryViewModelTest {
 
     private class FakeRepository(exercises: List<Exercise>) : ExerciseRepository {
         private val state = MutableStateFlow(exercises)
-        override fun observeExercises(): Flow<List<Exercise>> = state
-        override suspend fun getExercise(id: String): Exercise? =
-            state.value.firstOrNull { it.id == id }
+        /** Lets a test drive the B4 path: a read that fails rather than throws. */
+        var failReads = false
+
+        override fun observeExercises(): Flow<DataResult<List<Exercise>>> =
+            if (failReads) {
+                flowOf(DataResult.Failure(DataError.Storage(IOException("database is locked"))))
+            } else {
+                state.map { DataResult.Success(it) }
+            }
+
+        override suspend fun getExercise(id: String): DataResult<Exercise?> =
+            if (failReads) {
+                DataResult.Failure(DataError.Storage(IOException("database is locked")))
+            } else {
+                DataResult.Success(state.value.firstOrNull { it.id == id })
+            }
 
         override suspend fun createCustomExercise(name: String): DataResult<Exercise> =
             error("the library screen must not create exercises")
@@ -246,5 +263,20 @@ class ExerciseLibraryViewModelTest {
         override suspend fun clearRest(): DataResult<Unit> = unused()
 
         private fun unused(): Nothing = error("the library screen must not call this")
+    }
+
+    @Test
+    fun aFailedRead_isReported_insteadOfTakingTheScreenDown() = runTest(dispatcher) {
+        // ROADMAP B4: this used to escape the flow as an exception. It is now a
+        // value the screen can render where the list would have been.
+        val repository = FakeRepository(emptyList()).apply { failReads = true }
+        val viewModel = ExerciseLibraryViewModel(repository, NoActiveWorkout, clock)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertNotNull("the failure must reach the screen", state.error)
+        assertFalse(state.isLoading)
+        assertTrue("an unreadable library must not claim to be empty", state.items.isEmpty())
     }
 }

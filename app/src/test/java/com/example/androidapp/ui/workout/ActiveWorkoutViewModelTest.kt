@@ -654,6 +654,88 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun aDeletedSetsUndo_reports_whenItsExerciseIsGone() = runTest(dispatcher) {
+        // ROADMAP B3's regression: delete a set, remove its exercise, then tap the
+        // Undo the snackbar was still offering. It must say so, not no-op — the
+        // reported bug was exactly this, silently.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val exerciseId = viewModel.uiState.value.exercises.single().id
+        viewModel.onLogSet(exerciseId)
+        settle()
+        viewModel.onDeleteSet(repository.sets.value.single().id)
+        settle()
+        viewModel.onRemoveExercise(exerciseId)
+        settle()
+
+        // Tapped as a stale snackbar would, after the state it belonged to went.
+        viewModel.onUndoDelete()
+        settle()
+
+        assertNotNull("a stale undo must report, not silently do nothing", viewModel.uiState.value.error)
+        assertTrue("nothing may be written for a removed exercise", repository.sets.value.isEmpty())
+    }
+
+    @Test
+    fun aStaleUndo_isNotOffered_becauseItsSubjectIsGone() = runTest(dispatcher) {
+        // The screen dismisses an undo whose subject has gone; what the ViewModel
+        // owes it is the truth to judge by. `pendingUndo` still names the set, and
+        // the set no longer has an exercise in the session — that pair is what makes
+        // the snackbar go (ROADMAP B3).
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val exerciseId = viewModel.uiState.value.exercises.single().id
+        viewModel.onLogSet(exerciseId)
+        settle()
+        viewModel.onDeleteSet(repository.sets.value.single().id)
+        settle()
+        val pending = viewModel.uiState.value.pendingUndo
+        assertNotNull(pending)
+
+        viewModel.onRemoveExercise(exerciseId)
+        settle()
+
+        assertNull(
+            "an undo whose subject has gone must not be offered",
+            viewModel.uiState.value.undoableSet,
+        )
+        assertEquals(exerciseId, pending?.sessionExerciseId)
+    }
+
+    @Test
+    fun aStaleFinishUndo_reports_whenItsExerciseIsGone() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val exerciseId = viewModel.uiState.value.exercises.single().id
+        viewModel.onFinishExercise(exerciseId)
+        settle()
+        viewModel.onRemoveExercise(exerciseId)
+        settle()
+
+        assertNull(
+            "a Done undo whose exercise has gone is not offered",
+            viewModel.uiState.value.undoableFinishedExerciseId,
+        )
+
+        viewModel.onUndoFinishExercise()
+        settle()
+
+        assertNotNull("a stale finish undo must report too", viewModel.uiState.value.error)
+    }
+
+    @Test
     fun aTick_updatesTheClock_butNeverEmitsANewScreenState() = runTest(dispatcher) {
         // This is the mechanism behind F16, stated as a property: the exercise list
         // stops recomposing every second only if a tick cannot produce a new

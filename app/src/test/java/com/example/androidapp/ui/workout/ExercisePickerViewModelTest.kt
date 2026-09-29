@@ -27,6 +27,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -241,9 +242,11 @@ class ExercisePickerViewModelTest {
         var created: Exercise? = null
         var failCreates = false
 
-        override fun observeExercises(): Flow<List<Exercise>> = state
-        override suspend fun getExercise(id: String): Exercise? =
-            state.value.firstOrNull { it.id == id }
+        override fun observeExercises(): Flow<DataResult<List<Exercise>>> =
+            state.map { DataResult.Success(it) }
+
+        override suspend fun getExercise(id: String): DataResult<Exercise?> =
+            DataResult.Success(state.value.firstOrNull { it.id == id })
 
         override suspend fun createCustomExercise(name: String): DataResult<Exercise> {
             if (failCreates) return DataResult.Failure(DataError.Storage(IOException("disk full")))

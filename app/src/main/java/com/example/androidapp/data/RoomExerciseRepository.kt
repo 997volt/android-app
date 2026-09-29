@@ -1,5 +1,6 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.data.local.ExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toDomain
 import com.example.androidapp.data.local.toEntity
@@ -8,6 +9,7 @@ import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.NotFoundException
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.dataResultOf
+import com.example.androidapp.domain.toDataError
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.MovementPattern
@@ -17,7 +19,9 @@ import com.example.androidapp.domain.repository.ExerciseRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 /**
@@ -41,11 +45,21 @@ class RoomExerciseRepository @Inject constructor(
 
     private val dao = database.exerciseDao()
 
-    override fun observeExercises(): Flow<List<Exercise>> =
-        dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+    override fun observeExercises(): Flow<DataResult<List<Exercise>>> =
+        dao.observeAll()
+            .map<List<ExerciseEntity>, DataResult<List<Exercise>>> { rows ->
+                DataResult.Success(rows.map { it.toDomain() })
+            }
+            // A Room failure arrives here rather than at a call site, which is
+            // exactly why it used to be invisible (ROADMAP B4).
+            .catch { throwable ->
+                if (throwable is CancellationException) throw throwable
+                emit(DataResult.Failure(throwable.toDataError()))
+            }
 
-    override suspend fun getExercise(id: String): Exercise? =
+    override suspend fun getExercise(id: String): DataResult<Exercise?> = dataResultOf {
         dao.findById(id)?.toDomain()
+    }
 
     override suspend fun createCustomExercise(name: String): DataResult<Exercise> = dataResultOf {
         val trimmed = name.trim()

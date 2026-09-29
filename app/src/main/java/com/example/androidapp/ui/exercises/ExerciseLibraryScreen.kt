@@ -49,10 +49,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.MessageSnackbar
+import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
-import com.example.androidapp.ui.transfer.DataTransferViewModel
-import com.example.androidapp.ui.transfer.rememberDataTransferActions
 
 /**
  * Stateful entry point: wires the ViewModel to the stateless screen.
@@ -67,14 +67,8 @@ fun ExerciseLibraryRoute(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseLibraryViewModel = hiltViewModel(),
-    transferViewModel: DataTransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-
-    // Held here rather than in the screen so the screen stays stateless and
-    // testable with a fixed string.
-    var message by remember { mutableStateOf<String?>(null) }
-    val transferActions = rememberDataTransferActions(transferViewModel) { message = it }
 
     ExerciseLibraryScreen(
         state = state,
@@ -83,10 +77,6 @@ fun ExerciseLibraryRoute(
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
         onOpenHistory = onOpenHistory,
-        onExportData = transferActions.export,
-        onImportData = transferActions.import,
-        message = message,
-        onDismissMessage = { message = null },
         modifier = modifier,
     )
 }
@@ -109,14 +99,12 @@ fun ExerciseLibraryScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onOpenHistory: (() -> Unit)? = null,
-    onExportData: (() -> Unit)? = null,
-    onImportData: (() -> Unit)? = null,
     message: String? = null,
     onDismissMessage: () -> Unit = {},
     onNewExercise: (() -> Unit)? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    ShowMessage(message, snackbarHostState, onDismissMessage)
+    MessageSnackbar(message, snackbarHostState, onDismissMessage)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -147,14 +135,12 @@ fun ExerciseLibraryScreen(
                     }
                 },
                 actions = {
-                    // Only the real library offers the data menu; the picker reuses
-                    // this screen with neither callback, so no menu appears there.
-                    if (onExportData != null && onImportData != null) {
-                        LibraryDataMenu(
-                            onOpenHistory = onOpenHistory,
-                            onExport = onExportData,
-                            onImport = onImportData,
-                        )
+                    // Only the real library offers this menu; the picker reuses the
+                    // screen with no callback, so no menu appears there. Export and
+                    // import are *not* here any more: they belong with the app's
+                    // other data management at home (ROADMAP B1).
+                    if (onOpenHistory != null) {
+                        LibraryMenu(onOpenHistory = onOpenHistory)
                     }
                 },
             )
@@ -165,6 +151,14 @@ fun ExerciseLibraryScreen(
 
             when {
                 state.isLoading -> LoadingState()
+
+                // A failed read is shown here, where the list would have been (B4):
+                // an empty list would misreport what is on the device.
+                state.error != null -> CenteredMessage(
+                    text = dataErrorMessage(state.error),
+                    modifier = Modifier.testTag(TestTags.LIBRARY_READ_ERROR),
+                )
+
                 state.isEmpty -> EmptyState(
                     query = state.query,
                     libraryIsEmpty = state.libraryIsEmpty,
@@ -215,34 +209,10 @@ private fun EmptyState(
     }
 }
 
-/**
- * Shows the screen's message once, then clears it.
- *
- * `LaunchedEffect` on the message rather than a one-shot event channel: the
- * message is already state the route owns, and showing a snackbar is idempotent
- * for a given string. The library uses it for a transfer result, the picker for
- * a write that did not land.
- */
+/** The library's overflow. History only: the data menu moved home (ROADMAP B1). */
 @Composable
-private fun ShowMessage(
-    message: String?,
-    hostState: SnackbarHostState,
-    onDismiss: () -> Unit,
-) {
-    val currentOnDismiss by rememberUpdatedState(onDismiss)
-    LaunchedEffect(message) {
-        if (message == null) return@LaunchedEffect
-        hostState.showSnackbar(message)
-        currentOnDismiss()
-    }
-}
-
-/** Export/import, behind an overflow so the app bar stays quiet (P1.12). */
-@Composable
-private fun LibraryDataMenu(
-    onOpenHistory: (() -> Unit)?,
-    onExport: () -> Unit,
-    onImport: () -> Unit,
+private fun LibraryMenu(
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -250,35 +220,23 @@ private fun LibraryDataMenu(
     // Boxed so the menu anchors to the button: a composable emitting two siblings
     // at the top level has no defined anchor for the popup.
     Box(modifier = modifier) {
-        IconButton(onClick = { open = true }) {
+        IconButton(
+            onClick = { open = true },
+            modifier = Modifier.testTag(TestTags.LIBRARY_MENU),
+        ) {
             Icon(
                 imageVector = Icons.Filled.MoreVert,
                 contentDescription = stringResource(R.string.transfer_more),
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            if (onOpenHistory != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.history_title)) },
-                    onClick = {
-                        open = false
-                        onOpenHistory()
-                    },
-                )
-            }
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.transfer_export)) },
+                text = { Text(stringResource(R.string.history_title)) },
                 onClick = {
                     open = false
-                    onExport()
+                    onOpenHistory()
                 },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transfer_import)) },
-                onClick = {
-                    open = false
-                    onImport()
-                },
+                modifier = Modifier.testTag(TestTags.LIBRARY_HISTORY),
             )
         }
     }

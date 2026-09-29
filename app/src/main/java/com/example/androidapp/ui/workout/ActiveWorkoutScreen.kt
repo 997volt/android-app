@@ -134,8 +134,14 @@ fun ActiveWorkoutScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    ShowUndoSnackbar(state.pendingUndo, snackbarHostState, onUndoDelete, onDismissUndo)
-    ShowFinishSnackbar(state, snackbarHostState, onUndoFinishExercise, onDismissFinishUndo)
+    WorkoutSnackbars(
+        state = state,
+        hostState = snackbarHostState,
+        onUndoDelete = onUndoDelete,
+        onDismissUndo = onDismissUndo,
+        onUndoFinishExercise = onUndoFinishExercise,
+        onDismissFinishUndo = onDismissFinishUndo,
+    )
 
     // The set being edited, held here so the caller does not have to track it.
     var editing by remember { mutableStateOf<SetRow?>(null) }
@@ -176,19 +182,38 @@ fun ActiveWorkoutScreen(
         )
     }
 
-    editing?.let { set ->
-        SetEditorDialog(
-            initialReps = set.reps,
-            initialWeightGrams = set.weightGrams,
-            initialRpe = set.rpe,
-            initialNote = set.note,
-            onDismiss = { editing = null },
-            onSave = { edit ->
-                onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
-                editing = null
-            },
-        )
-    }
+    SetEditorSection(
+        set = editing,
+        onUpdateSet = onUpdateSet,
+        onDismiss = { editing = null },
+    )
+}
+
+/**
+ * The dialog for one logged set, split out so the screen stays a scaffold.
+ *
+ * The *open* state stays with the screen, because the body is what opens it; this is
+ * only the rendering, which is where the lines were.
+ */
+@Composable
+private fun SetEditorSection(
+    set: SetRow?,
+    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (set == null) return
+
+    SetEditorDialog(
+        initialReps = set.reps,
+        initialWeightGrams = set.weightGrams,
+        initialRpe = set.rpe,
+        initialNote = set.note,
+        onDismiss = onDismiss,
+        onSave = { edit ->
+            onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
+            onDismiss()
+        },
+    )
 }
 
 @Composable
@@ -215,6 +240,38 @@ private fun ShowUndoSnackbar(
 }
 
 /**
+ * Both undo snackbars, and the rule that keeps them honest (ROADMAP B3).
+ *
+ * An undo is offered only while the thing it refers to is still in the session. The
+ * two share one [SnackbarHostState], so without that rule a deleted set's Undo can
+ * outlive its exercise: the row is gone, the button stays, and the write it fires is
+ * refused. Filtering here is the dismissal; the ViewModel reports if a tap still
+ * races through.
+ */
+@Composable
+private fun WorkoutSnackbars(
+    state: ActiveWorkoutUiState,
+    hostState: SnackbarHostState,
+    onUndoDelete: () -> Unit,
+    onDismissUndo: () -> Unit,
+    onUndoFinishExercise: () -> Unit,
+    onDismissFinishUndo: () -> Unit,
+) {
+    ShowUndoSnackbar(
+        pendingUndo = state.undoableSet,
+        hostState = hostState,
+        onUndo = onUndoDelete,
+        onDismiss = onDismissUndo,
+    )
+    ShowFinishSnackbar(
+        state = state,
+        hostState = hostState,
+        onUndo = onUndoFinishExercise,
+        onDismiss = onDismissFinishUndo,
+    )
+}
+
+/**
  * Undo for the exercise just marked done (ROADMAP N7).
  *
  * The same argument as the deleted-set snackbar: "Done" is accident protection, so
@@ -228,7 +285,9 @@ private fun ShowFinishSnackbar(
     onUndo: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val finishedId = state.pendingFinishedExerciseId
+    // Null once the exercise is gone, which keys the effect below to dismiss the
+    // snackbar rather than leave an Undo for a row that no longer exists (B3).
+    val finishedId = state.undoableFinishedExerciseId
     val name = state.exercises.firstOrNull { it.id == finishedId }?.name
     val message = if (name == null) {
         stringResource(R.string.active_workout_exercise_done)

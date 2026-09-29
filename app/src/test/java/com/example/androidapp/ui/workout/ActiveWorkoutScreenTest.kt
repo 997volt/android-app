@@ -34,6 +34,7 @@ class ActiveWorkoutScreenTest {
         state: ActiveWorkoutUiState,
         onFinishExercise: (String, Int?, Int?) -> Unit = { _, _, _ -> },
         onReopenExercise: (String) -> Unit = {},
+        onRemoveExercise: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
             ActiveWorkoutScreen(
@@ -42,7 +43,7 @@ class ActiveWorkoutScreenTest {
                 onAddExercise = {},
                 onLogSet = {},
                 onUpdateSet = { _, _, _, _, _ -> },
-                onRemoveExercise = {},
+                onRemoveExercise = onRemoveExercise,
                 onDeleteSet = {},
                 onUndoDelete = {},
                 onDismissUndo = {},
@@ -140,6 +141,35 @@ class ActiveWorkoutScreenTest {
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_REOPEN).performClick()
 
         assertEquals("se1", reopened)
+    }
+
+    @Test
+    fun removingAnExercise_asksFirst_andWritesNothingUntilConfirmed() {
+        // ROADMAP B2: the removal has no undo, so the dialog is the guard.
+        var removed: String? = null
+        setScreen(state(isFinished = false), onRemoveExercise = { removed = it })
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE).performClick()
+
+        assert(removed == null) { "the tap removed the exercise before asking" }
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE_CONFIRM).assertExists()
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE_CONFIRM).performClick()
+
+        assert(removed == "se1") { "confirming did not remove the exercise, got $removed" }
+    }
+
+    @Test
+    fun dismissingTheRemovalDialog_leavesTheExerciseInPlace() {
+        var removed: String? = null
+        setScreen(state(isFinished = false), onRemoveExercise = { removed = it })
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE).performClick()
+        // The dialog's other button: backing out must not remove anything.
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE_CANCEL).performClick()
+
+        assert(removed == null) { "cancelling removed the exercise anyway" }
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE_CONFIRM).assertDoesNotExist()
     }
 
     @Test
