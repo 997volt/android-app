@@ -63,6 +63,7 @@ class BackupCodecTest {
                 finishedAt = 20L,
                 notes = "felt heavy",
                 restEndsAt = null,
+                readinessNote = "Slept badly, legs heavy",
                 createdAt = 10L,
                 updatedAt = 20L,
                 deletedAt = null,
@@ -158,11 +159,11 @@ class BackupCodecTest {
     }
 
     @Test
-    fun aFileWrittenBeforeTheRestAndCueFieldsExisted_stillDecodes() {
-        // N5 added two exercise fields and deliberately did *not* bump the schema
-        // version (the version moves when a field changes meaning or is removed).
-        // That is only safe because both fields are defaulted, so a file written
-        // before they existed must still decode — with them reading as unset.
+    fun aFileWrittenBeforeTheRestCueAndReadinessFieldsExisted_stillDecodes() {
+        // N4 and N5 added fields to two DTOs and deliberately did *not* bump the
+        // schema version (the version moves when a field changes meaning or is
+        // removed). That is only safe because every added field is defaulted, so a
+        // file written before they existed must still decode — reading them unset.
         val json = Json { prettyPrint = false }
         val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
         val olderExercises = tree.getValue("exercises").jsonArray.map { element ->
@@ -170,11 +171,20 @@ class BackupCodecTest {
                 element.jsonObject.filterKeys { it != "restSeconds" && it != "techniqueNote" },
             )
         }
-        val olderFile = JsonObject(tree + ("exercises" to JsonArray(olderExercises)))
+        val olderSessions = tree.getValue("sessions").jsonArray.map { element ->
+            JsonObject(element.jsonObject.filterKeys { it != "readinessNote" })
+        }
+        val olderFile = JsonObject(
+            tree + mapOf(
+                "exercises" to JsonArray(olderExercises),
+                "sessions" to JsonArray(olderSessions),
+            ),
+        )
 
         val restored = BackupCodec.decode(olderFile.toString())
 
         assertEquals(null, restored.exercises.first().restSeconds)
         assertEquals(null, restored.exercises.first().techniqueNote)
+        assertEquals(null, restored.sessions.first().readinessNote)
     }
 }

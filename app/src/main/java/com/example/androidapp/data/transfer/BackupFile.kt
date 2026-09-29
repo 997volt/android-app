@@ -73,6 +73,8 @@ data class SessionDto(
     val finishedAt: Long? = null,
     val notes: String? = null,
     val restEndsAt: Long? = null,
+    /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N4). */
+    val readinessNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

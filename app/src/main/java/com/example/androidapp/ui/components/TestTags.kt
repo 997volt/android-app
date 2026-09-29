@@ -68,4 +68,13 @@ object TestTags {
     const val EXERCISE_EDIT_CUE = "exercise_edit_cue"
     const val EXERCISE_EDIT_SAVE = "exercise_edit_save"
     const val EXERCISE_EDIT_CANCEL = "exercise_edit_cancel"
+
+    /**
+     * The readiness note (ROADMAP N4): the prompt/edit dialog and the header row
+     * that reaches it after the prompt has been answered or skipped.
+     */
+    const val READINESS_ROW = "readiness_row"
+    const val READINESS_NOTE = "readiness_note"
+    const val READINESS_SAVE = "readiness_save"
+    const val READINESS_DISMISS = "readiness_dismiss"
 }

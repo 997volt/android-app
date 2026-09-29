@@ -19,6 +19,11 @@ data class WorkoutSession(
     val finishedAt: Instant? = null,
     /** When the current rest ends, or null when not resting (P1.4). */
     val restEndsAt: Instant? = null,
+    /**
+     * What was not recovered today (ROADMAP N4). Free text, prompted once when the
+     * session opens and editable afterwards from the workout header.
+     */
+    val readinessNote: String? = null,
 ) {
     val isActive: Boolean get() = finishedAt == null
 }

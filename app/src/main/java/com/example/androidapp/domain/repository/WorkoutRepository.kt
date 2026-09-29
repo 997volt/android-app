@@ -12,6 +12,14 @@ import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 /**
+ * The session a workout screen is now in, and whether this call opened it.
+ *
+ * [isNew] is what lets the readiness prompt fire exactly once per workout
+ * (ROADMAP N4): a resumed session has already had its chance.
+ */
+data class StartedSession(val id: String, val isNew: Boolean)
+
+/**
  * Reading and writing workout sessions (ROADMAP P1.2, P1.3, P1.4, P1.8).
  *
  * Reads return plain flows; writes return [DataResult] so the UI can tell the
@@ -50,9 +58,10 @@ interface WorkoutRepository {
      *
      * Deliberately idempotent: two concurrent "start workout" taps must not
      * produce two open sessions, which would make "the active session"
-     * ambiguous everywhere downstream.
+     * ambiguous everywhere downstream. [StartedSession.isNew] distinguishes the
+     * call that opened it from one that found it already open.
      */
-    suspend fun startOrResumeSession(): DataResult<String>
+    suspend fun startOrResumeSession(): DataResult<StartedSession>
 
     /** Appends [exerciseId] to the end of the session. */
     suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit>
@@ -61,6 +70,12 @@ interface WorkoutRepository {
 
     /** Marks the session complete. It stops being "active" and enters history. */
     suspend fun finishSession(sessionId: String): DataResult<Unit>
+
+    /**
+     * Sets or clears the session's readiness note (ROADMAP N4). A blank note is
+     * stored as null, so "nothing written" has one representation.
+     */
+    suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit>
 
     /** Soft-deletes the session and everything in it. */
     suspend fun deleteSession(sessionId: String): DataResult<Unit>

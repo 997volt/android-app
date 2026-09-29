@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **A readiness note when a workout starts.** A new workout asks once, and
+  skippably, what is not recovered today — "shoulders still sore from Monday",
+  "slept badly, legs heavy". It is deliberately free text, stored on the session,
+  reachable again from the workout header after the prompt is gone, and it rides
+  through the workout detail and export. Adds migration 4→5: one nullable column,
+  no backfill — and a resumed workout is not asked again.
 - **Per-exercise rest and a technique cue.** An exercise now carries its own rest
   between sets — falling back to the 90 s default when unset — and a short
   "brace, sit back" cue shown under its name on the active workout screen. Both

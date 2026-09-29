@@ -83,6 +83,10 @@ data class ActiveWorkoutUiState(
     val exercises: List<SessionExerciseRow> = emptyList(),
     /** A just-deleted set awaiting undo; the screen shows it as a snackbar. */
     val pendingUndo: SetEntry? = null,
+    /** What was not recovered today, or null (ROADMAP N4). */
+    val readinessNote: String? = null,
+    /** True while a just-opened session is asking for that note. */
+    val isReadinessPromptVisible: Boolean = false,
     /** Set when a write failed, so the screen can say so instead of lying. */
     val error: DataError? = null,
 ) {
@@ -114,6 +118,9 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val lastError = MutableStateFlow<DataError?>(null)
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
     private val previousByExercise = MutableStateFlow<Map<String, PreviousPerformance>>(emptyMap())
+
+    /** True while a just-opened session is asking what was not recovered today (N4). */
+    private val readinessPromptVisible = MutableStateFlow(false)
 
     /** Emits true once a finish or discard succeeds, so the screen can leave. */
     private val _closed = MutableStateFlow(false)
@@ -170,8 +177,9 @@ class ActiveWorkoutViewModel @Inject constructor(
         snapshots,
         lastError,
         pendingUndo,
-    ) { snapshot, error, undo ->
-        snapshot.toUiState(error = error, undo = undo)
+        readinessPromptVisible,
+    ) { snapshot, error, undo, promptVisible ->
+        snapshot.toUiState(error = error, undo = undo, readinessPromptVisible = promptVisible)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -201,7 +209,14 @@ class ActiveWorkoutViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             when (val result = workoutRepository.startOrResumeSession()) {
-                is DataResult.Success -> lastError.value = null
+                is DataResult.Success -> {
+                    lastError.value = null
+                    // Only a freshly opened session asks (ROADMAP N4). A resumed one
+                    // has already had its chance, and re-asking after a process death
+                    // would be nagging rather than prompting.
+                    readinessPromptVisible.value = result.data.isNew
+                }
+
                 is DataResult.Failure -> lastError.value = result.error
             }
         }
@@ -291,6 +306,32 @@ class ActiveWorkoutViewModel @Inject constructor(
         pendingUndo.value = null
     }
 
+    /**
+     * Writes the readiness note (ROADMAP N4), from the prompt a new session opens
+     * with or from the workout header afterwards. A null or blank note clears it.
+     */
+    fun onSaveReadinessNote(note: String?) {
+        val sessionId = uiState.value.sessionId ?: return
+        viewModelScope.launch {
+            when (val result = workoutRepository.setReadinessNote(sessionId, note)) {
+                is DataResult.Success -> {
+                    lastError.value = null
+                    readinessPromptVisible.value = false
+                }
+
+                is DataResult.Failure -> lastError.value = result.error
+            }
+        }
+    }
+
+    /**
+     * Skips the prompt without writing anything. The header keeps offering the
+     * field, so skipping is not a dead end.
+     */
+    fun onDismissReadinessPrompt() {
+        readinessPromptVisible.value = false
+    }
+
     fun onSkipRest() {
         viewModelScope.launch {
             handle(workoutRepository.clearRest())
@@ -356,13 +397,19 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    private fun Snapshot.toUiState(error: DataError?, undo: SetEntry?): ActiveWorkoutUiState =
+    private fun Snapshot.toUiState(
+        error: DataError?,
+        undo: SetEntry?,
+        readinessPromptVisible: Boolean,
+    ): ActiveWorkoutUiState =
         ActiveWorkoutUiState(
             isLoading = false,
             sessionId = session?.id,
             startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
             exercises = exercises.map { it.toRow(sets = sets, previous = previous[it.exerciseId]) },
             pendingUndo = undo,
+            readinessNote = session?.readinessNote,
+            isReadinessPromptVisible = readinessPromptVisible,
             error = error,
         )
 

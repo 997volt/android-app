@@ -44,14 +44,22 @@ class WorkoutDaoTest {
         val first = dao.findOrCreateActiveSession(id = "session-a", now = 1_000L)
         val second = dao.findOrCreateActiveSession(id = "session-b", now = 2_000L)
 
-        assertEquals("session-a", first.id)
-        assertEquals("a second call must not open a second workout", "session-a", second.id)
+        assertEquals("session-a", first.session.id)
+        assertEquals("a second call must not open a second workout", "session-a", second.session.id)
         assertEquals(1, dao.sessionCount())
+        // N4's prompt fires from this flag, so it has to be exact: only the call
+        // that actually inserted the row reports a new session.
+        assertEquals(true, first.created)
+        assertEquals(false, second.created)
     }
+
+    /** The active session, for the tests that only need a row to work with. */
+    private suspend fun WorkoutDao.startSession(id: String = "s", now: Long = 1_000L) =
+        findOrCreateActiveSession(id, now).session
 
     @Test
     fun finishingASession_clearsTheActiveSession() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
         assertNotNull(dao.findActiveSession())
 
         val updated = dao.markFinished(id = session.id, at = 2_000L)
@@ -59,6 +67,29 @@ class WorkoutDaoTest {
         assertEquals(1, updated)
         assertNull("a finished session is no longer active", dao.findActiveSession())
         assertNull(dao.observeActiveSession().first())
+    }
+
+    @Test
+    fun updateReadinessNote_setsAndClearsTheNote() = runTest {
+        val session = dao.startSession()
+
+        assertEquals(
+            1,
+            dao.updateReadinessNote(id = session.id, note = "Shoulders sore", at = 2_000L),
+        )
+        assertEquals(
+            "Shoulders sore",
+            dao.findSession(session.id)?.readinessNote,
+        )
+
+        // A null note is how the header clears the field.
+        assertEquals(1, dao.updateReadinessNote(id = session.id, note = null, at = 3_000L))
+        assertNull(dao.findSession(session.id)?.readinessNote)
+    }
+
+    @Test
+    fun updateReadinessNote_reportsZeroRowsForAnUnknownSession() = runTest {
+        assertEquals(0, dao.updateReadinessNote(id = "nope", note = "x", at = 1L))
     }
 
     @Test
@@ -70,7 +101,7 @@ class WorkoutDaoTest {
 
     @Test
     fun softDeletedSession_isNotTheActiveSession() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
 
         assertEquals(1, dao.softDeleteSession(id = session.id, at = 2_000L))
 
@@ -79,7 +110,7 @@ class WorkoutDaoTest {
 
     @Test
     fun sessionExercises_comeBackInPositionOrder_notInsertionOrder() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
         insertExercise(session.id, "back-squat", position = 0)
         insertExercise(session.id, "deadlift", position = 2)
         insertExercise(session.id, "barbell-row", position = 1)
@@ -93,7 +124,7 @@ class WorkoutDaoTest {
     fun maxPosition_isMinusOneOnAnEmptySession() = runTest {
         // Callers add 1 to get the next slot, so an empty session must yield -1
         // rather than 0.
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
 
         assertEquals(-1, dao.maxPosition(session.id))
 
@@ -103,7 +134,7 @@ class WorkoutDaoTest {
 
     @Test
     fun removingASessionExercise_hidesItFromTheQuery() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
         insertExercise(session.id, "back-squat", position = 0)
 
         val row = dao.observeSessionExerciseDetails(session.id).first().single()
@@ -114,7 +145,7 @@ class WorkoutDaoTest {
 
     @Test
     fun countLoggableSessionExercise_requiresALiveExerciseInAnOpenSession() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
         insertExercise(session.id, "back-squat", position = 0)
         val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
 
@@ -129,7 +160,7 @@ class WorkoutDaoTest {
 
     @Test
     fun countLoggableSessionExercise_excludesARemovedExercise() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s", now = 1_000L)
+        val session = dao.startSession()
         insertExercise(session.id, "back-squat", position = 0)
         val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
 

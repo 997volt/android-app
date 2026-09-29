@@ -14,6 +14,7 @@ import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.successUnit
 import java.io.IOException
@@ -35,6 +36,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -108,6 +110,83 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         assertEquals("existing", viewModel.uiState.value.sessionId)
+    }
+
+    @Test
+    fun aFreshlyOpenedSession_asksForAReadinessNote() = runTest(dispatcher) {
+        val viewModel = viewModelFor(FakeWorkoutRepository())
+        observe(viewModel)
+        settle()
+
+        assertTrue(
+            "a new workout should prompt (N4)",
+            viewModel.uiState.value.isReadinessPromptVisible,
+        )
+    }
+
+    @Test
+    fun aResumedSession_doesNot_askAgain() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository().apply {
+            sessions.value = WorkoutSession(
+                id = "existing",
+                startedAt = Instant.parse("2026-09-28T07:30:00Z"),
+                readinessNote = "Slept badly",
+            )
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+
+        val state = viewModel.uiState.value
+        assertFalse("a resumed session already had its chance", state.isReadinessPromptVisible)
+        assertEquals("Slept badly", state.readinessNote)
+    }
+
+    @Test
+    fun savingTheReadinessNote_writesIt_andDismissesThePrompt() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+
+        viewModel.onSaveReadinessNote("Shoulders still sore from Monday")
+        settle()
+
+        assertEquals("Shoulders still sore from Monday", repository.lastReadinessNote)
+        assertEquals(
+            "Shoulders still sore from Monday",
+            viewModel.uiState.value.readinessNote,
+        )
+        assertFalse(viewModel.uiState.value.isReadinessPromptVisible)
+    }
+
+    @Test
+    fun skippingTheReadinessPrompt_writesNothing_butStillDismissesIt() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+
+        viewModel.onDismissReadinessPrompt()
+        settle()
+
+        assertNull("skipping must not write an empty note", repository.lastReadinessNote)
+        assertNull(viewModel.uiState.value.readinessNote)
+        assertFalse(viewModel.uiState.value.isReadinessPromptVisible)
+    }
+
+    @Test
+    fun aBlankReadinessNote_clearsTheNote_ratherThanStoringAnEmptyString() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+
+        viewModel.onSaveReadinessNote("   ")
+        settle()
+
+        assertNull(repository.lastReadinessNote)
+        assertNull(viewModel.uiState.value.readinessNote)
     }
 
     @Test
@@ -417,15 +496,26 @@ class ActiveWorkoutViewModelTest {
         /** The rest length the ViewModel actually asked for, or null if never asked. */
         var lastRestSeconds: Int? = null
 
+        /** The readiness note the ViewModel last wrote, or null if never written. */
+        var lastReadinessNote: String? = null
+
         override fun observeActiveSession(): Flow<WorkoutSession?> = sessions
 
         override fun observeSessionExercises(sessionId: String): Flow<List<SessionExercise>> = exercises
 
-        override suspend fun startOrResumeSession(): DataResult<String> {
-            sessions.value?.let { return DataResult.Success(it.id) }
+        override suspend fun startOrResumeSession(): DataResult<StartedSession> {
+            sessions.value?.let { return DataResult.Success(StartedSession(it.id, isNew = false)) }
             val created = WorkoutSession(id = "s1", startedAt = Instant.parse("2026-09-28T07:00:00Z"))
             sessions.value = created
-            return DataResult.Success(created.id)
+            return DataResult.Success(StartedSession(created.id, isNew = true))
+        }
+
+        override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            // Mirrors the repository: blank is stored as null, not as "".
+            lastReadinessNote = note?.trim()?.ifEmpty { null }
+            sessions.value = sessions.value?.copy(readinessNote = lastReadinessNote)
+            return successUnit()
         }
 
         override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> {

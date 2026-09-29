@@ -201,6 +201,15 @@ private fun DetailContent(
                 Totals(state)
                 HorizontalDivider()
             }
+            // The readiness note rides through history (ROADMAP N4). Only shown
+            // when there is one: an empty block on every past workout would be
+            // noise, not information.
+            state.session?.readinessNote?.let { note ->
+                item(key = "readiness") {
+                    ReadinessBlock(note)
+                    HorizontalDivider()
+                }
+            }
                 items(items = state.exercises, key = { it.id }) { exercise ->
                     ExerciseBlock(
                         exercise = exercise,
@@ -236,6 +245,19 @@ private fun DeleteWorkoutDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
             }
         },
     )
+}
+
+/** What was not recovered that day (ROADMAP N4), shown on a past workout. */
+@Composable
+private fun ReadinessBlock(note: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            text = stringResource(R.string.readiness_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(text = note, style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @Composable
@@ -322,6 +344,7 @@ private fun WorkoutDetailScreenPreview() {
                     id = "a",
                     startedAt = Instant.parse("2026-09-28T07:00:00Z"),
                     finishedAt = Instant.parse("2026-09-28T08:05:00Z"),
+                    readinessNote = "Slept badly, legs heavy",
                 ),
                 exercises = listOf(
                     HistoryExercise(

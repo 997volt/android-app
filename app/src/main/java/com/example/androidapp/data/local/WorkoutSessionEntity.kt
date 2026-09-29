@@ -31,6 +31,14 @@ data class WorkoutSessionEntity(
      * correct across a process death — and so no work is needed per tick.
      */
     val restEndsAt: Long?,
+    /**
+     * What was not recovered today — "shoulders still sore from Monday" (ROADMAP N4).
+     *
+     * Free text on purpose. Kept separate from [notes], which already exists for a
+     * future per-workout note: a readiness note answers a narrower question and
+     * must not collide with it.
+     */
+    val readinessNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

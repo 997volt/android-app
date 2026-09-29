@@ -53,6 +53,7 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.ui.components.SetEditorDialog
+import com.example.androidapp.ui.components.ReadinessNoteDialog
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.ui.components.TestTags
@@ -99,6 +100,8 @@ fun ActiveWorkoutRoute(
         onDismissUndo = viewModel::onDismissUndo,
         onSkipRest = viewModel::onSkipRest,
         onAdjustRest = viewModel::onAdjustRest,
+        onSaveReadinessNote = viewModel::onSaveReadinessNote,
+        onDismissReadinessPrompt = viewModel::onDismissReadinessPrompt,
         onFinish = viewModel::onFinish,
         onDiscard = viewModel::onDiscard,
         onBack = onBack,
@@ -120,6 +123,8 @@ fun ActiveWorkoutScreen(
     onDismissUndo: () -> Unit,
     onSkipRest: () -> Unit,
     onAdjustRest: (Int) -> Unit,
+    onSaveReadinessNote: (String?) -> Unit,
+    onDismissReadinessPrompt: () -> Unit,
     onFinish: () -> Unit,
     onDiscard: () -> Unit,
     onBack: () -> Unit,
@@ -158,6 +163,8 @@ fun ActiveWorkoutScreen(
             onDeleteSet = onDeleteSet,
             onSkipRest = onSkipRest,
             onAdjustRest = onAdjustRest,
+            onSaveReadinessNote = onSaveReadinessNote,
+            onDismissReadinessPrompt = onDismissReadinessPrompt,
             onDiscard = onDiscard,
             modifier = Modifier.padding(innerPadding),
         )
@@ -231,6 +238,8 @@ private fun WorkoutBody(
     onDeleteSet: (String) -> Unit,
     onSkipRest: () -> Unit,
     onAdjustRest: (Int) -> Unit,
+    onSaveReadinessNote: (String?) -> Unit,
+    onDismissReadinessPrompt: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -251,6 +260,12 @@ private fun WorkoutBody(
 
             else -> {
                 WorkoutHeader(startedAt = state.startedAt, clock = clock)
+                ReadinessSection(
+                    note = state.readinessNote,
+                    promptVisible = state.isReadinessPromptVisible,
+                    onDismissPrompt = onDismissReadinessPrompt,
+                    onSave = onSaveReadinessNote,
+                )
                 RestBar(clock = clock, onSkip = onSkipRest, onAdjust = onAdjustRest)
                 HorizontalDivider()
 
@@ -497,6 +512,74 @@ private fun WorkoutHeader(
     }
 }
 
+/**
+ * The readiness line and the dialog behind it (ROADMAP N4).
+ *
+ * "A form is open" is transient UI state, so it lives here next to the row that
+ * opens it. The prompt flag still comes from the session, which is why a brand-new
+ * workout opens straight into the dialog while a resumed one does not.
+ */
+@Composable
+private fun ReadinessSection(
+    note: String?,
+    promptVisible: Boolean,
+    onDismissPrompt: () -> Unit,
+    onSave: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var editing by remember { mutableStateOf(false) }
+
+    ReadinessRow(note = note, onEdit = { editing = true }, modifier = modifier)
+    if (promptVisible || editing) {
+        ReadinessNoteDialog(
+            initialNote = note.orEmpty(),
+            isPrompt = promptVisible,
+            onDismiss = {
+                editing = false
+                onDismissPrompt()
+            },
+            onSave = { written ->
+                editing = false
+                onSave(written)
+            },
+        )
+    }
+}
+
+/**
+ * The readiness note in the workout header (ROADMAP N4).
+ *
+ * Always present, so the field the prompt introduces stays reachable after the
+ * prompt is skipped — a passive field nobody can find again is the failure that
+ * made this a prompt in the first place.
+ */
+@Composable
+private fun ReadinessRow(note: String?, onEdit: () -> Unit, modifier: Modifier = Modifier) {
+    val editLabel = stringResource(R.string.readiness_edit_action)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(TestTags.READINESS_ROW)
+            .clickable(onClickLabel = editLabel, onClick = onEdit)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.readiness_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = note ?: stringResource(R.string.readiness_add),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (note == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
+}
+
 @Composable
 private fun EmptyWorkout(onDiscard: () -> Unit, modifier: Modifier = Modifier) {
     Column(
@@ -545,6 +628,7 @@ private fun ActiveWorkoutScreenPreview() {
                 isLoading = false,
                 sessionId = "s1",
                 startedAt = "07:42",
+                readinessNote = "Shoulders still sore from Monday",
                 exercises = listOf(
                     SessionExerciseRow(
                         id = "a",
@@ -574,6 +658,8 @@ private fun ActiveWorkoutScreenPreview() {
             onDismissUndo = {},
             onSkipRest = {},
             onAdjustRest = {},
+            onSaveReadinessNote = {},
+            onDismissReadinessPrompt = {},
             onFinish = {},
             onDiscard = {},
             onBack = {},

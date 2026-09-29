@@ -127,6 +127,34 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration4To5_addsTheReadinessNote_leavingItUnset() {
+        // A v4 database with a finished session in it: the ALTER has to run against
+        // a table that already holds history (ROADMAP N4).
+        helper.createDatabase(TEST_DB, 4).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('s1', 1, 2, NULL, NULL, 1, 2, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 5, true, MIGRATION_4_5)
+
+        migrated.query("SELECT readinessNote FROM workout_sessions WHERE id = 's1'").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("the existing session must survive", 1, cursor.count)
+            // Nothing is backfilled: an old workout simply has no note.
+            assertTrue("readinessNote must default to null", cursor.isNull(0))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

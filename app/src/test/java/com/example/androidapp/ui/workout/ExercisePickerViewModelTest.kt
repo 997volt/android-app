@@ -13,6 +13,7 @@ import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import java.io.IOException
 import java.time.Instant
@@ -209,9 +210,10 @@ class ExercisePickerViewModelTest {
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = flowOf(emptyList())
         override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
         override fun observeSession(sessionId: String): Flow<WorkoutSession?> = flowOf(null)
-        override suspend fun startOrResumeSession(): DataResult<String> = unused()
+        override suspend fun startOrResumeSession(): DataResult<StartedSession> = unused()
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
+        override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> = unused()
         override suspend fun deleteSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun logSet(
             sessionExerciseId: String,

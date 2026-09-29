@@ -15,6 +15,7 @@ internal fun WorkoutSessionEntity.toDomain(): WorkoutSession = WorkoutSession(
     startedAt = Instant.ofEpochMilli(startedAt),
     finishedAt = finishedAt?.let(Instant::ofEpochMilli),
     restEndsAt = restEndsAt?.let(Instant::ofEpochMilli),
+    readinessNote = readinessNote,
 )
 
 internal fun SetEntryEntity.toDomain(): SetEntry = SetEntry(

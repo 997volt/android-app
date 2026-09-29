@@ -51,12 +51,13 @@ left alone without being forgotten.
 ## Next — planned app changes
 
 Changes left to land before anything in *Later*. N1 — home as the start
-destination — N2 — custom exercises while you train — and N5 — per-exercise rest
-and cues — are done; they are in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
-because shipped work lives there rather than here.
+destination — N2 — custom exercises while you train — N4 — the readiness note —
+and N5 — per-exercise rest and cues — are done; they are in
+[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
+rather than here.
 
 - **N3** is what can be set up in advance.
-- **N4, N6 and N7–N8** are what a workout captures while you are in it.
+- **N6–N8** are what a workout captures while you are in it.
 
 ### N3 — Workout templates, planned before you train
 
@@ -75,20 +76,6 @@ This promotes P3.1 + P3.2 ahead of the rest of the backlog, with a deliberately
 smaller first version. It needs two new sync-shaped tables (`templates`,
 `template_exercises`) and therefore a migration, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
-
-### N4 — A readiness note when a workout starts
-
-A free-text field for what is not recovered today: "shoulders still sore from
-Monday", "slept badly, legs heavy".
-
-- **Decided: prompt when the session opens**, skippable, and editable afterwards
-  from the workout header — the day it matters is the day a passive field gets
-  ignored.
-- Stored on the session (`readinessNote`), so it rides through history, the workout
-  detail, and export.
-- **Deliberately free text.** The structured version — picking the sore groups from
-  the existing `MuscleGroup` taxonomy — is a later step, and the column does not
-  change to get there.
 
 ### N6 — RPE and a comment on every set
 
@@ -125,30 +112,29 @@ Captured when an exercise is marked done (N7):
   between sessions, so labelling the ends is the obvious first refinement.
 - Feeds **P2.8** (balance warnings), or a discomfort view of its own.
 
-**Schema (N4, N6–N8).** Every column is nullable and additive, the shape migration 2→3
+**Schema (N6–N8).** Every column is nullable and additive, the shape migration 2→3
 already used for `restEndsAt` — no backfill, no rewrite:
 
 | Table | New columns |
 | --- | --- |
 | `set_entries` | `rpe`, `note` |
 | `session_exercises` | `finishedAt`, `muscleFeel`, `jointPain` |
-| `workout_sessions` | `readinessNote` |
 
-`workout_sessions.notes` already exists but nothing sets it, so `readinessNote` stays
-separate: a future per-workout note should not collide with a readiness note.
+`workout_sessions.notes` already exists but nothing sets it; the readiness note went
+to its own `readinessNote` column (N4) rather than into it, so a future per-workout
+note does not collide with a readiness note.
 
-**Migration numbering follows shipment.** N5 took 3→4. Each change below takes the
-next version as it ships; columns for a feature that has not been built are *not*
-added ahead of it, because Room validates the declared entities against the migrated
-schema — a column added early would force an entity field nothing reads. N3 and the
-columns above therefore cannot share a version unless they ship in the same commit,
-and two half-written migrations are what the `MigrationTestHelper` tests exist to
-catch.
+**Migration numbering follows shipment.** N5 took 3→4 and N4 took 4→5. Each change
+below takes the next version as it ships; columns for a feature that has not been
+built are *not* added ahead of it, because Room validates the declared entities
+against the migrated schema — a column added early would force an entity field
+nothing reads. N3 and the columns above therefore cannot share a version unless they
+ship in the same commit, and two half-written migrations are what the
+`MigrationTestHelper` tests exist to catch.
 
-**Order:** N3 hangs off the home screen N1 introduced; N4 and N6 are independent of it
-and of each other. The one hard dependency is **N7 before N8**, since the ratings are
-captured at the moment an exercise is done. Everything else stays in *Later* until
-these land.
+**Order:** N3 hangs off the home screen N1 introduced; N6 is independent of it. The
+one hard dependency is **N7 before N8**, since the ratings are captured at the moment
+an exercise is done. Everything else stays in *Later* until these land.
 
 ## Later (still self-contained)
 

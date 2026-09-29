@@ -113,5 +113,21 @@ private const val ADD_EXERCISE_REST_SECONDS =
 private const val ADD_EXERCISE_TECHNIQUE_NOTE =
     "ALTER TABLE `exercises` ADD COLUMN `techniqueNote` TEXT"
 
+/**
+ * v4 -> v5: the readiness note on a session (ROADMAP N4).
+ *
+ * Nullable and unset, so an existing or completed workout simply has no note and
+ * nothing is backfilled. `notes` stays untouched: it is reserved for a per-workout
+ * note, which is a different question from "what is not recovered today".
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_SESSION_READINESS_NOTE)
+    }
+}
+
+private const val ADD_SESSION_READINESS_NOTE =
+    "ALTER TABLE `workout_sessions` ADD COLUMN `readinessNote` TEXT"
+
 /** Applied in order by the database builder. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)

@@ -61,13 +61,14 @@ class WorkoutDetailScreenTest {
     }
 
     private fun setScreen(
+        uiState: WorkoutDetailUiState = state,
         onUpdateSet: (String, Int, Long) -> Unit = { _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
         onDeleteWorkout: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             WorkoutDetailScreen(
-                state = state,
+                state = uiState,
                 onUpdateSet = onUpdateSet,
                 onDeleteSet = onDeleteSet,
                 onDeleteWorkout = onDeleteWorkout,
@@ -82,6 +83,26 @@ class WorkoutDetailScreenTest {
 
         composeTestRule.onNodeWithText("Back Squat").assertIsDisplayed()
         composeTestRule.onNodeWithText("100 kg × 5").assertIsDisplayed()
+    }
+
+    @Test
+    fun theReadinessNote_ridesThroughHistory() {
+        // N4: the note is captured while training, so history has to show it.
+        setScreen(
+            uiState = state.copy(
+                session = state.session?.copy(readinessNote = "Slept badly, legs heavy"),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Readiness").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Slept badly, legs heavy").assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutAReadinessNote_thereIsNoEmptyBlock() {
+        setScreen()
+
+        composeTestRule.onNodeWithText("Readiness").assertDoesNotExist()
     }
 
     @Test

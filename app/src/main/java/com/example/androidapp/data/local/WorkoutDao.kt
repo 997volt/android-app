@@ -6,6 +6,15 @@ import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * The open session, and whether the call that produced it opened it.
+ *
+ * [created] is what lets the readiness prompt fire exactly once per workout
+ * (ROADMAP N4): a session being resumed has already had its chance, and re-asking
+ * after a process death would be nagging rather than prompting.
+ */
+data class SessionStart(val session: WorkoutSessionEntity, val created: Boolean)
+
 @Dao
 interface WorkoutDao {
 
@@ -127,8 +136,8 @@ interface WorkoutDao {
      * sessions would make every downstream "the active session" ambiguous.
      */
     @Transaction
-    suspend fun findOrCreateActiveSession(id: String, now: Long): WorkoutSessionEntity {
-        findActiveSession()?.let { return it }
+    suspend fun findOrCreateActiveSession(id: String, now: Long): SessionStart {
+        findActiveSession()?.let { return SessionStart(session = it, created = false) }
 
         val session = WorkoutSessionEntity(
             id = id,
@@ -136,17 +145,33 @@ interface WorkoutDao {
             finishedAt = null,
             notes = null,
             restEndsAt = null,
+            readinessNote = null,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
         )
         insertSession(session)
-        return session
+        return SessionStart(session = session, created = true)
     }
 
     /** Rows updated: 0 means the session does not exist. */
     @Query("UPDATE workout_sessions SET finishedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun markFinished(id: String, at: Long): Int
+
+    /**
+     * Sets or clears the readiness note (ROADMAP N4). A null [note] clears it.
+     *
+     * Rows updated: 0 means the session is gone, so a stale screen cannot write a
+     * note into nothing.
+     */
+    @Query(
+        """
+        UPDATE workout_sessions
+        SET readinessNote = :note, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun updateReadinessNote(id: String, note: String?, at: Long): Int
 
     @Query("UPDATE workout_sessions SET deletedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun softDeleteSession(id: String, at: Long): Int

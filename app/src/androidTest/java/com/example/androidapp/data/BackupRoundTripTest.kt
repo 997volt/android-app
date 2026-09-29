@@ -197,7 +197,7 @@ class BackupRoundTripTest {
 
         exerciseDao.insertAll(listOf(seedExercise()))
 
-        val session = workoutDao.findOrCreateActiveSession(id = "session-1", now = 1_000L)
+        val session = workoutDao.findOrCreateActiveSession(id = "session-1", now = 1_000L).session
         val sessionExerciseId = "se-1"
         workoutDao.insertSessionExercise(
             com.example.androidapp.data.local.SessionExerciseEntity(

@@ -114,7 +114,7 @@ class WorkoutEditingTest {
             ),
         )
 
-        val session = database.workoutDao().findOrCreateActiveSession(id = "s1", now = 1_000L)
+        val session = database.workoutDao().findOrCreateActiveSession(id = "s1", now = 1_000L).session
         database.workoutDao().insertSessionExercise(
             SessionExerciseEntity(
                 id = "se1",

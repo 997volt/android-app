@@ -41,7 +41,7 @@ class WorkoutHistoryQueryTest {
 
     @Test
     fun totals_countOnlyLiveSetsAndLiveExercises() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "s1", now = 1_000L)
+        val session = dao.findOrCreateActiveSession(id = "s1", now = 1_000L).session
         seedExercise("back-squat")
         seedExercise("bench-press")
         dao.insertSessionExercise(sessionExercise("se1", session.id, "back-squat", 0))
@@ -72,14 +72,14 @@ class WorkoutHistoryQueryTest {
     fun anOpenWorkoutIsNotHistory() = runTest {
         // An in-progress session belongs on the workout screen, not in a list you
         // are meant to be reading.
-        dao.findOrCreateActiveSession(id = "open", now = 1_000L)
+        dao.findOrCreateActiveSession(id = "open", now = 1_000L).session
 
         assertEquals(emptyList<WorkoutSummaryRow>(), dao.observeHistory().first())
     }
 
     @Test
     fun aFinishedWorkoutWithNoSets_stillAppears_atZeroVolume() = runTest {
-        val session = dao.findOrCreateActiveSession(id = "empty", now = 1_000L)
+        val session = dao.findOrCreateActiveSession(id = "empty", now = 1_000L).session
         dao.markFinished(id = session.id, at = 2_000L)
 
         val summary = dao.observeHistory().first().single()
@@ -90,9 +90,9 @@ class WorkoutHistoryQueryTest {
 
     @Test
     fun historyIsNewestFirst() = runTest {
-        val older = dao.findOrCreateActiveSession(id = "older", now = 1_000L)
+        val older = dao.findOrCreateActiveSession(id = "older", now = 1_000L).session
         dao.markFinished(id = older.id, at = 2_000L)
-        val newer = dao.findOrCreateActiveSession(id = "newer", now = 5_000L)
+        val newer = dao.findOrCreateActiveSession(id = "newer", now = 5_000L).session
         dao.markFinished(id = newer.id, at = 6_000L)
 
         assertEquals(listOf("newer", "older"), dao.observeHistory().first().map { it.id })

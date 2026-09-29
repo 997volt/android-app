@@ -15,6 +15,7 @@ import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.nowEpochMillis
+import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import java.time.Instant
 import java.util.UUID
@@ -53,14 +54,15 @@ class RoomWorkoutRepository @Inject constructor(
     override fun observeSession(sessionId: String): Flow<WorkoutSession?> =
         dao.observeSession(sessionId).map { it?.toDomain() }
 
-    override suspend fun startOrResumeSession(): DataResult<String> = dataResultOf {
+    override suspend fun startOrResumeSession(): DataResult<StartedSession> = dataResultOf {
         // find-or-create is a single transaction, so two taps cannot open two
-        // sessions and leave "the active session" ambiguous.
-        val session = dao.findOrCreateActiveSession(
+        // sessions and leave "the active session" ambiguous. The same transaction
+        // reports whether this call is the one that opened it (ROADMAP N4).
+        val start = dao.findOrCreateActiveSession(
             id = UUID.randomUUID().toString(),
             now = timeSource.nowEpochMillis(),
         )
-        session.id
+        StartedSession(id = start.session.id, isNew = start.created)
     }
 
     override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> =
@@ -100,6 +102,19 @@ class RoomWorkoutRepository @Inject constructor(
         }
         dao.updateRestTimer(id = sessionId, restEndsAt = null, at = now)
     }
+
+    override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> =
+        dataResultOf {
+            // Blank is stored as null rather than "": two representations of "nothing
+            // written" would show up differently on the workout header.
+            val cleaned = note?.trim()?.ifEmpty { null }
+            val updated = dao.updateReadinessNote(
+                id = sessionId,
+                note = cleaned,
+                at = timeSource.nowEpochMillis(),
+            )
+            if (updated == 0) throw NotFoundException("session $sessionId")
+        }
 
     override suspend fun deleteSession(sessionId: String): DataResult<Unit> = dataResultOf {
         if (dao.findSession(sessionId) == null) {
