@@ -10,6 +10,12 @@ import com.example.androidapp.domain.model.WorkoutSession
 import java.time.Instant
 import org.junit.Rule
 import org.junit.Test
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.onNodeWithTag
+import com.example.androidapp.ui.components.TestTags
 import org.junit.runner.RunWith
 
 /**
@@ -40,6 +46,16 @@ class WorkoutDetailScreenTest {
             ),
         ),
     )
+
+    @Test
+    fun aSetRowSaysWhatTappingItDoes() {
+        // P1.17: the row is editable, and a screen-reader user should be told that
+        // rather than left to guess. The tag is what makes this assertable without
+        // matching on a translated string.
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_ROW).assert(hasClickLabel())
+    }
 
     private fun setScreen(
         onUpdateSet: (String, Int, Long) -> Unit = { _, _, _ -> },
@@ -87,4 +103,9 @@ class WorkoutDetailScreenTest {
         composeTestRule.onNodeWithText("Delete this workout?").assertIsDisplayed()
         assert(!deleted) { "the workout was deleted before it was confirmed" }
     }
+}
+
+/** True when the node's click action carries an accessibility label. */
+private fun hasClickLabel(): SemanticsMatcher = SemanticsMatcher("has a click label") { node ->
+    node.config.getOrNull(SemanticsActions.OnClick)?.label != null
 }

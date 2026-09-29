@@ -34,6 +34,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,6 +45,7 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.ui.components.SetEditorDialog
+import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutFormat
@@ -261,6 +263,7 @@ private fun ExerciseBlock(
     onDeleteSet: (HistorySet) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val editLabel = stringResource(R.string.set_edit_action)
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(text = exercise.name, style = MaterialTheme.typography.titleMedium)
 
@@ -271,7 +274,10 @@ private fun ExerciseBlock(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
-                    modifier = Modifier.weight(1f).clickable { onEditSet(set) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(TestTags.SET_ROW)
+                        .clickable(onClickLabel = editLabel) { onEditSet(set) },
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(

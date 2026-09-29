@@ -41,6 +41,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +54,7 @@ import com.example.androidapp.domain.Weight
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
+import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
 @Composable
@@ -408,6 +410,7 @@ private fun SetLine(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val editLabel = stringResource(R.string.set_edit_action)
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -415,7 +418,12 @@ private fun SetLine(
     ) {
         // Tapping the line opens the editor; the number is shown 1-based.
         Row(
-            modifier = Modifier.weight(1f).clickable(onClick = onEdit),
+            modifier = Modifier
+                .weight(1f)
+                .testTag(TestTags.SET_ROW)
+                // Without a label a screen reader announces the row and
+                // gives no hint that tapping it edits the set.
+                .clickable(onClickLabel = editLabel, onClick = onEdit),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

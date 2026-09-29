@@ -50,6 +50,8 @@
     <string name="set_number">%1$d</string>
     <string name="set_summary">%1$s kg × %2$d</string>
     <string name="set_edit_title">Edit set</string>
+    <!-- Tap action for a set row (P1.17): announces what tapping does. -->
+    <string name="set_edit_action">Edit set</string>
     <string name="set_weight_label">Weight (kg)</string>
     <string name="set_reps_label">Reps</string>
     <string name="set_save">Save</string>
