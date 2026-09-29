@@ -327,6 +327,48 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun ratingAnExercise_doesNotFinishIt() = runTest(dispatcher) {
+        // ROADMAP N10: the same write the Done prompt makes, on its own.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+
+        viewModel.onRateExercise(id, muscleFeel = 7, jointPain = 3, jointPainNote = "left knee")
+        settle()
+
+        val row = viewModel.uiState.value.exercises.single()
+        assertEquals(7, row.muscleFeel)
+        assertEquals(3, row.jointPain)
+        assertEquals("left knee", row.jointPainNote)
+        assertFalse("rating an exercise must not close it", row.isFinished)
+        assertNull(
+            "and it is not a Done, so there is no undo to offer",
+            viewModel.uiState.value.pendingFinishedExerciseId,
+        )
+    }
+
+    @Test
+    fun aFailedRatingOutsideThePrompt_isSurfaced() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        repository.failWrites = true
+
+        viewModel.onRateExercise(id, muscleFeel = 7, jointPain = null, jointPainNote = null)
+        settle()
+
+        assertNotNull(viewModel.uiState.value.error)
+    }
+
+    @Test
     fun skippingTheRatings_stillFinishesTheExercise() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)

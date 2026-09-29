@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.ui.components.ExerciseRatingDialog
+import com.example.androidapp.ui.components.ExerciseRatingSection
 import com.example.androidapp.ui.components.TestTags
 
 
@@ -59,6 +60,7 @@ internal fun ExerciseList(
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
     onFinishExercise: (String, Int?, Int?, String?) -> Unit,
+    onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,6 +77,7 @@ internal fun ExerciseList(
                 onEditSet = onEditSet,
                 onDeleteSet = onDeleteSet,
                 onFinishExercise = onFinishExercise,
+                onRateExercise = onRateExercise,
                 onReopenExercise = { onReopenExercise(row.id) },
             )
             HorizontalDivider()
@@ -99,6 +102,7 @@ private fun ExerciseSection(
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
     onFinishExercise: (String, Int?, Int?, String?) -> Unit,
+    onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -142,6 +146,16 @@ private fun ExerciseSection(
             onLogSet = onLogSet,
             onEditSet = onEditSet,
             onDeleteSet = onDeleteSet,
+        )
+
+        // N10: the ratings can be given while the exercise is still in front of you,
+        // rather than only from memory when it is marked done. The Done prompt stays
+        // as the last chance rather than the only one.
+        ExerciseRatingSection(
+            muscleFeel = row.muscleFeel,
+            jointPain = row.jointPain,
+            jointPainNote = row.jointPainNote.ifEmpty { null },
+            onRate = { feel, pain, note -> onRateExercise(row.id, feel, pain, note) },
         )
     }
 }

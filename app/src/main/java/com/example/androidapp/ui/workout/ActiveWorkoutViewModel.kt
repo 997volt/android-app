@@ -366,6 +366,31 @@ class ActiveWorkoutViewModel @Inject constructor(
         pendingFinishedExercise.value = null
     }
 
+    /**
+     * Writes how an exercise felt, at any time (ROADMAP N10).
+     *
+     * The same write the Done prompt makes, without finishing anything: the ratings
+     * are worth recording while the set is still fresh, and the prompt is then the
+     * last chance rather than the only one.
+     */
+    fun onRateExercise(
+        sessionExerciseId: String,
+        muscleFeel: Int?,
+        jointPain: Int?,
+        jointPainNote: String?,
+    ) {
+        viewModelScope.launch {
+            handle(
+                workoutRepository.rateExercise(
+                    sessionExerciseId = sessionExerciseId,
+                    muscleFeel = muscleFeel,
+                    jointPain = jointPain,
+                    jointPainNote = jointPainNote,
+                ),
+            )
+        }
+    }
+
     /** Reopens a done exercise from its own button (N7). */
     fun onReopenExercise(sessionExerciseId: String) {
         reopen(sessionExerciseId)

@@ -35,6 +35,7 @@ class ActiveWorkoutScreenTest {
         onFinishExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onReopenExercise: (String) -> Unit = {},
         onRemoveExercise: (String) -> Unit = {},
+        onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
     ) {
         composeTestRule.setContent {
             ActiveWorkoutScreen(
@@ -44,6 +45,7 @@ class ActiveWorkoutScreenTest {
                 onLogSet = {},
                 onUpdateSet = { _, _, _, _, _ -> },
                 onRemoveExercise = onRemoveExercise,
+                onRateExercise = onRateExercise,
                 onDeleteSet = {},
                 onUndoDelete = {},
                 onDismissUndo = {},
@@ -142,6 +144,70 @@ class ActiveWorkoutScreenTest {
 
         assertEquals(FinishCall("se1", 8, 2, "left knee"), finished)
     }
+
+    @Test
+    fun anExerciseCanBeRated_beforeItIsDone() {
+        // ROADMAP N10: the ratings used to be reachable only through the Done
+        // prompt, which means recording how a set felt from memory, afterwards.
+        var rated: Rounding? = null
+        setScreen(state(isFinished = false), onRateExercise = { id, feel, pain, note ->
+            rated = Rounding(id, feel, pain, note)
+        })
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_RATING_ROW, useUnmergedTree = true)
+            .performClick()
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("7")
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_FIELD).performTextInput("3")
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals(Rounding("se1", 7, 3, null), rated)
+    }
+
+    @Test
+    fun anExerciseAlreadyRated_showsWhatItSaid() {
+        setScreen(state(isFinished = false).copy(exercises = listOf(finishedRow(rated = true))))
+
+        // N9's location rides in the same summary.
+        composeTestRule.onNodeWithText("Muscle feel 8 · Joint pain 2 · left knee").assertExists()
+    }
+
+    @Test
+    fun aDoneExercise_canStillBeRated() {
+        // "At any time" includes after Done: the row is not tied to the prompt.
+        var rated: Rounding? = null
+        setScreen(
+            state(isFinished = false).copy(exercises = listOf(finishedRow(rated = false))),
+            onRateExercise = { id, feel, pain, note -> rated = Rounding(id, feel, pain, note) },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_RATING_ROW, useUnmergedTree = true)
+            .performClick()
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("5")
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals(Rounding("se1", 5, null, null), rated)
+    }
+
+    /** What the screen reports when a rating is saved outside the Done prompt. */
+    private data class Rounding(
+        val id: String,
+        val muscleFeel: Int?,
+        val jointPain: Int?,
+        val jointPainNote: String?,
+    )
+
+    private fun finishedRow(rated: Boolean) = SessionExerciseRow(
+        id = "se1",
+        exerciseId = "back-squat",
+        name = "Back Squat",
+        subtitle = "Quads · Barbell",
+        isFinished = true,
+        muscleFeel = if (rated) 8 else null,
+        jointPain = if (rated) 2 else null,
+        jointPainNote = if (rated) "left knee" else "",
+        sets = listOf(SetRow(id = "set1", number = 1, reps = 5, weightGrams = 100_000)),
+        suggestion = SetSuggestion(reps = 5, weightGrams = 100_000),
+    )
 
     @Test
     fun tappingReopen_reportsThatExercise() {

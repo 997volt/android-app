@@ -59,18 +59,7 @@ What a workout records, still queued. Everything shipped so far is in
 
 | # | Addition | Decision |
 | --- | --- | --- |
-| N10 | Ratings before finishing | Editable at any time, not only at the Done prompt |
 | N11 | A workout comment | A skippable prompt on Finish; no migration |
-
-### N10 — Muscle feel and joint pain before finishing
-
-The two ratings are only asked for at the moment an exercise is marked Done. Make
-them editable at any time on the session exercise, so how a set felt can be recorded
-while it is fresh.
-
-The write path already exists (`rateExercise`); this is a UI entry point. The Done
-prompt stays as a convenience, and becomes a last chance rather than the only one.
-N9's location box belongs with it.
 
 ### N11 — A general comment on the workout
 

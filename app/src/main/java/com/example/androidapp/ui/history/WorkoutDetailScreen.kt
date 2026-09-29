@@ -45,7 +45,7 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.ui.components.CenteredMessage
-import com.example.androidapp.ui.components.ExerciseRatingDialog
+import com.example.androidapp.ui.components.ExerciseRatingSection
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -300,132 +300,85 @@ private fun ExerciseBlock(
         Text(text = exercise.name, style = MaterialTheme.typography.titleMedium)
 
         exercise.sets.forEachIndexed { index, set ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            HistorySetRow(
+                set = set,
+                number = index + 1,
+                editLabel = editLabel,
+                onEditSet = onEditSet,
+                onDeleteSet = onDeleteSet,
+            )
+        }
+
+        ExerciseRatingSection(
+            muscleFeel = exercise.muscleFeel,
+            jointPain = exercise.jointPain,
+            jointPainNote = exercise.jointPainNote,
+            onRate = { feel, pain, note -> onRate(exercise.id, feel, pain, note) },
+        )
+    }
+}
+
+
+/** One logged set on the detail screen: its numbers, its N6 extras, and its delete. */
+@Composable
+private fun HistorySetRow(
+    set: HistorySet,
+    number: Int,
+    editLabel: String,
+    onEditSet: (HistorySet) -> Unit,
+    onDeleteSet: (HistorySet) -> Unit,
+) {
+    Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(TestTags.SET_ROW)
+                    .clickable(onClickLabel = editLabel) { onEditSet(set) },
             ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(TestTags.SET_ROW)
-                        .clickable(onClickLabel = editLabel) { onEditSet(set) },
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "$number",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.set_summary,
+                            Weight.kilograms(set.weightGrams),
+                            set.reps,
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    // The detail is where the full text lives (N6); the workout
+                    // row only carries a marker.
+                    set.rpe?.let { rpe ->
                         Text(
-                            text = "${index + 1}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.set_summary,
-                                Weight.kilograms(set.weightGrams),
-                                set.reps,
-                            ),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        // The detail is where the full text lives (N6); the workout
-                        // row only carries a marker.
-                        set.rpe?.let { rpe ->
-                            Text(
-                                text = stringResource(R.string.set_rpe_marker, rpe),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    set.note?.let { comment ->
-                        Text(
-                            text = comment,
-                            style = MaterialTheme.typography.bodySmall,
+                            text = stringResource(R.string.set_rpe_marker, rpe),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                IconButton(onClick = { onDeleteSet(set) }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(R.string.set_delete),
+                set.note?.let { comment ->
+                    Text(
+                        text = comment,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+            IconButton(onClick = { onDeleteSet(set) }) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = stringResource(R.string.set_delete),
+                )
+            }
         }
-
-        ExerciseRatingSection(exercise = exercise, onRate = onRate)
-    }
-}
-
-/**
- * The "How it felt" row on a past workout, and the editor behind it (ROADMAP N8).
- *
- * Owning the dialog here keeps the transient open/closed state next to the row that
- * opens it. Shown for every exercise in a past workout, not only ones that were
- * marked done while training: the ratings are meant to be fillable afterwards,
- * which is the "editable later" half of the decision.
- */
-@Composable
-private fun ExerciseRatingSection(
-    exercise: HistoryExercise,
-    onRate: (String, Int?, Int?, String?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var editing by remember { mutableStateOf(false) }
-    val editLabel = stringResource(R.string.rating_edit_title)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(TestTags.EXERCISE_RATING_ROW)
-            .clickable(onClickLabel = editLabel) { editing = true }
-            .padding(vertical = 8.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.rating_row_title),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = ratingSummary(exercise.muscleFeel, exercise.jointPain, exercise.jointPainNote)
-                ?: stringResource(R.string.rating_row_add),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (exercise.muscleFeel == null && exercise.jointPain == null) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-    }
-
-    if (editing) {
-        ExerciseRatingDialog(
-            initialMuscleFeel = exercise.muscleFeel,
-            initialJointPain = exercise.jointPain,
-            initialJointPainNote = exercise.jointPainNote.orEmpty(),
-            isPrompt = false,
-            onDismiss = { editing = false },
-            onSave = { feel, pain, note ->
-                editing = false
-                onRate(exercise.id, feel, pain, note)
-            },
-        )
-    }
-}
-
-/**
- * `Muscle feel 8 · Joint pain 2` and, on the next line, where it hurt (N9).
- *
- * The location rides with the summary rather than being a row of its own: it is an
- * aside to the rating, and "left shoulder" means nothing on its own.
- */
-@Composable
-private fun ratingSummary(muscleFeel: Int?, jointPain: Int?, jointPainNote: String?): String? {
-    val parts = listOfNotNull(
-        muscleFeel?.let { stringResource(R.string.rating_muscle_value, it) },
-        jointPain?.let { stringResource(R.string.rating_joint_value, it) },
-        jointPainNote?.let { stringResource(R.string.rating_joint_note_value, it) },
-    )
-    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+    
 }
 
 @Composable

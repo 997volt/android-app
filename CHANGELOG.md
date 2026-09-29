@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **How it felt can be recorded at any time, not only at Done.** Each exercise in a
+  workout now carries a "How it felt" row — the same one the workout detail has — so
+  the two ratings and N9's location are written down while the set is fresh rather
+  than remembered afterwards. The Done prompt stays as the last chance rather than
+  the only one, and the row is still there on a done exercise, so a rating given in
+  passing is one tap from being corrected.
 - **Joint pain says where.** The joint-pain rating gained an optional free-text box —
   "left shoulder", "right knee" — because a 4 means more a month later with a place
   attached to it. Stored per session exercise, editable wherever the rating is (the
