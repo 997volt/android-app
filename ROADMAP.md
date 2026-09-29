@@ -15,15 +15,16 @@ or needs an account or a server, is out by default.
 
 Feature ids (`F#` foundations, `B#` reported defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
-commit messages. They
-were assigned when the work was planned, so they do not run in order — the
-`P4`/`P5` rows are simply the ones parked furthest out.
+commit messages. They were assigned when the work was planned, so they do not run in
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N8` have
+shipped and left the file.
 
 ## Current state
 
-- **The MVP is complete and released**: exercise library, start/resume, set logging
-  with prefill and undo, rest timer, crash-safe sessions, workout history, edit and
-  delete, export/import.
+- **The whole loop works and is released**: start a workout, log sets, see the
+  history, get the data out. What that includes at any moment is
+  [CHANGELOG.md](CHANGELOG.md)'s job, not this file's — an enumerated feature list is
+  precisely the kind of fact that drifts.
 - **Local only.** No `INTERNET` permission, `allowBackup="false"`, no accounts, no
   analytics; the export file is the only path off the device.
 - **Releases are manual**, signed with a permanent local key. The procedure and its
@@ -31,8 +32,7 @@ were assigned when the work was planned, so they do not run in order — the
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
 - **Templates are the v1 half of P3.1**: a name and an ordered list of exercises,
-  started in one tap. Target sets × rep ranges, per-exercise rest, supersets and drop
-  sets are still in *Later*.
+  started in one tap. The rest of the routine scope is in *Later*.
 
 Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
 current numbers; dependencies are declared in
@@ -65,6 +65,14 @@ records. N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
 | B2 | Removing an exercise is irreversible | Ask first — a confirmation dialog |
 | B3 | An **Undo** can act on something that is already gone | Check the precondition and report, instead of doing nothing |
 
+**Then three additions to what a workout records.**
+
+| # | Addition | Decision |
+| --- | --- | --- |
+| N9 | Joint pain location | A text box under the rating — the batch's only migration |
+| N10 | Ratings before finishing | Editable at any time, not only at the Done prompt |
+| N11 | A workout comment | A skippable prompt on Finish; no migration |
+
 ### B1 — Export and import move to the home overflow
 
 App-level data management belongs at home. Today's path is Home ⋮ → *Exercise
@@ -82,17 +90,16 @@ easier to reason about than restoring a row whose sets went with it.
 
 ### B3 — An Undo must not act on something that is gone
 
-Two different actions offer a button labelled **Undo** — a deleted set and a Done
-exercise — and both share one `SnackbarHostState`, so the button can outlive what it
-refers to. The reported sequence is exactly this: delete a set, remove its exercise,
-then tap the *Undo* still on screen. It undoes the **set**, not the removal, and that
-undo now fails the loggable-exercise guard, so nothing happens at all. Confirmed by
-reading the code: removing an exercise has no undo to begin with, so the button on
-screen could only have been another action's.
+Two actions offer a button labelled **Undo** — a deleted set and a Done exercise — and
+they share one `SnackbarHostState`, so the button can outlive what it refers to. The
+reported sequence: delete a set, remove its exercise, then tap the *Undo* still on
+screen. It undoes the **set**, not the removal, and that undo then fails the
+loggable-exercise guard — so nothing happens, silently.
 
-Fix: each undo action checks its precondition and says so when it cannot proceed, and
-a snackbar is dismissed when the state it refers to disappears. B2 removes the
-mis-tap that makes this reachable, but the silent failure is its own bug.
+Fix: each undo checks its precondition and says so when it cannot proceed, and a
+snackbar is dismissed when the state it refers to disappears. The full diagnosis is in
+the commit that wrote this row; B2 removes the mis-tap, but the silent failure is its
+own bug.
 
 ### N9 — Joint pain location
 
@@ -129,17 +136,28 @@ prompt, and a line on the detail screen.
 
 Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
 
+This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#` id and
+a spelled-out decision — when it is picked up, and leaves for
+[CHANGELOG.md](CHANGELOG.md) when it ships.
+
 **Everyday logging**
 - **P1.15** Repeat last workout in one tap.
 - **P1.14** Rest sound / haptic feedback.
 - **P1.10** Keep the screen on during a workout.
 - **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
 - **P1.11** Onboarding: goal, experience level, weekly target.
+- **P1.18** Post-workout summary on Finish — duration, volume, sets, best set, and the
+  readiness note and ratings the workout collected.
+- **P1.19** Label the muscle-feel and joint-pain scales — anchors for what 1 and 10
+  mean, so the numbers do not drift between sessions. The follow-up N8 left open on
+  purpose.
 
 **Insight** — why the app gets opened between workouts
 - **P2.1** Per-exercise history.
 - **P2.2** Personal records and estimated 1RM.
 - **P2.3** Charts and trends — choose the charting approach before starting.
+- **P2.9** RPE and discomfort trends — the RPE, comments, muscle feel and joint pain
+  the app now collects have no reader beyond the raw workout detail.
 - **P2.8** Muscle-group balance warnings.
 - **P2.4** Body measurements.
 - **P2.5** Progress photos, in encrypted local storage.
@@ -159,7 +177,9 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 - **P2.7** Warm-up set generator.
 
 **Quality follow-through**
-- **P1.17** Full accessibility pass; the MVP slice is a quality-bar rule below.
+- **P1.17** Accessibility audit — a TalkBack pass over every screen, dynamic type at
+  200%, and a contrast check. The per-screen rule is in the quality bar; this is the
+  sweep that finds what the rule missed.
 
 Design-system work (**F8**) is a rule rather than a row now: extract a component when
 a second screen needs it, not before.
@@ -168,6 +188,9 @@ a second screen needs it, not before.
 
 Each is a product in its own right, contradicts "local-only", or both. Parking is a
 decision, not a backlog. Every row names what would change it.
+
+Parked is **not** the same as the non-goals below: these become possible again the
+moment their trigger fires, while a non-goal is a line this app does not cross.
 
 | # | Feature | Revisit only if |
 | --- | --- | --- |
@@ -220,8 +243,9 @@ Rules to follow, not a status report.
 
 ## Explicit non-goals
 
-Nutrition / calorie tracking, social feeds, live GPS route tracking, and a web
-dashboard. Each is a product in its own right and would dilute the logging core.
+Permanent, unlike *Parked* above: nutrition / calorie tracking, social feeds, live GPS
+route tracking, and a web dashboard. Each is a product in its own right and would
+dilute the logging core.
 
 ## Decisions already made
 
@@ -247,7 +271,8 @@ Recorded so they are not relitigated:
 
 ## Keeping this true
 
-Three rules, because the drift they prevent has already happened twice:
+Three rules. The drift they prevent has now happened three times — stale test counts,
+a dependency inventory, and an enumerated feature list that v1.3 quietly outgrew:
 
 1. **Nothing marked done lives here.** Shipped work goes to
    [CHANGELOG.md](CHANGELOG.md), and a finished row is deleted from this file.
