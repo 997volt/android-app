@@ -13,8 +13,6 @@ import java.time.Instant
  */
 object RestTimer {
 
-    private const val SECONDS_PER_MINUTE = 60
-
     /**
      * The default rest between sets. A user-configurable value is part of P1.4's
      * "configurable default"; until there is a settings screen, one constant.
@@ -33,9 +31,6 @@ object RestTimer {
     fun isRunning(restEndsAt: Instant?, now: Instant): Boolean =
         remainingSeconds(restEndsAt, now) > 0
 
-    /** `m:ss`, matching how the workout's elapsed time is shown. */
-    fun format(seconds: Int): String {
-        val safe = seconds.coerceAtLeast(0)
-        return "${safe / SECONDS_PER_MINUTE}:${(safe % SECONDS_PER_MINUTE).toString().padStart(2, '0')}"
-    }
+    /** The same formatter the workout's elapsed time uses — see [DurationFormat]. */
+    fun format(seconds: Int): String = DurationFormat.ofSeconds(seconds.toLong())
 }

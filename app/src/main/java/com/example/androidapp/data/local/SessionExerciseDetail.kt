@@ -17,7 +17,6 @@ data class SessionExerciseDetail(
     val exerciseName: String,
     val primaryMuscle: com.example.androidapp.domain.model.MuscleGroup,
     val equipment: com.example.androidapp.domain.model.Equipment,
-    val movementPattern: com.example.androidapp.domain.model.MovementPattern,
 )
 
 internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise(

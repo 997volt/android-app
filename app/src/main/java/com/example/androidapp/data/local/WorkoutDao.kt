@@ -85,8 +85,7 @@ interface WorkoutDao {
                se.position AS position,
                e.name AS exerciseName,
                e.primaryMuscle AS primaryMuscle,
-               e.equipment AS equipment,
-               e.movementPattern AS movementPattern
+               e.equipment AS equipment
         FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = :sessionId

@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.DurationFormat
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -15,22 +16,12 @@ import java.util.Locale
  */
 object WorkoutFormat {
 
-    private const val SECONDS_PER_HOUR = 3600
-    private const val SECONDS_PER_MINUTE = 60
-
-    /** `m:ss`, or `h:mm:ss` once past an hour. Negative durations clamp to zero. */
-    fun elapsed(duration: Duration): String {
-        val totalSeconds = duration.seconds.coerceAtLeast(0)
-        val hours = totalSeconds / SECONDS_PER_HOUR
-        val minutes = (totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
-        val seconds = totalSeconds % SECONDS_PER_MINUTE
-
-        return if (hours > 0) {
-            String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            String.format(Locale.ROOT, "%d:%02d", minutes, seconds)
-        }
-    }
+    /**
+     * `m:ss`, or `h:mm:ss` once past an hour. Negative durations clamp to zero.
+     *
+     * Delegates so there is one implementation; see [DurationFormat].
+     */
+    fun elapsed(duration: Duration): String = DurationFormat.of(duration)
 
     /** Wall-clock time of day, e.g. `07:42`. */
     fun clockTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String =

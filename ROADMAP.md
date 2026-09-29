@@ -130,10 +130,6 @@ phone-in-pocket case matters — and do not let anything else grow to depend on 
   match writes, or record why they are exempt.
 - **Performance:** not measured yet. Baseline profile and a Compose stability
   report once the logging screen stops changing.
-- **Simplicity / no dead weight:** `RestTimer.format` and `WorkoutFormat.elapsed`
-  both implement `m:ss`, and should be collapsed before either grows hours support;
-  `SessionExerciseDetail.movementPattern` is selected by the join but dropped in
-  `toDomain()`. Each is trivial, and each misleads the next reader.
 
 ## Later (still self-contained)
 
