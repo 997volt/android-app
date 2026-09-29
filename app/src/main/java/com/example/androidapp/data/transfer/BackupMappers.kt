@@ -3,6 +3,8 @@ package com.example.androidapp.data.transfer
 import com.example.androidapp.data.local.ExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
+import com.example.androidapp.data.local.TemplateEntity
+import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.WorkoutSessionEntity
 
 /**
@@ -123,6 +125,42 @@ internal fun SetDto.toEntity() = SetEntryEntity(
     rpe = rpe,
     note = note,
     completedAt = completedAt,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateEntity.toDto() = TemplateDto(
+    id = id,
+    name = name,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateDto.toEntity() = TemplateEntity(
+    id = id,
+    name = name,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateExerciseEntity.toDto() = TemplateExerciseDto(
+    id = id,
+    templateId = templateId,
+    exerciseId = exerciseId,
+    position = position,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateExerciseDto.toEntity() = TemplateExerciseEntity(
+    id = id,
+    templateId = templateId,
+    exerciseId = exerciseId,
+    position = position,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

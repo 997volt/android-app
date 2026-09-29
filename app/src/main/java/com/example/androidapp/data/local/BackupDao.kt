@@ -35,6 +35,13 @@ interface BackupDao {
     @Query("SELECT * FROM set_entries")
     suspend fun allSets(): List<SetEntryEntity>
 
+    /** Templates ride along too (ROADMAP N3): a plan is data like any other. */
+    @Query("SELECT * FROM templates")
+    suspend fun allTemplates(): List<TemplateEntity>
+
+    @Query("SELECT * FROM template_exercises")
+    suspend fun allTemplateExercises(): List<TemplateExerciseEntity>
+
     /**
      * Ids of rows the user deleted, which are still present with `deletedAt` set.
      *
@@ -55,6 +62,12 @@ interface BackupDao {
     @Query("SELECT id FROM set_entries WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedSetIds(): List<String>
 
+    @Query("SELECT id FROM templates WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedTemplateIds(): List<String>
+
+    @Query("SELECT id FROM template_exercises WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedTemplateExerciseIds(): List<String>
+
     /**
      * Rewrites rows by primary key, which restores a soft-deleted row *and* clears
      * its `deletedAt` because the file's value overwrites it. Only ever called for
@@ -72,6 +85,12 @@ interface BackupDao {
     @Update
     suspend fun restoreSets(rows: List<SetEntryEntity>): Int
 
+    @Update
+    suspend fun restoreTemplates(rows: List<TemplateEntity>): Int
+
+    @Update
+    suspend fun restoreTemplateExercises(rows: List<TemplateExerciseEntity>): Int
+
     /** Returns one rowid per input row, `-1` where a row was skipped as a duplicate. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertExercises(rows: List<ExerciseEntity>): List<Long>
@@ -84,4 +103,10 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertSets(rows: List<SetEntryEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertTemplates(rows: List<TemplateEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertTemplateExercises(rows: List<TemplateExerciseEntity>): List<Long>
 }

@@ -60,8 +60,13 @@ interface WorkoutRepository {
      * produce two open sessions, which would make "the active session"
      * ambiguous everywhere downstream. [StartedSession.isNew] distinguishes the
      * call that opened it from one that found it already open.
+     *
+     * When [templateId] is given *and this call opens the session*, that template's
+     * exercises are appended in order (ROADMAP N3), through the same append path
+     * [addExercise] uses. A resumed session is left alone: it already has the
+     * exercises it was started with, and seeding it again would duplicate them.
      */
-    suspend fun startOrResumeSession(): DataResult<StartedSession>
+    suspend fun startOrResumeSession(templateId: String? = null): DataResult<StartedSession>
 
     /** Appends [exerciseId] to the end of the session. */
     suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit>

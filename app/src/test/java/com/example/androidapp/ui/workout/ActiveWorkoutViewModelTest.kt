@@ -17,6 +17,7 @@ import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.successUnit
+import androidx.lifecycle.SavedStateHandle
 import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +41,16 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import androidx.test.ext.junit.runners.AndroidJUnit4
 
+/**
+ * Under Robolectric rather than plain JVM: the ViewModel reads its route argument
+ * out of a `SavedStateHandle`, and that path touches a real `android.os.Bundle`
+ * (the same reason [com.example.androidapp.ui.exercises.ExerciseDetailViewModelTest]
+ * is).
+ */
+@RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveWorkoutViewModelTest {
 
@@ -75,10 +85,20 @@ class ActiveWorkoutViewModelTest {
         backgroundScope.launch { viewModel.clock.collect {} }
     }
 
+    /**
+     * What Navigation hands a destination's SavedStateHandle for `ActiveWorkout`.
+     *
+     * `toRoute` reads each argument by its serial name, so the key here is the
+     * route property's name rather than the route class.
+     */
+    private fun activeWorkoutRoute(templateId: String? = null) =
+        SavedStateHandle(mapOf("templateId" to templateId))
+
     private fun viewModelFor(
         repository: FakeWorkoutRepository,
         notifier: FakeRestNotifier = FakeRestNotifier(),
-    ) = ActiveWorkoutViewModel(repository, clock, notifier)
+        templateId: String? = null,
+    ) = ActiveWorkoutViewModel(repository, clock, notifier, activeWorkoutRoute(templateId))
 
     @Test
     fun startsASessionOnEntry_soNothingCanBeLostBeforeItExists() = runTest(dispatcher) {
@@ -640,7 +660,12 @@ class ActiveWorkoutViewModelTest {
         // ActiveWorkoutUiState. If this test ever fails, the ticker has crept back
         // into the screen state and the whole list is being rebuilt once a second.
         val tickingClock = MutableClock(FIXED_INSTANT)
-        val viewModel = ActiveWorkoutViewModel(FakeWorkoutRepository(), tickingClock, FakeRestNotifier())
+        val viewModel = ActiveWorkoutViewModel(
+            FakeWorkoutRepository(),
+            tickingClock,
+            FakeRestNotifier(),
+            activeWorkoutRoute(),
+        )
 
         val states = mutableListOf<ActiveWorkoutUiState>()
         val clocks = mutableListOf<WorkoutClock>()
@@ -686,7 +711,7 @@ class ActiveWorkoutViewModelTest {
 
         override fun observeSessionExercises(sessionId: String): Flow<List<SessionExercise>> = exercises
 
-        override suspend fun startOrResumeSession(): DataResult<StartedSession> {
+        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> {
             sessions.value?.let { return DataResult.Success(StartedSession(it.id, isNew = false)) }
             val created = WorkoutSession(id = "s1", startedAt = Instant.parse("2026-09-28T07:00:00Z"))
             sessions.value = created

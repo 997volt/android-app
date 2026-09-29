@@ -30,13 +30,32 @@ data class ExerciseDetail(val exerciseId: String)
  * in the database — which is precisely what makes recovery after process death
  * work (P1.8) — so copying it into the back stack would only create a second,
  * staleable answer to "which workout am I in".
+ *
+ * [templateId] is the exception, and it is not session state: it records *how this
+ * workout was asked to begin* (ROADMAP N3). It is consumed once, when the session is
+ * actually opened, and a resumed session ignores it — which is why it can live in
+ * the back stack without becoming a second source of truth.
  */
 @Serializable
-data object ActiveWorkout
+data class ActiveWorkout(val templateId: String? = null)
 
-/** Exercise picker, shown over an active workout. */
+/**
+ * Exercise picker, shown over an active workout.
+ *
+ * [templateId] retargets the same picker at a template's exercise list (ROADMAP N3)
+ * instead of at the open session: one screen, one search, two destinations, rather
+ * than a second near-identical picker.
+ */
 @Serializable
-data object ExercisePicker
+data class ExercisePicker(val templateId: String? = null)
+
+/** The template list (ROADMAP N3). */
+@Serializable
+data object WorkoutTemplates
+
+/** One template: its name and its ordered exercises. */
+@Serializable
+data class TemplateEditor(val templateId: String)
 
 /** The history list (ROADMAP P1.6). */
 @Serializable

@@ -99,6 +99,35 @@ class BackupCodecTest {
                 deletedAt = null,
             ),
         ),
+        // A template is the user's plan, so the escape hatch has to carry it (N3),
+        // soft-deleted rows included.
+        templates = listOf(
+            TemplateDto(
+                id = "t1",
+                name = "Push day",
+                createdAt = 30L,
+                updatedAt = 31L,
+                deletedAt = null,
+            ),
+            TemplateDto(
+                id = "t2",
+                name = "Deleted plan",
+                createdAt = 32L,
+                updatedAt = 33L,
+                deletedAt = 34L,
+            ),
+        ),
+        templateExercises = listOf(
+            TemplateExerciseDto(
+                id = "te1",
+                templateId = "t1",
+                exerciseId = "back-squat",
+                position = 0,
+                createdAt = 30L,
+                updatedAt = 30L,
+                deletedAt = null,
+            ),
+        ),
     )
 
     @Test
@@ -161,6 +190,22 @@ class BackupCodecTest {
         val text = BackupCodec.encode(sample).replaceFirst("{", "{\n  \"somethingNew\": 42,")
 
         assertEquals(sample, BackupCodec.decode(text))
+    }
+
+    @Test
+    fun aFileWrittenBeforeTemplatesExisted_stillDecodes_seeingNone() {
+        // N3 added whole collections rather than fields. They are defaulted to
+        // empty, which is what lets a file from before templates restore cleanly
+        // instead of failing to decode.
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val olderFile = JsonObject(tree - "templates" - "templateExercises")
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertEquals(emptyList<TemplateDto>(), restored.templates)
+        assertEquals(emptyList<TemplateExerciseDto>(), restored.templateExercises)
+        assertEquals("everything else still decodes", "Push day", sample.templates.first().name)
     }
 
     @Test

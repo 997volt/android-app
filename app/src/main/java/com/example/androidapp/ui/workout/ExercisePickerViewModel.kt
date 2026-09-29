@@ -1,14 +1,18 @@
 package com.example.androidapp.ui.workout
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.ExerciseSearch
 import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.ui.exercises.ExerciseLibraryUiState
 import com.example.androidapp.ui.exercises.toListItem
+import com.example.androidapp.ui.navigation.ExercisePicker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,12 +34,22 @@ import kotlinx.coroutines.launch
  * It also owns creating a custom exercise here, mid-workout, because that is
  * where the gap is felt (ROADMAP N2): the new exercise is stored and appended to
  * the session in one step, so the user never leaves the picker.
+ *
+ * The same screen also fills a template (ROADMAP N3). Rather than a second picker,
+ * the route carries an optional `templateId` and only the *destination* of the
+ * chosen exercise changes — the search, the list and the create dialog are shared,
+ * which is why the two paths cannot drift apart.
  */
 @HiltViewModel
 class ExercisePickerViewModel @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val workoutRepository: WorkoutRepository,
+    private val templateRepository: TemplateRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /** Null when picking for the open session, set when picking for a template. */
+    private val templateId: String? = savedStateHandle.toRoute<ExercisePicker>().templateId
 
     private val query = MutableStateFlow("")
 
@@ -73,21 +87,21 @@ class ExercisePickerViewModel @Inject constructor(
     }
 
     fun onExerciseSelected(exerciseId: String) {
-        viewModelScope.launch { addToSession(exerciseId) }
+        viewModelScope.launch { add(exerciseId) }
     }
 
     /**
-     * Saves a custom exercise named [name] and immediately adds it to the open
-     * session (ROADMAP N2).
+     * Saves a custom exercise named [name] and immediately adds it to the target
+     * (ROADMAP N2).
      *
-     * The order matters: the exercise exists in the library before the session
+     * The order matters: the exercise exists in the library before anything
      * references it, so a failure of the second step still leaves a usable
      * library entry rather than a dangling reference.
      */
     fun onCreateExercise(name: String) {
         viewModelScope.launch {
             when (val created = exerciseRepository.createCustomExercise(name)) {
-                is DataResult.Success -> addToSession(created.data.id)
+                is DataResult.Success -> add(created.data.id)
                 is DataResult.Failure -> _error.value = created.error
             }
         }
@@ -98,22 +112,25 @@ class ExercisePickerViewModel @Inject constructor(
         _error.value = null
     }
 
-    private suspend fun addToSession(exerciseId: String) {
-        // No active session means the picker was reached without one; reporting it
-        // is better than writing a session exercise that belongs to nothing.
-        val sessionId = workoutRepository.observeActiveSession().first()?.id
-        if (sessionId == null) {
-            _error.value = DataError.NotFound
-            return
-        }
-        when (val result = workoutRepository.addExercise(sessionId, exerciseId)) {
+    private suspend fun add(exerciseId: String) {
+        val target = templateId?.let { id -> templateRepository.addExercise(id, exerciseId) }
+            ?: addToSession(exerciseId)
+        when (target) {
             is DataResult.Success -> {
                 _error.value = null
                 _added.value = true
             }
 
-            is DataResult.Failure -> _error.value = result.error
+            is DataResult.Failure -> _error.value = target.error
         }
+    }
+
+    private suspend fun addToSession(exerciseId: String): DataResult<Unit> {
+        // No active session means the picker was reached without one; reporting it
+        // is better than writing a session exercise that belongs to nothing.
+        val sessionId = workoutRepository.observeActiveSession().first()?.id
+            ?: return DataResult.Failure(DataError.NotFound)
+        return workoutRepository.addExercise(sessionId, exerciseId)
     }
 
     private companion object {

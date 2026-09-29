@@ -31,11 +31,22 @@ class WorkoutsHomeScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    /**
+     * The top bar's menu actions, grouped rather than passed one by one: the
+     * helper is a screen setter, and four flat callbacks plus state is already at
+     * the limit of what reads as a call site.
+     */
+    private data class MenuActions(
+        val onOpenHistory: () -> Unit = {},
+        val onOpenTemplates: () -> Unit = {},
+    )
+
     private fun setScreen(
         state: WorkoutsHomeUiState,
         onStartWorkout: () -> Unit = {},
+        onStartFromTemplate: () -> Unit = {},
         onOpenWorkout: (String) -> Unit = {},
-        onOpenHistory: () -> Unit = {},
+        menu: MenuActions = MenuActions(),
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -43,9 +54,11 @@ class WorkoutsHomeScreenTest {
                     state = state,
                     clock = remember { mutableStateOf(WorkoutClock()) },
                     onStartWorkout = onStartWorkout,
+                    onStartFromTemplate = onStartFromTemplate,
                     onOpenWorkout = onOpenWorkout,
-                    onOpenHistory = onOpenHistory,
+                    onOpenHistory = menu.onOpenHistory,
                     onOpenLibrary = {},
+                    onOpenTemplates = menu.onOpenTemplates,
                 )
             }
         }
@@ -80,6 +93,51 @@ class WorkoutsHomeScreenTest {
     }
 
     @Test
+    fun theStartAction_offersBothWaysToBegin() {
+        // N3: the start action presents the choice — empty, or from a plan set up
+        // in advance. With a workout already open there is no choice to make.
+        var fromTemplate = false
+        setScreen(
+            WorkoutsHomeUiState(isLoading = false),
+            onStartFromTemplate = { fromTemplate = true },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_START).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.HOME_START_FROM_TEMPLATE).performClick()
+
+        assert(fromTemplate) { "Start from template did not open the template list" }
+    }
+
+    @Test
+    fun withAWorkoutRunning_theTemplateChoiceIsNotOffered() {
+        setScreen(
+            WorkoutsHomeUiState(
+                isLoading = false,
+                activeWorkout = ActiveWorkoutInfo(
+                    startedAt = Instant.parse("2026-09-29T10:00:00Z"),
+                    exerciseCount = 3,
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_START_FROM_TEMPLATE).assertDoesNotExist()
+    }
+
+    @Test
+    fun theOverflowMenu_reachesTheTemplates() {
+        var opened = false
+        setScreen(
+            WorkoutsHomeUiState(isLoading = false),
+            menu = MenuActions(onOpenTemplates = { opened = true }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
+        composeTestRule.onNodeWithTag(TestTags.HOME_TEMPLATES).performClick()
+
+        assert(opened) { "the menu did not reach the templates" }
+    }
+
+    @Test
     fun recentWorkouts_areListed_andOpenTheirDetail() {
         var opened: String? = null
         setScreen(
@@ -98,7 +156,7 @@ class WorkoutsHomeScreenTest {
         var openedHistory = false
         setScreen(
             WorkoutsHomeUiState(isLoading = false, recent = listOf(summary("session-1"))),
-            onOpenHistory = { openedHistory = true },
+            menu = MenuActions(onOpenHistory = { openedHistory = true }),
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_SEE_ALL).performClick()

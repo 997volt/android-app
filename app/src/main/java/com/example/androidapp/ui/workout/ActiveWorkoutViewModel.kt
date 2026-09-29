@@ -1,7 +1,9 @@
 package com.example.androidapp.ui.workout
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.RestNotifier
@@ -14,6 +16,7 @@ import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.WorkoutRepository
+import com.example.androidapp.ui.navigation.ActiveWorkout
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
 import javax.inject.Inject
@@ -131,7 +134,17 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
     private val timeSource: TimeSource,
     private val restNotifier: RestNotifier,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /**
+     * Set when the workout was started from a template (ROADMAP N3).
+     *
+     * It only ever matters for the call that *opens* the session; the repository
+     * seeds the exercises there, inside the same transaction. A resumed session
+     * leaves this unused, which is what makes a template start idempotent.
+     */
+    private val templateId: String? = savedStateHandle.toRoute<ActiveWorkout>().templateId
 
     private val lastError = MutableStateFlow<DataError?>(null)
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
@@ -235,7 +248,7 @@ class ActiveWorkoutViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            when (val result = workoutRepository.startOrResumeSession()) {
+            when (val result = workoutRepository.startOrResumeSession(templateId)) {
                 is DataResult.Success -> {
                     lastError.value = null
                     // Only a freshly opened session asks (ROADMAP N4). A resumed one

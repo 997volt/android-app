@@ -1,6 +1,9 @@
 package com.example.androidapp.ui.home
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +16,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -49,9 +54,11 @@ import java.time.Instant
 @Composable
 fun WorkoutsHomeRoute(
     onStartWorkout: () -> Unit,
+    onStartFromTemplate: () -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
 ) {
@@ -63,9 +70,11 @@ fun WorkoutsHomeRoute(
         state = state,
         clock = clock,
         onStartWorkout = onStartWorkout,
+        onStartFromTemplate = onStartFromTemplate,
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
         onOpenLibrary = onOpenLibrary,
+        onOpenTemplates = onOpenTemplates,
         modifier = modifier,
     )
 }
@@ -79,39 +88,65 @@ fun WorkoutsHomeScreen(
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
+    onStartFromTemplate: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { HomeTopBar(onOpenLibrary = onOpenLibrary, onOpenHistory = onOpenHistory) },
+        topBar = {
+            HomeTopBar(
+                onOpenLibrary = onOpenLibrary,
+                onOpenHistory = onOpenHistory,
+                onOpenTemplates = onOpenTemplates,
+            )
+        },
         floatingActionButton = {
-            StartOrResumeButton(
+            StartActions(
                 activeWorkout = state.activeWorkout,
                 clock = clock,
-                onClick = onStartWorkout,
+                onStartWorkout = onStartWorkout,
+                onStartFromTemplate = onStartFromTemplate,
             )
         },
     ) { innerPadding ->
+        HomeContent(
+            state = state,
+            onOpenWorkout = onOpenWorkout,
+            onOpenHistory = onOpenHistory,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
+
+/** The list body, split out so the screen itself stays a scaffold and a state. */
+@Composable
+private fun HomeContent(
+    state: WorkoutsHomeUiState,
+    onOpenWorkout: (String) -> Unit,
+    onOpenHistory: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
         when {
             state.isLoading -> CenteredMessage(
                 text = stringResource(R.string.history_loading),
-                modifier = Modifier.padding(innerPadding),
+                modifier = modifier,
             )
 
             // First run: an empty list with no explanation tells the user nothing.
             state.isFirstRun -> CenteredMessage(
                 text = stringResource(R.string.home_first_run),
                 hint = stringResource(R.string.home_first_run_hint),
-                modifier = Modifier.padding(innerPadding).testTag(TestTags.HOME_FIRST_RUN),
+                modifier = modifier.testTag(TestTags.HOME_FIRST_RUN),
             )
 
             state.recent.isEmpty() -> CenteredMessage(
                 text = stringResource(R.string.home_no_recent),
-                modifier = Modifier.padding(innerPadding).testTag(TestTags.HOME_NO_RECENT),
+                modifier = modifier.testTag(TestTags.HOME_NO_RECENT),
             )
 
-            else -> androidx.compose.foundation.lazy.LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            else -> LazyColumn(
+                modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 88.dp), // clear the FAB
             ) {
                 item(key = "header") {
@@ -137,7 +172,6 @@ fun WorkoutsHomeScreen(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -157,6 +191,43 @@ private fun RecentWorkoutRow(
         },
         modifier = modifier.testTag(TestTags.HOME_RECENT_ROW).clickable(onClick = onClick),
     )
+}
+
+/**
+ * The home start action: **Start workout** for an empty session, and — while no
+ * workout is open — **Start from template** beneath it (ROADMAP N3).
+ *
+ * Resuming offers no such choice: there is exactly one workout in progress, so the
+ * button means one thing. The pair only appears when the user is actually choosing.
+ */
+@Composable
+private fun StartActions(
+    activeWorkout: ActiveWorkoutInfo?,
+    clock: State<WorkoutClock>,
+    onStartWorkout: () -> Unit,
+    onStartFromTemplate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+    ) {
+        if (activeWorkout == null) {
+            FilledTonalButton(
+                onClick = onStartFromTemplate,
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .testTag(TestTags.HOME_START_FROM_TEMPLATE),
+            ) {
+                Text(stringResource(R.string.home_start_from_template))
+            }
+        }
+        StartOrResumeButton(
+            activeWorkout = activeWorkout,
+            clock = clock,
+            onClick = onStartWorkout,
+        )
+    }
 }
 
 /**
@@ -233,9 +304,11 @@ private fun WorkoutsHomeScreenPreview() {
             ),
             clock = remember { mutableStateOf(WorkoutClock()) },
             onStartWorkout = {},
+            onStartFromTemplate = {},
             onOpenWorkout = {},
             onOpenHistory = {},
             onOpenLibrary = {},
+            onOpenTemplates = {},
         )
     }
 }
@@ -251,6 +324,7 @@ private fun WorkoutsHomeScreenPreview() {
 private fun HomeTopBar(
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -264,7 +338,10 @@ private fun HomeTopBar(
             )
         },
         actions = {
-            IconButton(onClick = { menuOpen = true }) {
+            IconButton(
+                onClick = { menuOpen = true },
+                modifier = Modifier.testTag(TestTags.HOME_MENU),
+            ) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
                     contentDescription = stringResource(R.string.transfer_more),
@@ -284,6 +361,14 @@ private fun HomeTopBar(
                         menuOpen = false
                         onOpenHistory()
                     },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.home_templates)) },
+                    onClick = {
+                        menuOpen = false
+                        onOpenTemplates()
+                    },
+                    modifier = Modifier.testTag(TestTags.HOME_TEMPLATES),
                 )
             }
         },

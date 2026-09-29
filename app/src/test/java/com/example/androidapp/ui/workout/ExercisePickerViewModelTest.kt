@@ -1,10 +1,12 @@
 package com.example.androidapp.ui.workout
 
+import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.MovementPattern
+import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
@@ -12,8 +14,10 @@ import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.StartedSession
+import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import java.io.IOException
 import java.time.Instant
@@ -37,7 +41,15 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-
+import org.junit.runner.RunWith
+import androidx.test.ext.junit.runners.AndroidJUnit4
+/**
+ * Under Robolectric rather than plain JVM: the ViewModel reads its route argument
+ * out of a `SavedStateHandle`, and that path touches a real `android.os.Bundle`
+ * (the same reason [com.example.androidapp.ui.exercises.ExerciseDetailViewModelTest]
+ * is).
+ */
+@RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExercisePickerViewModelTest {
 
@@ -53,6 +65,22 @@ class ExercisePickerViewModelTest {
         Dispatchers.resetMain()
     }
 
+    /**
+     * The picker's target is a route argument (ROADMAP N3), so the fake handle
+     * carries `templateId` under the name `toRoute` reads it by.
+     */
+    private fun viewModelFor(
+        exercises: ExerciseRepository = FakeExerciseRepository(),
+        workouts: WorkoutRepository = FakeWorkoutRepository(),
+        templates: TemplateRepository = FakeTemplateRepository(),
+        templateId: String? = null,
+    ) = ExercisePickerViewModel(
+        exercises,
+        workouts,
+        templates,
+        SavedStateHandle(mapOf("templateId" to templateId)),
+    )
+
     /** `uiState` uses `WhileSubscribed`, so nothing flows until it is collected. */
     private fun kotlinx.coroutines.test.TestScope.observe(viewModel: ExercisePickerViewModel) {
         backgroundScope.launch { viewModel.uiState.collect {} }
@@ -62,7 +90,7 @@ class ExercisePickerViewModelTest {
     fun creatingAnExercise_storesIt_andAddsItToTheSession() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository()
         val workouts = FakeWorkoutRepository()
-        val viewModel = ExercisePickerViewModel(exercises, workouts)
+        val viewModel = viewModelFor(exercises, workouts)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -86,7 +114,7 @@ class ExercisePickerViewModelTest {
     fun aFailedCreate_reportsIt_andAddsNothing() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository().apply { failCreates = true }
         val workouts = FakeWorkoutRepository()
-        val viewModel = ExercisePickerViewModel(exercises, workouts)
+        val viewModel = viewModelFor(exercises, workouts)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -102,7 +130,7 @@ class ExercisePickerViewModelTest {
     fun withNoOpenSession_theAppendFails_ratherThanFilingItUnderNothing() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository()
         val workouts = FakeWorkoutRepository().apply { session.value = null }
-        val viewModel = ExercisePickerViewModel(exercises, workouts)
+        val viewModel = viewModelFor(exercises, workouts)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -119,7 +147,7 @@ class ExercisePickerViewModelTest {
     fun aFailedAppend_isReported() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository()
         val workouts = FakeWorkoutRepository().apply { failAdds = true }
-        val viewModel = ExercisePickerViewModel(exercises, workouts)
+        val viewModel = viewModelFor(exercises, workouts)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -134,7 +162,7 @@ class ExercisePickerViewModelTest {
     fun pickingAnExistingExercise_alsoReportsAFailedAppend() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository(listOf(seeded))
         val workouts = FakeWorkoutRepository().apply { failAdds = true }
-        val viewModel = ExercisePickerViewModel(exercises, workouts)
+        val viewModel = viewModelFor(exercises, workouts)
         observe(viewModel)
         advanceUntilIdle()
 
@@ -146,9 +174,56 @@ class ExercisePickerViewModelTest {
     }
 
     @Test
+    fun pickingForATemplate_appendsToTheTemplate_insteadOfTheSession() = runTest(dispatcher) {
+        // The same picker fills a template (N3): only the destination changes.
+        val exercises = FakeExerciseRepository(listOf(seeded))
+        val workouts = FakeWorkoutRepository()
+        val templates = FakeTemplateRepository()
+        val viewModel = viewModelFor(exercises, workouts, templates, templateId = "t1")
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onExerciseSelected("back-squat")
+        advanceUntilIdle()
+
+        assertEquals(listOf("t1" to "back-squat"), templates.added)
+        assertTrue(workouts.added.isEmpty())
+        assertTrue(viewModel.added.value)
+    }
+
+    @Test
+    fun aNewExercise_canBeCreatedStraightIntoATemplate() = runTest(dispatcher) {
+        val exercises = FakeExerciseRepository()
+        val templates = FakeTemplateRepository()
+        val viewModel = viewModelFor(exercises, templates = templates, templateId = "t1")
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onCreateExercise("Sled Push")
+        advanceUntilIdle()
+
+        assertEquals(listOf("t1" to exercises.created?.id), templates.added)
+        assertTrue(viewModel.added.value)
+    }
+
+    @Test
+    fun aFailedTemplateAppend_reportsIt_ratherThanPopping() = runTest(dispatcher) {
+        val templates = FakeTemplateRepository().apply { failAdds = true }
+        val viewModel = viewModelFor(templates = templates, templateId = "t1")
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onExerciseSelected("back-squat")
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.error.value)
+        assertFalse(viewModel.added.value)
+    }
+
+    @Test
     fun theErrorCanBeCleared_onceItHasBeenShown() = runTest(dispatcher) {
         val exercises = FakeExerciseRepository().apply { failCreates = true }
-        val viewModel = ExercisePickerViewModel(exercises, FakeWorkoutRepository())
+        val viewModel = viewModelFor(exercises, FakeWorkoutRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -189,6 +264,33 @@ class ExercisePickerViewModelTest {
             DataResult.Success(Unit)
     }
 
+    /** Records which template an exercise landed in (ROADMAP N3). */
+    private class FakeTemplateRepository : TemplateRepository {
+        val added = mutableListOf<Pair<String, String>>()
+        var failAdds = false
+
+        override fun observeTemplates(): Flow<List<WorkoutTemplate>> = flowOf(emptyList())
+        override fun observeTemplate(templateId: String): Flow<WorkoutTemplate?> = flowOf(null)
+        override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> =
+            flowOf(emptyList())
+
+        override suspend fun createTemplate(name: String): DataResult<String> = unused()
+        override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> = unused()
+        override suspend fun deleteTemplate(templateId: String): DataResult<Unit> = unused()
+
+        override suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit> {
+            if (failAdds) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            added += templateId to exerciseId
+            return DataResult.Success(Unit)
+        }
+
+        override suspend fun removeExercise(templateExerciseId: String): DataResult<Unit> = unused()
+        override suspend fun moveExercise(templateExerciseId: String, delta: Int): DataResult<Unit> =
+            unused()
+
+        private fun unused(): Nothing = error("the picker must not call this")
+    }
+
     /** Only the picker's two calls matter here; everything else fails loudly. */
     private class FakeWorkoutRepository : WorkoutRepository {
         val session = MutableStateFlow<WorkoutSession?>(
@@ -210,7 +312,7 @@ class ExercisePickerViewModelTest {
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = flowOf(emptyList())
         override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
         override fun observeSession(sessionId: String): Flow<WorkoutSession?> = flowOf(null)
-        override suspend fun startOrResumeSession(): DataResult<StartedSession> = unused()
+        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> = unused()
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> = unused()

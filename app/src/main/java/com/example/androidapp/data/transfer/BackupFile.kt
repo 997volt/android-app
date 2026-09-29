@@ -36,6 +36,15 @@ data class BackupFile(
     val sessionExercises: List<SessionExerciseDto>,
     val sets: List<SetDto>,
     /**
+     * Templates and their exercises (ROADMAP N3).
+     *
+     * Defaulted so a file written before templates existed still decodes — the same
+     * rule every added field follows, and the reason the schema version is not
+     * bumped for an addition.
+     */
+    val templates: List<TemplateDto> = emptyList(),
+    val templateExercises: List<TemplateExerciseDto> = emptyList(),
+    /**
      * Diagnostics, not user data (ROADMAP F11). They ride along with an export
      * because a release build is not debuggable and this is the only way a crash log
      * reaches the user; import deliberately ignores them.
@@ -107,6 +116,26 @@ data class SetDto(
     val rpe: Int? = null,
     val note: String? = null,
     val completedAt: Long? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+@Serializable
+data class TemplateDto(
+    val id: String,
+    val name: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+@Serializable
+data class TemplateExerciseDto(
+    val id: String,
+    val templateId: String,
+    val exerciseId: String,
+    val position: Int,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.TemplateEntity
+import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
@@ -180,6 +182,8 @@ class BackupRoundTripTest {
         sessions = database.backupDao().allSessions().size,
         sessionExercises = database.backupDao().allSessionExercises().size,
         sets = database.backupDao().allSets().size,
+        templates = database.backupDao().allTemplates().size,
+        templateExercises = database.backupDao().allTemplateExercises().size,
     )
 
     private data class Counts(
@@ -187,8 +191,11 @@ class BackupRoundTripTest {
         val sessions: Int,
         val sessionExercises: Int,
         val sets: Int,
+        val templates: Int,
+        val templateExercises: Int,
     ) {
-        val total: Int get() = exercises + sessions + sessionExercises + sets
+        val total: Int
+            get() = exercises + sessions + sessionExercises + sets + templates + templateExercises
     }
 
     private suspend fun seedAWorkout() {
@@ -210,6 +217,30 @@ class BackupRoundTripTest {
                 deletedAt = null,
             ),
         )
+        // A template too (N3): a plan is data the user made, and the export is the
+        // only escape hatch, so losing it on restore would be losing work.
+        val templateDao = database.templateDao()
+        templateDao.insertTemplate(
+            TemplateEntity(
+                id = "template-1",
+                name = "Push day",
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+        templateDao.insertTemplateExercise(
+            TemplateExerciseEntity(
+                id = "template-exercise-1",
+                templateId = "template-1",
+                exerciseId = "back-squat",
+                position = 0,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+
         workoutDao.insertSet(
             com.example.androidapp.data.local.SetEntryEntity(
                 id = "set-1",

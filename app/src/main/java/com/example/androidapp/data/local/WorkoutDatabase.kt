@@ -20,8 +20,10 @@ import androidx.room.TypeConverters
         WorkoutSessionEntity::class,
         SessionExerciseEntity::class,
         SetEntryEntity::class,
+        TemplateEntity::class,
+        TemplateExerciseEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -30,6 +32,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
 
     abstract fun workoutDao(): WorkoutDao
+
+    /** Templates and their exercises (ROADMAP N3). */
+    abstract fun templateDao(): TemplateDao
 
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao

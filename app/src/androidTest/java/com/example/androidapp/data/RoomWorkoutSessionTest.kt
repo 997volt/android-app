@@ -3,7 +3,13 @@ package com.example.androidapp.data
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.TemplateEntity
+import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
+import com.example.androidapp.domain.model.Equipment
+import com.example.androidapp.domain.model.MovementPattern
+import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
@@ -63,8 +69,7 @@ class RoomWorkoutSessionTest {
     }
 
     @Test
-    fun resuming_doesNotReportANewSession() = runTest {
-        val first = start()
+    fun resuming_doesNotReportANewSession() = runTest {        val first = start()
         val second = start()
 
         assertEquals("the open session must be reused", first.id, second.id)
@@ -96,6 +101,131 @@ class RoomWorkoutSessionTest {
         assertEquals(DataError.NotFound, failure.error)
     }
 
-    private suspend fun start(): StartedSession =
-        (repository.startOrResumeSession() as DataResult.Success).data
+    @Test
+    fun startingFromATemplate_opensTheWorkoutWithItsExercisesInOrder() = runTest {
+        seedTemplate("t1", listOf("back-squat", "bench-press"))
+
+        val started = start(templateId = "t1")
+
+        assertEquals(
+            listOf("Back Squat", "Bench Press"),
+            repository.observeSessionExercises(started.id).first().map { it.exerciseName },
+        )
+    }
+
+    @Test
+    fun theSeededExercises_arePositionsZeroUpwards_likeThePickerWouldWrite() = runTest {
+        seedTemplate("t1", listOf("back-squat", "bench-press"))
+
+        val started = start(templateId = "t1")
+
+        assertEquals(
+            listOf(0, 1),
+            repository.observeSessionExercises(started.id).first().map { it.position },
+        )
+    }
+
+    @Test
+    fun resumingWithATemplate_doesNotSeedItAgain() = runTest {
+        seedTemplate("t1", listOf("back-squat"))
+        val first = start(templateId = "t1")
+
+        // A second start — the user tapped Start from template again, or the
+        // screen was recreated — must not duplicate the exercises (N3).
+        val second = start(templateId = "t1")
+
+        assertEquals(first.id, second.id)
+        assertEquals(
+            1,
+            repository.observeSessionExercises(first.id).first().size,
+        )
+    }
+
+    @Test
+    fun startingFromAnEmptyTemplate_opensAnEmptyWorkout() = runTest {
+        seedTemplate("t1", emptyList())
+
+        val started = start(templateId = "t1")
+
+        assertTrue(repository.observeSessionExercises(started.id).first().isEmpty())
+    }
+
+    @Test
+    fun startingEmpty_leavesTheTemplateAlone() = runTest {
+        seedTemplate("t1", listOf("back-squat"))
+
+        val started = start()
+
+        assertTrue(repository.observeSessionExercises(started.id).first().isEmpty())
+        // The template is a plan, not a log: starting a workout must not consume it.
+        assertEquals(
+            listOf("back-squat"),
+            database.templateDao().findExerciseIdsInOrder("t1"),
+        )
+    }
+
+    /** A template is seeded once, so the copy must not be shared with the session. */
+    @Test
+    fun editingTheSession_doesNotTouchTheTemplate() = runTest {
+        seedTemplate("t1", listOf("back-squat", "bench-press"))
+        val started = start(templateId = "t1")
+        val benchPress = repository.observeSessionExercises(started.id).first()[1]
+
+        repository.removeExercise(benchPress.id)
+
+        assertEquals(
+            listOf("back-squat"),
+            repository.observeSessionExercises(started.id).first().map { it.exerciseId },
+        )
+        assertEquals(
+            listOf("back-squat", "bench-press"),
+            database.templateDao().findExerciseIdsInOrder("t1"),
+        )
+    }
+
+    private suspend fun seedTemplate(templateId: String, exerciseIds: List<String>) {
+        database.templateDao().insertTemplate(
+            TemplateEntity(
+                id = templateId,
+                name = "Push day",
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+        exerciseIds.forEachIndexed { index, exerciseId ->
+            database.exerciseDao().insertAll(
+                listOf(
+                    ExerciseEntity(
+                        id = exerciseId,
+                        name = exerciseId.split("-").joinToString(" ") { part ->
+                            part.replaceFirstChar { it.uppercase() }
+                        },
+                        primaryMuscle = MuscleGroup.QUADS,
+                        secondaryMuscles = emptyList(),
+                        equipment = Equipment.BARBELL,
+                        movementPattern = MovementPattern.SQUAT,
+                        isCustom = false,
+                        createdAt = 0L,
+                        updatedAt = 0L,
+                        deletedAt = null,
+                    ),
+                ),
+            )
+            database.templateDao().insertTemplateExercise(
+                TemplateExerciseEntity(
+                    id = "$templateId-$exerciseId",
+                    templateId = templateId,
+                    exerciseId = exerciseId,
+                    position = index,
+                    createdAt = 1_000L,
+                    updatedAt = 1_000L,
+                    deletedAt = null,
+                ),
+            )
+        }
+    }
+
+    private suspend fun start(templateId: String? = null): StartedSession =
+        (repository.startOrResumeSession(templateId) as DataResult.Success).data
 }

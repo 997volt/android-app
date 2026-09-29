@@ -44,6 +44,11 @@ object TestTags {
     const val HOME_TITLE = "home_title"
     const val HOME_START = "home_start"
     const val HOME_RESUME = "home_resume"
+
+    /** The other half of the start action (ROADMAP N3): begin from a template. */
+    const val HOME_START_FROM_TEMPLATE = "home_start_from_template"
+    const val HOME_MENU = "home_menu"
+    const val HOME_TEMPLATES = "home_templates"
     const val HOME_RECENT_ROW = "home_recent_row"
     const val HOME_SEE_ALL = "home_see_all"
     const val HOME_FIRST_RUN = "home_first_run"
@@ -99,4 +104,34 @@ object TestTags {
     const val READINESS_NOTE = "readiness_note"
     const val READINESS_SAVE = "readiness_save"
     const val READINESS_DISMISS = "readiness_dismiss"
+
+    /**
+     * Workout templates (ROADMAP N3): the list, and one template's editor.
+     *
+     * Row-level tags are parameterised by id, so a test addresses the third
+     * exercise by identity rather than by its position on screen.
+     */
+    const val TEMPLATES_TITLE = "templates_title"
+    const val TEMPLATES_NEW = "templates_new"
+    const val TEMPLATES_EMPTY = "templates_empty"
+    const val TEMPLATE_EDIT_TITLE = "template_edit_title"
+    const val TEMPLATE_NAME_FIELD = "template_name_field"
+    const val TEMPLATE_NAME_SAVE = "template_name_save"
+    const val TEMPLATE_ADD_EXERCISE = "template_add_exercise"
+    const val TEMPLATE_NO_EXERCISES = "template_no_exercises"
+    const val TEMPLATE_DELETE = "template_delete"
+    const val TEMPLATE_DELETE_CONFIRM = "template_delete_confirm"
+
+    /** A template in the list; tapping it edits, its button starts a workout. */
+    fun templateRow(id: String) = "template_row_$id"
+
+    fun templateStart(id: String) = "template_start_$id"
+
+    fun templateExerciseRow(id: String) = "template_exercise_$id"
+
+    fun templateMoveUp(id: String) = "template_move_up_$id"
+
+    fun templateMoveDown(id: String) = "template_move_down_$id"
+
+    fun templateRemove(id: String) = "template_remove_$id"
 }

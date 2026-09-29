@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Workout Log</string>
     <string name="nav_back">Back</string>
-
     <!-- Exercise library -->
     <string name="exercise_library_title">Exercise library</string>
     <string name="exercise_search_hint">Search exercises</string>
@@ -73,6 +72,34 @@
     <string name="active_workout_exercise_is_done">Done</string>
     <string name="active_workout_exercise_done">Exercise done</string>
     <string name="active_workout_exercise_done_named">%1$s done</string>
+    <!-- Workout templates (ROADMAP N3): a named, reusable workout. v1 scope is a
+         name and an ordered list of exercises; target sets, rest and supersets are
+         the P3.1 half and arrive once templates are in use. -->
+    <string name="templates_title">Workout templates</string>
+    <string name="templates_loading">Loading templates…</string>
+    <string name="templates_empty">No templates yet</string>
+    <string name="templates_empty_hint">A template is a workout you can start in one tap.</string>
+    <string name="template_new">New template</string>
+    <string name="template_default_name">New template</string>
+    <string name="template_start">Start</string>
+    <plurals name="template_exercises">
+        <item quantity="one">%1$d exercise</item>
+        <item quantity="other">%1$d exercises</item>
+    </plurals>
+    <string name="template_edit_title">Template</string>
+    <string name="template_name_label">Name</string>
+    <string name="template_save_name">Save name</string>
+    <string name="template_add_exercise">Add exercise</string>
+    <string name="template_no_exercises">No exercises yet</string>
+    <string name="template_no_exercises_hint">Add the exercises you want, then put them in the order you train them.</string>
+    <string name="template_move_up">Move %1$s up</string>
+    <string name="template_move_down">Move %1$s down</string>
+    <string name="template_remove_exercise">Remove %1$s</string>
+    <string name="template_delete">Delete template</string>
+    <string name="template_delete_confirm_title">Delete this template?</string>
+    <string name="template_delete_confirm_text">The plan goes away. Workouts you already did with it stay in your history.</string>
+    <string name="home_start_from_template">Start from template</string>
+    <string name="home_templates">Workout templates</string>
     <!-- How an exercise felt (ROADMAP N8). Deliberately unlabelled ends: numbers
          only for now, because an anchor would be a claim the app cannot justify. -->
     <string name="rating_prompt_title">How did that feel?</string>

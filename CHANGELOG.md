@@ -8,6 +8,16 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Workout templates: a plan you build once and start in one tap.** Name a
+  template, add exercises from the same picker the workout uses, and put them in the
+  order you train them. Home's start action now offers the choice — *Start workout*
+  or *Start from template* — and the overflow menu reaches the list for editing.
+  Starting from a template opens the session with its exercises already in order,
+  through the same append path a manual add-exercise takes, so the order is the same
+  one the picker would have produced; resuming an open workout never seeds a second
+  copy, and editing the session never touches the template. Templates ride along in
+  the export/import file, soft-deleted ones included. Adds migration 8→9: two new
+  sync-shaped tables, no backfill.
 - **How it felt: muscle feel and joint pain.** Marking an exercise done asks, once
   and skippably, for two 1–10 ratings — how well the target muscle was worked, and
   any joint or connective-tissue discomfort — stored per session exercise so the

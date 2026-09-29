@@ -210,7 +210,7 @@ class ExerciseLibraryViewModelTest {
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = flowOf(emptyList())
         override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
         override fun observeSession(sessionId: String): Flow<WorkoutSession?> = flowOf(null)
-        override suspend fun startOrResumeSession(): DataResult<StartedSession> = unused()
+        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> = unused()
         override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> = unused()
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> = unused()

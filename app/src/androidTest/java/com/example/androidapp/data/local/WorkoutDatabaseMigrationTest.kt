@@ -303,6 +303,55 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration8To9_addsTheTemplateTables_leavingExistingWorkoutsAlone() {
+        // A v8 database with a real workout in it: the upgrade must add tables
+        // without touching what the previous version already wrote (ROADMAP N3).
+        helper.createDatabase(TEST_DB, 8).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 9, true, MIGRATION_8_9)
+
+        // The new tables exist and are empty...
+        migrated.query("SELECT COUNT(*) FROM templates").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("no template is invented by the upgrade", 0, cursor.getInt(0))
+        }
+        migrated.query("SELECT COUNT(*) FROM template_exercises").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+
+        // ...and the workout that was already there is untouched.
+        migrated.query("SELECT id, finishedAt FROM workout_sessions").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.count)
+            assertEquals("s1", cursor.getString(0))
+            assertTrue("the open session must stay open", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

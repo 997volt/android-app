@@ -29,6 +29,9 @@ were assigned when the work was planned, so they do not run in order — the
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
+- **Templates are the v1 half of P3.1**: a name and an ordered list of exercises,
+  started in one tap. Target sets × rep ranges, per-exercise rest, supersets and drop
+  sets are still in *Later*.
 
 Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
 current numbers; dependencies are declared in
@@ -44,47 +47,21 @@ left alone without being forgotten.
 | --- | --- | --- |
 | **Play Store listing** | A feature graphic (1024×500) and phone screenshots — the 512 px icon already exists and is generated from the app's own vector by [`tools/MakeStoreIcon.java`](tools/MakeStoreIcon.java). Then the console: Data safety, content rating, privacy-policy URL. Plus a real call on **Play App Signing**, which changes who holds the app signing key, while this project's release process assumes a permanent local one. | You want distribution beyond `adb install`. Self-install works today. |
 | **A crash-logs screen** | A small screen over [`CrashLogStore`](app/src/main/java/com/example/androidapp/platform/CrashLogStore.kt). | Reading a crash through an export actually annoys you. |
-| **Zone offset on sessions** | A `zoneOffset` column captured at session start, plus migration 3→4. Timestamps are UTC epoch millis today, so "which day was this" is answered in the *current* zone and drifts when you travel. | You train in a second timezone, or a feature needs local-day truth. |
+| **Zone offset on sessions** | A `zoneOffset` column captured at session start, plus a migration. Timestamps are UTC epoch millis today, so "which day was this" is answered in the *current* zone and drifts when you travel. | You train in a second timezone, or a feature needs local-day truth. |
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
 ## Next — planned app changes
 
-Changes left to land before anything in *Later*. N1 — home as the start
-destination — N2 — custom exercises while you train — N4 — the readiness note —
-N5 — per-exercise rest and cues — N6 — RPE and a comment per set — N7 — Done per
-exercise — and N8 — how it felt — are done; they are in
+**Nothing.** Every change in this batch has shipped — N1 (home as the start
+destination), N2 (custom exercises while you train), N3 (workout templates), N4 (the
+readiness note), N5 (per-exercise rest and cues), N6 (RPE and a comment per set),
+N7 (Done per exercise) and N8 (how it felt). They are in
 [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
 rather than here.
 
-- **N3** is what can be set up in advance, and the last item in this batch.
-
-### N3 — Workout templates, planned before you train
-
-A named, reusable workout defined ahead of time and started in one tap.
-
-- Create, edit and delete a template: a name and an ordered list of exercises.
-- Start a workout from one: the session opens with its exercises already in order,
-  reusing the existing add-exercise path.
-- Surfaced from the home screen's start action — **Start empty** or **Start from
-  template**.
-- **v1 scope is exercises and their order.** The fuller routine features already on
-  the backlog — target sets × rep ranges, per-exercise rest, supersets, drop sets
-  (P3.1) — come afterwards, once templates are in use.
-
-This promotes P3.1 + P3.2 ahead of the rest of the backlog, with a deliberately
-smaller first version. It needs two new sync-shaped tables (`templates`,
-`template_exercises`) and therefore a migration, with the exported schema and a
-`MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
-
-**Migration numbering follows shipment.** N5 took 3→4, N4 4→5, N6 5→6, N7 6→7 and N8
-7→8, so N3 takes 8→9. Columns and tables for a feature that has not been built are
-*not* added ahead of it, because Room validates the declared entities against the
-migrated schema — an early column would force an entity field nothing reads. A
-half-written migration is what the `MigrationTestHelper` tests exist to catch.
-
-**Order:** N3 hangs off the home screen N1 introduced and depends on nothing else
-here. Everything in *Later* waits until it lands.
+What comes next is chosen from *Later* below, which is where candidates live until
+one is picked up and spelled out as a numbered change here.
 
 ## Later (still self-contained)
 
@@ -106,9 +83,9 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 - **P2.5** Progress photos, in encrypted local storage.
 
 **Programming** — turns a logger into a plan
-- **P3.1 + P3.2** are promoted to **N3** above (templates, exercises and order only).
+- **P3.1 + P3.2** shipped their v1 as **N3** (templates: a name, exercises, order).
   The remaining routine scope — target sets × rep ranges, supersets, drop sets —
-  stays here and follows N3. Per-exercise rest has moved to **N5** as a library
+  stays here and builds on it. Per-exercise rest shipped as **N5**, a library
   attribute; a per-*routine* rest override would still belong here.
 - **P3.4** Auto-progression suggestions — the strongest differentiator once there is
   enough history to base them on.
@@ -172,6 +149,12 @@ Rules to follow, not a status report.
   rules worth asserting rather than eyeballing.
 - **No dead weight.** Extract a shared component at its second caller, not its first;
   delete an API the moment nothing calls it. Both hold today; this rule keeps them.
+- **Schema changes are migration-numbered as they ship.** A migration takes the next
+  version when its feature lands; do not add columns or tables ahead of the code that
+  reads them, because Room validates the declared entities against the migrated
+  schema — an early column forces an entity field nothing reads. Every migration gets
+  an exported schema under [app/schemas](app/schemas) and a `MigrationTestHelper`
+  test that upgrades a database with real rows in it.
 
 ## Explicit non-goals
 
@@ -187,7 +170,7 @@ Recorded so they are not relitigated:
   0.5 kg and 1.25 kg steps, no floating-point drift, and units are presentational.
 - **The v1 set row is `reps × weight`.** Bodyweight is reps at 0 kg — accepted,
   clamped, and asserted by a test. Duration and distance are out of scope; adding
-  them later is migration 3→4 plus a test, a path this app has already walked twice.
+  them later is one more migration plus a test, a path this app has walked repeatedly.
 - **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows
   already on disk.
 - **Rows are sync-shaped** — UUID ids and `createdAt`/`updatedAt`/`deletedAt` soft

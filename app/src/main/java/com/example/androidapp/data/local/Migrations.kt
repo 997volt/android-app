@@ -184,6 +184,45 @@ private const val ADD_SESSION_EXERCISE_MUSCLE_FEEL =
 private const val ADD_SESSION_EXERCISE_JOINT_PAIN =
     "ALTER TABLE `session_exercises` ADD COLUMN `jointPain` INTEGER"
 
+/**
+ * v8 -> v9: workout templates and the exercises they hold (ROADMAP N3).
+ *
+ * Two new sync-shaped tables, so this is a create rather than an ALTER. Nothing
+ * existing is touched, which is the same argument migration 1→2 made: an upgrade
+ * cannot lose what the previous version already wrote.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_TEMPLATES)
+        db.execSQL(CREATE_TEMPLATE_EXERCISES)
+        db.execSQL(CREATE_TEMPLATE_EXERCISES_TEMPLATE_ID_INDEX)
+        db.execSQL(CREATE_TEMPLATE_EXERCISES_EXERCISE_ID_INDEX)
+    }
+}
+
+private const val CREATE_TEMPLATES =
+    "CREATE TABLE IF NOT EXISTS `templates` (" +
+        "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`))"
+
+private const val CREATE_TEMPLATE_EXERCISES =
+    "CREATE TABLE IF NOT EXISTS `template_exercises` (" +
+        "`id` TEXT NOT NULL, `templateId` TEXT NOT NULL, `exerciseId` TEXT NOT NULL, " +
+        "`position` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`templateId`) REFERENCES `templates`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE , " +
+        "FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+
+private const val CREATE_TEMPLATE_EXERCISES_TEMPLATE_ID_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_template_exercises_templateId` " +
+        "ON `template_exercises` (`templateId`)"
+
+private const val CREATE_TEMPLATE_EXERCISES_EXERCISE_ID_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_template_exercises_exerciseId` " +
+        "ON `template_exercises` (`exerciseId`)"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -193,4 +232,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_5_6,
     MIGRATION_6_7,
     MIGRATION_7_8,
+    MIGRATION_8_9,
 )

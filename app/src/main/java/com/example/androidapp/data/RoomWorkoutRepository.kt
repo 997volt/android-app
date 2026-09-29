@@ -1,5 +1,6 @@
 package com.example.androidapp.data
 
+import androidx.room.withTransaction
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
@@ -35,11 +36,14 @@ import kotlinx.coroutines.flow.map
  */
 @Singleton
 class RoomWorkoutRepository @Inject constructor(
-    database: WorkoutDatabase,
+    private val database: WorkoutDatabase,
     private val timeSource: TimeSource,
 ) : WorkoutRepository {
 
     private val dao = database.workoutDao()
+
+    /** Read only when a workout is started from a template (ROADMAP N3). */
+    private val templateDao = database.templateDao()
 
     override fun observeActiveSession(): Flow<WorkoutSession?> =
         dao.observeActiveSession().map { it?.toDomain() }
@@ -56,35 +60,53 @@ class RoomWorkoutRepository @Inject constructor(
     override fun observeSession(sessionId: String): Flow<WorkoutSession?> =
         dao.observeSession(sessionId).map { it?.toDomain() }
 
-    override suspend fun startOrResumeSession(): DataResult<StartedSession> = dataResultOf {
-        // find-or-create is a single transaction, so two taps cannot open two
-        // sessions and leave "the active session" ambiguous. The same transaction
-        // reports whether this call is the one that opened it (ROADMAP N4).
-        val start = dao.findOrCreateActiveSession(
-            id = UUID.randomUUID().toString(),
-            now = timeSource.nowEpochMillis(),
-        )
-        StartedSession(id = start.session.id, isNew = start.created)
-    }
+    override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> =
+        dataResultOf {
+            // find-or-create and any template seeding are one transaction, so two
+            // taps cannot open two sessions — and a failure cannot leave a session
+            // holding half a template. The same transaction reports whether this
+            // call is the one that opened it (ROADMAP N4).
+            database.withTransaction {
+                val start = dao.findOrCreateActiveSession(
+                    id = UUID.randomUUID().toString(),
+                    now = timeSource.nowEpochMillis(),
+                )
+                if (start.created && templateId != null) {
+                    templateDao.findExerciseIdsInOrder(templateId).forEach { exerciseId ->
+                        appendExercise(start.session.id, exerciseId)
+                    }
+                }
+                StartedSession(id = start.session.id, isNew = start.created)
+            }
+        }
 
     override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> =
         dataResultOf {
             if (dao.findSession(sessionId) == null) {
                 throw NotFoundException("session $sessionId is not open")
             }
-            val now = timeSource.nowEpochMillis()
-            dao.insertSessionExercise(
-                SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
-                    sessionId = sessionId,
-                    exerciseId = exerciseId,
-                    position = dao.maxPosition(sessionId) + 1,
-                    createdAt = now,
-                    updatedAt = now,
-                    deletedAt = null,
-                ),
-            )
+            appendExercise(sessionId, exerciseId)
         }
+
+    /**
+     * The one place a session exercise is appended, shared by a manual "add
+     * exercise" and by starting a workout from a template (ROADMAP N3) — so the
+     * order a template produces is the same order the picker would produce.
+     */
+    private suspend fun appendExercise(sessionId: String, exerciseId: String) {
+        val now = timeSource.nowEpochMillis()
+        dao.insertSessionExercise(
+            SessionExerciseEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                position = dao.maxPosition(sessionId) + 1,
+                createdAt = now,
+                updatedAt = now,
+                deletedAt = null,
+            ),
+        )
+    }
 
     override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> =
         dataResultOf {
