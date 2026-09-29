@@ -43,6 +43,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
 import com.example.androidapp.ui.workout.WorkoutClock
@@ -127,7 +129,7 @@ fun ExerciseLibraryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(title, modifier = Modifier.testTag(TestTags.LIBRARY_TITLE)) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -199,7 +201,12 @@ private fun EmptyState(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .testTag(
+                if (libraryIsEmpty) TestTags.LIBRARY_EMPTY_LIBRARY else TestTags.LIBRARY_NO_MATCH,
+            ),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -321,7 +328,12 @@ private fun StartOrResumeButton(
     }
 
     ExtendedFloatingActionButton(
-        modifier = modifier,
+        // Tagged by *state*, not by caption: which of the two is showing is the
+        // behaviour under test, and the captions are user-visible text a translation
+        // would change.
+        modifier = modifier.testTag(
+            if (resuming) TestTags.LIBRARY_RESUME else TestTags.LIBRARY_START,
+        ),
         onClick = onClick,
         text = {
             Text(
@@ -355,7 +367,10 @@ private fun LibrarySearchField(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag(TestTags.LIBRARY_SEARCH_FIELD),
         singleLine = true,
         label = { Text(stringResource(R.string.exercise_search_hint)) },
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },

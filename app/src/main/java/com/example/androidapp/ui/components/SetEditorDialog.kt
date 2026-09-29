@@ -60,6 +60,8 @@ fun SetEditorDialog(
                 NumberStepper(
                     label = stringResource(R.string.set_weight_label),
                     testTag = TestTags.SET_WEIGHT_FIELD,
+                    increaseTag = TestTags.SET_INCREASE_WEIGHT,
+                    decreaseTag = TestTags.SET_DECREASE_WEIGHT,
                     value = weightText,
                     onValueChange = { weightText = it },
                     keyboardType = KeyboardType.Decimal,
@@ -75,6 +77,8 @@ fun SetEditorDialog(
                 NumberStepper(
                     label = stringResource(R.string.set_reps_label),
                     testTag = TestTags.SET_REPS_FIELD,
+                    increaseTag = TestTags.SET_INCREASE_REPS,
+                    decreaseTag = TestTags.SET_DECREASE_REPS,
                     value = repsText,
                     onValueChange = { repsText = it },
                     keyboardType = KeyboardType.Number,
@@ -88,6 +92,7 @@ fun SetEditorDialog(
         },
         confirmButton = {
             TextButton(
+                modifier = Modifier.testTag(TestTags.SET_SAVE),
                 enabled = parsedReps != null && parsedWeight != null,
                 onClick = { onSave(parsedReps ?: 0, parsedWeight ?: 0L) },
             ) {
@@ -95,7 +100,12 @@ fun SetEditorDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.set_cancel)) }
+            TextButton(
+                modifier = Modifier.testTag(TestTags.SET_CANCEL),
+                onClick = onDismiss,
+            ) {
+                Text(stringResource(R.string.set_cancel))
+            }
         },
     )
 }
@@ -117,6 +127,8 @@ fun SetEditorDialog(
 private fun NumberStepper(
     label: String,
     testTag: String,
+    increaseTag: String,
+    decreaseTag: String,
     value: String,
     onValueChange: (String) -> Unit,
     keyboardType: KeyboardType,
@@ -131,7 +143,12 @@ private fun NumberStepper(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StepButton(glyph = "\u2212", description = decreaseDescription, onClick = { onStep(-1) })
+        StepButton(
+            glyph = "\u2212",
+            description = decreaseDescription,
+            testTag = decreaseTag,
+            onClick = { onStep(-1) },
+        )
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -140,13 +157,23 @@ private fun NumberStepper(
             label = { Text(label) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         )
-        StepButton(glyph = "+", description = increaseDescription, onClick = { onStep(1) })
+        StepButton(
+            glyph = "+",
+            description = increaseDescription,
+            testTag = increaseTag,
+            onClick = { onStep(1) },
+        )
     }
 }
 
 @Composable
-private fun StepButton(glyph: String, description: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+private fun StepButton(
+    glyph: String,
+    description: String,
+    testTag: String,
+    onClick: () -> Unit,
+) {
+    IconButton(modifier = Modifier.testTag(testTag), onClick = onClick) {
         Text(
             text = glyph,
             style = MaterialTheme.typography.titleLarge,

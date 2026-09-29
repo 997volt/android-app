@@ -3,6 +3,7 @@ package com.example.androidapp.ui.components
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -47,9 +48,9 @@ class SetEditorDialogTest {
         show(weightGrams = 100_000L)
 
         // 100 kg, and the default step is 2.5 kg.
-        composeTestRule.onNodeWithContentDescription("Increase Weight", substring = true).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_INCREASE_WEIGHT).performClick()
 
-        composeTestRule.onNodeWithText("102.5").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("102.5")
     }
 
     @Test
@@ -58,9 +59,9 @@ class SetEditorDialogTest {
         // where 0 is meaningful.
         show(reps = 1)
 
-        composeTestRule.onNodeWithContentDescription("Decrease Reps", substring = true).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_DECREASE_REPS).performClick()
 
-        composeTestRule.onNodeWithText("1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SET_REPS_FIELD).assertTextContains("1")
     }
 
     @Test
@@ -70,7 +71,7 @@ class SetEditorDialogTest {
         composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).performTextClearance()
         composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).performTextInput("not a number")
 
-        composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsNotEnabled()
     }
 
     @Test
@@ -79,7 +80,7 @@ class SetEditorDialogTest {
         // push-up is reps at 0 kg, and it must be savable today.
         show(weightGrams = 0L)
 
-        composeTestRule.onNodeWithText("Save").assertIsEnabled().performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsEnabled().performClick()
 
         assert(saved == 5 to 0L) { "expected a 0 kg set to save, got $saved" }
     }
@@ -88,10 +89,10 @@ class SetEditorDialogTest {
     fun steppingWeightDown_stopsAtZero() {
         show(weightGrams = 1_000L)
 
-        composeTestRule.onNodeWithContentDescription("Decrease Weight", substring = true).performClick()
-        composeTestRule.onNodeWithContentDescription("Decrease Weight", substring = true).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_DECREASE_WEIGHT).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_DECREASE_WEIGHT).performClick()
 
         // Clamped by Weight.step, not by a second copy of the rule here.
-        composeTestRule.onNodeWithText("0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("0")
     }
 }

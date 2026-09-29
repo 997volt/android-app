@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.onNodeWithTag
+import com.example.androidapp.ui.components.TestTags
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -50,7 +52,7 @@ class ExerciseLibraryScreenTest {
 
         // useUnmergedTree: the FAB aggregates its slots, so the label lives on a
         // child node rather than on the merged button.
-        composeTestRule.onNodeWithText("Start workout", useUnmergedTree = true)
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_START, useUnmergedTree = true)
             .assertIsDisplayed()
             .performClick()
 
@@ -74,12 +76,12 @@ class ExerciseLibraryScreenTest {
             onStartWorkout = {},
         )
 
-        composeTestRule.onNodeWithText("Resume workout", substring = true, useUnmergedTree = true)
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_RESUME, useUnmergedTree = true)
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("3 exercises", substring = true, useUnmergedTree = true)
             .assertIsDisplayed()
         // The offer to start must be gone, not merely joined by a second button.
-        composeTestRule.onNodeWithText("Start workout").assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_START).assertDoesNotExist()
     }
 
     @Test
@@ -88,8 +90,8 @@ class ExerciseLibraryScreenTest {
             ExerciseLibraryUiState(isLoading = false, items = emptyList(), libraryIsEmpty = true),
         )
 
-        composeTestRule.onNodeWithText("No exercises yet").assertIsDisplayed()
-        composeTestRule.onNodeWithText("match", substring = true).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_EMPTY_LIBRARY).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_NO_MATCH).assertDoesNotExist()
     }
 
     @Test
@@ -103,8 +105,8 @@ class ExerciseLibraryScreenTest {
             ),
         )
 
-        composeTestRule.onNodeWithText("No exercises match “zzz”").assertIsDisplayed()
-        composeTestRule.onNodeWithText("No exercises yet").assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_NO_MATCH).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_EMPTY_LIBRARY).assertDoesNotExist()
     }
 
     private fun setScreen(
@@ -129,7 +131,7 @@ class ExerciseLibraryScreenTest {
     fun rendersTitleAndRows() {
         setScreen(ExerciseLibraryUiState(isLoading = false, items = items))
 
-        composeTestRule.onNodeWithText("Exercise library").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_TITLE).assertIsDisplayed()
         composeTestRule.onNodeWithText("Back Squat").assertIsDisplayed()
         composeTestRule.onNodeWithText("Quads · Barbell").assertIsDisplayed()
     }
@@ -158,7 +160,7 @@ class ExerciseLibraryScreenTest {
     fun emptyResult_showsMessageInsteadOfSpinner() {
         setScreen(ExerciseLibraryUiState(query = "zzz", isLoading = false, items = emptyList()))
 
-        composeTestRule.onNodeWithText("No exercises match", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_NO_MATCH).assertIsDisplayed()
         composeTestRule.onNodeWithText("Loading exercises…").assertDoesNotExist()
     }
 }
