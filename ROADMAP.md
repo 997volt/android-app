@@ -85,6 +85,20 @@ runs once the "Still to do" rows above are green.
 | R1.4 | Signed release installed on the phone and a workout logged end to end. **Reported from the device, not reproduced here** — I cannot see the phone — but it is the first time the R8-minified build and its Hilt/Compose shrinking, the adaptive icon under a real launcher, and the notification/exact-alarm prompts ran on real hardware rather than an emulator. | ✅ done |
 | R1.5 | Upgrade test — `versionCode` 1 → 2 (v1.1), installed **over** the running app without uninstalling; **workout history survived**, confirmed on the device. The decisive property was checked mechanically first: `apksigner` reports the same certificate SHA-256 for both builds (`dd27ec9f…`), which is what Android requires to accept an update rather than demand an uninstall. | ✅ done |
 
+## Repeat releases
+
+The first release is done (R1). Every later one follows
+[`RELEASING.md`](RELEASING.md), which exists because the second release nearly went
+wrong twice — a tag that briefly pointed at a commit outside `main`, and a
+changelog that credited changes to the wrong version. Both are easy to get wrong
+and invisible afterwards.
+
+| # | Step | State |
+| --- | --- | --- |
+| R2.1 | [`RELEASING.md`](RELEASING.md) records the procedure, including the rule that matters most: the tag must point at the commit that built the APK | ✅ done |
+| R2.2 | v1.2 published as a [GitHub release](https://github.com/997volt/android-app/releases/tag/v1.2) with the signed APK attached, and installed over 1.1 on the phone | ✅ done |
+| R2.3 | *Decide* whether to automate steps 4–7 in CI, which needs the keystore and its passwords in GitHub Secrets | ☐ open decision |
+
 **The key is permanent.** Every later build has to be signed with the same
 `workout.jks`, or Android refuses the update and the only fix is to uninstall,
 which deletes the history because backup is off. Back up the keystore *and* its
