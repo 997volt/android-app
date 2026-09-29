@@ -1,7 +1,9 @@
 package com.example.androidapp.ui.components
 
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,16 +17,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Settles whether a failed write is *announced* or merely *drawn* (ROADMAP P1.17).
+ * A failed write must be *announced*, not merely *drawn* (ROADMAP P1.17).
  *
- * F7 exists to surface write failures, but a snackbar that a screen reader never
- * reads surfaces nothing at all to the user who needs it most. The app shows every
- * failure through a Material3 `Snackbar`, so the question is whether that component
- * already carries a live region. If it does, the correct change is to record that
- * with a test rather than to add a redundant announcement on top.
+ * Every write failure in this app reaches the user through a snackbar — that is
+ * what F7 exists to do — so a snackbar a screen reader never reads surfaces nothing
+ * at all to the user who needs it most.
  *
- * Written against `Snackbar` directly rather than through a screen, so the result
- * is about the component and cannot be confused by a screen's own timing.
+ * These assert the behaviour of [AnnouncingSnackbarHost] rather than of Material3.
+ * That is deliberate: the app sets the live region itself, so a Material3 upgrade
+ * cannot silently take the announcement away, and this test is checking our code.
  */
 @RunWith(AndroidJUnit4::class)
 class SnackbarAnnouncementTest {
@@ -32,13 +33,25 @@ class SnackbarAnnouncementTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    @Test
-    fun materialSnackbarsCarryALiveRegion() {
+    /**
+     * `SnackbarDuration.Indefinite` on purpose: it keeps the snackbar on screen
+     * until dismissed, so the assertion cannot race a four-second timeout.
+     */
+    private fun showFailure(message: String = "Couldn't save that. Your last change may not be stored.") {
         composeTestRule.setContent {
             AndroidAppTheme {
-                Snackbar { Text("Couldn't save that. Your last change may not be stored.") }
+                val hostState = remember { SnackbarHostState() }
+                AnnouncingSnackbarHost(hostState)
+                LaunchedEffect(Unit) {
+                    hostState.showSnackbar(message, duration = SnackbarDuration.Indefinite)
+                }
             }
         }
+    }
+
+    @Test
+    fun aFailedWriteCarriesALiveRegion() {
+        showFailure()
 
         composeTestRule
             .onNodeWithText("Couldn't save that. Your last change may not be stored.")
@@ -46,14 +59,9 @@ class SnackbarAnnouncementTest {
     }
 
     @Test
-    fun andItIsPolite_soItDoesNotInterruptWhateverTheUserIsDoing() {
-        // Polite rather than Assertive: a failed save should wait its turn behind
-        // the field the user is in, not cut across them mid-entry.
-        composeTestRule.setContent {
-            AndroidAppTheme {
-                Snackbar { Text("Couldn't save that.") }
-            }
-        }
+    fun andItIsPolite_soItWaitsBehindWhateverTheUserIsDoing() {
+        // Assertive would cut across the user mid-entry; a failed save can wait.
+        showFailure("Couldn't save that.")
 
         composeTestRule
             .onNodeWithText("Couldn't save that.")

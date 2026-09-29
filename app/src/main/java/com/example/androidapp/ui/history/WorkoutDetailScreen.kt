@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.ui.components.AnnouncingSnackbarHost
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -98,7 +98,7 @@ fun WorkoutDetailScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AnnouncingSnackbarHost(snackbarHostState) },
         topBar = {
             DetailTopBar(
                 session = state.session,

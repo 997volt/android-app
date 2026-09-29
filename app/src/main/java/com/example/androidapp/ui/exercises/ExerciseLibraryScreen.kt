@@ -23,7 +23,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.ui.components.AnnouncingSnackbarHost
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
 import com.example.androidapp.ui.workout.WorkoutClock
@@ -124,7 +124,7 @@ fun ExerciseLibraryScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AnnouncingSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(title) },
