@@ -1,0 +1,21 @@
+# F18. Editors and IDE defaults, so a contributor's whitespace settings do not
+# show up as diff noise. detekt and lint enforce the parts that matter to the build.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 120   # matches detekt, which is what enforces it
+
+[*.{yml,yaml,json,toml,properties}]
+indent_size = 2
+
+[*.md]
+# Two trailing spaces are a hard line break in Markdown.
+trim_trailing_whitespace = false

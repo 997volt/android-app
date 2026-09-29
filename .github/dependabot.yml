@@ -1,0 +1,31 @@
+# F18. Weekly, grouped, and deliberately low-volume: this is a personal app with a
+# hand-pinned dependency catalog, and a wall of single-dependency PRs would be
+# ignored rather than reviewed.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Compose and AndroidX move together and are pinned by one BOM, so one PR
+      # per artifact would be ten PRs for a single coherent change.
+      androidx:
+        patterns:
+          - 'androidx.*'
+      # Kotlin, KSP and the serialization plugin share a version and must move
+      # together; a mismatch between them is a build break.
+      kotlin:
+        patterns:
+          - 'org.jetbrains.kotlin*'
+          - 'com.google.devtools.ksp*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - '*'
