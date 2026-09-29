@@ -54,12 +54,8 @@ Two changes left, to land before anything in *Later*. N1 — home as the start
 destination — is done; it is in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
 because shipped work lives there rather than here.
 
-### N2 — A bigger library, and custom exercises while you train
+### N2 — Custom exercises while you train
 
-- **More seeded movements.** The list is supplied at implementation time. Adding
-  entries to [SeedExercises.kt](app/src/main/java/com/example/androidapp/data/SeedExercises.kt)
-  is all it takes: the seeder tops up on every open with `INSERT OR IGNORE`, so
-  existing installs receive them without a migration.
 - **Create a custom exercise from inside a workout**, where the gap is actually felt:
   a "New exercise" action in the picker that saves and immediately adds it to the
   session. Stored `isCustom = true` with a UUID id — the schema already reserves both.

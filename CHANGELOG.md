@@ -7,6 +7,14 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Fifteen more exercises**, mostly competition and paused variants (competition and
+  speed-day bench press, 3-second paused bench, paused squat, conventional deadlift,
+  push press) plus accessory work (machine and assisted rows, dumbbell fly, incline
+  dumbbell curl, dumbbell skullcrusher, rotator work, cable pushdown and cable curl).
+  The seeder tops up with `INSERT OR IGNORE` on every open, so an existing install
+  receives them without a migration.
+
 ### Changed
 - **The app opens on your workouts, not the exercise list.** Home is now a short
   list of recent workouts with **Start workout** (or **Resume**) and a link to the

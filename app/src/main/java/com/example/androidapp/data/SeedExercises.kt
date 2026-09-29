@@ -59,6 +59,23 @@ internal object SeedExercises {
         barbell("plank", "Plank", MuscleGroup.CORE, Equipment.BODYWEIGHT, MovementPattern.CORE),
         barbell("hanging-leg-raise", "Hanging Leg Raise", MuscleGroup.CORE, Equipment.BODYWEIGHT, MovementPattern.CORE, MuscleGroup.FOREARMS),
         barbell("cable-crunch", "Cable Crunch", MuscleGroup.CORE, Equipment.CABLE, MovementPattern.CORE),
+        // ---- Competition and paused variants, plus accessory work ----
+        barbell("competition-bench-press", "Competition Bench Press", MuscleGroup.CHEST, Equipment.BARBELL, MovementPattern.HORIZONTAL_PUSH, MuscleGroup.TRICEPS, MuscleGroup.SHOULDERS),
+        barbell("bench-press-speed-day", "Bench Press — Speed Day", MuscleGroup.CHEST, Equipment.BARBELL, MovementPattern.HORIZONTAL_PUSH, MuscleGroup.TRICEPS),
+        barbell("paused-bench-press-3s", "3-Second Paused Bench Press", MuscleGroup.CHEST, Equipment.BARBELL, MovementPattern.HORIZONTAL_PUSH, MuscleGroup.TRICEPS),
+        barbell("conventional-deadlift", "Conventional Deadlift", MuscleGroup.BACK, Equipment.BARBELL, MovementPattern.HINGE, MuscleGroup.GLUTES, MuscleGroup.HAMSTRINGS, MuscleGroup.FOREARMS),
+        barbell("paused-back-squat", "Paused Back Squat", MuscleGroup.QUADS, Equipment.BARBELL, MovementPattern.SQUAT, MuscleGroup.GLUTES, MuscleGroup.CORE),
+        barbell("push-press", "Push Press", MuscleGroup.SHOULDERS, Equipment.BARBELL, MovementPattern.VERTICAL_PUSH, MuscleGroup.TRICEPS, MuscleGroup.QUADS),
+        barbell("machine-row", "Machine Row", MuscleGroup.BACK, Equipment.MACHINE, MovementPattern.HORIZONTAL_PULL, MuscleGroup.BICEPS),
+        barbell("assisted-pull-up", "Assisted Pull-Up", MuscleGroup.BACK, Equipment.MACHINE, MovementPattern.VERTICAL_PULL, MuscleGroup.BICEPS),
+        barbell("dumbbell-fly", "Dumbbell Fly", MuscleGroup.CHEST, Equipment.DUMBBELL, MovementPattern.ISOLATION),
+        barbell("incline-dumbbell-arm-curl", "Incline Dumbbell Arm Curl", MuscleGroup.BICEPS, Equipment.DUMBBELL, MovementPattern.ISOLATION, MuscleGroup.FOREARMS),
+        barbell("dumbbell-skullcrusher", "Dumbbell Skullcrusher", MuscleGroup.TRICEPS, Equipment.DUMBBELL, MovementPattern.ISOLATION),
+        // Rotator work: the two the user asked for by description rather than by name.
+        barbell("dumbbell-rotator-raise", "Dumbbell Rotator Raise", MuscleGroup.SHOULDERS, Equipment.DUMBBELL, MovementPattern.ISOLATION),
+        barbell("rotator-cable-to-side", "Rotator Cable to Side", MuscleGroup.SHOULDERS, Equipment.CABLE, MovementPattern.ISOLATION),
+        barbell("two-arm-cable-pushdown", "Two-Arm Cable Pushdown", MuscleGroup.TRICEPS, Equipment.CABLE, MovementPattern.ISOLATION),
+        barbell("cable-arm-curl", "Cable Arm Curl", MuscleGroup.BICEPS, Equipment.CABLE, MovementPattern.ISOLATION, MuscleGroup.FOREARMS),
     )
 
     /** Terse constructor: the seed list is long and every row repeats the same shape. */
