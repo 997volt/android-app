@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -50,7 +51,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.Weight
-import com.example.androidapp.ui.components.AnnouncingSnackbarHost
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
@@ -132,7 +132,7 @@ fun ActiveWorkoutScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { AnnouncingSnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             WorkoutTopBar(
                 canFinish = state.exercises.any { it.sets.isNotEmpty() },

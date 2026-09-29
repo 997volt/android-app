@@ -141,6 +141,14 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            // Robolectric needs the merged resources and manifest to inflate the
+            // Compose host activity.
+            isIncludeAndroidResources = true
+        }
+    }
+
     lint {
         // The CI gate (ROADMAP F12) only means something if warnings fail the
         // build. Version-freshness checks are excluded because they hit the
@@ -199,6 +207,12 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Compose UI tests run on the JVM under Robolectric, so a UI assertion costs
+    // seconds instead of a 26-minute CI emulator cycle. The instrumented job stays
+    // for anything that genuinely needs a device.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.robolectric)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
@@ -211,4 +225,17 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     detektPlugins(libs.detekt.rules.compose)
+}
+
+
+// Robolectric writes a download lock and caches SDK jars under the user's home
+// directory, which is outside this workspace and therefore not writable here.
+// Pointing the *test JVM's* home at the build directory keeps it inside the
+// workspace and still lets Robolectric fetch what it needs.
+tasks.withType<Test>().configureEach {
+    val robolectricHome = layout.buildDirectory.dir("robolectric-home").get().asFile
+    systemProperty("user.home", robolectricHome.absolutePath)
+    // Robolectric creates a lock file directly under the home directory and does
+    // not create the directory first, so it must already exist.
+    doFirst { robolectricHome.mkdirs() }
 }
