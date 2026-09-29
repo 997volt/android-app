@@ -73,8 +73,8 @@ fun ExerciseLibraryRoute(
 
     // Held here rather than in the screen so the screen stays stateless and
     // testable with a fixed string.
-    var transferMessage by remember { mutableStateOf<String?>(null) }
-    val transferActions = rememberDataTransferActions(transferViewModel) { transferMessage = it }
+    var message by remember { mutableStateOf<String?>(null) }
+    val transferActions = rememberDataTransferActions(transferViewModel) { message = it }
 
     ExerciseLibraryScreen(
         state = state,
@@ -85,8 +85,8 @@ fun ExerciseLibraryRoute(
         onOpenHistory = onOpenHistory,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
-        transferMessage = transferMessage,
-        onDismissTransferMessage = { transferMessage = null },
+        message = message,
+        onDismissMessage = { message = null },
         modifier = modifier,
     )
 }
@@ -94,9 +94,10 @@ fun ExerciseLibraryRoute(
 /**
  * The library list.
  *
- * [onBack] and [onStartWorkout] are optional so the same composable serves both
+ * [onBack] and [onNewExercise] are optional so the same composable serves both
  * the standalone library destination and the in-workout exercise picker, which
- * differs only in its title and what a tap does.
+ * differs in its title, what a tap does, and — for the picker — the offer to
+ * create a new exercise (ROADMAP N2).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,15 +111,28 @@ fun ExerciseLibraryScreen(
     onOpenHistory: (() -> Unit)? = null,
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
-    transferMessage: String? = null,
-    onDismissTransferMessage: () -> Unit = {},
+    message: String? = null,
+    onDismissMessage: () -> Unit = {},
+    onNewExercise: (() -> Unit)? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    ShowTransferMessage(transferMessage, snackbarHostState, onDismissTransferMessage)
+    ShowMessage(message, snackbarHostState, onDismissMessage)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            // Only the picker offers creation: the library is a reference you
+            // navigate to, while the gap is felt mid-workout (ROADMAP N2).
+            if (onNewExercise != null) {
+                ExtendedFloatingActionButton(
+                    onClick = onNewExercise,
+                    text = { Text(stringResource(R.string.exercise_new)) },
+                    icon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
+                    modifier = Modifier.testTag(TestTags.LIBRARY_NEW_EXERCISE),
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text(title, modifier = Modifier.testTag(TestTags.LIBRARY_TITLE)) },
@@ -202,14 +216,15 @@ private fun EmptyState(
 }
 
 /**
- * Shows the transfer result once, then clears it.
+ * Shows the screen's message once, then clears it.
  *
  * `LaunchedEffect` on the message rather than a one-shot event channel: the
  * message is already state the route owns, and showing a snackbar is idempotent
- * for a given string.
+ * for a given string. The library uses it for a transfer result, the picker for
+ * a write that did not land.
  */
 @Composable
-private fun ShowTransferMessage(
+private fun ShowMessage(
     message: String?,
     hostState: SnackbarHostState,
     onDismiss: () -> Unit,
@@ -319,7 +334,9 @@ private fun ExerciseList(
         items(items = items, key = { it.id }) { item ->
             ListItem(
                 headlineContent = { Text(item.name) },
-                supportingContent = { Text("${item.muscleLabel} · ${item.equipmentLabel}") },
+                // Null while an unedited custom exercise has no taxonomy: the row
+                // shows its name alone rather than "Other · Other" (N2).
+                supportingContent = item.subtitle?.let { subtitle -> { Text(subtitle) } },
                 modifier = Modifier.clickable { onExerciseClick(item.id) },
             )
             HorizontalDivider()
@@ -336,8 +353,9 @@ private fun ExerciseLibraryScreenPreview() {
                 query = "",
                 isLoading = false,
                 items = listOf(
-                    ExerciseListItem("back-squat", "Back Squat", "Quads", "Barbell"),
-                    ExerciseListItem("bench-press", "Barbell Bench Press", "Chest", "Barbell"),
+                    ExerciseListItem("back-squat", "Back Squat", "Quads · Barbell"),
+                    ExerciseListItem("bench-press", "Barbell Bench Press", "Chest · Barbell"),
+                    ExerciseListItem("my-lift", "Sled Push", null),
                 ),
             ),
             title = "Exercise library",

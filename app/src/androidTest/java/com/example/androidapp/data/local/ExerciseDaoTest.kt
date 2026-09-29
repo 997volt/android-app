@@ -96,6 +96,45 @@ class ExerciseDaoTest {
         assertEquals(1, dao.count())
     }
 
+    @Test
+    fun update_writesEveryColumn_andReturnsOne() = runTest {
+        val original = row("custom", "Sled Push").copy(
+            isCustom = true,
+            createdAt = 10L,
+            updatedAt = 10L,
+        )
+        dao.insert(original)
+
+        val updated = dao.update(
+            original.copy(
+                name = "Sled Push Heavy",
+                primaryMuscle = MuscleGroup.QUADS,
+                secondaryMuscles = listOf(MuscleGroup.GLUTES),
+                equipment = Equipment.MACHINE,
+                movementPattern = MovementPattern.SQUAT,
+                updatedAt = 99L,
+            ),
+        )
+
+        assertEquals(1, updated)
+        val stored = dao.findById("custom")!!
+        assertEquals("Sled Push Heavy", stored.name)
+        assertEquals(MuscleGroup.QUADS, stored.primaryMuscle)
+        assertEquals(listOf(MuscleGroup.GLUTES), stored.secondaryMuscles)
+        assertEquals(Equipment.MACHINE, stored.equipment)
+        assertEquals(MovementPattern.SQUAT, stored.movementPattern)
+        assertEquals(99L, stored.updatedAt)
+        // An attribute edit is not a re-creation, and it does not change where the
+        // row came from.
+        assertEquals(10L, stored.createdAt)
+        assertEquals(true, stored.isCustom)
+    }
+
+    @Test
+    fun update_missingRow_returnsZero() = runTest {
+        assertEquals(0, dao.update(row("nope", "Nope")))
+    }
+
     private fun row(id: String, name: String) = ExerciseEntity(
         id = id,
         name = name,

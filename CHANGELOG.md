@@ -8,6 +8,14 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Create a custom exercise from inside a workout.** The exercise picker gained
+  **New exercise**, which asks for the name and immediately adds the entry to the
+  session, so a movement the library does not have is not a dead end mid-workout.
+  It is stored `isCustom = true` with a UUID id and an unspecified taxonomy
+  (`Other`), and then appears in the library and in search like any other exercise.
+- **Custom exercises are editable afterwards**, from the exercise detail screen:
+  name, muscle, equipment and movement pattern. Filling those in is what makes the
+  entry pickable in later workouts with real taxonomy rather than "Other".
 - **Fifteen more exercises**, mostly competition and paused variants (competition and
   speed-day bench press, 3-second paused bench, paused squat, conventional deadlift,
   push press) plus accessory work (machine and assisted rows, dumbbell fly, incline
@@ -16,6 +24,10 @@ Notable changes to Workout Log, newest first. Format follows
   receives them without a migration.
 
 ### Changed
+- **An exercise's subtitle no longer reads "Other · Other".** `Other` is the
+  "not filled in yet" value a custom exercise is created with, so the library row
+  and the workout's exercise header drop that part of the `Quads · Barbell` line —
+  an unedited custom exercise shows its name alone.
 - **The app opens on your workouts, not the exercise list.** Home is now a short
   list of recent workouts with **Start workout** (or **Resume**) and a link to the
   full history. The library became a screen you navigate to; it keeps search, and

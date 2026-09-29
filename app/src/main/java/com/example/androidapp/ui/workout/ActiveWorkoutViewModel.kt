@@ -12,6 +12,7 @@ import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
@@ -45,8 +46,8 @@ data class SessionExerciseRow(
     val id: String,
     val exerciseId: String,
     val name: String,
-    val muscleLabel: String,
-    val equipmentLabel: String,
+    /** `Quads · Barbell`, or null while a custom exercise's taxonomy is unset. */
+    val subtitle: String?,
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -379,8 +380,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             id = id,
             exerciseId = exerciseId,
             name = exerciseName,
-            muscleLabel = primaryMuscle.label,
-            equipmentLabel = equipment.label,
+            subtitle = taxonomySubtitle(primaryMuscle, equipment),
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

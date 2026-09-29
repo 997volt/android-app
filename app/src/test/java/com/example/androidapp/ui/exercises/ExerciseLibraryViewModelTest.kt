@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -96,14 +97,23 @@ class ExerciseLibraryViewModelTest {
     }
 
     @Test
-    fun itemExposesRowLabelsForTheListUi() = runTest(dispatcher) {
+    fun itemExposesTheRowSubtitle() = runTest(dispatcher) {
         val viewModel = viewModelFor(squat)
         observe(viewModel)
         advanceUntilIdle()
 
-        val item = viewModel.uiState.value.items.single()
-        assertEquals("Quads", item.muscleLabel)
-        assertEquals("Barbell", item.equipmentLabel)
+        assertEquals("Quads · Barbell", viewModel.uiState.value.items.single().subtitle)
+    }
+
+    @Test
+    fun anUneditedCustomExercise_hasNoSubtitle_ratherThanSayingOtherTwice() = runTest(dispatcher) {
+        // N2: a custom exercise is created from a name alone, so its muscle and
+        // equipment are both OTHER. The row must not read "Other · Other".
+        val viewModel = viewModelFor(custom)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.items.single().subtitle)
     }
 
     private class FakeRepository(exercises: List<Exercise>) : ExerciseRepository {
@@ -111,6 +121,12 @@ class ExerciseLibraryViewModelTest {
         override fun observeExercises(): Flow<List<Exercise>> = state
         override suspend fun getExercise(id: String): Exercise? =
             state.value.firstOrNull { it.id == id }
+
+        override suspend fun createCustomExercise(name: String): DataResult<Exercise> =
+            error("the library screen must not create exercises")
+
+        override suspend fun updateExercise(exercise: Exercise): DataResult<Unit> =
+            error("the library screen must not edit exercises")
     }
 
     private companion object {
@@ -127,6 +143,14 @@ class ExerciseLibraryViewModelTest {
             primaryMuscle = MuscleGroup.CHEST,
             equipment = Equipment.BARBELL,
             movementPattern = MovementPattern.HORIZONTAL_PUSH,
+        )
+        val custom = Exercise(
+            id = "custom-1",
+            name = "Sled Push",
+            primaryMuscle = MuscleGroup.OTHER,
+            equipment = Equipment.OTHER,
+            movementPattern = MovementPattern.OTHER,
+            isCustom = true,
         )
     }
 

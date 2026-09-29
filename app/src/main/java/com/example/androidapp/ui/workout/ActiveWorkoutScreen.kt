@@ -353,11 +353,13 @@ private fun ExerciseSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = row.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = "${row.muscleLabel} · ${row.equipmentLabel}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                row.subtitle?.let { subtitle ->
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 row.lastTime?.let { last ->
                     Text(
                         text = stringResource(
@@ -525,8 +527,7 @@ private fun ActiveWorkoutScreenPreview() {
                         id = "a",
                         exerciseId = "back-squat",
                         name = "Back Squat",
-                        muscleLabel = "Quads",
-                        equipmentLabel = "Barbell",
+                        subtitle = "Quads · Barbell",
                         sets = listOf(
                             SetRow("s1", 1, reps = 8, weightGrams = 60_000),
                             SetRow("s2", 2, reps = 8, weightGrams = 60_000),

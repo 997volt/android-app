@@ -10,7 +10,14 @@ package com.example.androidapp.domain.model
  * localization pass (ROADMAP P5.4).
  */
 
-/** Primary muscle worked. Drives grouping and the volume-per-group charts (P2.3). */
+/**
+ * Primary muscle worked. Drives grouping and the volume-per-group charts (P2.3).
+ *
+ * [OTHER] is the "not specified yet" value a custom exercise is created with
+ * (ROADMAP N2), next to [Equipment.OTHER] which already existed. It is appended
+ * rather than inserted so the enum reads the same as before; order is cosmetic
+ * anyway, because enums are stored by name.
+ */
 enum class MuscleGroup(val label: String) {
     CHEST("Chest"),
     BACK("Back"),
@@ -23,6 +30,7 @@ enum class MuscleGroup(val label: String) {
     GLUTES("Glutes"),
     CALVES("Calves"),
     CORE("Core"),
+    OTHER("Other"),
 }
 
 /** Equipment required, used to filter a library down to what the user has access to. */
@@ -49,4 +57,23 @@ enum class MovementPattern(val label: String) {
     CARRY("Carry"),
     ISOLATION("Isolation"),
     CORE("Core"),
+    OTHER("Other"),
+}
+
+/**
+ * The `Quads · Barbell` line shown under an exercise's name, with any part that
+ * has not been filled in yet left out rather than rendered as `Other · Other`
+ * (ROADMAP N2).
+ *
+ * Returns null when nothing is known: a custom exercise is created with a name
+ * only, and an empty line is more honest than one that says "Other · Other".
+ * Shared by the library/picker row and the active workout's exercise header so
+ * the two cannot drift apart.
+ */
+fun taxonomySubtitle(primaryMuscle: MuscleGroup, equipment: Equipment): String? {
+    val parts = buildList {
+        if (primaryMuscle != MuscleGroup.OTHER) add(primaryMuscle.label)
+        if (equipment != Equipment.OTHER) add(equipment.label)
+    }
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }

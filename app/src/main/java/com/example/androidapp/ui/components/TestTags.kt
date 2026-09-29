@@ -47,4 +47,23 @@ object TestTags {
 
     /** A library row, addressed by exercise id so tests need no display name. */
     fun exerciseRow(id: String) = "library_row_$id"
+
+    /**
+     * The picker's "new exercise" action (ROADMAP N2) and the dialog it opens.
+     * The library destination never renders these, so their presence is itself
+     * the behaviour under test.
+     */
+    const val LIBRARY_NEW_EXERCISE = "library_new_exercise"
+    const val NEW_EXERCISE_NAME = "new_exercise_name"
+    const val NEW_EXERCISE_SAVE = "new_exercise_save"
+    const val NEW_EXERCISE_CANCEL = "new_exercise_cancel"
+
+    /** The exercise detail screen's edit mode (ROADMAP N2). */
+    const val EXERCISE_EDIT = "exercise_edit"
+    const val EXERCISE_EDIT_NAME = "exercise_edit_name"
+    const val EXERCISE_EDIT_MUSCLE = "exercise_edit_muscle"
+    const val EXERCISE_EDIT_EQUIPMENT = "exercise_edit_equipment"
+    const val EXERCISE_EDIT_PATTERN = "exercise_edit_pattern"
+    const val EXERCISE_EDIT_SAVE = "exercise_edit_save"
+    const val EXERCISE_EDIT_CANCEL = "exercise_edit_cancel"
 }

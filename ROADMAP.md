@@ -51,28 +51,12 @@ left alone without being forgotten.
 ## Next — planned app changes
 
 Changes left to land before anything in *Later*. N1 — home as the start
-destination — is done; it is in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
-because shipped work lives there rather than here.
+destination — and N2 — custom exercises while you train — are done; they are in
+[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
+rather than here.
 
 - **N3** is what can be set up in advance.
-- **N2 and N4–N8** are what a workout captures while you are in it.
-
-### N2 — Custom exercises while you train
-
-- **Create a custom exercise from inside a workout**, where the gap is actually felt:
-  a "New exercise" action in the picker that saves and immediately adds it to the
-  session. Stored `isCustom = true` with a UUID id — the schema already reserves both.
-- It then appears in the library and in search like any other exercise.
-- **Decided — creation asks for the name only.** `ExerciseEntity`'s taxonomy fields
-  are non-nullable, so an unedited custom exercise stores an "unspecified" value:
-  `Equipment.OTHER` already exists, and `OTHER` gets added to `MuscleGroup` and
-  `MovementPattern`. Enums are stored by name, never ordinal, so existing rows and
-  backups are unaffected and **no migration is needed** — which is why this lands
-  before the N3/N4–N8 migration decision. The library row suppresses "Other" in its
-  `Quads · Barbell` subtitle rather than reading `Other · Other`.
-- **Decided — custom exercises are editable afterwards**, from the exercise detail
-  screen: name, muscle, equipment and pattern. Filling those in is what makes the
-  entry pickable in later workouts with real taxonomy rather than "Other".
+- **N4–N8** are what a workout captures while you are in it.
 
 ### N3 — Workout templates, planned before you train
 
@@ -118,10 +102,11 @@ Two attributes on a library exercise:
   note you want *while* lifting, not a description of the movement.
 
 **Decided: library-level only for now** — no per-session override. Because seeded
-exercises must be editable too, the exercise detail screen gains an edit mode. That
-is safe: the seeder uses `INSERT OR IGNORE` and never updates an existing row, so an
-edited rest or cue survives every future top-up — which is why this can be a plain
-column rather than an overrides table.
+exercises must be editable too, the exercise detail screen's edit mode — added for
+custom exercises by N2 — is extended to cover them. That is safe: the seeder uses
+`INSERT OR IGNORE` and never updates an existing row, so an edited rest or cue
+survives every future top-up — which is why this can be a plain column rather than
+an overrides table.
 
 ### N6 — RPE and a comment on every set
 
@@ -175,9 +160,9 @@ separate: a future per-workout note should not collide with a readiness note.
 4→5, or they fold into one migration if they ship together. Decide before writing
 either — two half-migrations is what the `MigrationTestHelper` tests exist to catch.
 
-**Order:** N2 and N3 hang off the home screen N1 introduced and are otherwise
-independent; so are N4, N5 and N6. The one hard dependency is **N7 before N8**, since
-the ratings are captured at the moment an exercise is done. Everything else stays in
+**Order:** N3 hangs off the home screen N1 introduced; N4, N5 and N6 are independent
+of it and of each other. The one hard dependency is **N7 before N8**, since the
+ratings are captured at the moment an exercise is done. Everything else stays in
 *Later* until these land.
 
 ## Later (still self-contained)

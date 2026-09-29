@@ -27,6 +27,15 @@
         <item quantity="other">%1$d exercises</item>
     </plurals>
 
+    <!-- Custom exercises (ROADMAP N2). Creation asks for the name only, so the
+         dialog says so rather than presenting empty taxonomy fields. -->
+    <string name="exercise_new">New exercise</string>
+    <string name="exercise_name_label">Name</string>
+    <string name="exercise_new_add">Add</string>
+    <string name="exercise_new_hint">You can set the muscle, equipment and pattern later.</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+
     <!-- Exercise detail -->
     <string name="exercise_detail_title">Exercise</string>
     <string name="exercise_detail_back">Back</string>
@@ -37,6 +46,8 @@
     <string name="exercise_detail_none">None</string>
     <string name="exercise_detail_not_found">That exercise is no longer in the library.</string>
     <string name="exercise_detail_history_planned">Per-exercise history and personal records are planned (ROADMAP P2.1).</string>
+    <!-- Custom exercises are editable afterwards (ROADMAP N2). -->
+    <string name="exercise_edit">Edit</string>
 
     <!-- Active workout -->
     <string name="active_workout_title">Workout</string>

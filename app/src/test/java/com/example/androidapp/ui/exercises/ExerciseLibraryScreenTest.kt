@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import com.example.androidapp.ui.components.TestTags
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,8 +35,8 @@ class ExerciseLibraryScreenTest {
     val composeTestRule = createComposeRule()
 
     private val items = listOf(
-        ExerciseListItem(id = "back-squat", name = "Back Squat", muscleLabel = "Quads", equipmentLabel = "Barbell"),
-        ExerciseListItem(id = "hammer-curl", name = "Hammer Curl", muscleLabel = "Biceps", equipmentLabel = "Dumbbell"),
+        ExerciseListItem(id = "back-squat", name = "Back Squat", subtitle = "Quads · Barbell"),
+        ExerciseListItem(id = "hammer-curl", name = "Hammer Curl", subtitle = "Biceps · Dumbbell"),
     )
 
             @Test
@@ -67,6 +68,7 @@ class ExerciseLibraryScreenTest {
         state: ExerciseLibraryUiState,
         onQueryChange: (String) -> Unit = {},
         onExerciseClick: (String) -> Unit = {},
+        onNewExercise: (() -> Unit)? = null,
     ) {
         composeTestRule.setContent {
             ExerciseLibraryScreen(
@@ -74,6 +76,7 @@ class ExerciseLibraryScreenTest {
                 title = "Exercise library",
                 onQueryChange = onQueryChange,
                 onExerciseClick = onExerciseClick,
+                onNewExercise = onNewExercise,
             )
         }
     }
@@ -85,6 +88,39 @@ class ExerciseLibraryScreenTest {
         composeTestRule.onNodeWithTag(TestTags.LIBRARY_TITLE).assertIsDisplayed()
         composeTestRule.onNodeWithText("Back Squat").assertIsDisplayed()
         composeTestRule.onNodeWithText("Quads · Barbell").assertIsDisplayed()
+    }
+
+    @Test
+    fun anUneditedCustomExercise_rendersItsNameWithoutAnOtherSubtitle() {
+        setScreen(
+            ExerciseLibraryUiState(
+                isLoading = false,
+                items = listOf(ExerciseListItem(id = "custom-1", name = "Sled Push", subtitle = null)),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Sled Push").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Other · Other").assertDoesNotExist()
+    }
+
+    @Test
+    fun withNoCreateCallback_thereIsNoNewExerciseAction() {
+        setScreen(ExerciseLibraryUiState(isLoading = false, items = items))
+
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_NEW_EXERCISE).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingNewExercise_reportsIt() {
+        var started = false
+        setScreen(
+            ExerciseLibraryUiState(isLoading = false, items = items),
+            onNewExercise = { started = true },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.LIBRARY_NEW_EXERCISE).performClick()
+
+        assertTrue("the picker's create action should be wired through", started)
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.example.androidapp.domain.ExerciseSearch
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.WorkoutSession
+import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.ui.workout.WorkoutClock
@@ -27,12 +28,18 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-/** One row of the library list, flattened so the composable does no domain work. */
+/**
+ * One row of the library list, flattened so the composable does no domain work.
+ *
+ * [subtitle] is null for an exercise whose taxonomy has not been filled in — a
+ * custom exercise created from just a name. The row then renders nothing under
+ * the title rather than the "Other · Other" the raw labels would produce
+ * (ROADMAP N2).
+ */
 data class ExerciseListItem(
     val id: String,
     val name: String,
-    val muscleLabel: String,
-    val equipmentLabel: String,
+    val subtitle: String?,
 )
 
 /**
@@ -162,6 +169,5 @@ class ExerciseLibraryViewModel @Inject constructor(
 internal fun Exercise.toListItem() = ExerciseListItem(
     id = id,
     name = name,
-    muscleLabel = primaryMuscle.label,
-    equipmentLabel = equipment.label,
+    subtitle = taxonomySubtitle(primaryMuscle, equipment),
 )

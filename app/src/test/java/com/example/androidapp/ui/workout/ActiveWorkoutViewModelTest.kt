@@ -123,7 +123,7 @@ class ActiveWorkoutViewModelTest {
         val rows = viewModel.uiState.value.exercises
         assertEquals(1, rows.size)
         assertEquals("Back Squat", rows.single().name)
-        assertEquals("Quads", rows.single().muscleLabel)
+        assertEquals("Quads · Barbell", rows.single().subtitle)
         assertFalse(viewModel.uiState.value.isEmpty)
     }
 

@@ -1,7 +1,9 @@
 package com.example.androidapp.ui.exercises
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,29 +11,42 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
 /** Stateful entry point for the detail destination; reads its id from the route. */
@@ -42,7 +57,14 @@ fun ExerciseDetailRoute(
     viewModel: ExerciseDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ExerciseDetailScreen(state = state, onBack = onBack, modifier = modifier)
+    ExerciseDetailScreen(
+        state = state,
+        onBack = onBack,
+        onEdit = viewModel::onEdit,
+        onCancelEdit = viewModel::onCancelEdit,
+        onSave = viewModel::onSave,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +73,9 @@ fun ExerciseDetailScreen(
     state: ExerciseDetailUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onEdit: () -> Unit = {},
+    onCancelEdit: () -> Unit = {},
+    onSave: (ExerciseEdit) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -67,6 +92,18 @@ fun ExerciseDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    // Only a custom exercise is editable here (ROADMAP N2), and the
+                    // action disappears while the form is already open.
+                    if (state.canEdit) {
+                        TextButton(
+                            onClick = onEdit,
+                            modifier = Modifier.testTag(TestTags.EXERCISE_EDIT),
+                        ) {
+                            Text(stringResource(R.string.exercise_edit))
+                        }
+                    }
+                },
             )
         },
     ) { innerPadding ->
@@ -81,6 +118,14 @@ fun ExerciseDetailScreen(
             state.notFound -> CenteredMessage(
                 text = stringResource(R.string.exercise_detail_not_found),
                 showSpinner = false,
+                modifier = Modifier.padding(innerPadding),
+            )
+
+            exercise != null && state.isEditing -> ExerciseEditForm(
+                exercise = exercise,
+                error = state.error,
+                onCancel = onCancelEdit,
+                onSave = onSave,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -137,6 +182,187 @@ private fun ExerciseDetails(exercise: Exercise, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * The edit form behind the detail screen (ROADMAP N2).
+ *
+ * The draft lives here rather than in the ViewModel: these are transient field
+ * values, and keeping them local means a recomposition caused by an incoming
+ * error cannot discard what the user typed.
+ */
+@Composable
+private fun ExerciseEditForm(
+    exercise: Exercise,
+    error: DataError?,
+    onCancel: () -> Unit,
+    onSave: (ExerciseEdit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Keys on the exercise id so switching to another exercise resets the draft
+    // rather than carrying the previous one's values over.
+    var draft by remember(exercise.id) {
+        mutableStateOf(
+            ExerciseEdit(
+                name = exercise.name,
+                primaryMuscle = exercise.primaryMuscle,
+                equipment = exercise.equipment,
+                movementPattern = exercise.movementPattern,
+            ),
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ExerciseEditFields(draft = draft, onDraftChange = { draft = it })
+
+        error?.let { failure ->
+            Text(
+                text = dataErrorMessage(failure),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        ExerciseEditActions(
+            // A nameless exercise is unusable, and the taxonomy can stay
+            // unspecified — so the name is the only required field.
+            saveEnabled = draft.name.isNotBlank(),
+            onCancel = onCancel,
+            onSave = { onSave(draft.copy(name = draft.name.trim())) },
+        )
+    }
+}
+
+/** The four editable attributes, as one unit so the form stays readable. */
+@Composable
+private fun ExerciseEditFields(
+    draft: ExerciseEdit,
+    onDraftChange: (ExerciseEdit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        OutlinedTextField(
+            value = draft.name,
+            onValueChange = { onDraftChange(draft.copy(name = it)) },
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.EXERCISE_EDIT_NAME),
+            singleLine = true,
+            label = { Text(stringResource(R.string.exercise_name_label)) },
+        )
+
+        AttributeSelector(
+            label = stringResource(R.string.exercise_detail_primary),
+            selected = draft.primaryMuscle,
+            options = MuscleGroup.entries,
+            optionLabel = { it.label },
+            testTag = TestTags.EXERCISE_EDIT_MUSCLE,
+            onSelect = { onDraftChange(draft.copy(primaryMuscle = it)) },
+        )
+
+        AttributeSelector(
+            label = stringResource(R.string.exercise_detail_equipment),
+            selected = draft.equipment,
+            options = Equipment.entries,
+            optionLabel = { it.label },
+            testTag = TestTags.EXERCISE_EDIT_EQUIPMENT,
+            onSelect = { onDraftChange(draft.copy(equipment = it)) },
+        )
+
+        AttributeSelector(
+            label = stringResource(R.string.exercise_detail_pattern),
+            selected = draft.movementPattern,
+            options = MovementPattern.entries,
+            optionLabel = { it.label },
+            testTag = TestTags.EXERCISE_EDIT_PATTERN,
+            onSelect = { onDraftChange(draft.copy(movementPattern = it)) },
+        )
+    }
+}
+
+@Composable
+private fun ExerciseEditActions(
+    saveEnabled: Boolean,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+    ) {
+        TextButton(
+            onClick = onCancel,
+            modifier = Modifier.testTag(TestTags.EXERCISE_EDIT_CANCEL),
+        ) {
+            Text(stringResource(R.string.action_cancel))
+        }
+        Button(
+            onClick = onSave,
+            enabled = saveEnabled,
+            modifier = Modifier.testTag(TestTags.EXERCISE_EDIT_SAVE),
+        ) {
+            Text(stringResource(R.string.action_save))
+        }
+    }
+}
+
+/**
+ * A labelled dropdown over one enum's values.
+ *
+ * A `DropdownMenu` behind a button rather than an exposed-dropdown text field:
+ * the value is always one of a fixed set, so there is nothing to type, and the
+ * button's label reads the current choice to a screen reader without extra work.
+ */
+@Composable
+private fun <T> AttributeSelector(
+    label: String,
+    selected: T,
+    options: List<T>,
+    optionLabel: (T) -> String,
+    testTag: String,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    // Boxed so the menu anchors to its button: a composable emitting two siblings
+    // at the top level has no defined anchor for the popup.
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { open = true },
+            modifier = Modifier.fillMaxWidth().testTag(testTag),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(text = optionLabel(selected), style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(optionLabel(option)) },
+                    onClick = {
+                        open = false
+                        onSelect(option)
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun AttributeRow(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)) {
@@ -183,6 +409,28 @@ private fun ExerciseDetailScreenPreview() {
                     secondaryMuscles = listOf(MuscleGroup.GLUTES, MuscleGroup.CORE),
                     equipment = Equipment.BARBELL,
                     movementPattern = MovementPattern.SQUAT,
+                ),
+            ),
+            onBack = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ExerciseDetailEditPreview() {
+    AndroidAppTheme {
+        ExerciseDetailScreen(
+            state = ExerciseDetailUiState(
+                isLoading = false,
+                isEditing = true,
+                exercise = Exercise(
+                    id = "custom-1",
+                    name = "Sled Push",
+                    primaryMuscle = MuscleGroup.OTHER,
+                    equipment = Equipment.OTHER,
+                    movementPattern = MovementPattern.OTHER,
+                    isCustom = true,
                 ),
             ),
             onBack = {},
