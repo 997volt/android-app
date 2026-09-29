@@ -31,7 +31,7 @@ itself. Everything unmarked here is done.
 | F10 | Release pipeline | GitHub Actions: unit tests, lint, detekt, debug and R8-minified release. |
 | F12 | Lint / detekt gate | Warnings fail the build. The lint **baseline is deliberately not wired** — AGP auto-creates the file and would silently accept a warning on the next run; see the comment in [app/build.gradle.kts](app/build.gradle.kts). |
 | F13 | Rest-alert permissions | Requested on the first logged set, never at launch; refusal is non-fatal and not re-prompted. See [Built, but optional](#built-but-optional). |
-| F14 | ◐ Ship identity | Landed: `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), and `versionCode`/`versionName` read from a single [`version.properties`](version.properties). Landed in full apart from one item that only matters if the app is ever published: a 512 px listing asset. The launcher label is **Workout Log**. |
+| F14 | Ship identity | `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), `versionCode`/`versionName` from a single [`version.properties`](version.properties), the launcher label **Workout Log**, and a 512 px listing icon at [`store/icon-512.png`](store/icon-512.png) rendered from the app's own vector by [`tools/MakeStoreIcon.java`](tools/MakeStoreIcon.java). |
 | F15 | Seed delivery | Seeded on *every* open with `INSERT OR IGNORE`, so first launch and upgrades both work, the first read is never empty, and a user's delete survives a top-up. |
 | F16 | Recomposition-safe clock | The 1-second tick no longer rebuilds the workout screen's exercise list. |
 | F17 | Input validation | Weight parsing is bounded (no exponent/hex, capped); `logSet` fails unless the exercise is live and its session is open. |
@@ -208,11 +208,23 @@ dashboard.
 
 ## Publishing (only when you decide to)
 
-Not part of the MVP. When it matters: the app label is still "Android App", there
-is no 512 px listing asset, and the whole Play Console workstream — Data safety
-form, content rating, privacy-policy URL, Play App Signing — is untouched. The
-`applicationId` is already settled (`io.github.volt997.workout`), which was the one
-part that is painful to change later.
+Not part of the MVP. **Ship identity is done**: the label is *Workout Log*, the
+`applicationId` is settled (`io.github.volt997.workout`), and the 512 px listing
+icon is at [`store/icon-512.png`](store/icon-512.png).
+
+The icon is generated rather than drawn, from the app's own adaptive-icon vector,
+so it cannot drift from what the launcher shows:
+
+```bash
+java tools/MakeStoreIcon.java store/icon-512.png
+```
+
+Still missing for a real listing: a **feature graphic** (1024x500) and **phone
+screenshots** — neither can be derived from the icon, so both are genuinely new
+work. Then the Play Console side: Data safety form, content rating, privacy-policy
+URL and Play App Signing. The last is worth reading up on first, because enrolling
+changes who holds the app signing key, and this project's release process is built
+around a permanent local one.
 
 ## Dependency notes
 
