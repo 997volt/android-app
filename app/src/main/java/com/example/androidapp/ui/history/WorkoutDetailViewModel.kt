@@ -36,6 +36,10 @@ data class HistoryExercise(
     val id: String,
     val name: String,
     val sets: List<HistorySet>,
+    /** How well the target muscle was worked, 1–10, or null (ROADMAP N8). */
+    val muscleFeel: Int? = null,
+    /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
+    val jointPain: Int? = null,
 )
 
 data class WorkoutDetailUiState(
@@ -99,6 +103,8 @@ class WorkoutDetailViewModel @Inject constructor(
                     HistoryExercise(
                         id = row.id,
                         name = row.exerciseName,
+                        muscleFeel = row.muscleFeel,
+                        jointPain = row.jointPain,
                         sets = logged
                             .filter { it.sessionExerciseId == row.id }
                             .sortedBy { it.setIndex }
@@ -127,6 +133,17 @@ class WorkoutDetailViewModel @Inject constructor(
 
     fun onDeleteSet(setId: String) = write {
         workoutRepository.deleteSet(setId)
+    }
+
+    /**
+     * Saves how an exercise felt (ROADMAP N8), from the workout detail.
+     *
+     * This is the "editable later" half of the decision: the ratings are captured
+     * when an exercise is marked done, but they can be filled in or corrected
+     * afterwards without reopening the workout.
+     */
+    fun onRateExercise(sessionExerciseId: String, muscleFeel: Int?, jointPain: Int?) = write {
+        workoutRepository.rateExercise(sessionExerciseId, muscleFeel, jointPain)
     }
 
     /**

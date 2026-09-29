@@ -64,6 +64,7 @@ class WorkoutDetailScreenTest {
         uiState: WorkoutDetailUiState = state,
         onUpdateSet: (String, Int, Long, Int?, String?) -> Unit = { _, _, _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
+        onRateExercise: (String, Int?, Int?) -> Unit = { _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},
     ) {
         composeTestRule.setContent {
@@ -71,6 +72,7 @@ class WorkoutDetailScreenTest {
                 state = uiState,
                 onUpdateSet = onUpdateSet,
                 onDeleteSet = onDeleteSet,
+                onRateExercise = onRateExercise,
                 onDeleteWorkout = onDeleteWorkout,
                 onBack = {},
             )
@@ -131,6 +133,36 @@ class WorkoutDetailScreenTest {
 
         composeTestRule.onNodeWithText("RPE 8").assertIsDisplayed()
         composeTestRule.onNodeWithText("Felt heavy").assertIsDisplayed()
+    }
+
+    @Test
+    fun anExercisesFeelRatings_areShownInHistory() {
+        // N8: captured when the exercise was marked done, and editable from here.
+        setScreen(
+            uiState = state.copy(
+                exercises = listOf(
+                    HistoryExercise(
+                        id = "se1",
+                        name = "Back Squat",
+                        sets = emptyList(),
+                        muscleFeel = 8,
+                        jointPain = 2,
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Muscle feel 8 · Joint pain 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingTheFeelRow_opensTheRatingEditor() {
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_RATING_ROW, useUnmergedTree = true)
+            .performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).assertExists()
     }
 
     @Test

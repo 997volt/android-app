@@ -26,7 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
-import com.example.androidapp.domain.model.Rpe
+import com.example.androidapp.domain.model.TenPointScale
 
 /**
  * Edits one set: reps, weight, and the optional RPE and comment (ROADMAP N6).
@@ -91,7 +91,7 @@ private fun SetEditorDialogContent(
     val parsedWeight = Weight.parseKilograms(draft.weightText)
     val parsedRpe = draft.rpeText.trim().ifEmpty { null }?.toIntOrNull()
     // Blank is valid; anything typed has to parse *and* sit on the scale.
-    val rpeIsValid = draft.rpeText.isBlank() || (parsedRpe != null && Rpe.isValid(parsedRpe))
+    val rpeIsValid = draft.rpeText.isBlank() || (parsedRpe != null && TenPointScale.isValid(parsedRpe))
 
     AlertDialog(
         modifier = modifier,
@@ -117,7 +117,7 @@ private fun SetEditorDialogContent(
                             reps = parsedReps ?: 0,
                             weightGrams = parsedWeight ?: 0L,
                             // Out of range is already excluded by `enabled`.
-                            rpe = parsedRpe?.takeIf { Rpe.isValid(it) },
+                            rpe = parsedRpe?.takeIf { TenPointScale.isValid(it) },
                             note = draft.noteText.trim().ifEmpty { null },
                         ),
                     )

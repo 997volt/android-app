@@ -57,6 +57,15 @@ data class SessionExercise(
      * the existing ones cannot be edited until it is reopened.
      */
     val finishedAt: Instant? = null,
+    /**
+     * How well the target muscle was worked, 1–10, or null (ROADMAP N8).
+     *
+     * Stored per session exercise rather than per library exercise, so the same
+     * movement is measured differently on different days. Skippable.
+     */
+    val muscleFeel: Int? = null,
+    /** Discomfort in joints or connective tissue, 1–10, or null (ROADMAP N8). */
+    val jointPain: Int? = null,
 ) {
     val isFinished: Boolean get() = finishedAt != null
 }

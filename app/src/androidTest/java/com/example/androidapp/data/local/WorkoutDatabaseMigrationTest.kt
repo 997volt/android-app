@@ -254,6 +254,55 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration7To8_addsTheFeelRatings_leavingThemUnset() {
+        // A v7 database with a real session exercise in it (ROADMAP N8).
+        helper.createDatabase(TEST_DB, 7).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, 2, NULL, NULL, NULL, 1, 2, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, finishedAt,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, 5, 1, 5, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 8, true, MIGRATION_7_8)
+
+        migrated.query(
+            "SELECT muscleFeel, jointPain, finishedAt FROM session_exercises WHERE id = 'se1'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("the existing exercise must survive", 1, cursor.count)
+            // Unrated, not zeroed: nothing is backfilled.
+            assertTrue("muscleFeel must default to null", cursor.isNull(0))
+            assertTrue("jointPain must default to null", cursor.isNull(1))
+            assertEquals("the done state is untouched", 5L, cursor.getLong(2))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

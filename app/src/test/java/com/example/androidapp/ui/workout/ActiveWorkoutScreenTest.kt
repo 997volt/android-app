@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.ui.components.TestTags
 import org.junit.Assert.assertEquals
@@ -31,7 +32,7 @@ class ActiveWorkoutScreenTest {
 
     private fun setScreen(
         state: ActiveWorkoutUiState,
-        onFinishExercise: (String) -> Unit = {},
+        onFinishExercise: (String, Int?, Int?) -> Unit = { _, _, _ -> },
         onReopenExercise: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
@@ -83,13 +84,52 @@ class ActiveWorkoutScreenTest {
     }
 
     @Test
-    fun tappingDone_reportsThatExercise() {
-        var finished: String? = null
-        setScreen(state(isFinished = false), onFinishExercise = { finished = it })
+    fun tappingDone_asksHowItFelt_beforeFinishing() {
+        var finished: Triple<String, Int?, Int?>? = null
+        setScreen(
+            state(isFinished = false),
+            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+        )
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
 
-        assertEquals("se1", finished)
+        // N8: the prompt comes up first, and nothing is written until it is answered.
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).assertExists()
+        assertEquals(null, finished)
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals("se1", finished?.first)
+    }
+
+    @Test
+    fun skippingTheRatingPrompt_finishesWithoutRatings() {
+        var finished: Triple<String, Int?, Int?>? = null
+        setScreen(
+            state(isFinished = false),
+            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+        )
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_DISMISS).performClick()
+
+        assertEquals(Triple("se1", null, null), finished)
+    }
+
+    @Test
+    fun savingTheRatings_passesBothThrough() {
+        var finished: Triple<String, Int?, Int?>? = null
+        setScreen(
+            state(isFinished = false),
+            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+        )
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("8")
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_FIELD).performTextInput("2")
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals(Triple("se1", 8, 2), finished)
     }
 
     @Test

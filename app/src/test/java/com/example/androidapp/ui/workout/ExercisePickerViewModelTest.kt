@@ -214,6 +214,11 @@ class ExercisePickerViewModelTest {
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> = unused()
+        override suspend fun rateExercise(
+            sessionExerciseId: String,
+            muscleFeel: Int?,
+            jointPain: Int?,
+        ): DataResult<Unit> = unused()
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> = unused()
         override suspend fun deleteSession(sessionId: String): DataResult<Unit> = unused()

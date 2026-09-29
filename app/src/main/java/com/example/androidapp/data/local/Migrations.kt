@@ -164,6 +164,26 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
 private const val ADD_SESSION_EXERCISE_FINISHED_AT =
     "ALTER TABLE `session_exercises` ADD COLUMN `finishedAt` INTEGER"
 
+/**
+ * v7 -> v8: how an exercise felt — muscle feel and joint pain (ROADMAP N8).
+ *
+ * Both nullable and unset, so every exercise in an open or past workout reads as
+ * "not rated" and nothing is backfilled. They sit on the session exercise rather
+ * than the library entry, because the same movement differs day to day.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_SESSION_EXERCISE_MUSCLE_FEEL)
+        db.execSQL(ADD_SESSION_EXERCISE_JOINT_PAIN)
+    }
+}
+
+private const val ADD_SESSION_EXERCISE_MUSCLE_FEEL =
+    "ALTER TABLE `session_exercises` ADD COLUMN `muscleFeel` INTEGER"
+
+private const val ADD_SESSION_EXERCISE_JOINT_PAIN =
+    "ALTER TABLE `session_exercises` ADD COLUMN `jointPain` INTEGER"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -172,4 +192,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_4_5,
     MIGRATION_5_6,
     MIGRATION_6_7,
+    MIGRATION_7_8,
 )

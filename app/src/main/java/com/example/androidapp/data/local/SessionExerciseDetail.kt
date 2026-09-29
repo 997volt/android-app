@@ -24,6 +24,10 @@ data class SessionExerciseDetail(
     val techniqueNote: String?,
     /** When this exercise was marked done, or null (ROADMAP N7). */
     val finishedAt: Long?,
+    /** How well the target muscle was worked, 1–10, or null (ROADMAP N8). */
+    val muscleFeel: Int?,
+    /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
+    val jointPain: Int?,
 )
 
 internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise(
@@ -37,4 +41,6 @@ internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise
     restSeconds = restSeconds,
     techniqueNote = techniqueNote,
     finishedAt = finishedAt?.let(Instant::ofEpochMilli),
+    muscleFeel = muscleFeel,
+    jointPain = jointPain,
 )

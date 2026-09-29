@@ -46,12 +46,22 @@ class WorkoutDaoTest {
 
         assertEquals("session-a", first.session.id)
         assertEquals("a second call must not open a second workout", "session-a", second.session.id)
-        assertEquals(1, dao.sessionCount())
+        // Counted with a raw query rather than a DAO method only this test called.
+        assertEquals(1, sessionRows())
         // N4's prompt fires from this flag, so it has to be exact: only the call
         // that actually inserted the row reports a new session.
         assertEquals(true, first.created)
         assertEquals(false, second.created)
     }
+
+    /** Sessions in the table, including soft-deleted ones. */
+    private fun sessionRows(): Int =
+        database.openHelper.readableDatabase
+            .query("SELECT COUNT(*) FROM workout_sessions")
+            .use { cursor ->
+                cursor.moveToFirst()
+                cursor.getInt(0)
+            }
 
     /** The active session, for the tests that only need a row to work with. */
     private suspend fun WorkoutDao.startSession(id: String = "s", now: Long = 1_000L) =
@@ -215,6 +225,38 @@ class WorkoutDaoTest {
 
         dao.softDeleteSessionExercise(id = rowId, at = 2_000L)
         assertNull(dao.findSessionIdForSessionExercise(rowId))
+    }
+
+    @Test
+    fun setSessionExerciseRating_writesAndClearsTheFeelRatings() = runTest {
+        val session = dao.startSession()
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        assertEquals(
+            1,
+            dao.setSessionExerciseRating(id = rowId, muscleFeel = 8, jointPain = 2, at = 5_000L),
+        )
+        val rated = dao.observeSessionExerciseDetails(session.id).first().single()
+        assertEquals(8, rated.muscleFeel)
+        assertEquals(2, rated.jointPain)
+
+        // Nulls clear, because from the detail's editor the fields are the state.
+        assertEquals(
+            1,
+            dao.setSessionExerciseRating(id = rowId, muscleFeel = null, jointPain = null, at = 6_000L),
+        )
+        val cleared = dao.observeSessionExerciseDetails(session.id).first().single()
+        assertNull(cleared.muscleFeel)
+        assertNull(cleared.jointPain)
+    }
+
+    @Test
+    fun setSessionExerciseRating_reportsZeroRowsForAnUnknownExercise() = runTest {
+        assertEquals(
+            0,
+            dao.setSessionExerciseRating(id = "nope", muscleFeel = 5, jointPain = 5, at = 1L),
+        )
     }
 
     private suspend fun insertExercise(sessionId: String, exerciseId: String, position: Int) {

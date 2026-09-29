@@ -61,6 +61,10 @@ data class SessionExerciseRow(
      * is hidden, its sets are dimmed and not editable, and Reopen restores both.
      */
     val isFinished: Boolean = false,
+    /** How well the target muscle was worked, 1–10, or null (ROADMAP N8). */
+    val muscleFeel: Int? = null,
+    /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
+    val jointPain: Int? = null,
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -274,9 +278,25 @@ class ActiveWorkoutViewModel @Inject constructor(
     /**
      * Marks an exercise done (ROADMAP N7) and offers an undo, because the mis-tap
      * this prevents is also the mis-tap it can cause.
+     *
+     * [muscleFeel] and [jointPain] are the skippable half (ROADMAP N8): they are
+     * written first, so a failure leaves the exercise open with an error to read
+     * rather than done with the ratings silently lost.
      */
-    fun onFinishExercise(sessionExerciseId: String) {
+    fun onFinishExercise(
+        sessionExerciseId: String,
+        muscleFeel: Int? = null,
+        jointPain: Int? = null,
+    ) {
         viewModelScope.launch {
+            if (muscleFeel != null || jointPain != null) {
+                val rated = workoutRepository.rateExercise(sessionExerciseId, muscleFeel, jointPain)
+                if (rated is DataResult.Failure) {
+                    lastError.value = rated.error
+                    return@launch
+                }
+                lastError.value = null
+            }
             when (val result = workoutRepository.finishExercise(sessionExerciseId)) {
                 is DataResult.Success -> {
                     lastError.value = null
@@ -510,6 +530,8 @@ class ActiveWorkoutViewModel @Inject constructor(
             techniqueNote = techniqueNote,
             restSeconds = restSeconds,
             isFinished = isFinished,
+            muscleFeel = muscleFeel,
+            jointPain = jointPain,
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

@@ -38,20 +38,6 @@ enum class SetType(val label: String) {
 }
 
 /**
- * The perceived-effort scale (ROADMAP N6).
- *
- * The bounds live here rather than in the editor and again in the repository, so
- * the two cannot disagree about what is a usable value. Null is valid and means
- * "not recorded" — the one-tap log path writes no RPE at all.
- */
-object Rpe {
-    const val MIN = 1
-    const val MAX = 10
-
-    fun isValid(value: Int?): Boolean = value == null || value in MIN..MAX
-}
-
-/**
  * What this exercise looked like the last time it was trained.
  *
  * Used to prefill a new set (P1.3): the single most useful thing the app can put

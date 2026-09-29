@@ -10,7 +10,7 @@ import com.example.androidapp.domain.NotFoundException
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.model.PreviousPerformance
-import com.example.androidapp.domain.model.Rpe
+import com.example.androidapp.domain.model.TenPointScale
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
@@ -117,6 +117,27 @@ class RoomWorkoutRepository @Inject constructor(
         if (updated == 0) throw NotFoundException("session exercise $sessionExerciseId")
     }
 
+    override suspend fun rateExercise(
+        sessionExerciseId: String,
+        muscleFeel: Int?,
+        jointPain: Int?,
+    ): DataResult<Unit> = dataResultOf {
+        // Both sit on the same 1–10 scale as a set's RPE, and all three are
+        // skippable, so the one validator covers them (ROADMAP N8).
+        if (!TenPointScale.isValid(muscleFeel) || !TenPointScale.isValid(jointPain)) {
+            throw InvalidInputException(
+                "Ratings must be between ${TenPointScale.MIN} and ${TenPointScale.MAX}.",
+            )
+        }
+        val updated = dao.setSessionExerciseRating(
+            id = sessionExerciseId,
+            muscleFeel = muscleFeel,
+            jointPain = jointPain,
+            at = timeSource.nowEpochMillis(),
+        )
+        if (updated == 0) throw NotFoundException("session exercise $sessionExerciseId")
+    }
+
     override suspend fun finishSession(sessionId: String): DataResult<Unit> = dataResultOf {
         // Finishing also stops any running rest: leaving a timer armed on a closed
         // session would fire a notification for a workout that is over.
@@ -192,8 +213,8 @@ class RoomWorkoutRepository @Inject constructor(
         dataResultOf {
             // The editor's field is the real guard; this is the boundary that keeps
             // an out-of-range value from reaching the database (ROADMAP N6).
-            if (!Rpe.isValid(rpe)) {
-                throw InvalidInputException("RPE must be between ${Rpe.MIN} and ${Rpe.MAX}.")
+            if (!TenPointScale.isValid(rpe)) {
+                throw InvalidInputException("RPE must be between ${TenPointScale.MIN} and ${TenPointScale.MAX}.")
             }
 
             // Read the stored row first, so the columns an edit does not touch

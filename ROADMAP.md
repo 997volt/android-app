@@ -52,12 +52,12 @@ left alone without being forgotten.
 
 Changes left to land before anything in *Later*. N1 — home as the start
 destination — N2 — custom exercises while you train — N4 — the readiness note —
-N5 — per-exercise rest and cues — N6 — RPE and a comment per set — and N7 — Done
-per exercise — are done; they are in [CHANGELOG.md](CHANGELOG.md) under
-*Unreleased*, because shipped work lives there rather than here.
+N5 — per-exercise rest and cues — N6 — RPE and a comment per set — N7 — Done per
+exercise — and N8 — how it felt — are done; they are in
+[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
+rather than here.
 
-- **N3** is what can be set up in advance.
-- **N8** is what a workout captures while you are in it.
+- **N3** is what can be set up in advance, and the last item in this batch.
 
 ### N3 — Workout templates, planned before you train
 
@@ -77,43 +77,14 @@ smaller first version. It needs two new sync-shaped tables (`templates`,
 `template_exercises`) and therefore a migration, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
 
-### N8 — How it felt: muscle and joints
+**Migration numbering follows shipment.** N5 took 3→4, N4 4→5, N6 5→6, N7 6→7 and N8
+7→8, so N3 takes 8→9. Columns and tables for a feature that has not been built are
+*not* added ahead of it, because Room validates the declared entities against the
+migrated schema — an early column would force an entity field nothing reads. A
+half-written migration is what the `MigrationTestHelper` tests exist to catch.
 
-Captured when an exercise is marked done (N7):
-
-- **Muscle feel, 1–10** — how well the target muscle was worked.
-- **Joint pain, 1–10** — discomfort in joints or connective tissue.
-- Stored per session exercise (`muscleFeel`, `jointPain`), so the same movement is
-  measured differently on different days. Skippable, and editable later from the
-  workout detail.
-- **Decided: numbers only for now** — no on-screen anchor for what 1 and 10 mean.
-  Recorded as a decision rather than an oversight: an unlabelled scale drifts
-  between sessions, so labelling the ends is the obvious first refinement.
-- Feeds **P2.8** (balance warnings), or a discomfort view of its own.
-
-**Schema (N8).** Both columns are nullable and additive, the shape migration 2→3
-already used for `restEndsAt` — no backfill, no rewrite:
-
-| Table | New columns |
-| --- | --- |
-| `session_exercises` | `muscleFeel`, `jointPain` |
-
-`workout_sessions.notes` already exists but nothing sets it; the readiness note went
-to its own `readinessNote` column (N4) rather than into it, so a future per-workout
-note does not collide with a readiness note. A set's comment lives on `set_entries`
-(N6) for the same reason: one is about the set, the other about the workout.
-
-**Migration numbering follows shipment.** N5 took 3→4, N4 took 4→5, N6 took 5→6 and
-N7 took 6→7. Each change below takes the next version as it ships; columns for a
-feature that has not been built are *not* added ahead of it, because Room validates
-the declared entities against the migrated schema — a column added early would force
-an entity field nothing reads. N3 and the columns above therefore cannot share a
-version unless they ship in the same commit, and two half-written migrations are what
-the `MigrationTestHelper` tests exist to catch.
-
-**Order:** N3 hangs off the home screen N1 introduced. N8 builds on N7, which is
-done, so it is the only item left in this batch. Everything else stays in *Later*
-until these land.
+**Order:** N3 hangs off the home screen N1 introduced and depends on nothing else
+here. Everything in *Later* waits until it lands.
 
 ## Later (still self-contained)
 

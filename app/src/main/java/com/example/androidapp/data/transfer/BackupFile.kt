@@ -86,8 +86,10 @@ data class SessionExerciseDto(
     val sessionId: String,
     val exerciseId: String,
     val position: Int,
-    /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N7). */
+    /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N7, N8). */
     val finishedAt: Long? = null,
+    val muscleFeel: Int? = null,
+    val jointPain: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

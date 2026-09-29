@@ -80,6 +80,20 @@ interface WorkoutRepository {
     /** Reopens a done exercise (ROADMAP N7), restoring logging and editing. */
     suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit>
 
+    /**
+     * Writes how an exercise felt — muscle feel and joint pain, each 1–10 or null
+     * to clear it (ROADMAP N8).
+     *
+     * Separate from [finishExercise] rather than folded into it: the ratings are
+     * captured *at* Done but are skippable, and they stay editable from the workout
+     * detail afterwards, which is a different write on a possibly-finished row.
+     */
+    suspend fun rateExercise(
+        sessionExerciseId: String,
+        muscleFeel: Int?,
+        jointPain: Int?,
+    ): DataResult<Unit>
+
     /** Marks the session complete. It stops being "active" and enters history. */
     suspend fun finishSession(sessionId: String): DataResult<Unit>
 

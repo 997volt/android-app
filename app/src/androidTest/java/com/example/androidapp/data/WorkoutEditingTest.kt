@@ -200,6 +200,45 @@ class WorkoutEditingTest {
         )
     }
 
+    @Test
+    fun ratingAnExercise_storesMuscleFeelAndJointPain() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+
+        val result = repository.rateExercise("se1", muscleFeel = 8, jointPain = 2)
+
+        assertTrue(result is DataResult.Success)
+        val stored = database.workoutDao().observeSessionExerciseDetails(sessionId).first().single()
+        assertEquals(8, stored.muscleFeel)
+        assertEquals(2, stored.jointPain)
+    }
+
+    @Test
+    fun aRatingOutsideTheScale_isRefused_withoutTouchingTheExercise() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+
+        val result = repository.rateExercise("se1", muscleFeel = 11, jointPain = 2)
+
+        assertTrue((result as DataResult.Failure).error is DataError.Invalid)
+        assertNull(
+            "a refused write must leave the exercise unrated",
+            database.workoutDao().observeSessionExerciseDetails(sessionId).first().single().muscleFeel,
+        )
+    }
+
+    @Test
+    fun ratingsSurviveFinishingAndReopening() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+        repository.rateExercise("se1", muscleFeel = 8, jointPain = 2)
+
+        repository.finishExercise("se1")
+        repository.reopenExercise("se1")
+
+        // Reopening is for fixing a mis-tap; it must not wipe how it felt.
+        val stored = database.workoutDao().observeSessionExerciseDetails(sessionId).first().single()
+        assertEquals(8, stored.muscleFeel)
+        assertEquals(2, stored.jointPain)
+    }
+
     private suspend fun historyVolume(): Long =
         database.workoutDao().observeHistory().first().single().volumeGrams
 

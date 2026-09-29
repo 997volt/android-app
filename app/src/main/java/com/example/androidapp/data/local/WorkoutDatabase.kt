@@ -21,7 +21,7 @@ import androidx.room.TypeConverters
         SessionExerciseEntity::class,
         SetEntryEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

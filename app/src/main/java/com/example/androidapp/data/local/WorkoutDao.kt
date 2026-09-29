@@ -98,7 +98,9 @@ interface WorkoutDao {
                e.equipment AS equipment,
                e.restSeconds AS restSeconds,
                e.techniqueNote AS techniqueNote,
-               se.finishedAt AS finishedAt
+               se.finishedAt AS finishedAt,
+               se.muscleFeel AS muscleFeel,
+               se.jointPain AS jointPain
         FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = :sessionId
@@ -117,12 +119,6 @@ interface WorkoutDao {
      */
     @Query("SELECT COALESCE(MAX(position), -1) FROM session_exercises WHERE sessionId = :sessionId")
     suspend fun maxPosition(sessionId: String): Int
-
-    @Query("SELECT COUNT(*) FROM workout_sessions")
-    suspend fun sessionCount(): Int
-
-    @Query("SELECT COUNT(*) FROM session_exercises WHERE sessionId = :sessionId")
-    suspend fun sessionExerciseCount(sessionId: String): Int
 
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity)
@@ -253,6 +249,26 @@ interface WorkoutDao {
     /** The session an exercise belongs to, so ending it can also stop the rest. */
     @Query("SELECT sessionId FROM session_exercises WHERE id = :id AND deletedAt IS NULL")
     suspend fun findSessionIdForSessionExercise(id: String): String?
+
+    /**
+     * Writes an exercise's feel ratings (ROADMAP N8). Nulls clear them, because
+     * from the workout detail's editor the fields are the whole state.
+     *
+     * Rows updated: 0 means the exercise is gone.
+     */
+    @Query(
+        """
+        UPDATE session_exercises
+        SET muscleFeel = :muscleFeel, jointPain = :jointPain, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setSessionExerciseRating(
+        id: String,
+        muscleFeel: Int?,
+        jointPain: Int?,
+        at: Long,
+    ): Int
 
     /** Rows updated: 0 means the set does not exist or was deleted. */
     @Update

@@ -45,6 +45,7 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -72,6 +73,7 @@ fun WorkoutDetailRoute(
         state = state,
         onUpdateSet = viewModel::onUpdateSet,
         onDeleteSet = viewModel::onDeleteSet,
+        onRateExercise = viewModel::onRateExercise,
         onDeleteWorkout = viewModel::onDeleteWorkout,
         onBack = onBack,
         modifier = modifier,
@@ -84,6 +86,7 @@ fun WorkoutDetailScreen(
     state: WorkoutDetailUiState,
     onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
     onDeleteSet: (String) -> Unit,
+    onRateExercise: (String, Int?, Int?) -> Unit,
     onDeleteWorkout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,6 +115,7 @@ fun WorkoutDetailScreen(
             state = state,
             onEditSet = { editing = it },
             onDeleteSet = onDeleteSet,
+            onRate = onRateExercise,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -182,6 +186,7 @@ private fun DetailContent(
     state: WorkoutDetailUiState,
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (String) -> Unit,
+    onRate: (String, Int?, Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -217,6 +222,7 @@ private fun DetailContent(
                         exercise = exercise,
                         onEditSet = onEditSet,
                         onDeleteSet = { onDeleteSet(it.id) },
+                        onRate = onRate,
                     )
                     HorizontalDivider()
                 }
@@ -286,6 +292,7 @@ private fun ExerciseBlock(
     exercise: HistoryExercise,
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (HistorySet) -> Unit,
+    onRate: (String, Int?, Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val editLabel = stringResource(R.string.set_edit_action)
@@ -344,7 +351,74 @@ private fun ExerciseBlock(
                 }
             }
         }
+
+        ExerciseRatingSection(exercise = exercise, onRate = onRate)
     }
+}
+
+/**
+ * The "How it felt" row on a past workout, and the editor behind it (ROADMAP N8).
+ *
+ * Owning the dialog here keeps the transient open/closed state next to the row that
+ * opens it. Shown for every exercise in a past workout, not only ones that were
+ * marked done while training: the ratings are meant to be fillable afterwards,
+ * which is the "editable later" half of the decision.
+ */
+@Composable
+private fun ExerciseRatingSection(
+    exercise: HistoryExercise,
+    onRate: (String, Int?, Int?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var editing by remember { mutableStateOf(false) }
+    val editLabel = stringResource(R.string.rating_edit_title)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(TestTags.EXERCISE_RATING_ROW)
+            .clickable(onClickLabel = editLabel) { editing = true }
+            .padding(vertical = 8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.rating_row_title),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = ratingSummary(exercise.muscleFeel, exercise.jointPain)
+                ?: stringResource(R.string.rating_row_add),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (exercise.muscleFeel == null && exercise.jointPain == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
+
+    if (editing) {
+        ExerciseRatingDialog(
+            initialMuscleFeel = exercise.muscleFeel,
+            initialJointPain = exercise.jointPain,
+            isPrompt = false,
+            onDismiss = { editing = false },
+            onSave = { feel, pain ->
+                editing = false
+                onRate(exercise.id, feel, pain)
+            },
+        )
+    }
+}
+
+/** `Muscle feel 8 · Joint pain 2`, or null when neither was recorded. */
+@Composable
+private fun ratingSummary(muscleFeel: Int?, jointPain: Int?): String? {
+    val parts = listOfNotNull(
+        muscleFeel?.let { stringResource(R.string.rating_muscle_value, it) },
+        jointPain?.let { stringResource(R.string.rating_joint_value, it) },
+    )
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
 @Composable
@@ -378,6 +452,7 @@ private fun WorkoutDetailScreenPreview() {
             ),
             onUpdateSet = { _, _, _, _, _ -> },
             onDeleteSet = {},
+            onRateExercise = { _, _, _ -> },
             onDeleteWorkout = {},
             onBack = {},
         )

@@ -47,6 +47,13 @@ data class SessionExerciseEntity(
      * they are, and this only stops more sets being added and dims what is there.
      */
     val finishedAt: Long? = null,
+    /**
+     * How well the target muscle was worked, 1–10, or null (ROADMAP N8). Captured
+     * when the exercise is marked done and editable from the workout detail.
+     */
+    val muscleFeel: Int? = null,
+    /** Discomfort in joints or connective tissue, 1–10, or null (ROADMAP N8). */
+    val jointPain: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

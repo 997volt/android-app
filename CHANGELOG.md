@@ -8,6 +8,13 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **How it felt: muscle feel and joint pain.** Marking an exercise done asks, once
+  and skippably, for two 1–10 ratings — how well the target muscle was worked, and
+  any joint or connective-tissue discomfort — stored per session exercise so the
+  same movement is measured differently on different days. They stay editable from
+  the workout detail, and are deliberately unlabelled: labelling what 1 and 10 mean
+  is the obvious first refinement rather than something to guess at now. Adds
+  migration 7→8: two nullable columns, no backfill.
 - **Done, so an exercise stops taking sets by accident.** A per-exercise **Done**
   action hides its **Log set** button and dims its sets, which then cannot be
   edited; it also stops any rest the exercise had running, and an **Undo** on the

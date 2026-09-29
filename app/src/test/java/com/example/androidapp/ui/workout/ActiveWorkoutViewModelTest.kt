@@ -288,6 +288,64 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun finishingWithRatings_writesThem_andMarksTheRowDone() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+
+        viewModel.onFinishExercise(id, muscleFeel = 8, jointPain = 2)
+        settle()
+
+        val row = viewModel.uiState.value.exercises.single()
+        assertEquals(8, row.muscleFeel)
+        assertEquals(2, row.jointPain)
+        assertTrue("the exercise is done either way (N8)", row.isFinished)
+    }
+
+    @Test
+    fun skippingTheRatings_stillFinishesTheExercise() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onFinishExercise(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        val row = viewModel.uiState.value.exercises.single()
+        assertTrue(row.isFinished)
+        assertNull("skipping must not invent a rating", row.muscleFeel)
+        assertNull(row.jointPain)
+    }
+
+    @Test
+    fun aFailedRating_leavesTheExerciseOpen_andSurfacesTheError() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        repository.failWrites = true
+
+        viewModel.onFinishExercise(id, muscleFeel = 8, jointPain = null)
+        settle()
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertFalse(
+            "the ratings are written first, so a failure leaves the exercise open",
+            viewModel.uiState.value.exercises.single().isFinished,
+        )
+    }
+
+    @Test
     fun addingAnExercise_showsItAsARow() = runTest(dispatcher) {        val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
         observe(viewModel)
@@ -676,6 +734,22 @@ class ActiveWorkoutViewModelTest {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             exercises.value = exercises.value.map {
                 if (it.id == sessionExerciseId) it.copy(finishedAt = null) else it
+            }
+            return successUnit()
+        }
+
+        override suspend fun rateExercise(
+            sessionExerciseId: String,
+            muscleFeel: Int?,
+            jointPain: Int?,
+        ): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            exercises.value = exercises.value.map {
+                if (it.id == sessionExerciseId) {
+                    it.copy(muscleFeel = muscleFeel, jointPain = jointPain)
+                } else {
+                    it
+                }
             }
             return successUnit()
         }

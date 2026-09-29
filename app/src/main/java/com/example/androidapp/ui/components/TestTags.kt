@@ -31,6 +31,16 @@ object TestTags {
     const val EXERCISE_REOPEN = "exercise_reopen"
     const val EXERCISE_FINISHED_LABEL = "exercise_finished_label"
 
+    /**
+     * How an exercise felt (ROADMAP N8): the dialog's two fields and the workout
+     * detail's row that reaches it.
+     */
+    const val RATING_MUSCLE_FIELD = "rating_muscle_field"
+    const val RATING_JOINT_FIELD = "rating_joint_field"
+    const val RATING_SAVE = "rating_save"
+    const val RATING_DISMISS = "rating_dismiss"
+    const val EXERCISE_RATING_ROW = "exercise_rating_row"
+
     const val HOME_TITLE = "home_title"
     const val HOME_START = "home_start"
     const val HOME_RESUME = "home_resume"
