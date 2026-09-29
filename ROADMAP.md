@@ -191,7 +191,7 @@ them is a decision, not a backlog.
 | P5.3 | Monetization / Play Billing | Adds a Play-services dependency; revisit only with a concrete reason to charge. |
 | P5.4 | Localization | Until there is a non-English user. |
 | F6 | Modularization into `:core:*` / `:feature:*` | One module is correct at this size; the split would add build friction for no payoff. |
-| F11 | Product analytics | Crash reporting may be worth it; analytics on a local tool is not. |
+| F11 | ✅ Crash logs, local | Uncaught exceptions are recorded to app-private storage ([`CrashRecorder`](app/src/main/java/com/example/androidapp/platform/CrashRecorder.kt)) and ride along with an export, because a release build is not debuggable and that is the only way a crash reaches the user. **Nothing is transmitted** — no `INTERNET` permission, so the quality bar's line holds. Analytics: still no; on a single-user local tool it buys nothing. |
 | F18 | ✅ CI / repo hygiene | Dependabot (weekly, grouped), every action pinned to a commit SHA, Gradle wrapper validation, failing tests named in the job summary ([`tools/ci-summarise-failures.py`](tools/ci-summarise-failures.py)), [`.editorconfig`](.editorconfig) and a [`CHANGELOG`](CHANGELOG.md). An [MIT `LICENSE`](LICENSE). |
 
 ## Explicit non-goals

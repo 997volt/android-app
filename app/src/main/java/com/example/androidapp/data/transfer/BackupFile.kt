@@ -4,6 +4,7 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.platform.CrashLog
 import kotlinx.serialization.Serializable
 
 /**
@@ -34,6 +35,14 @@ data class BackupFile(
     val sessions: List<SessionDto>,
     val sessionExercises: List<SessionExerciseDto>,
     val sets: List<SetDto>,
+    /**
+     * Diagnostics, not user data (ROADMAP F11). They ride along with an export
+     * because a release build is not debuggable and this is the only way a crash log
+     * reaches the user; import deliberately ignores them.
+     *
+     * Defaulted so a file written before this field existed still decodes.
+     */
+    val crashLogs: List<CrashLog> = emptyList(),
 )
 
 @Serializable

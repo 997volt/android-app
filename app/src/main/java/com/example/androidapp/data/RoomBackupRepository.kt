@@ -12,6 +12,7 @@ import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.repository.BackupRepository
 import com.example.androidapp.domain.repository.ImportSummary
+import com.example.androidapp.platform.CrashLogStore
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,6 +27,7 @@ import javax.inject.Singleton
 class RoomBackupRepository @Inject constructor(
     private val database: WorkoutDatabase,
     private val timeSource: TimeSource,
+    private val crashLogStore: CrashLogStore,
 ) : BackupRepository {
 
     private val dao = database.backupDao()
@@ -39,6 +41,9 @@ class RoomBackupRepository @Inject constructor(
                 sessions = dao.allSessions().map { it.toDto() },
                 sessionExercises = dao.allSessionExercises().map { it.toDto() },
                 sets = dao.allSets().map { it.toDto() },
+                // Diagnostics ride along so they are reachable on a release
+                // build; import ignores them, deliberately.
+                crashLogs = crashLogStore.all(),
             ),
         )
     }

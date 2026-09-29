@@ -9,11 +9,13 @@ import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.seedMissingExercises
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.nowEpochMillis
+import com.example.androidapp.platform.CrashLogStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -56,4 +58,10 @@ object DatabaseModule {
                 },
             )
             .build()
+
+    /** Crash logs live beside the database, in app-private storage (ROADMAP F11). */
+    @Provides
+    @Singleton
+    fun provideCrashLogStore(@ApplicationContext context: Context): CrashLogStore =
+        CrashLogStore(File(context.filesDir, "crash-logs"))
 }
