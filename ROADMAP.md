@@ -190,7 +190,7 @@ them is a decision, not a backlog.
 | P5.2, P3.7 | Friends, shared routines | Accounts, servers and moderation. |
 | P5.3 | Monetization / Play Billing | Adds a Play-services dependency; revisit only with a concrete reason to charge. |
 | P5.4 | Localization | Until there is a non-English user. |
-| F6 | Modularization into `:core:*` / `:feature:*` | One module is correct at this size; the split would add build friction for no payoff. |
+| F6 | Modularization into `:core:*` / `:feature:*` | **Deliberately not done.** One module is correct at this size — 74 source files, ~6,500 lines, 4 modules — and the split would add build friction for no payoff on a shipped app. Revisited after v1.2 and re-affirmed, so it is a decision rather than an untouched backlog row. **What would change the answer is a goal, not the refactor:** a measured build-time problem, wanting to work on one feature without compiling the rest, or a second surface (Wear, a widget). Name the goal first, then scope the split. |
 | F11 | ✅ Crash logs, local | Uncaught exceptions are recorded to app-private storage ([`CrashRecorder`](app/src/main/java/com/example/androidapp/platform/CrashRecorder.kt)) and ride along with an export, because a release build is not debuggable and that is the only way a crash reaches the user. **Nothing is transmitted** — no `INTERNET` permission, so the quality bar's line holds. Analytics: still no; on a single-user local tool it buys nothing. |
 | F18 | ✅ CI / repo hygiene | Dependabot (weekly, grouped), every action pinned to a commit SHA, Gradle wrapper validation, failing tests named in the job summary ([`tools/ci-summarise-failures.py`](tools/ci-summarise-failures.py)), [`.editorconfig`](.editorconfig) and a [`CHANGELOG`](CHANGELOG.md). An [MIT `LICENSE`](LICENSE). |
 
@@ -247,23 +247,19 @@ around a permanent local one.
 
 ## Suggested next PRs
 
-The MVP and the first release are both done — every earlier entry in this list has
-shipped. What is genuinely left, in the order it is worth doing:
+**There is no next PR.** Everything this file listed as MVP, quality-bar or release
+work is done, including the last three — local crash logs (F11), the first real
+design-system extraction (F8), and CI hygiene (F18) — all after v1.2 shipped.
 
-1. **P1.17 — accessibility.** The only unfinished item the quality bar itself calls
-   *"MVP quality, not a later phase"*. Set rows need an `onClickLabel`, and a failed
-   write must be **announced**, not merely drawn — which is the entire point of F7.
-   testTags have been added ad hoc (the set editor's fields); the pass has not been
-   made systematic. This is the one item that is arguably owed rather than optional.
-2. **The two trivia under *Simplicity*.** `RestTimer.format` and
-   `WorkoutFormat.elapsed` both implement `m:ss`; `SessionExerciseDetail.movementPattern`
-   is selected by the join and then dropped. A few lines each, and each misleads the
-   next reader.
-3. **F18 — CI and repo hygiene.** Worth doing *now* precisely because CI finally runs
-   green: Dependabot, SHA-pinned actions, wrapper validation, `LICENSE`, `CHANGELOG`.
-   Until the `android-37` fix, none of it would have been exercised.
-4. **F11 — crash reporting**, once a GMS-free backend is chosen. Blocked on that
-   decision, not on code; the privacy rules in the quality bar constrain it.
-5. **F8 / F6 — design system and module split.** Refactors with no user-visible
-   payoff yet. Do them when the duplication or the build time actually hurts, rather
-   than speculatively.
+What remains is a decision and a set of product choices, not a backlog:
+
+- **F6 (module split)** — deliberately not done. Its row above says what would change
+  that: a named goal, not a refactor.
+- **A "Crash logs" screen** — reading them through an export is awkward, so this is
+  worth doing only if it turns out to annoy in practice.
+- **The parked list** — each entry is a product in its own right.
+- **Analytics** — decided against; on a single-user local tool it buys nothing.
+
+If you are looking for the next thing to do, the honest answer is that the app is
+finished for its stated scope. Further work is a product decision, not an outstanding
+task — which is a different and better position than a long unfinished list.
