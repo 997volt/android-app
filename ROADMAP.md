@@ -13,7 +13,7 @@ your history, keep your data.
 more trustworthy, it does not belong here. Anything that ships data off the device,
 or needs an account or a server, is out by default.
 
-Feature ids (`F#` foundations, `B#` reported defects, `N#` the next planned changes,
+Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
 order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N8` have
@@ -54,8 +54,8 @@ left alone without being forgotten.
 
 ## Next
 
-Queued in order: the reported defects first, then three additions to what a workout
-records. N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
+Queued in order: the defects first, then three additions to what a workout records.
+N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
 
 **Fixes first.**
 
@@ -64,6 +64,7 @@ records. N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
 | B1 | Export and import are two overflow menus deep | Move them to the home overflow |
 | B2 | Removing an exercise is irreversible | Ask first — a confirmation dialog |
 | B3 | An **Undo** can act on something that is already gone | Check the precondition and report, instead of doing nothing |
+| B4 | A repository read can throw and take a screen down | Wrap it in `DataResult`, as the writes already are |
 
 **Then three additions to what a workout records.**
 
@@ -97,9 +98,21 @@ screen. It undoes the **set**, not the removal, and that undo then fails the
 loggable-exercise guard — so nothing happens, silently.
 
 Fix: each undo checks its precondition and says so when it cannot proceed, and a
-snackbar is dismissed when the state it refers to disappears. The full diagnosis is in
-the commit that wrote this row; B2 removes the mis-tap, but the silent failure is its
-own bug.
+snackbar is dismissed when the state it refers to disappears. It gets a regression
+test, because this is a stale-state path: a deleted set's undo, tapped after its
+exercise is gone, must report rather than no-op. The full diagnosis is in the commit
+that wrote this row; B2 removes the mis-tap, but the silent failure is its own bug.
+
+### B4 — Reads return a value, like writes
+
+`ExerciseRepository.getExercise` and `observeExercises` are the last calls that can
+throw out of a flow and take a screen down. Every write already returns `DataResult`,
+and F7's argument applies here unchanged: a failure the UI can render beats an
+exception that disappears inside a coroutine.
+
+Wrap both and map them the way `dataResultOf` maps a write, showing the failure where
+the screen would otherwise have shown data. When this lands, the quality bar's *Errors*
+line goes back to being a rule rather than a standing defect.
 
 ### N9 — Joint pain location
 
@@ -221,9 +234,10 @@ Rules to follow, not a status report.
 - **No Google Play services at runtime.** The app runs on a degoogled device.
   Firebase, `play-services-*`, Play Billing and Play Integrity are out by default; a
   future integration has to argue past this line.
-- **Errors are values.** Writes return `DataResult`. Reads do not yet —
-  `ExerciseRepository` can still throw out of a flow and take a screen down. Make them
-  match, or record why they are exempt.
+- **Errors are values.** Writes return `DataResult`; reads do not yet —
+  `ExerciseRepository` can still throw out of a flow and take a screen down. That gap is
+  **B4**, scheduled rather than left as standing furniture, and this line returns to
+  being a rule once it holds.
 - **Measure before optimizing.** The one known hot spot — a per-second recomposition
   of the workout list — was found by reading the code and is fixed. Any further
   performance claim should come with a measurement.
@@ -283,6 +297,11 @@ a dependency inventory, and an enumerated feature list that v1.3 quietly outgrew
    rather than a forgotten item.
 
 Bump the review stamp at the top whenever this file is checked against the code.
+
+**Size check.** This file is at roughly 300 lines — the point where it stops being a
+queue and starts being a reference. *Decisions already made* and *Quality bar* are the
+two sections that accumulate rather than drain; at the next milestone, move them to a
+`DECISIONS.md` and leave this file as pure queue.
 
 ## References
 
