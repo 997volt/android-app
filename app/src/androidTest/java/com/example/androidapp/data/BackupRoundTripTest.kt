@@ -12,6 +12,8 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.platform.CrashLogStore
+import java.nio.file.Files
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -47,7 +49,13 @@ class BackupRoundTripTest {
             ApplicationProvider.getApplicationContext(),
             WorkoutDatabase::class.java,
         ).build()
-        repository = RoomBackupRepository(database, clock)
+        repository = RoomBackupRepository(
+            database = database,
+            timeSource = clock,
+            // Nothing is recorded here, but the export path has to be built the
+            // same way the app builds it.
+            crashLogStore = CrashLogStore(Files.createTempDirectory("crash-logs").toFile()),
+        )
         workouts = RoomWorkoutRepository(database, clock)
     }
 
