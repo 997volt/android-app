@@ -50,9 +50,12 @@ left alone without being forgotten.
 
 ## Next — planned app changes
 
-Two changes left, to land before anything in *Later*. N1 — home as the start
+Changes left to land before anything in *Later*. N1 — home as the start
 destination — is done; it is in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
 because shipped work lives there rather than here.
+
+- **N2–N3** reshape what can be set up in advance.
+- **N4–N8** are what a workout captures while you are in it.
 
 ### N2 — Custom exercises while you train
 
@@ -79,11 +82,96 @@ A named, reusable workout defined ahead of time and started in one tap.
 
 This promotes P3.1 + P3.2 ahead of the rest of the backlog, with a deliberately
 smaller first version. It needs two new sync-shaped tables (`templates`,
-`template_exercises`) and therefore **migration 3→4**, with the exported schema and a
+`template_exercises`) and therefore a migration, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
 
-**Order:** both hang off the home screen N1 introduced, and are otherwise
-independent of each other. Everything else stays in *Later* until these land.
+### N4 — A readiness note when a workout starts
+
+A free-text field for what is not recovered today: "shoulders still sore from
+Monday", "slept badly, legs heavy".
+
+- **Decided: prompt when the session opens**, skippable, and editable afterwards
+  from the workout header — the day it matters is the day a passive field gets
+  ignored.
+- Stored on the session (`readinessNote`), so it rides through history, the workout
+  detail, and export.
+- **Deliberately free text.** The structured version — picking the sore groups from
+  the existing `MuscleGroup` taxonomy — is a later step, and the column does not
+  change to get there.
+
+### N5 — Per-exercise rest, and technique cues
+
+Two attributes on a library exercise:
+
+- **Rest, per exercise** — `restSeconds` on `exercises`, falling back to today's
+  90 s default when unset. The +15 s/−15 s controls stay one-off adjustments to the
+  current rest; this is the exercise's own default.
+- **Technique cues** — `techniqueNote`: a short "chest up, elbows tucked" shown under
+  the exercise name on the active workout screen and on the detail screen. It is the
+  note you want *while* lifting, not a description of the movement.
+
+**Decided: library-level only for now** — no per-session override. Because seeded
+exercises must be editable too, the exercise detail screen gains an edit mode. That
+is safe: the seeder uses `INSERT OR IGNORE` and never updates an existing row, so an
+edited rest or cue survives every future top-up — which is why this can be a plain
+column rather than an overrides table.
+
+### N6 — RPE and a comment on every set
+
+- `rpe` (1–10) and `note` on `set_entries`.
+- **Decided: RPE is always visible in the set editor and may be left empty.**
+- The one-tap **Log set** path still writes neither, so logging stays fast; the row
+  shows a small marker when either is set, and the workout detail shows the text.
+
+This **replaces P1.5**, which asked for per-set notes and RPE in the abstract.
+
+### N7 — End an exercise, so sets cannot be added by accident
+
+- `finishedAt` on `session_exercises`. A **Done** action per exercise hides the
+  "Log set" button and dims the sets.
+- **Decided: a done exercise's sets cannot be edited, and a Reopen button restores
+  editing** — accident protection must not become its own trap. An undo on the
+  snackbar covers the immediate mis-tap.
+- Ending an exercise clears any running rest.
+- Wording matters: the workout-level action is already called *Finish*, so this is
+  *Done*, never *Finish*.
+- Done is a session state, not a delete: the sets stay in history.
+
+### N8 — How it felt: muscle and joints
+
+Captured when an exercise is marked done (N7):
+
+- **Muscle feel, 1–10** — how well the target muscle was worked.
+- **Joint pain, 1–10** — discomfort in joints or connective tissue.
+- Stored per session exercise (`muscleFeel`, `jointPain`), so the same movement is
+  measured differently on different days. Skippable, and editable later from the
+  workout detail.
+- **Decided: numbers only for now** — no on-screen anchor for what 1 and 10 mean.
+  Recorded as a decision rather than an oversight: an unlabelled scale drifts
+  between sessions, so labelling the ends is the obvious first refinement.
+- Feeds **P2.8** (balance warnings), or a discomfort view of its own.
+
+**Schema (N4–N8).** Every column is nullable and additive, the shape migration 2→3
+already used for `restEndsAt` — no backfill, no rewrite:
+
+| Table | New columns |
+| --- | --- |
+| `exercises` | `restSeconds`, `techniqueNote` |
+| `set_entries` | `rpe`, `note` |
+| `session_exercises` | `finishedAt`, `muscleFeel`, `jointPain` |
+| `workout_sessions` | `readinessNote` |
+
+`workout_sessions.notes` already exists but nothing sets it, so `readinessNote` stays
+separate: a future per-workout note should not collide with a readiness note.
+
+**The version bump is shared with N3.** Whichever lands first takes 3→4 and the other
+4→5, or they fold into one migration if they ship together. Decide before writing
+either — two half-migrations is what the `MigrationTestHelper` tests exist to catch.
+
+**Order:** N2 and N3 hang off the home screen N1 introduced and are otherwise
+independent; so are N4, N5 and N6. The one hard dependency is **N7 before N8**, since
+the ratings are captured at the moment an exercise is done. Everything else stays in
+*Later* until these land.
 
 ## Later (still self-contained)
 
@@ -91,7 +179,6 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 
 **Everyday logging**
 - **P1.15** Repeat last workout in one tap.
-- **P1.5** Per-set and per-workout notes; optional RPE/RIR, off by default.
 - **P1.14** Rest sound / haptic feedback.
 - **P1.10** Keep the screen on during a workout.
 - **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
@@ -107,8 +194,9 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 
 **Programming** — turns a logger into a plan
 - **P3.1 + P3.2** are promoted to **N3** above (templates, exercises and order only).
-  The remaining routine scope — target sets × rep ranges, per-exercise rest,
-  supersets, drop sets — stays here and follows N3.
+  The remaining routine scope — target sets × rep ranges, supersets, drop sets —
+  stays here and follows N3. Per-exercise rest has moved to **N5** as a library
+  attribute; a per-*routine* rest override would still belong here.
 - **P3.4** Auto-progression suggestions — the strongest differentiator once there is
   enough history to base them on.
 - **P3.3** Programs / mesocycles with scheduled deloads.
