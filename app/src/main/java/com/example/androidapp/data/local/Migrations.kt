@@ -148,6 +148,28 @@ private const val ADD_SET_RPE =
 private const val ADD_SET_NOTE =
     "ALTER TABLE `set_entries` ADD COLUMN `note` TEXT"
 
+/**
+ * v6 -> v7: when a session exercise was marked done (ROADMAP N7).
+ *
+ * Nullable and unset, so every exercise in an open or past workout reads as "not
+ * done" and nothing is backfilled. Done is a session state, not a delete, so no
+ * existing row moves.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_SESSION_EXERCISE_FINISHED_AT)
+    }
+}
+
+private const val ADD_SESSION_EXERCISE_FINISHED_AT =
+    "ALTER TABLE `session_exercises` ADD COLUMN `finishedAt` INTEGER"
+
 /** Applied in order by the database builder. */
-val ALL_MIGRATIONS =
-    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+val ALL_MIGRATIONS = arrayOf(
+    MIGRATION_1_2,
+    MIGRATION_2_3,
+    MIGRATION_3_4,
+    MIGRATION_4_5,
+    MIGRATION_5_6,
+    MIGRATION_6_7,
+)

@@ -52,12 +52,12 @@ left alone without being forgotten.
 
 Changes left to land before anything in *Later*. N1 — home as the start
 destination — N2 — custom exercises while you train — N4 — the readiness note —
-N5 — per-exercise rest and cues — and N6 — RPE and a comment per set — are done;
-they are in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work
-lives there rather than here.
+N5 — per-exercise rest and cues — N6 — RPE and a comment per set — and N7 — Done
+per exercise — are done; they are in [CHANGELOG.md](CHANGELOG.md) under
+*Unreleased*, because shipped work lives there rather than here.
 
 - **N3** is what can be set up in advance.
-- **N7–N8** are what a workout captures while you are in it.
+- **N8** is what a workout captures while you are in it.
 
 ### N3 — Workout templates, planned before you train
 
@@ -77,18 +77,6 @@ smaller first version. It needs two new sync-shaped tables (`templates`,
 `template_exercises`) and therefore a migration, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
 
-### N7 — End an exercise, so sets cannot be added by accident
-
-- `finishedAt` on `session_exercises`. A **Done** action per exercise hides the
-  "Log set" button and dims the sets.
-- **Decided: a done exercise's sets cannot be edited, and a Reopen button restores
-  editing** — accident protection must not become its own trap. An undo on the
-  snackbar covers the immediate mis-tap.
-- Ending an exercise clears any running rest.
-- Wording matters: the workout-level action is already called *Finish*, so this is
-  *Done*, never *Finish*.
-- Done is a session state, not a delete: the sets stay in history.
-
 ### N8 — How it felt: muscle and joints
 
 Captured when an exercise is marked done (N7):
@@ -103,29 +91,29 @@ Captured when an exercise is marked done (N7):
   between sessions, so labelling the ends is the obvious first refinement.
 - Feeds **P2.8** (balance warnings), or a discomfort view of its own.
 
-**Schema (N7–N8).** Every column is nullable and additive, the shape migration 2→3
+**Schema (N8).** Both columns are nullable and additive, the shape migration 2→3
 already used for `restEndsAt` — no backfill, no rewrite:
 
 | Table | New columns |
 | --- | --- |
-| `session_exercises` | `finishedAt`, `muscleFeel`, `jointPain` |
+| `session_exercises` | `muscleFeel`, `jointPain` |
 
 `workout_sessions.notes` already exists but nothing sets it; the readiness note went
 to its own `readinessNote` column (N4) rather than into it, so a future per-workout
 note does not collide with a readiness note. A set's comment lives on `set_entries`
 (N6) for the same reason: one is about the set, the other about the workout.
 
-**Migration numbering follows shipment.** N5 took 3→4, N4 took 4→5 and N6 took 5→6.
-Each change below takes the next version as it ships; columns for a feature that has
-not been built are *not* added ahead of it, because Room validates the declared
-entities against the migrated schema — a column added early would force an entity
-field nothing reads. N3 and the columns above therefore cannot share a version
-unless they ship in the same commit, and two half-written migrations are what the
-`MigrationTestHelper` tests exist to catch.
+**Migration numbering follows shipment.** N5 took 3→4, N4 took 4→5, N6 took 5→6 and
+N7 took 6→7. Each change below takes the next version as it ships; columns for a
+feature that has not been built are *not* added ahead of it, because Room validates
+the declared entities against the migrated schema — a column added early would force
+an entity field nothing reads. N3 and the columns above therefore cannot share a
+version unless they ship in the same commit, and two half-written migrations are what
+the `MigrationTestHelper` tests exist to catch.
 
-**Order:** N3 hangs off the home screen N1 introduced. The one hard dependency is
-**N7 before N8**, since the ratings are captured at the moment an exercise is done.
-Everything else stays in *Later* until these land.
+**Order:** N3 hangs off the home screen N1 introduced. N8 builds on N7, which is
+done, so it is the only item left in this batch. Everything else stays in *Later*
+until these land.
 
 ## Later (still self-contained)
 
@@ -207,8 +195,10 @@ Rules to follow, not a status report.
   of the workout list — was found by reading the code and is fixed. Any further
   performance claim should come with a measurement.
 - **Testing:** pure logic gets JVM tests, persistence gets DAO and migration tests,
-  composables get Robolectric tests with no device. There is no coverage target, and
-  the honest gap is a Compose test for the *active workout* screen.
+  composables get Robolectric tests with no device. There is no coverage target. The
+  long-standing gap — a Compose test for the *active workout* screen — closed with
+  N7, which is the feature that made the screen's Done/Reopen and set-editability
+  rules worth asserting rather than eyeballing.
 - **No dead weight.** Extract a shared component at its second caller, not its first;
   delete an API the moment nothing calls it. Both hold today; this rule keeps them.
 

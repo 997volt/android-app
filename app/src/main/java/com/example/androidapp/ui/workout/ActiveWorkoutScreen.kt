@@ -41,6 +41,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -58,6 +59,9 @@ import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
+
+/** How far a done exercise's sets are faded (ROADMAP N7). */
+private const val DIMMED = 0.45f
 
 @Composable
 fun ActiveWorkoutRoute(
@@ -102,6 +106,10 @@ fun ActiveWorkoutRoute(
         onAdjustRest = viewModel::onAdjustRest,
         onSaveReadinessNote = viewModel::onSaveReadinessNote,
         onDismissReadinessPrompt = viewModel::onDismissReadinessPrompt,
+        onFinishExercise = viewModel::onFinishExercise,
+        onUndoFinishExercise = viewModel::onUndoFinishExercise,
+        onDismissFinishUndo = viewModel::onDismissFinishUndo,
+        onReopenExercise = viewModel::onReopenExercise,
         onFinish = viewModel::onFinish,
         onDiscard = viewModel::onDiscard,
         onBack = onBack,
@@ -125,6 +133,10 @@ fun ActiveWorkoutScreen(
     onAdjustRest: (Int) -> Unit,
     onSaveReadinessNote: (String?) -> Unit,
     onDismissReadinessPrompt: () -> Unit,
+    onFinishExercise: (String) -> Unit,
+    onUndoFinishExercise: () -> Unit,
+    onDismissFinishUndo: () -> Unit,
+    onReopenExercise: (String) -> Unit,
     onFinish: () -> Unit,
     onDiscard: () -> Unit,
     onBack: () -> Unit,
@@ -132,6 +144,7 @@ fun ActiveWorkoutScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     ShowUndoSnackbar(state.pendingUndo, snackbarHostState, onUndoDelete, onDismissUndo)
+    ShowFinishSnackbar(state, snackbarHostState, onUndoFinishExercise, onDismissFinishUndo)
 
     // The set being edited, held here so the caller does not have to track it.
     var editing by remember { mutableStateOf<SetRow?>(null) }
@@ -165,6 +178,8 @@ fun ActiveWorkoutScreen(
             onAdjustRest = onAdjustRest,
             onSaveReadinessNote = onSaveReadinessNote,
             onDismissReadinessPrompt = onDismissReadinessPrompt,
+            onFinishExercise = onFinishExercise,
+            onReopenExercise = onReopenExercise,
             onDiscard = onDiscard,
             modifier = Modifier.padding(innerPadding),
         )
@@ -208,6 +223,42 @@ private fun ShowUndoSnackbar(
     }
 }
 
+/**
+ * Undo for the exercise just marked done (ROADMAP N7).
+ *
+ * The same argument as the deleted-set snackbar: "Done" is accident protection, so
+ * it needs a way back — and the exercise is only dimmed, never removed, so the undo
+ * is a plain reopen rather than a re-insert.
+ */
+@Composable
+private fun ShowFinishSnackbar(
+    state: ActiveWorkoutUiState,
+    hostState: SnackbarHostState,
+    onUndo: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val finishedId = state.pendingFinishedExerciseId
+    val name = state.exercises.firstOrNull { it.id == finishedId }?.name
+    val message = if (name == null) {
+        stringResource(R.string.active_workout_exercise_done)
+    } else {
+        stringResource(R.string.active_workout_exercise_done_named, name)
+    }
+    val undoLabel = stringResource(R.string.set_undo)
+    val currentOnUndo by rememberUpdatedState(onUndo)
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+
+    LaunchedEffect(finishedId) {
+        if (finishedId == null) return@LaunchedEffect
+        val result = hostState.showSnackbar(
+            message = message,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Short,
+        )
+        if (result == SnackbarResult.ActionPerformed) currentOnUndo() else currentOnDismiss()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutTopBar(canFinish: Boolean, onFinish: () -> Unit, onBack: () -> Unit) {
@@ -242,6 +293,8 @@ private fun WorkoutBody(
     onAdjustRest: (Int) -> Unit,
     onSaveReadinessNote: (String?) -> Unit,
     onDismissReadinessPrompt: () -> Unit,
+    onFinishExercise: (String) -> Unit,
+    onReopenExercise: (String) -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -280,6 +333,8 @@ private fun WorkoutBody(
                         onRemoveExercise = onRemoveExercise,
                         onEditSet = onEditSet,
                         onDeleteSet = onDeleteSet,
+                        onFinishExercise = onFinishExercise,
+                        onReopenExercise = onReopenExercise,
                     )
                 }
             }
@@ -334,6 +389,8 @@ private fun ExerciseList(
     onRemoveExercise: (String) -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
+    onFinishExercise: (String) -> Unit,
+    onReopenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -348,12 +405,23 @@ private fun ExerciseList(
                 onRemoveExercise = { onRemoveExercise(row.id) },
                 onEditSet = onEditSet,
                 onDeleteSet = onDeleteSet,
+                onFinishExercise = { onFinishExercise(row.id) },
+                onReopenExercise = { onReopenExercise(row.id) },
             )
             HorizontalDivider()
         }
     }
 }
 
+/**
+ * One exercise's whole block: its name and small print, its sets, and the actions
+ * that belong to it.
+ *
+ * ROADMAP N7 adds the third state this renders — open, or done. A done exercise
+ * keeps its sets on screen, dimmed and non-editable, offers **Reopen** instead of
+ * **Done**, and loses its Log set button; the wording avoids *Finish*, which is the
+ * workout-level action.
+ */
 @Composable
 private fun ExerciseSection(
     row: SessionExerciseRow,
@@ -361,6 +429,8 @@ private fun ExerciseSection(
     onRemoveExercise: () -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
+    onFinishExercise: () -> Unit,
+    onReopenExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -370,6 +440,21 @@ private fun ExerciseSection(
             verticalAlignment = Alignment.Top,
         ) {
             ExerciseNames(row = row, modifier = Modifier.weight(1f))
+            if (row.isFinished) {
+                TextButton(
+                    onClick = onReopenExercise,
+                    modifier = Modifier.testTag(TestTags.EXERCISE_REOPEN),
+                ) {
+                    Text(stringResource(R.string.active_workout_reopen))
+                }
+            } else {
+                TextButton(
+                    onClick = onFinishExercise,
+                    modifier = Modifier.testTag(TestTags.EXERCISE_DONE),
+                ) {
+                    Text(stringResource(R.string.active_workout_done_exercise))
+                }
+            }
             IconButton(onClick = onRemoveExercise) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
@@ -378,28 +463,69 @@ private fun ExerciseSection(
             }
         }
 
-        row.sets.forEach { set ->
-            SetLine(
-                set = set,
-                onEdit = { onEditSet(set) },
-                onDelete = { onDeleteSet(set.id) },
+        if (row.isFinished) {
+            Text(
+                text = stringResource(R.string.active_workout_exercise_is_done),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag(TestTags.EXERCISE_FINISHED_LABEL),
             )
         }
 
-        FilledTonalButton(
-            onClick = onLogSet,
-            modifier = Modifier.padding(top = 8.dp),
-        ) {
-            Text(
-                text = stringResource(
-                    R.string.set_log,
-                    stringResource(
-                        R.string.set_summary,
-                        Weight.kilograms(row.suggestion.weightGrams),
-                        row.suggestion.reps,
+        ExerciseSets(
+            row = row,
+            onLogSet = onLogSet,
+            onEditSet = onEditSet,
+            onDeleteSet = onDeleteSet,
+        )
+    }
+}
+
+/**
+ * A done exercise's sets stay on screen, dimmed and non-editable, and it loses its
+ * Log set button entirely (ROADMAP N7). Split from [ExerciseSection] so the section
+ * stays a header plus its two blocks rather than one long function.
+ */
+@Composable
+private fun ExerciseSets(
+    row: SessionExerciseRow,
+    onLogSet: () -> Unit,
+    onEditSet: (SetRow) -> Unit,
+    onDeleteSet: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        // Dimmed rather than hidden: the sets stay visible as a record of what was
+        // done, and `editable` is what actually stops the taps.
+        Column(modifier = if (row.isFinished) Modifier.alpha(DIMMED) else Modifier) {
+            row.sets.forEach { set ->
+                SetLine(
+                    set = set,
+                    editable = !row.isFinished,
+                    onEdit = { onEditSet(set) },
+                    onDelete = { onDeleteSet(set.id) },
+                )
+            }
+        }
+
+        // No Log set button once the exercise is done: that is the accident N7
+        // exists to prevent.
+        if (!row.isFinished) {
+            FilledTonalButton(
+                onClick = onLogSet,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.set_log,
+                        stringResource(
+                            R.string.set_summary,
+                            Weight.kilograms(row.suggestion.weightGrams),
+                            row.suggestion.reps,
+                        ),
                     ),
-                ),
-            )
+                )
+            }
         }
     }
 }
@@ -445,9 +571,16 @@ private fun ExerciseNames(row: SessionExerciseRow, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * One logged set. [editable] is false once its exercise is done (ROADMAP N7): the
+ * line stops being tappable and loses its delete button, and the accessibility
+ * label goes with it so a screen reader does not advertise an edit that cannot
+ * happen.
+ */
 @Composable
 private fun SetLine(
     set: SetRow,
+    editable: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -458,14 +591,20 @@ private fun SetLine(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Tapping the line opens the editor; the number is shown 1-based.
         Row(
             modifier = Modifier
                 .weight(1f)
                 .testTag(TestTags.SET_ROW)
-                // Without a label a screen reader announces the row and
-                // gives no hint that tapping it edits the set.
-                .clickable(onClickLabel = editLabel, onClick = onEdit),
+                // Without a label a screen reader announces the row and gives no
+                // hint that tapping it edits the set. A done exercise's sets are not
+                // editable, so the label and the action both disappear (N7).
+                .let { row ->
+                    if (editable) {
+                        row.clickable(onClickLabel = editLabel, onClick = onEdit)
+                    } else {
+                        row
+                    }
+                },
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -484,13 +623,15 @@ private fun SetLine(
             )
             SetExtrasMarker(set = set)
         }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Filled.Delete,
-                // Names the action, not the outcome: a screen reader should
-                // announce "Delete set", not the confirmation that follows it.
-                contentDescription = stringResource(R.string.set_delete),
-            )
+        if (editable) {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    // Names the action, not the outcome: a screen reader should
+                    // announce "Delete set", not the confirmation that follows it.
+                    contentDescription = stringResource(R.string.set_delete),
+                )
+            }
         }
     }
 }
@@ -686,6 +827,10 @@ private fun ActiveWorkoutScreenPreview() {
             onAdjustRest = {},
             onSaveReadinessNote = {},
             onDismissReadinessPrompt = {},
+            onFinishExercise = {},
+            onUndoFinishExercise = {},
+            onDismissFinishUndo = {},
+            onReopenExercise = {},
             onFinish = {},
             onDiscard = {},
             onBack = {},

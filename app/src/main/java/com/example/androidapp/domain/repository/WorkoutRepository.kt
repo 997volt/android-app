@@ -68,6 +68,18 @@ interface WorkoutRepository {
 
     suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit>
 
+    /**
+     * Marks a session exercise done (ROADMAP N7): no more sets can be logged, its
+     * existing sets stop being editable, and any running rest is cleared.
+     *
+     * Not a delete — the sets stay in history — and reversible through
+     * [reopenExercise], because accident protection must not become its own trap.
+     */
+    suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit>
+
+    /** Reopens a done exercise (ROADMAP N7), restoring logging and editing. */
+    suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit>
+
     /** Marks the session complete. It stops being "active" and enters history. */
     suspend fun finishSession(sessionId: String): DataResult<Unit>
 

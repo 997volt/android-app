@@ -95,6 +95,28 @@ class RoomWorkoutRepository @Inject constructor(
             if (updated == 0) throw NotFoundException("session exercise $sessionExerciseId")
         }
 
+    override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> = dataResultOf {
+        // The session is read first so the rest can be cleared on the same row that
+        // owns the exercise — ending a lift must not leave a timer armed for a break
+        // the user has finished with (ROADMAP N7).
+        val sessionId = dao.findSessionIdForSessionExercise(sessionExerciseId)
+            ?: throw NotFoundException("session exercise $sessionExerciseId")
+        val now = timeSource.nowEpochMillis()
+        if (dao.setSessionExerciseFinished(id = sessionExerciseId, finishedAt = now, at = now) == 0) {
+            throw NotFoundException("session exercise $sessionExerciseId")
+        }
+        dao.updateRestTimer(id = sessionId, restEndsAt = null, at = now)
+    }
+
+    override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> = dataResultOf {
+        val updated = dao.setSessionExerciseFinished(
+            id = sessionExerciseId,
+            finishedAt = null,
+            at = timeSource.nowEpochMillis(),
+        )
+        if (updated == 0) throw NotFoundException("session exercise $sessionExerciseId")
+    }
+
     override suspend fun finishSession(sessionId: String): DataResult<Unit> = dataResultOf {
         // Finishing also stops any running rest: leaving a timer armed on a closed
         // session would fire a notification for a workout that is over.

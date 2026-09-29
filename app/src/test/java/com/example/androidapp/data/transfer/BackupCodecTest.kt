@@ -75,8 +75,9 @@ class BackupCodecTest {
                 sessionId = "s1",
                 exerciseId = "back-squat",
                 position = 0,
+                finishedAt = 12L,
                 createdAt = 10L,
-                updatedAt = 10L,
+                updatedAt = 12L,
                 deletedAt = null,
             ),
         ),
@@ -161,11 +162,11 @@ class BackupCodecTest {
     }
 
     @Test
-    fun aFileWrittenBeforeTheN4AndN5AndN6FieldsExisted_stillDecodes() {
-        // N4, N5 and N6 added fields to three DTOs and deliberately did *not* bump
-        // the schema version (the version moves when a field changes meaning or is
-        // removed). That is only safe because every added field is defaulted, so a
-        // file written before they existed must still decode — reading them unset.
+    fun aFileWrittenBeforeTheN4ToN7FieldsExisted_stillDecodes() {
+        // N4 through N7 each added fields and deliberately did *not* bump the schema
+        // version (the version moves when a field changes meaning or is removed).
+        // That is only safe because every added field is defaulted, so a file
+        // written before they existed must still decode — reading them unset.
         val json = Json { prettyPrint = false }
         val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
         val olderExercises = tree.getValue("exercises").jsonArray.map { element ->
@@ -176,6 +177,9 @@ class BackupCodecTest {
         val olderSessions = tree.getValue("sessions").jsonArray.map { element ->
             JsonObject(element.jsonObject.filterKeys { it != "readinessNote" })
         }
+        val olderSessionExercises = tree.getValue("sessionExercises").jsonArray.map { element ->
+            JsonObject(element.jsonObject.filterKeys { it != "finishedAt" })
+        }
         val olderSets = tree.getValue("sets").jsonArray.map { element ->
             JsonObject(element.jsonObject.filterKeys { it != "rpe" && it != "note" })
         }
@@ -183,6 +187,7 @@ class BackupCodecTest {
             tree + mapOf(
                 "exercises" to JsonArray(olderExercises),
                 "sessions" to JsonArray(olderSessions),
+                "sessionExercises" to JsonArray(olderSessionExercises),
                 "sets" to JsonArray(olderSets),
             ),
         )
@@ -192,6 +197,7 @@ class BackupCodecTest {
         assertEquals(null, restored.exercises.first().restSeconds)
         assertEquals(null, restored.exercises.first().techniqueNote)
         assertEquals(null, restored.sessions.first().readinessNote)
+        assertEquals(null, restored.sessionExercises.first().finishedAt)
         assertEquals(null, restored.sets.first().rpe)
         assertEquals(null, restored.sets.first().note)
     }

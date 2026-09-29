@@ -190,8 +190,105 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun addingAnExercise_showsItAsARow() = runTest(dispatcher) {
+    fun finishingAnExercise_marksItsRowDone_andOffersAnUndo() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+
+        viewModel.onFinishExercise(id)
+        settle()
+
+        val state = viewModel.uiState.value
+        assertTrue("the row must render as done (N7)", state.exercises.single().isFinished)
+        assertEquals(
+            "the snackbar must be able to take it back",
+            id,
+            state.pendingFinishedExerciseId,
+        )
+    }
+
+    @Test
+    fun reopeningAnExercise_restoresIt() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        viewModel.onFinishExercise(id)
+        settle()
+
+        viewModel.onReopenExercise(id)
+        settle()
+
+        assertFalse("Reopen must undo Done (N7)", viewModel.uiState.value.exercises.single().isFinished)
+    }
+
+    @Test
+    fun theUndoSnackbar_reopensTheExercise_andClearsItself() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        viewModel.onFinishExercise(id)
+        settle()
+
+        viewModel.onUndoFinishExercise()
+        settle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.exercises.single().isFinished)
+        assertNull("an undo must not fire twice", state.pendingFinishedExerciseId)
+    }
+
+    @Test
+    fun dismissingTheUndo_leavesTheExerciseDone() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        viewModel.onFinishExercise(id)
+        settle()
+
+        viewModel.onDismissFinishUndo()
+        settle()
+
+        val state = viewModel.uiState.value
+        assertTrue("letting the snackbar time out keeps the exercise done", state.exercises.single().isFinished)
+        assertNull(state.pendingFinishedExerciseId)
+    }
+
+    @Test
+    fun aFailedFinish_isSurfaced_notThrown() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val id = viewModel.uiState.value.exercises.single().id
+        repository.failWrites = true
+
+        viewModel.onFinishExercise(id)
+        settle()
+
+        assertNotNull("a dropped write must not be silent", viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.exercises.single().isFinished)
+    }
+
+    @Test
+    fun addingAnExercise_showsItAsARow() = runTest(dispatcher) {        val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
@@ -564,6 +661,22 @@ class ActiveWorkoutViewModelTest {
 
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> {
             exercises.value = exercises.value.filterNot { it.id == sessionExerciseId }
+            return successUnit()
+        }
+
+        override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            exercises.value = exercises.value.map {
+                if (it.id == sessionExerciseId) it.copy(finishedAt = FIXED_INSTANT) else it
+            }
+            return successUnit()
+        }
+
+        override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            exercises.value = exercises.value.map {
+                if (it.id == sessionExerciseId) it.copy(finishedAt = null) else it
+            }
             return successUnit()
         }
 

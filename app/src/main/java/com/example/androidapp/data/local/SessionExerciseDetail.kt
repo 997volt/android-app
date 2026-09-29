@@ -1,6 +1,7 @@
 package com.example.androidapp.data.local
 
 import com.example.androidapp.domain.model.SessionExercise
+import java.time.Instant
 
 /**
  * A session exercise joined with the exercise it refers to.
@@ -21,6 +22,8 @@ data class SessionExerciseDetail(
     val restSeconds: Int?,
     /** Shown under the exercise name while lifting (ROADMAP N5). */
     val techniqueNote: String?,
+    /** When this exercise was marked done, or null (ROADMAP N7). */
+    val finishedAt: Long?,
 )
 
 internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise(
@@ -33,4 +36,5 @@ internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise
     equipment = equipment,
     restSeconds = restSeconds,
     techniqueNote = techniqueNote,
+    finishedAt = finishedAt?.let(Instant::ofEpochMilli),
 )

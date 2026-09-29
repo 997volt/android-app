@@ -23,6 +23,14 @@ object TestTags {
     const val SET_INCREASE_REPS = "set_increase_reps"
     const val SET_DECREASE_REPS = "set_decrease_reps"
 
+    /**
+     * Ending an exercise (ROADMAP N7). The two actions are mutually exclusive, so
+     * a test can assert which state a row is in without matching on English.
+     */
+    const val EXERCISE_DONE = "exercise_done"
+    const val EXERCISE_REOPEN = "exercise_reopen"
+    const val EXERCISE_FINISHED_LABEL = "exercise_finished_label"
+
     const val HOME_TITLE = "home_title"
     const val HOME_START = "home_start"
     const val HOME_RESUME = "home_resume"

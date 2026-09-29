@@ -39,6 +39,14 @@ data class SessionExerciseEntity(
     val sessionId: String,
     val exerciseId: String,
     val position: Int,
+    /**
+     * When this exercise was marked done, or null while it is still open
+     * (ROADMAP N7).
+     *
+     * A session state, not a delete: the sets and their history stay exactly where
+     * they are, and this only stops more sets being added and dims what is there.
+     */
+    val finishedAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

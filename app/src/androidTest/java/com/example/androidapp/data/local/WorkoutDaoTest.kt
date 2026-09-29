@@ -169,6 +169,54 @@ class WorkoutDaoTest {
         assertEquals(0, dao.countLoggableSessionExercise(rowId))
     }
 
+    @Test
+    fun countLoggableSessionExercise_excludesADoneExercise() = runTest {
+        val session = dao.startSession()
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        assertEquals(1, dao.setSessionExerciseFinished(id = rowId, finishedAt = 5_000L, at = 5_000L))
+
+        // N7 enforced at the boundary: "Done" exists so no set can be added by
+        // accident, and a queued tap is exactly that accident.
+        assertEquals(0, dao.countLoggableSessionExercise(rowId))
+
+        // Reopening puts it straight back.
+        assertEquals(1, dao.setSessionExerciseFinished(id = rowId, finishedAt = null, at = 6_000L))
+        assertEquals(1, dao.countLoggableSessionExercise(rowId))
+    }
+
+    @Test
+    fun theFinishedState_comesBackOnTheJoin() = runTest {
+        val session = dao.startSession()
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        dao.setSessionExerciseFinished(id = rowId, finishedAt = 5_000L, at = 5_000L)
+
+        assertEquals(
+            5_000L,
+            dao.observeSessionExerciseDetails(session.id).first().single().finishedAt,
+        )
+    }
+
+    @Test
+    fun setSessionExerciseFinished_reportsZeroRowsForAnUnknownExercise() = runTest {
+        assertEquals(0, dao.setSessionExerciseFinished(id = "nope", finishedAt = 1L, at = 1L))
+    }
+
+    @Test
+    fun findSessionIdForSessionExercise_findsTheOwner_andIgnoresARemovedOne() = runTest {
+        val session = dao.startSession()
+        insertExercise(session.id, "back-squat", position = 0)
+        val rowId = dao.observeSessionExerciseDetails(session.id).first().single().id
+
+        assertEquals(session.id, dao.findSessionIdForSessionExercise(rowId))
+
+        dao.softDeleteSessionExercise(id = rowId, at = 2_000L)
+        assertNull(dao.findSessionIdForSessionExercise(rowId))
+    }
+
     private suspend fun insertExercise(sessionId: String, exerciseId: String, position: Int) {
         // Seed the library row first: session_exercises has a foreign key to it.
         database.exerciseDao().insertAll(

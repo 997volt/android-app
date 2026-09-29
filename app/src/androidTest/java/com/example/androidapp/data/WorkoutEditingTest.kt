@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -146,10 +147,70 @@ class WorkoutEditingTest {
         assertNull("a refused write must leave the set alone", database.workoutDao().findSetById(setId)!!.rpe)
     }
 
+    @Test
+    fun finishingAnExercise_marksItDone_andClearsTheRest() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+        // Arm the rest, so ending the exercise has something to clear.
+        database.workoutDao().updateRestTimer(sessionId, restEndsAt = 9_999L, at = 1_000L)
+
+        val result = repository.finishExercise("se1")
+
+        assertTrue(result is DataResult.Success)
+        val exercise = database.workoutDao().observeSessionExerciseDetails(sessionId).first().single()
+        assertNotNull("the row must carry its done timestamp", exercise.finishedAt)
+        assertNull(
+            "ending a lift must not leave a rest armed (N7)",
+            database.workoutDao().findSession(sessionId)?.restEndsAt,
+        )
+    }
+
+    @Test
+    fun aDoneExercise_cannotTakeAnotherSet() = runTest {
+        seedOpenWorkoutWithASet()
+        repository.finishExercise("se1")
+
+        val result = repository.logSet("se1", reps = 5, weightGrams = 100_000L)
+
+        assertEquals(DataError.NotFound, (result as DataResult.Failure).error)
+        assertEquals("the refused set must not be written", 1, database.backupDao().allSets().size)
+    }
+
+    @Test
+    fun reopeningAnExercise_restoresLogging_andClearsTheDoneState() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+        repository.finishExercise("se1")
+
+        val result = repository.reopenExercise("se1")
+
+        assertTrue(result is DataResult.Success)
+        assertNull(
+            database.workoutDao().observeSessionExerciseDetails(sessionId).first().single().finishedAt,
+        )
+        assertTrue(repository.logSet("se1", reps = 5, weightGrams = 100_000L) is DataResult.Success)
+    }
+
+    @Test
+    fun finishingAGoneExercise_isNotFound() = runTest {
+        seedOpenWorkoutWithASet()
+        repository.removeExercise("se1")
+
+        assertEquals(
+            DataError.NotFound,
+            (repository.finishExercise("se1") as DataResult.Failure).error,
+        )
+    }
+
     private suspend fun historyVolume(): Long =
         database.workoutDao().observeHistory().first().single().volumeGrams
 
     private suspend fun seedFinishedWorkout(): String {
+        val sessionId = seedOpenWorkoutWithASet()
+        database.workoutDao().markFinished(id = sessionId, at = 2_000L)
+        return sessionId
+    }
+
+    /** An open session with one exercise and one logged set (`s1`, `se1`, `set1`). */
+    private suspend fun seedOpenWorkoutWithASet(): String {
         database.exerciseDao().insertAll(
             listOf(
                 ExerciseEntity(
@@ -193,7 +254,6 @@ class WorkoutEditingTest {
                 deletedAt = null,
             ),
         )
-        database.workoutDao().markFinished(id = session.id, at = 2_000L)
         return session.id
     }
 }

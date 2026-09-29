@@ -56,6 +56,11 @@ data class SessionExerciseRow(
     val techniqueNote: String? = null,
     /** This exercise's own rest, or null for the app default (ROADMAP N5). */
     val restSeconds: Int? = null,
+    /**
+     * True once this exercise has been marked done (ROADMAP N7): its Log set button
+     * is hidden, its sets are dimmed and not editable, and Reopen restores both.
+     */
+    val isFinished: Boolean = false,
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -87,6 +92,11 @@ data class ActiveWorkoutUiState(
     val exercises: List<SessionExerciseRow> = emptyList(),
     /** A just-deleted set awaiting undo; the screen shows it as a snackbar. */
     val pendingUndo: SetEntry? = null,
+    /**
+     * An exercise just marked done, awaiting undo (ROADMAP N7). The id is enough:
+     * the row is still in [exercises], so the snackbar can name it.
+     */
+    val pendingFinishedExerciseId: String? = null,
     /** What was not recovered today, or null (ROADMAP N4). */
     val readinessNote: String? = null,
     /** True while a just-opened session is asking for that note. */
@@ -125,6 +135,9 @@ class ActiveWorkoutViewModel @Inject constructor(
 
     /** True while a just-opened session is asking what was not recovered today (N4). */
     private val readinessPromptVisible = MutableStateFlow(false)
+
+    /** The exercise just marked done, awaiting the snackbar's undo (ROADMAP N7). */
+    private val pendingFinishedExercise = MutableStateFlow<String?>(null)
 
     /** Emits true once a finish or discard succeeds, so the screen can leave. */
     private val _closed = MutableStateFlow(false)
@@ -182,8 +195,14 @@ class ActiveWorkoutViewModel @Inject constructor(
         lastError,
         pendingUndo,
         readinessPromptVisible,
-    ) { snapshot, error, undo, promptVisible ->
-        snapshot.toUiState(error = error, undo = undo, readinessPromptVisible = promptVisible)
+        pendingFinishedExercise,
+    ) { snapshot, error, undo, promptVisible, finishedExercise ->
+        snapshot.toUiState(
+            error = error,
+            undo = undo,
+            readinessPromptVisible = promptVisible,
+            pendingFinishedExerciseId = finishedExercise,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -250,6 +269,48 @@ class ActiveWorkoutViewModel @Inject constructor(
 
     fun onRemoveExercise(sessionExerciseId: String) = write {
         workoutRepository.removeExercise(sessionExerciseId)
+    }
+
+    /**
+     * Marks an exercise done (ROADMAP N7) and offers an undo, because the mis-tap
+     * this prevents is also the mis-tap it can cause.
+     */
+    fun onFinishExercise(sessionExerciseId: String) {
+        viewModelScope.launch {
+            when (val result = workoutRepository.finishExercise(sessionExerciseId)) {
+                is DataResult.Success -> {
+                    lastError.value = null
+                    pendingFinishedExercise.value = sessionExerciseId
+                }
+
+                is DataResult.Failure -> lastError.value = result.error
+            }
+        }
+    }
+
+    /** Puts a just-finished exercise back into edit, from the snackbar (N7). */
+    fun onUndoFinishExercise() {
+        val id = pendingFinishedExercise.value ?: return
+        pendingFinishedExercise.value = null
+        reopen(id)
+    }
+
+    fun onDismissFinishUndo() {
+        pendingFinishedExercise.value = null
+    }
+
+    /** Reopens a done exercise from its own button (N7). */
+    fun onReopenExercise(sessionExerciseId: String) {
+        reopen(sessionExerciseId)
+    }
+
+    private fun reopen(sessionExerciseId: String) {
+        viewModelScope.launch {
+            when (val result = workoutRepository.reopenExercise(sessionExerciseId)) {
+                is DataResult.Success -> lastError.value = null
+                is DataResult.Failure -> lastError.value = result.error
+            }
+        }
     }
 
     /** Logs a set using the prefilled values, then starts the rest (P1.4). */
@@ -407,6 +468,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         error: DataError?,
         undo: SetEntry?,
         readinessPromptVisible: Boolean,
+        pendingFinishedExerciseId: String?,
     ): ActiveWorkoutUiState =
         ActiveWorkoutUiState(
             isLoading = false,
@@ -414,6 +476,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
             exercises = exercises.map { it.toRow(sets = sets, previous = previous[it.exerciseId]) },
             pendingUndo = undo,
+            pendingFinishedExerciseId = pendingFinishedExerciseId,
             readinessNote = session?.readinessNote,
             isReadinessPromptVisible = readinessPromptVisible,
             error = error,
@@ -446,6 +509,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             subtitle = taxonomySubtitle(primaryMuscle, equipment),
             techniqueNote = techniqueNote,
             restSeconds = restSeconds,
+            isFinished = isFinished,
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

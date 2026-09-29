@@ -8,6 +8,14 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Done, so an exercise stops taking sets by accident.** A per-exercise **Done**
+  action hides its **Log set** button and dims its sets, which then cannot be
+  edited; it also stops any rest the exercise had running, and an **Undo** on the
+  snackbar takes it back. A **Reopen** button restores editing, because accident
+  protection must not become its own trap. The wording is deliberate — the
+  workout-level action is already *Finish*, so this is *Done*, never *Finish* — and
+  it is a session state, not a delete: the sets stay in history. Adds migration
+  6→7: one nullable column, no backfill.
 - **An RPE and a comment on every set.** The set editor gained an optional 1–10
   RPE and a free-text comment; the one-tap **Log set** path still writes neither,
   so logging stays fast. A set carrying either shows a small marker in the

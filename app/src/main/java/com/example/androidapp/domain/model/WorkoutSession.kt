@@ -50,4 +50,13 @@ data class SessionExercise(
     val restSeconds: Int? = null,
     /** A cue to show under the name while lifting (ROADMAP N5). */
     val techniqueNote: String? = null,
-)
+    /**
+     * When this exercise was marked done (ROADMAP N7), or null while it is open.
+     *
+     * Deliberately not a delete: [finishedAt] set means no more sets are added and
+     * the existing ones cannot be edited until it is reopened.
+     */
+    val finishedAt: Instant? = null,
+) {
+    val isFinished: Boolean get() = finishedAt != null
+}

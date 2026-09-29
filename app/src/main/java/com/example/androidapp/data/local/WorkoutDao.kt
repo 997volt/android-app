@@ -97,7 +97,8 @@ interface WorkoutDao {
                e.primaryMuscle AS primaryMuscle,
                e.equipment AS equipment,
                e.restSeconds AS restSeconds,
-               e.techniqueNote AS techniqueNote
+               e.techniqueNote AS techniqueNote,
+               se.finishedAt AS finishedAt
         FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = :sessionId
@@ -211,12 +212,15 @@ interface WorkoutDao {
     suspend fun insertSet(row: SetEntryEntity)
 
     /**
-     * 1 when [sessionExerciseId] can still receive a set: the row is live *and* its
-     * session is still open.
+     * 1 when [sessionExerciseId] can still receive a set: the row is live, its
+     * session is still open, and the exercise has not been marked done.
      *
-     * Both halves matter. A stale screen can hold an id whose exercise was removed,
+     * Every half matters. A stale screen can hold an id whose exercise was removed,
      * or whose session was finished on another surface — attaching a set to either
-     * would create history that belongs to no workout the user can see.
+     * would create history that belongs to no workout the user can see. The
+     * `finishedAt` check is N7's rule enforced at the boundary: "Done" exists
+     * precisely so no set can be added by accident, and a queued tap is exactly
+     * that accident.
      */
     @Query(
         """
@@ -224,11 +228,31 @@ interface WorkoutDao {
         JOIN workout_sessions ws ON ws.id = se.sessionId
         WHERE se.id = :sessionExerciseId
           AND se.deletedAt IS NULL
+          AND se.finishedAt IS NULL
           AND ws.finishedAt IS NULL
           AND ws.deletedAt IS NULL
         """,
     )
     suspend fun countLoggableSessionExercise(sessionExerciseId: String): Int
+
+    /**
+     * Sets or clears a session exercise's done timestamp (ROADMAP N7). A null
+     * [finishedAt] reopens it.
+     *
+     * Rows updated: 0 means the exercise is gone.
+     */
+    @Query(
+        """
+        UPDATE session_exercises
+        SET finishedAt = :finishedAt, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setSessionExerciseFinished(id: String, finishedAt: Long?, at: Long): Int
+
+    /** The session an exercise belongs to, so ending it can also stop the rest. */
+    @Query("SELECT sessionId FROM session_exercises WHERE id = :id AND deletedAt IS NULL")
+    suspend fun findSessionIdForSessionExercise(id: String): String?
 
     /** Rows updated: 0 means the set does not exist or was deleted. */
     @Update

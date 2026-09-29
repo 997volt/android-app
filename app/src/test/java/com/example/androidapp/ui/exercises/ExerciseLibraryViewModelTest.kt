@@ -213,6 +213,8 @@ class ExerciseLibraryViewModelTest {
         override suspend fun startOrResumeSession(): DataResult<StartedSession> = unused()
         override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> = unused()
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> = unused()
+        override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> = unused()
+        override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> = unused()
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> = unused()
         override suspend fun deleteSession(sessionId: String): DataResult<Unit> = unused()

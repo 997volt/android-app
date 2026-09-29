@@ -210,6 +210,50 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration6To7_addsFinishedAt_leavingItUnset() {
+        // A v6 database with a real session exercise in it (ROADMAP N7).
+        helper.createDatabase(TEST_DB, 6).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 7, true, MIGRATION_6_7)
+
+        migrated.query("SELECT finishedAt FROM session_exercises WHERE id = 'se1'").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("the existing exercise must survive", 1, cursor.count)
+            // Unset means "not done": nothing is backfilled, and no past set moves.
+            assertTrue("finishedAt must default to null", cursor.isNull(0))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

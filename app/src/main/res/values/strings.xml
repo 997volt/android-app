@@ -66,6 +66,13 @@
     <string name="active_workout_empty">No exercises yet</string>
     <string name="active_workout_empty_hint">Add your first exercise to start tracking this workout.</string>
     <string name="active_workout_remove">Remove %1$s</string>
+    <!-- Ending one exercise (ROADMAP N7). The workout-level action is already
+         called Finish, so this is Done, never Finish. -->
+    <string name="active_workout_done_exercise">Done</string>
+    <string name="active_workout_reopen">Reopen</string>
+    <string name="active_workout_exercise_is_done">Done</string>
+    <string name="active_workout_exercise_done">Exercise done</string>
+    <string name="active_workout_exercise_done_named">%1$s done</string>
 
     <!-- Exercise picker -->
     <string name="picker_title">Add exercise</string>
