@@ -97,7 +97,7 @@ and invisible afterwards.
 | --- | --- | --- |
 | R2.1 | [`RELEASING.md`](RELEASING.md) records the procedure, including the rule that matters most: the tag must point at the commit that built the APK | ✅ done |
 | R2.2 | v1.2 published as a [GitHub release](https://github.com/997volt/android-app/releases/tag/v1.2) with the signed APK attached, and installed over 1.1 on the phone | ✅ done |
-| R2.3 | *Decide* whether to automate steps 4–7 in CI, which needs the keystore and its passwords in GitHub Secrets | ☐ open decision |
+| R2.3 | **Decided: releases stay manual.** Automating steps 4–7 would put `workout.jks` and its passwords in GitHub Secrets — a permanent signing key in a third party's store, where any workflow in this repository could reach it, for an app released a few times a year. Revisit if the cadence ever makes the ceremony the more expensive side. | ✅ decided |
 
 **The key is permanent.** Every later build has to be signed with the same
 `workout.jks`, or Android refuses the update and the only fix is to uninstall,

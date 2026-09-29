@@ -124,16 +124,19 @@ Collected from the v1.2 release, all of them real:
   it. Once a release exists against a tag, treat it as immutable and cut a new
   version instead.
 
-## Open decision: automate this in CI?
+## Why this is manual (decided)
 
-CI currently builds a **release APK to prove R8 succeeds** (see
-[.github/workflows/android.yml](.github/workflows/android.yml)) but signs nothing,
-so it cannot attach an artifact to a release.
+CI builds a release APK to prove R8 succeeds, but signs nothing, so it cannot attach
+an artifact to a release. Automating steps 4–7 would mean putting `workout.jks` **and
+its passwords** into GitHub Secrets.
 
-Automating steps 4–7 would mean putting `workout.jks` **and its passwords** into
-GitHub Secrets. That is a genuine tradeoff rather than an obvious win: the signing
-key is permanent, and moving it into a third party's secret store widens who could
-sign an update your phone would accept. For a personal, sideloaded app the manual
-procedure above is cheap and keeps the key on machines you control.
+**Decided against, for now.** The automation has a genuine engineering benefit: CI
+building from the tag would make the tag/APK mismatch impossible *by construction*,
+rather than merely documented in this file. That was weighed against moving a
+permanent signing key into a third party's store, where any workflow in this
+repository could reach it — for an app released a few times a year. Ten documented
+minutes is the cheaper side of that trade.
 
-Recorded here so it stays a decision rather than drifting into an accident.
+If the cadence ever changes, do it as a **GitHub Environment secret with required
+reviewers**, so a human approves before any job can read the key. A raw repository
+secret readable by any workflow is the version that should stay unbuilt.
