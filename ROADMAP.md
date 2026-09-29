@@ -13,9 +13,10 @@ your history, keep your data.
 more trustworthy, it does not belong here. Anything that ships data off the device,
 or needs an account or a server, is out by default.
 
-Feature ids (`F#` foundations, `P#.#` product, `R#.#` release) are stable and are
-referenced from commit messages. They were assigned when the work was planned, so
-they do not run in order — the `P4`/`P5` rows are simply the ones parked furthest out.
+Feature ids (`F#` foundations, `N#` the next planned changes, `P#.#` the product
+backlog, `R#.#` releases) are stable and are referenced from commit messages. They
+were assigned when the work was planned, so they do not run in order — the
+`P4`/`P5` rows are simply the ones parked furthest out.
 
 ## Current state
 
@@ -47,20 +48,66 @@ left alone without being forgotten.
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next
+## Next — planned app changes
 
-**Nothing is outstanding.** Every MVP row is done and released, and the three items
-that followed v1.2 — local crash logs, the first design-system extraction, CI hygiene
-— are done too. That is the honest state, not a backlog in disguise.
+Three changes to the app's shell and to planning, to land before anything in
+*Later*. They are ordered by what the others hang off, not by size.
 
-If you want to keep going, this is the order I would take, all drawn from *Later*:
+### N1 — Home is your recent workouts, not the exercise list
 
-1. **P1.15 Repeat last workout** — one tap into the previous session's exercises.
-   `previousPerformance` already proves the query, and it is the highest-retention
-   action the app lacks.
-2. **P1.17 Full accessibility pass** — the MVP slice landed; this is follow-through.
-3. **P2.1 + P2.2 Per-exercise history and personal records** — the reason to open the
-   app on a rest day.
+The app opens on the exercise library, which is a reference, not a destination.
+Make the start destination a **Workouts** screen instead:
+
+- A short list of recent workouts, newest first. The month-grouped
+  [history screen](app/src/main/java/com/example/androidapp/ui/history/WorkoutHistoryScreen.kt)
+  already has the query and the row rendering — this is a home-sized view of it,
+  with a link through to the full history.
+- A prominent **Start workout**, plus the **Resume** affordance when a session is
+  open (the button that currently lives on the library).
+- A first-run empty state that points at Start workout.
+- The library becomes a screen you navigate *to*, and stays the picker inside a
+  workout. It keeps search; it loses its "start workout" button.
+
+Touches the start destination in
+[AppNavHost.kt](app/src/main/java/com/example/androidapp/ui/navigation/AppNavHost.kt),
+a new home screen and ViewModel, and
+[ExerciseLibraryScreen.kt](app/src/main/java/com/example/androidapp/ui/exercises/ExerciseLibraryScreen.kt)
+losing the button.
+
+### N2 — A bigger library, and custom exercises while you train
+
+- **More seeded movements.** The list is supplied at implementation time. Adding
+  entries to [SeedExercises.kt](app/src/main/java/com/example/androidapp/data/SeedExercises.kt)
+  is all it takes: the seeder tops up on every open with `INSERT OR IGNORE`, so
+  existing installs receive them without a migration.
+- **Create a custom exercise from inside a workout**, where the gap is actually felt:
+  a "New exercise" action in the picker that saves and immediately adds it to the
+  session. Stored `isCustom = true` with a UUID id — the schema already reserves both.
+- It then appears in the library and in search like any other exercise.
+- Decide at implementation time: how much taxonomy a custom entry captures (name
+  only, versus muscle, equipment and pattern), and whether custom exercises can be
+  edited or deleted afterwards.
+
+### N3 — Workout templates, planned before you train
+
+A named, reusable workout defined ahead of time and started in one tap.
+
+- Create, edit and delete a template: a name and an ordered list of exercises.
+- Start a workout from one: the session opens with its exercises already in order,
+  reusing the existing add-exercise path.
+- Surfaced from the home screen's start action — **Start empty** or **Start from
+  template**.
+- **v1 scope is exercises and their order.** The fuller routine features already on
+  the backlog — target sets × rep ranges, per-exercise rest, supersets, drop sets
+  (P3.1) — come afterwards, once templates are in use.
+
+This promotes P3.1 + P3.2 ahead of the rest of the backlog, with a deliberately
+smaller first version. It needs two new sync-shaped tables (`templates`,
+`template_exercises`) and therefore **migration 3→4**, with the exported schema and a
+`MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
+
+**Order:** N1 first, because it decides where N2 and N3 hang off. N2 and N3 are then
+independent of each other. Everything else stays in *Later* until these land.
 
 ## Later (still self-contained)
 
@@ -69,7 +116,6 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 **Everyday logging**
 - **P1.15** Repeat last workout in one tap.
 - **P1.5** Per-set and per-workout notes; optional RPE/RIR, off by default.
-- **P1.13** Custom exercises — the schema already reserves `isCustom` and UUID ids.
 - **P1.14** Rest sound / haptic feedback.
 - **P1.10** Keep the screen on during a workout.
 - **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
@@ -84,7 +130,9 @@ Post-MVP, same local-only premise. Grouped by theme, ordered by value inside eac
 - **P2.5** Progress photos, in encrypted local storage.
 
 **Programming** — turns a logger into a plan
-- **P3.1 + P3.2** Routines: build one, start a workout from one.
+- **P3.1 + P3.2** are promoted to **N3** above (templates, exercises and order only).
+  The remaining routine scope — target sets × rep ranges, per-exercise rest,
+  supersets, drop sets — stays here and follows N3.
 - **P3.4** Auto-progression suggestions — the strongest differentiator once there is
   enough history to base them on.
 - **P3.3** Programs / mesocycles with scheduled deloads.
