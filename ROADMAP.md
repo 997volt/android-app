@@ -54,14 +54,32 @@ left alone without being forgotten.
 
 ## Next
 
-Three additions to what a workout records. N1–N8 shipped in v1.3, and the B1–B4 fix
-batch after it; both live in [CHANGELOG.md](CHANGELOG.md).
+Queued next. N1–N8 shipped in v1.3, and the B1–B4 fix batch after it; both live in
+[CHANGELOG.md](CHANGELOG.md).
 
 | # | Addition | Decision |
 | --- | --- | --- |
 | N9 | Joint pain location | A text box under the rating — the batch's only migration |
 | N10 | Ratings before finishing | Editable at any time, not only at the Done prompt |
 | N11 | A workout comment | A skippable prompt on Finish; no migration |
+| N13 | Five signals are collected and never read back | A trends screen, and no charting library |
+
+### N13 — RPE and discomfort trends
+
+The app now collects five signals — RPE, a set comment, muscle feel, joint pain, and
+the readiness note — and nothing reads them back beyond the raw workout detail. This
+is the first reader: RPE, muscle feel and joint pain over recent workouts.
+
+**Decided: no charting library.** P2.3 says to choose the approach before starting;
+for three series over the last handful of workouts, a dependency is not earned. Each
+metric gets a small hand-drawn line over the same session axis, plus the latest value
+and the average. That settles the question for *these* series; a fuller chart screen —
+per-exercise history, PRs over months — is still P2.3, and it can reconsider.
+
+**No migration.** Every column already exists; this is a read.
+
+Comments stay out of v1 on purpose: prose is not a trend, and a list of them already
+has a home in the workout detail.
 
 ### N9 — Joint pain location
 
@@ -110,16 +128,11 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P1.11** Onboarding: goal, experience level, weekly target.
 - **P1.18** Post-workout summary on Finish — duration, volume, sets, best set, and the
   readiness note and ratings the workout collected.
-- **P1.19** Label the muscle-feel and joint-pain scales — anchors for what 1 and 10
-  mean, so the numbers do not drift between sessions. The follow-up N8 left open on
-  purpose.
 
 **Insight** — why the app gets opened between workouts
 - **P2.1** Per-exercise history.
 - **P2.2** Personal records and estimated 1RM.
 - **P2.3** Charts and trends — choose the charting approach before starting.
-- **P2.9** RPE and discomfort trends — the RPE, comments, muscle feel and joint pain
-  the app now collects have no reader beyond the raw workout detail.
 - **P2.8** Muscle-group balance warnings.
 - **P2.4** Body measurements.
 - **P2.5** Progress photos, in encrypted local storage.

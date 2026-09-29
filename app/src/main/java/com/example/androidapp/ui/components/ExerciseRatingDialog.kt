@@ -29,11 +29,15 @@ import com.example.androidapp.domain.model.TenPointScale
  * reached from the workout detail; [isPrompt] only changes the wording and whether
  * the secondary button reads *Skip* or *Cancel*.
  *
- * Deliberately unlabelled ends: the decision recorded in the roadmap is numbers
- * only for now, because an anchor would be a claim about what 3 and 7 mean that the
- * app has no basis for. Both fields are optional — the whole capture is skippable —
- * and a value outside 1–10 keeps Save disabled rather than being clamped, since a
- * silent 11 → 10 would misstate the session.
+ * The ends are labelled (ROADMAP N12): N8 shipped them unlabelled on purpose, because
+ * what 3 or 7 mean is a claim the app has no basis for, and left the anchors as the
+ * obvious refinement. Only the ends are named, and only here — the number is chosen
+ * in this dialog, and the workout detail keeps reading a bare "Muscle feel 8" rather
+ * than repeating the vocabulary on every past workout.
+ *
+ * Both fields are optional — the whole capture is skippable, which is what the Skip
+ * button says — and a value outside 1–10 keeps Save disabled rather than being
+ * clamped, since a silent 11 → 10 would misstate the session.
  */
 @Composable
 fun ExerciseRatingDialog(
@@ -114,7 +118,10 @@ private fun RatingFields(
             modifier = Modifier.fillMaxWidth().testTag(TestTags.RATING_MUSCLE_FIELD),
             singleLine = true,
             label = { Text(stringResource(R.string.rating_muscle_label)) },
-            supportingText = { Text(stringResource(R.string.rating_hint)) },
+            // The anchors, not "Optional": the Skip button already says the rating
+            // can be left alone, and this line is the only place the scale can be
+            // explained while the number is being picked (ROADMAP N12).
+            supportingText = { Text(stringResource(R.string.rating_muscle_anchors)) },
             isError = muscleText.isNotBlank() && !muscleIsValid,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
@@ -124,7 +131,7 @@ private fun RatingFields(
             modifier = Modifier.fillMaxWidth().testTag(TestTags.RATING_JOINT_FIELD),
             singleLine = true,
             label = { Text(stringResource(R.string.rating_joint_label)) },
-            supportingText = { Text(stringResource(R.string.rating_hint)) },
+            supportingText = { Text(stringResource(R.string.rating_joint_anchors)) },
             isError = jointText.isNotBlank() && !jointIsValid,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )

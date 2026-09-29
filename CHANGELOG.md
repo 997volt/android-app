@@ -7,6 +7,15 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **The 1–10 scales now say what their ends mean.** N8 shipped the muscle-feel and
+  joint-pain ratings unlabelled on purpose — an anchor for what 3 or 7 means would be
+  a claim the app has no basis for — and left labelling the ends as the obvious
+  refinement. Both fields now read "1 = barely worked, 10 = fully worked" and
+  "1 = none, 10 = severe" while the number is being picked, and only there: the
+  workout detail keeps showing a bare "Muscle feel 8" rather than repeating the
+  vocabulary on every past workout.
+
 ### Fixed
 - **Export and import are back where you start.** They lived two overflow menus
   deep — home, then the exercise library N1 demoted to a reference screen — so the

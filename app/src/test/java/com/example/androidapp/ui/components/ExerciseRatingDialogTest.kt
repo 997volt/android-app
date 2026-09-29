@@ -1,9 +1,13 @@
 package com.example.androidapp.ui.components
 
+import com.example.androidapp.R
+import androidx.test.core.app.ApplicationProvider
+import android.content.Context
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -92,6 +96,23 @@ class ExerciseRatingDialogTest {
         composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).assertTextContains("8")
         composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_FIELD).assertTextContains("2")
     }
+
+    @Test
+    fun bothScales_sayWhatTheirEndsMean() {
+        // ROADMAP N12: the number is chosen here, so the meaning of 1 and 10 has to
+        // be here — that is what keeps a 7 this month comparable to a 7 next month.
+        show()
+
+        composeTestRule.onNodeWithText(muscleAnchors()).assertExists()
+        composeTestRule.onNodeWithText(jointAnchors()).assertExists()
+    }
+
+    /** Read from resources, so a reworded anchor does not break the test. */
+    private fun muscleAnchors(): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(R.string.rating_muscle_anchors)
+
+    private fun jointAnchors(): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(R.string.rating_joint_anchors)
 
     @Test
     fun dismissing_writesNothing() {

@@ -111,7 +111,11 @@
     <string name="rating_edit_title">How it felt</string>
     <string name="rating_muscle_label">Muscle feel (1–10)</string>
     <string name="rating_joint_label">Joint pain (1–10)</string>
-    <string name="rating_hint">Optional</string>
+    <!-- N12: what 1 and 10 mean, said where the number is chosen. The words live
+         once per scale so a later reader reuses them instead of inventing a second
+         vocabulary for the same thing. -->
+    <string name="rating_muscle_anchors">1 = barely worked, 10 = fully worked</string>
+    <string name="rating_joint_anchors">1 = none, 10 = severe</string>
     <string name="rating_skip">Skip</string>
     <string name="rating_row_title">How it felt</string>
     <string name="rating_row_add">Tap to rate</string>
