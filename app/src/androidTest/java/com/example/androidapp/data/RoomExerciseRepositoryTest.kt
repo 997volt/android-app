@@ -67,6 +67,9 @@ class RoomExerciseRepositoryTest {
         assertEquals(MuscleGroup.OTHER, created.primaryMuscle)
         assertEquals(Equipment.OTHER, created.equipment)
         assertEquals(MovementPattern.OTHER, created.movementPattern)
+        // N5: rest and cue start unset, i.e. "use the app default" and "no cue".
+        assertNull(created.restSeconds)
+        assertNull(created.techniqueNote)
 
         assertEquals(listOf("Sled Push"), repository.observeExercises().first().map { it.name })
     }
@@ -90,6 +93,8 @@ class RoomExerciseRepositoryTest {
             secondaryMuscles = listOf(MuscleGroup.GLUTES),
             equipment = Equipment.MACHINE,
             movementPattern = MovementPattern.SQUAT,
+            restSeconds = 180,
+            techniqueNote = "Drive the floor away",
         )
         assertTrue(repository.updateExercise(edited) is DataResult.Success)
 
@@ -99,12 +104,37 @@ class RoomExerciseRepositoryTest {
         assertEquals(listOf(MuscleGroup.GLUTES), stored.secondaryMuscles)
         assertEquals(Equipment.MACHINE, stored.equipment)
         assertEquals(MovementPattern.SQUAT, stored.movementPattern)
+        assertEquals(180, stored.restSeconds)
+        assertEquals("Drive the floor away", stored.techniqueNote)
         // Identity and origin are untouched by an attribute edit.
         assertEquals(created.id, stored.id)
         assertTrue(stored.isCustom)
 
         val row = database.exerciseDao().findById(created.id)!!
         assertNotEquals("an edit must bump updatedAt", row.createdAt, row.updatedAt)
+    }
+
+    @Test
+    fun updateExercise_refusesANonPositiveRest() = runTest {
+        val created = created("Sled Push")
+
+        val failure = repository.updateExercise(created.copy(restSeconds = 0)) as DataResult.Failure
+
+        assertTrue(failure.error is DataError.Invalid)
+        // Nothing was written, so the exercise still reads as "use the default".
+        assertNull(repository.getExercise(created.id)!!.restSeconds)
+    }
+
+    @Test
+    fun updateExercise_storesAClearedCueAsNull_ratherThanAnEmptyString() = runTest {
+        val created = created("Sled Push")
+        repository.updateExercise(created.copy(techniqueNote = "Brace"))
+        assertEquals("Brace", repository.getExercise(created.id)!!.techniqueNote)
+
+        repository.updateExercise(created.copy(techniqueNote = "   "))
+
+        // Two representations of "nothing" would render differently on screen.
+        assertNull(repository.getExercise(created.id)!!.techniqueNote)
     }
 
     @Test

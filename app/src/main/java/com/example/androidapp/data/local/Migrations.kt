@@ -92,5 +92,26 @@ private const val CREATE_SET_ENTRIES_SESSION_EXERCISE_ID_INDEX =
 private const val ADD_REST_ENDS_AT =
     "ALTER TABLE `workout_sessions` ADD COLUMN `restEndsAt` INTEGER"
 
+/**
+ * v3 -> v4: an exercise's own rest and its technique cue (ROADMAP N5).
+ *
+ * Both columns are nullable and unset by default, so "no opinion" and the app's
+ * 90 s default are the same state — which is what makes this a pair of plain
+ * ALTERs rather than a backfill. The seeded library therefore keeps its rest and
+ * its cues unset until a user edits them.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_EXERCISE_REST_SECONDS)
+        db.execSQL(ADD_EXERCISE_TECHNIQUE_NOTE)
+    }
+}
+
+private const val ADD_EXERCISE_REST_SECONDS =
+    "ALTER TABLE `exercises` ADD COLUMN `restSeconds` INTEGER"
+
+private const val ADD_EXERCISE_TECHNIQUE_NOTE =
+    "ALTER TABLE `exercises` ADD COLUMN `techniqueNote` TEXT"
+
 /** Applied in order by the database builder. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

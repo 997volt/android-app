@@ -51,12 +51,12 @@ left alone without being forgotten.
 ## Next — planned app changes
 
 Changes left to land before anything in *Later*. N1 — home as the start
-destination — and N2 — custom exercises while you train — are done; they are in
-[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
-rather than here.
+destination — N2 — custom exercises while you train — and N5 — per-exercise rest
+and cues — are done; they are in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
+because shipped work lives there rather than here.
 
 - **N3** is what can be set up in advance.
-- **N4–N8** are what a workout captures while you are in it.
+- **N4, N6 and N7–N8** are what a workout captures while you are in it.
 
 ### N3 — Workout templates, planned before you train
 
@@ -89,24 +89,6 @@ Monday", "slept badly, legs heavy".
 - **Deliberately free text.** The structured version — picking the sore groups from
   the existing `MuscleGroup` taxonomy — is a later step, and the column does not
   change to get there.
-
-### N5 — Per-exercise rest, and technique cues
-
-Two attributes on a library exercise:
-
-- **Rest, per exercise** — `restSeconds` on `exercises`, falling back to today's
-  90 s default when unset. The +15 s/−15 s controls stay one-off adjustments to the
-  current rest; this is the exercise's own default.
-- **Technique cues** — `techniqueNote`: a short "chest up, elbows tucked" shown under
-  the exercise name on the active workout screen and on the detail screen. It is the
-  note you want *while* lifting, not a description of the movement.
-
-**Decided: library-level only for now** — no per-session override. Because seeded
-exercises must be editable too, the exercise detail screen's edit mode — added for
-custom exercises by N2 — is extended to cover them. That is safe: the seeder uses
-`INSERT OR IGNORE` and never updates an existing row, so an edited rest or cue
-survives every future top-up — which is why this can be a plain column rather than
-an overrides table.
 
 ### N6 — RPE and a comment on every set
 
@@ -143,12 +125,11 @@ Captured when an exercise is marked done (N7):
   between sessions, so labelling the ends is the obvious first refinement.
 - Feeds **P2.8** (balance warnings), or a discomfort view of its own.
 
-**Schema (N4–N8).** Every column is nullable and additive, the shape migration 2→3
+**Schema (N4, N6–N8).** Every column is nullable and additive, the shape migration 2→3
 already used for `restEndsAt` — no backfill, no rewrite:
 
 | Table | New columns |
 | --- | --- |
-| `exercises` | `restSeconds`, `techniqueNote` |
 | `set_entries` | `rpe`, `note` |
 | `session_exercises` | `finishedAt`, `muscleFeel`, `jointPain` |
 | `workout_sessions` | `readinessNote` |
@@ -156,14 +137,18 @@ already used for `restEndsAt` — no backfill, no rewrite:
 `workout_sessions.notes` already exists but nothing sets it, so `readinessNote` stays
 separate: a future per-workout note should not collide with a readiness note.
 
-**The version bump is shared with N3.** Whichever lands first takes 3→4 and the other
-4→5, or they fold into one migration if they ship together. Decide before writing
-either — two half-migrations is what the `MigrationTestHelper` tests exist to catch.
+**Migration numbering follows shipment.** N5 took 3→4. Each change below takes the
+next version as it ships; columns for a feature that has not been built are *not*
+added ahead of it, because Room validates the declared entities against the migrated
+schema — a column added early would force an entity field nothing reads. N3 and the
+columns above therefore cannot share a version unless they ship in the same commit,
+and two half-written migrations are what the `MigrationTestHelper` tests exist to
+catch.
 
-**Order:** N3 hangs off the home screen N1 introduced; N4, N5 and N6 are independent
-of it and of each other. The one hard dependency is **N7 before N8**, since the
-ratings are captured at the moment an exercise is done. Everything else stays in
-*Later* until these land.
+**Order:** N3 hangs off the home screen N1 introduced; N4 and N6 are independent of it
+and of each other. The one hard dependency is **N7 before N8**, since the ratings are
+captured at the moment an exercise is done. Everything else stays in *Later* until
+these land.
 
 ## Later (still self-contained)
 

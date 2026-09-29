@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -351,26 +352,7 @@ private fun ExerciseSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = row.name, style = MaterialTheme.typography.titleMedium)
-                row.subtitle?.let { subtitle ->
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                row.lastTime?.let { last ->
-                    Text(
-                        text = stringResource(
-                            R.string.set_last_time,
-                            stringResource(R.string.set_summary, Weight.kilograms(last.weightGrams), last.reps),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            ExerciseNames(row = row, modifier = Modifier.weight(1f))
             IconButton(onClick = onRemoveExercise) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
@@ -400,6 +382,47 @@ private fun ExerciseSection(
                         row.suggestion.reps,
                     ),
                 ),
+            )
+        }
+    }
+}
+
+/**
+ * The exercise's name and the small print under it: taxonomy, the technique cue
+ * (ROADMAP N5) and what was lifted last time.
+ *
+ * Split out of [ExerciseSection] because that section has a set list and a button
+ * too, and mixing the two made one function carry the whole row.
+ */
+@Composable
+private fun ExerciseNames(row: SessionExerciseRow, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(text = row.name, style = MaterialTheme.typography.titleMedium)
+        row.subtitle?.let { subtitle ->
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // The cue is the note you want *while* lifting, so it belongs here with the
+        // name and not only on the detail screen.
+        row.techniqueNote?.let { cue ->
+            Text(
+                text = cue,
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        row.lastTime?.let { last ->
+            Text(
+                text = stringResource(
+                    R.string.set_last_time,
+                    stringResource(R.string.set_summary, Weight.kilograms(last.weightGrams), last.reps),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -528,6 +551,8 @@ private fun ActiveWorkoutScreenPreview() {
                         exerciseId = "back-squat",
                         name = "Back Squat",
                         subtitle = "Quads · Barbell",
+                        techniqueNote = "Brace, sit back, drive the floor away",
+                        restSeconds = 180,
                         sets = listOf(
                             SetRow("s1", 1, reps = 8, weightGrams = 60_000),
                             SetRow("s2", 2, reps = 8, weightGrams = 60_000),

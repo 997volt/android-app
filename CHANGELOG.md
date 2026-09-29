@@ -8,6 +8,13 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Per-exercise rest and a technique cue.** An exercise now carries its own rest
+  between sets — falling back to the 90 s default when unset — and a short
+  "brace, sit back" cue shown under its name on the active workout screen. Both
+  are editable from the exercise detail screen, which now edits **seeded**
+  exercises too, not only custom ones; the seeder tops up with `INSERT OR IGNORE`
+  and never updates an existing row, so an edit survives every future top-up.
+  Adds migration 3→4: two nullable columns, no backfill.
 - **Create a custom exercise from inside a workout.** The exercise picker gained
   **New exercise**, which asks for the name and immediately adds the entry to the
   session, so a movement the library does not have is not a dead end mid-workout.

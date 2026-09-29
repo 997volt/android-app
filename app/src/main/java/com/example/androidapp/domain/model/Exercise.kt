@@ -17,4 +17,14 @@ data class Exercise(
     val equipment: Equipment,
     val movementPattern: MovementPattern,
     val isCustom: Boolean = false,
+    /**
+     * This exercise's own rest between sets in seconds, or null to use
+     * [com.example.androidapp.domain.RestTimer.DEFAULT_SECONDS] (ROADMAP N5).
+     *
+     * Deliberately separate from the +15 s/−15 s controls, which are one-off
+     * adjustments to the rest currently running.
+     */
+    val restSeconds: Int? = null,
+    /** "Chest up, elbows tucked": read while lifting, not a description (ROADMAP N5). */
+    val techniqueNote: String? = null,
 )

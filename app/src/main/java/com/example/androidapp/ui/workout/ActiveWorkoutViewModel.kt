@@ -48,6 +48,10 @@ data class SessionExerciseRow(
     val name: String,
     /** `Quads · Barbell`, or null while a custom exercise's taxonomy is unset. */
     val subtitle: String?,
+    /** A cue to read while lifting, or null (ROADMAP N5). */
+    val techniqueNote: String? = null,
+    /** This exercise's own rest, or null for the app default (ROADMAP N5). */
+    val restSeconds: Int? = null,
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -239,7 +243,11 @@ class ActiveWorkoutViewModel @Inject constructor(
                 weightGrams = row.suggestion.weightGrams,
             )
             handle(result)
-            if (result is DataResult.Success) startRest()
+            // The exercise's own rest when it has one, otherwise the app default
+            // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
+            if (result is DataResult.Success) {
+                startRest(row.restSeconds ?: RestTimer.DEFAULT_SECONDS)
+            }
         }
     }
 
@@ -307,8 +315,8 @@ class ActiveWorkoutViewModel @Inject constructor(
         workoutRepository.deleteSession(sessionId)
     }
 
-    private suspend fun startRest() {
-        when (val result = workoutRepository.startRest()) {
+    private suspend fun startRest(seconds: Int) {
+        when (val result = workoutRepository.startRest(seconds)) {
             is DataResult.Success -> restNotifier.schedule(result.data)
             is DataResult.Failure -> lastError.value = result.error
         }
@@ -381,6 +389,8 @@ class ActiveWorkoutViewModel @Inject constructor(
             exerciseId = exerciseId,
             name = exerciseName,
             subtitle = taxonomySubtitle(primaryMuscle, equipment),
+            techniqueNote = techniqueNote,
+            restSeconds = restSeconds,
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

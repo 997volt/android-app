@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -35,12 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.DataError
+import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.MovementPattern
@@ -172,6 +175,24 @@ private fun ExerciseDetails(exercise: Exercise, modifier: Modifier = Modifier) {
         )
         HorizontalDivider()
 
+        AttributeRow(
+            label = stringResource(R.string.exercise_detail_rest),
+            // Unset means "use the app default", shown as such rather than as a
+            // dash: the user needs to know what will actually happen (N5).
+            value = exercise.restSeconds?.let { RestTimer.format(it) }
+                ?: stringResource(
+                    R.string.exercise_detail_rest_default,
+                    RestTimer.format(RestTimer.DEFAULT_SECONDS),
+                ),
+        )
+        HorizontalDivider()
+
+        AttributeRow(
+            label = stringResource(R.string.exercise_detail_cue),
+            value = exercise.techniqueNote ?: stringResource(R.string.exercise_detail_none),
+        )
+        HorizontalDivider()
+
         // Honest placeholder: history is the next milestone, not a broken screen.
         Text(
             text = stringResource(R.string.exercise_detail_history_planned),
@@ -183,7 +204,52 @@ private fun ExerciseDetails(exercise: Exercise, modifier: Modifier = Modifier) {
 }
 
 /**
- * The edit form behind the detail screen (ROADMAP N2).
+ * The edit form's working copy (ROADMAP N2, N5).
+ *
+ * The rest is held as raw text, not as an `Int?`: a half-typed value must not be
+ * silently coerced into a rest the user did not type. Empty means "the app
+ * default", and anything else has to parse as a positive number of seconds.
+ */
+private data class ExerciseDraft(
+    val name: String,
+    val primaryMuscle: MuscleGroup,
+    val equipment: Equipment,
+    val movementPattern: MovementPattern,
+    val restText: String,
+    val techniqueNote: String,
+) {
+    val restSeconds: Int? get() = restText.trim().ifEmpty { null }?.toIntOrNull()
+
+    val restIsValid: Boolean
+        get() {
+            if (restText.isBlank()) return true
+            val seconds = restSeconds ?: return false
+            return seconds > 0
+        }
+
+    val canSave: Boolean get() = name.isNotBlank() && restIsValid
+
+    fun toEdit(): ExerciseEdit = ExerciseEdit(
+        name = name.trim(),
+        primaryMuscle = primaryMuscle,
+        equipment = equipment,
+        movementPattern = movementPattern,
+        restSeconds = restSeconds,
+        techniqueNote = techniqueNote.trim().ifEmpty { null },
+    )
+}
+
+private fun Exercise.toDraft() = ExerciseDraft(
+    name = name,
+    primaryMuscle = primaryMuscle,
+    equipment = equipment,
+    movementPattern = movementPattern,
+    restText = restSeconds?.toString().orEmpty(),
+    techniqueNote = techniqueNote.orEmpty(),
+)
+
+/**
+ * The edit form behind the detail screen (ROADMAP N2, N5).
  *
  * The draft lives here rather than in the ViewModel: these are transient field
  * values, and keeping them local means a recomposition caused by an incoming
@@ -199,16 +265,7 @@ private fun ExerciseEditForm(
 ) {
     // Keys on the exercise id so switching to another exercise resets the draft
     // rather than carrying the previous one's values over.
-    var draft by remember(exercise.id) {
-        mutableStateOf(
-            ExerciseEdit(
-                name = exercise.name,
-                primaryMuscle = exercise.primaryMuscle,
-                equipment = exercise.equipment,
-                movementPattern = exercise.movementPattern,
-            ),
-        )
-    }
+    var draft by remember(exercise.id) { mutableStateOf(exercise.toDraft()) }
 
     Column(
         modifier = modifier
@@ -219,6 +276,8 @@ private fun ExerciseEditForm(
     ) {
         ExerciseEditFields(draft = draft, onDraftChange = { draft = it })
 
+        ExercisePrescriptionFields(draft = draft, onDraftChange = { draft = it })
+
         error?.let { failure ->
             Text(
                 text = dataErrorMessage(failure),
@@ -228,20 +287,21 @@ private fun ExerciseEditForm(
         }
 
         ExerciseEditActions(
-            // A nameless exercise is unusable, and the taxonomy can stay
-            // unspecified — so the name is the only required field.
-            saveEnabled = draft.name.isNotBlank(),
+            // A name is required; everything else may stay unset, and a rest that
+            // was typed but does not parse keeps Save disabled rather than being
+            // rounded to a number the user did not enter.
+            saveEnabled = draft.canSave,
             onCancel = onCancel,
-            onSave = { onSave(draft.copy(name = draft.name.trim())) },
+            onSave = { onSave(draft.toEdit()) },
         )
     }
 }
 
-/** The four editable attributes, as one unit so the form stays readable. */
+/** The identity attributes — name and taxonomy (ROADMAP N2). */
 @Composable
 private fun ExerciseEditFields(
-    draft: ExerciseEdit,
-    onDraftChange: (ExerciseEdit) -> Unit,
+    draft: ExerciseDraft,
+    onDraftChange: (ExerciseDraft) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -281,6 +341,43 @@ private fun ExerciseEditFields(
             optionLabel = { it.label },
             testTag = TestTags.EXERCISE_EDIT_PATTERN,
             onSelect = { onDraftChange(draft.copy(movementPattern = it)) },
+        )
+    }
+}
+
+/**
+ * The prescription attributes — rest and the technique cue (ROADMAP N5).
+ *
+ * Separate from the identity fields because they are a different kind of fact:
+ * the identity says *what* the movement is, this says *how* to do it.
+ */
+@Composable
+private fun ExercisePrescriptionFields(
+    draft: ExerciseDraft,
+    onDraftChange: (ExerciseDraft) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        OutlinedTextField(
+            value = draft.restText,
+            onValueChange = { onDraftChange(draft.copy(restText = it)) },
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.EXERCISE_EDIT_REST),
+            singleLine = true,
+            label = { Text(stringResource(R.string.exercise_detail_rest)) },
+            supportingText = { Text(stringResource(R.string.exercise_edit_rest_hint)) },
+            isError = draft.restText.isNotBlank() && !draft.restIsValid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+
+        OutlinedTextField(
+            value = draft.techniqueNote,
+            onValueChange = { onDraftChange(draft.copy(techniqueNote = it)) },
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.EXERCISE_EDIT_CUE),
+            label = { Text(stringResource(R.string.exercise_detail_cue)) },
+            minLines = 2,
         )
     }
 }

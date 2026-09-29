@@ -32,6 +32,14 @@ data class ExerciseEntity(
     val equipment: Equipment,
     val movementPattern: MovementPattern,
     val isCustom: Boolean,
+    /**
+     * This exercise's own rest between sets, or null to use the app default
+     * (ROADMAP N5). Nullable with no default, so the migration that adds it is a
+     * plain ALTER and existing rows read as "use the default".
+     */
+    val restSeconds: Int? = null,
+    /** A short cue to read *while* lifting, not a description (ROADMAP N5). */
+    val techniqueNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

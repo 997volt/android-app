@@ -17,6 +17,10 @@ data class SessionExerciseDetail(
     val exerciseName: String,
     val primaryMuscle: com.example.androidapp.domain.model.MuscleGroup,
     val equipment: com.example.androidapp.domain.model.Equipment,
+    /** The library exercise's own rest, or null for the app default (ROADMAP N5). */
+    val restSeconds: Int?,
+    /** Shown under the exercise name while lifting (ROADMAP N5). */
+    val techniqueNote: String?,
 )
 
 internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise(
@@ -27,4 +31,6 @@ internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise
     exerciseName = exerciseName,
     primaryMuscle = primaryMuscle,
     equipment = equipment,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
 )

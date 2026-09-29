@@ -21,11 +21,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * What the detail screen's edit form produces (ROADMAP N2).
+ * What the detail screen's edit form produces (ROADMAP N2, N5).
  *
  * Deliberately a screen-level draft rather than an [Exercise]: the form edits the
- * four attributes a user can change, and secondary muscles or `isCustom` are not
- * among them, so passing a whole exercise around would invite editing the rest by
+ * attributes a user can change, and secondary muscles or `isCustom` are not among
+ * them, so passing a whole exercise around would invite editing the rest by
  * accident.
  */
 data class ExerciseEdit(
@@ -33,6 +33,10 @@ data class ExerciseEdit(
     val primaryMuscle: MuscleGroup,
     val equipment: Equipment,
     val movementPattern: MovementPattern,
+    /** The exercise's own rest, or null for the app default (ROADMAP N5). */
+    val restSeconds: Int? = null,
+    /** A cue to read while lifting, or null (ROADMAP N5). */
+    val techniqueNote: String? = null,
 )
 
 data class ExerciseDetailUiState(
@@ -44,8 +48,12 @@ data class ExerciseDetailUiState(
     /** Loaded, but no such exercise — a real state, not an error to hide. */
     val notFound: Boolean get() = !isLoading && exercise == null
 
-    /** Only a user-created exercise can be corrected here (ROADMAP N2). */
-    val canEdit: Boolean get() = !isLoading && !isEditing && exercise?.isCustom == true
+    /**
+     * Any exercise can be corrected here (ROADMAP N5). Seeded rows included, and
+     * that is safe: the seeder tops up with `INSERT OR IGNORE` and never updates an
+     * existing row, so an edit survives every future top-up.
+     */
+    val canEdit: Boolean get() = !isLoading && !isEditing && exercise != null
 }
 
 /**
@@ -98,6 +106,8 @@ class ExerciseDetailViewModel @Inject constructor(
                 primaryMuscle = edit.primaryMuscle,
                 equipment = edit.equipment,
                 movementPattern = edit.movementPattern,
+                restSeconds = edit.restSeconds,
+                techniqueNote = edit.techniqueNote,
             )
             when (val result = repository.updateExercise(updated)) {
                 is DataResult.Success -> _uiState.update {

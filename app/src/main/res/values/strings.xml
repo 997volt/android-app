@@ -44,6 +44,12 @@
     <string name="exercise_detail_equipment">Equipment</string>
     <string name="exercise_detail_pattern">Movement pattern</string>
     <string name="exercise_detail_none">None</string>
+    <!-- Per-exercise rest and cue (ROADMAP N5). The default shows the app's own
+         fallback rather than a bare dash, because it is what will actually run. -->
+    <string name="exercise_detail_rest">Rest between sets</string>
+    <string name="exercise_detail_rest_default">Default (%1$s)</string>
+    <string name="exercise_detail_cue">Technique cue</string>
+    <string name="exercise_edit_rest_hint">Seconds. Leave empty for the default.</string>
     <string name="exercise_detail_not_found">That exercise is no longer in the library.</string>
     <string name="exercise_detail_history_planned">Per-exercise history and personal records are planned (ROADMAP P2.1).</string>
     <!-- Custom exercises are editable afterwards (ROADMAP N2). -->

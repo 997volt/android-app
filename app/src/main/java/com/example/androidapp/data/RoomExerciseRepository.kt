@@ -71,6 +71,12 @@ class RoomExerciseRepository @Inject constructor(
     override suspend fun updateExercise(exercise: Exercise): DataResult<Unit> = dataResultOf {
         val trimmed = exercise.name.trim()
         if (trimmed.isEmpty()) throw InvalidInputException("Give the exercise a name.")
+        // A rest of zero is not a rest, and leaving it unset is how "use the app
+        // default" is expressed — so a non-positive value is input we cannot use
+        // rather than something to coerce silently (ROADMAP N5).
+        if (exercise.restSeconds != null && exercise.restSeconds <= 0) {
+            throw InvalidInputException("Rest must be a positive number of seconds.")
+        }
 
         // Read the stored row first. The domain type deliberately carries no
         // createdAt, and the DAO writes every column, so rebuilding from the row
@@ -85,6 +91,10 @@ class RoomExerciseRepository @Inject constructor(
             secondaryMuscles = exercise.secondaryMuscles,
             equipment = exercise.equipment,
             movementPattern = exercise.movementPattern,
+            restSeconds = exercise.restSeconds,
+            // A cleared cue is stored as null, not as an empty string: two
+            // representations of "nothing" would show up differently on screen.
+            techniqueNote = exercise.techniqueNote?.trim()?.ifEmpty { null },
             updatedAt = timeSource.nowEpochMillis(),
         )
         if (dao.update(updated) == 0) throw NotFoundException("exercise ${exercise.id}")

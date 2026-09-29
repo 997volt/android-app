@@ -93,6 +93,40 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration3To4_addsRestAndTechniqueNote_leavingThemUnset() {
+        // Start from a v3 database holding a library row: N5's ALTERs have to run
+        // against a table that already has data, which a fresh install never covers.
+        helper.createDatabase(TEST_DB, 3).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 4, true, MIGRATION_3_4)
+
+        migrated.query(
+            "SELECT restSeconds, techniqueNote FROM exercises WHERE id = 'back-squat'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("the existing row must survive", 1, cursor.count)
+            // Unset is the state that means "use the app default", so a backfilled
+            // value here would silently change every existing exercise.
+            assertTrue("an unset rest must read as null", cursor.isNull(0))
+            assertTrue("an unset cue must read as null", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

@@ -58,12 +58,14 @@ object TestTags {
     const val NEW_EXERCISE_SAVE = "new_exercise_save"
     const val NEW_EXERCISE_CANCEL = "new_exercise_cancel"
 
-    /** The exercise detail screen's edit mode (ROADMAP N2). */
+    /** The exercise detail screen's edit mode (ROADMAP N2, N5). */
     const val EXERCISE_EDIT = "exercise_edit"
     const val EXERCISE_EDIT_NAME = "exercise_edit_name"
     const val EXERCISE_EDIT_MUSCLE = "exercise_edit_muscle"
     const val EXERCISE_EDIT_EQUIPMENT = "exercise_edit_equipment"
     const val EXERCISE_EDIT_PATTERN = "exercise_edit_pattern"
+    const val EXERCISE_EDIT_REST = "exercise_edit_rest"
+    const val EXERCISE_EDIT_CUE = "exercise_edit_cue"
     const val EXERCISE_EDIT_SAVE = "exercise_edit_save"
     const val EXERCISE_EDIT_CANCEL = "exercise_edit_cancel"
 }

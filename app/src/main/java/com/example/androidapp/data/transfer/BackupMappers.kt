@@ -24,6 +24,8 @@ internal fun ExerciseEntity.toDto() = ExerciseDto(
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
 )
 
 internal fun ExerciseDto.toEntity() = ExerciseEntity(
@@ -34,6 +36,8 @@ internal fun ExerciseDto.toEntity() = ExerciseEntity(
     equipment = equipment,
     movementPattern = movementPattern,
     isCustom = isCustom,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

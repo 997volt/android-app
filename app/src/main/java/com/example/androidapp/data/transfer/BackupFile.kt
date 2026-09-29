@@ -57,6 +57,13 @@ data class ExerciseDto(
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
+    /**
+     * The exercise's own rest and cue (ROADMAP N5). Defaulted, not required: a file
+     * written before these existed must still decode, and the codec's schema version
+     * is deliberately not bumped for an added field (see `BackupCodecTest`).
+     */
+    val restSeconds: Int? = null,
+    val techniqueNote: String? = null,
 )
 
 @Serializable

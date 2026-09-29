@@ -5,6 +5,11 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -34,6 +39,8 @@ class BackupCodecTest {
                 createdAt = 1L,
                 updatedAt = 2L,
                 deletedAt = null,
+                restSeconds = 180,
+                techniqueNote = "Brace, sit back",
             ),
             // A soft-deleted row: the backup must carry it, not quietly drop it.
             ExerciseDto(
@@ -148,5 +155,26 @@ class BackupCodecTest {
         val text = BackupCodec.encode(sample).replaceFirst("{", "{\n  \"somethingNew\": 42,")
 
         assertEquals(sample, BackupCodec.decode(text))
+    }
+
+    @Test
+    fun aFileWrittenBeforeTheRestAndCueFieldsExisted_stillDecodes() {
+        // N5 added two exercise fields and deliberately did *not* bump the schema
+        // version (the version moves when a field changes meaning or is removed).
+        // That is only safe because both fields are defaulted, so a file written
+        // before they existed must still decode — with them reading as unset.
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val olderExercises = tree.getValue("exercises").jsonArray.map { element ->
+            JsonObject(
+                element.jsonObject.filterKeys { it != "restSeconds" && it != "techniqueNote" },
+            )
+        }
+        val olderFile = JsonObject(tree + ("exercises" to JsonArray(olderExercises)))
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertEquals(null, restored.exercises.first().restSeconds)
+        assertEquals(null, restored.exercises.first().techniqueNote)
     }
 }

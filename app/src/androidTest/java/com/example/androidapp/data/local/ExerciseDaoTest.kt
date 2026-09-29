@@ -58,6 +58,9 @@ class ExerciseDaoTest {
             secondaryMuscles = listOf(MuscleGroup.GLUTES, MuscleGroup.CORE),
             equipment = Equipment.BARBELL,
             movementPattern = MovementPattern.SQUAT,
+            // N5's two nullable columns, so the round trip covers them too.
+            restSeconds = 180,
+            techniqueNote = "Brace, sit back",
         )
 
         dao.insertAll(listOf(original))
@@ -112,6 +115,8 @@ class ExerciseDaoTest {
                 secondaryMuscles = listOf(MuscleGroup.GLUTES),
                 equipment = Equipment.MACHINE,
                 movementPattern = MovementPattern.SQUAT,
+                restSeconds = 180,
+                techniqueNote = "Drive the floor away",
                 updatedAt = 99L,
             ),
         )
@@ -123,6 +128,8 @@ class ExerciseDaoTest {
         assertEquals(listOf(MuscleGroup.GLUTES), stored.secondaryMuscles)
         assertEquals(Equipment.MACHINE, stored.equipment)
         assertEquals(MovementPattern.SQUAT, stored.movementPattern)
+        assertEquals(180, stored.restSeconds)
+        assertEquals("Drive the floor away", stored.techniqueNote)
         assertEquals(99L, stored.updatedAt)
         // An attribute edit is not a re-creation, and it does not change where the
         // row came from.

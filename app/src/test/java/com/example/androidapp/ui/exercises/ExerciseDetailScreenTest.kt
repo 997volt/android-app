@@ -20,15 +20,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 /**
- * The detail screen's edit mode (ROADMAP N2).
+ * The detail screen's edit mode (ROADMAP N2, N5).
  *
  * The stateless composable is driven with a fixed state, so these are about the
  * wiring a unit test cannot see: which exercises offer Edit, and whether the form
  * reports what was chosen.
+ *
+ * Pinned to a phone-sized window: the form is taller than Robolectric's default
+ * display, and a control pushed off-screen is a test artifact rather than a
+ * behaviour change.
  */
 @RunWith(AndroidJUnit4::class)
+@Config(qualifiers = "w411dp-h891dp")
 class ExerciseDetailScreenTest {
 
     @get:Rule
@@ -58,10 +64,15 @@ class ExerciseDetailScreenTest {
     )
 
     @Test
-    fun aSeededExercise_offersNoEditAction() {
-        show(ExerciseDetailUiState(isLoading = false, exercise = seeded))
+    fun aSeededExercise_isAlsoEditable() {
+        // N5 reversed N2's custom-only rule: a seeded exercise must be editable
+        // too, and that is safe because the seeder never updates an existing row.
+        var edit = false
+        show(ExerciseDetailUiState(isLoading = false, exercise = seeded), onEdit = { edit = true })
 
-        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT).performClick()
+
+        assertTrue("the edit action should be wired through", edit)
     }
 
     @Test
@@ -82,6 +93,20 @@ class ExerciseDetailScreenTest {
     }
 
     @Test
+    fun theEditForm_isPrefilledWithTheExercisesRestAndCue() {
+        show(
+            ExerciseDetailUiState(
+                isLoading = false,
+                isEditing = true,
+                exercise = seeded.copy(restSeconds = 180, techniqueNote = "Brace, sit back"),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_REST).assertTextContains("180")
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_CUE).assertTextContains("Brace, sit back")
+    }
+
+    @Test
     fun saving_reportsTheEditedName() {
         var saved: ExerciseEdit? = null
         show(customState(isEditing = true), onSave = { saved = it })
@@ -92,6 +117,28 @@ class ExerciseDetailScreenTest {
 
         assertEquals("Sled Push Heavy", saved?.name)
         assertEquals(MuscleGroup.OTHER, saved?.primaryMuscle)
+    }
+
+    @Test
+    fun saving_reportsTheRestAndCue() {
+        var saved: ExerciseEdit? = null
+        show(ExerciseDetailUiState(isLoading = false, isEditing = true, exercise = seeded), onSave = { saved = it })
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_REST).performTextInput("180")
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_CUE).performTextInput("Brace, sit back")
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_SAVE).performClick()
+
+        assertEquals(180, saved?.restSeconds)
+        assertEquals("Brace, sit back", saved?.techniqueNote)
+    }
+
+    @Test
+    fun anUnparseableRest_disablesSave_ratherThanGuessingASecondsValue() {
+        show(ExerciseDetailUiState(isLoading = false, isEditing = true, exercise = seeded))
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_REST).performTextInput("soon")
+
+        composeTestRule.onNodeWithTag(TestTags.EXERCISE_EDIT_SAVE).assertIsNotEnabled()
     }
 
     @Test
@@ -132,6 +179,30 @@ class ExerciseDetailScreenTest {
         composeTestRule.onNodeWithText("Primary muscle").assertIsDisplayed()
         composeTestRule.onNodeWithText("Quads").assertIsDisplayed()
         composeTestRule.onNodeWithText("Barbell").assertIsDisplayed()
+    }
+
+    @Test
+    fun anUnsetRest_readsAsTheAppDefault_ratherThanNothing() {
+        // N5: unset means the 90 s default will actually run, so saying so beats a
+        // bare dash the user has to interpret.
+        show(ExerciseDetailUiState(isLoading = false, exercise = seeded.copy(restSeconds = null)))
+
+        composeTestRule.onNodeWithText("Default (1:30)").assertIsDisplayed()
+    }
+
+    @Test
+    fun anExercisesOwnRest_isShownInItsPlace() {
+        show(ExerciseDetailUiState(isLoading = false, exercise = seeded.copy(restSeconds = 180)))
+
+        composeTestRule.onNodeWithText("3:00").assertIsDisplayed()
+    }
+
+    @Test
+    fun anUnsetCue_readsAsNone() {
+        show(ExerciseDetailUiState(isLoading = false, exercise = seeded.copy(techniqueNote = null)))
+
+        composeTestRule.onNodeWithText("Technique cue").assertIsDisplayed()
+        composeTestRule.onNodeWithText("None").assertIsDisplayed()
     }
 
     private companion object {

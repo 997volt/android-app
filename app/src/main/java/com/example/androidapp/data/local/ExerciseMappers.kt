@@ -17,6 +17,8 @@ internal fun ExerciseEntity.toDomain(): Exercise = Exercise(
     equipment = equipment,
     movementPattern = movementPattern,
     isCustom = isCustom,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
 )
 
 /**
@@ -31,6 +33,8 @@ internal fun Exercise.toEntity(now: Long): ExerciseEntity = ExerciseEntity(
     equipment = equipment,
     movementPattern = movementPattern,
     isCustom = isCustom,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
     createdAt = now,
     updatedAt = now,
     deletedAt = null,

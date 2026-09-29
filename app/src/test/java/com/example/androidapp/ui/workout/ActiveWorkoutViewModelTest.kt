@@ -227,6 +227,52 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun loggingASet_usesTheExercisesOwnRest_whenItHasOne() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository().apply { restSecondsForNextExercise = 180 }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        // N5: the exercise's own rest replaces the 90 s app default, which is
+        // also what the +15 s/−15 s controls start from.
+        assertEquals(180, repository.lastRestSeconds)
+    }
+
+    @Test
+    fun loggingASet_fallsBackToTheAppDefault_whenNoRestIsSet() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        assertEquals(RestTimer.DEFAULT_SECONDS, repository.lastRestSeconds)
+    }
+
+    @Test
+    fun anExercisesTechniqueCue_isCarriedToTheRow() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository().apply {
+            techniqueNoteForNextExercise = "Brace, sit back"
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        assertEquals("Brace, sit back", viewModel.uiState.value.exercises.single().techniqueNote)
+    }
+
+    @Test
     fun theNextSet_prefillsWhatWasJustDone() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
@@ -364,6 +410,13 @@ class ActiveWorkoutViewModelTest {
         var previous: PreviousPerformance = PreviousPerformance(emptyList())
         var failWrites = false
 
+        /** What the next added exercise carries, so N5's plumbing can be asserted. */
+        var restSecondsForNextExercise: Int? = null
+        var techniqueNoteForNextExercise: String? = null
+
+        /** The rest length the ViewModel actually asked for, or null if never asked. */
+        var lastRestSeconds: Int? = null
+
         override fun observeActiveSession(): Flow<WorkoutSession?> = sessions
 
         override fun observeSessionExercises(sessionId: String): Flow<List<SessionExercise>> = exercises
@@ -385,6 +438,8 @@ class ActiveWorkoutViewModelTest {
                 exerciseName = "Back Squat",
                 primaryMuscle = MuscleGroup.QUADS,
                 equipment = Equipment.BARBELL,
+                restSeconds = restSecondsForNextExercise,
+                techniqueNote = techniqueNoteForNextExercise,
             )
             return successUnit()
         }
@@ -450,8 +505,10 @@ class ActiveWorkoutViewModelTest {
             currentSessionId: String,
         ): DataResult<PreviousPerformance> = DataResult.Success(previous)
 
-        override suspend fun startRest(seconds: Int): DataResult<Instant> =
-            DataResult.Success(FIXED_INSTANT.plusSeconds(seconds.toLong()))
+        override suspend fun startRest(seconds: Int): DataResult<Instant> {
+            lastRestSeconds = seconds
+            return DataResult.Success(FIXED_INSTANT.plusSeconds(seconds.toLong()))
+        }
 
         override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> =
             DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))

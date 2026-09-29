@@ -71,7 +71,8 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
-    fun onlyACustomExercise_canBeEdited() = runTest(dispatcher) {
+    fun everyExercise_canBeEdited() = runTest(dispatcher) {
+        // N5 widened N2's custom-only rule: a seeded exercise is editable too.
         val customViewModel = viewModelFor(FakeRepository(mutableListOf(custom)))
         advanceUntilIdle()
         assertTrue(customViewModel.uiState.value.canEdit)
@@ -81,7 +82,7 @@ class ExerciseDetailViewModelTest {
             exerciseId = "back-squat",
         )
         advanceUntilIdle()
-        assertFalse(seededViewModel.uiState.value.canEdit)
+        assertTrue(seededViewModel.uiState.value.canEdit)
     }
 
     @Test
@@ -97,6 +98,8 @@ class ExerciseDetailViewModelTest {
                 primaryMuscle = MuscleGroup.QUADS,
                 equipment = Equipment.MACHINE,
                 movementPattern = MovementPattern.SQUAT,
+                restSeconds = 180,
+                techniqueNote = "Drive the floor away",
             ),
         )
         advanceUntilIdle()
@@ -108,7 +111,10 @@ class ExerciseDetailViewModelTest {
         assertEquals(MuscleGroup.QUADS, state.exercise?.primaryMuscle)
         assertEquals(Equipment.MACHINE, state.exercise?.equipment)
         assertEquals(MovementPattern.SQUAT, state.exercise?.movementPattern)
+        assertEquals(180, state.exercise?.restSeconds)
+        assertEquals("Drive the floor away", state.exercise?.techniqueNote)
         assertEquals("Sled Push Heavy", repository.saved?.name)
+        assertEquals(180, repository.saved?.restSeconds)
     }
 
     @Test

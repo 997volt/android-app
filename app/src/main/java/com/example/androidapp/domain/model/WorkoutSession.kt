@@ -41,4 +41,8 @@ data class SessionExercise(
     val exerciseName: String,
     val primaryMuscle: MuscleGroup,
     val equipment: Equipment,
+    /** The library exercise's own rest, or null for the app default (ROADMAP N5). */
+    val restSeconds: Int? = null,
+    /** A cue to show under the name while lifting (ROADMAP N5). */
+    val techniqueNote: String? = null,
 )
