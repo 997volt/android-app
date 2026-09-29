@@ -5,6 +5,14 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
+## [Unreleased]
+
+### Changed
+- **The app opens on your workouts, not the exercise list.** Home is now a short
+  list of recent workouts with **Start workout** (or **Resume**) and a link to the
+  full history. The library became a screen you navigate to; it keeps search, and
+  stays the picker inside a workout.
+
 ## [1.2] — 2026-09-29 (versionCode 3)
 
 ### Added

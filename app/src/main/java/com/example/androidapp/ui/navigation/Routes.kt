@@ -11,7 +11,11 @@ import kotlinx.serialization.Serializable
  * detail we never hand-write.
  */
 
-/** The exercise library, and the app's start destination. */
+/** Home: recent workouts and the start action (ROADMAP N1). The start destination. */
+@Serializable
+data object WorkoutsHome
+
+/** The exercise library: a reference you navigate to, not where the app opens. */
 @Serializable
 data object ExerciseLibrary
 

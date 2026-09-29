@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -35,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,7 +52,6 @@ import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
-import com.example.androidapp.ui.workout.WorkoutClock
 import com.example.androidapp.ui.transfer.rememberDataTransferActions
 
 /**
@@ -67,15 +63,13 @@ import com.example.androidapp.ui.transfer.rememberDataTransferActions
 @Composable
 fun ExerciseLibraryRoute(
     onExerciseClick: (String) -> Unit,
-    onStartWorkout: () -> Unit,
+    onBack: () -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseLibraryViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // Not unwrapped with `by`: reading it here would rebuild the list every second.
-    val clock = viewModel.clock.collectAsStateWithLifecycle()
 
     // Held here rather than in the screen so the screen stays stateless and
     // testable with a fixed string.
@@ -85,10 +79,9 @@ fun ExerciseLibraryRoute(
     ExerciseLibraryScreen(
         state = state,
         title = stringResource(R.string.exercise_library_title),
-        clock = clock,
+        onBack = onBack,
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = onExerciseClick,
-        onStartWorkout = onStartWorkout,
         onOpenHistory = onOpenHistory,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
@@ -109,13 +102,11 @@ fun ExerciseLibraryRoute(
 @Composable
 fun ExerciseLibraryScreen(
     state: ExerciseLibraryUiState,
-    clock: State<WorkoutClock>,
     title: String,
     onQueryChange: (String) -> Unit,
     onExerciseClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
-    onStartWorkout: (() -> Unit)? = null,
     onOpenHistory: (() -> Unit)? = null,
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
@@ -153,15 +144,6 @@ fun ExerciseLibraryScreen(
                     }
                 },
             )
-        },
-        floatingActionButton = {
-            if (onStartWorkout != null) {
-                StartOrResumeButton(
-                    activeWorkout = state.activeWorkout,
-                    clock = clock,
-                    onClick = onStartWorkout,
-                )
-            }
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -293,55 +275,6 @@ private fun LibraryDataMenu(
  * Reads the clock — and is the only composable here that does, so the one-second
  * tick stops at this button instead of rebuilding the list beneath it.
  */
-@Composable
-private fun StartOrResumeButton(
-    activeWorkout: ActiveWorkoutInfo?,
-    clock: State<WorkoutClock>,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val resuming = activeWorkout != null
-    val elapsed = if (resuming) clock.value.elapsed else ""
-    val exercises = if (resuming) {
-        pluralStringResource(
-            R.plurals.library_exercises,
-            activeWorkout.exerciseCount,
-            activeWorkout.exerciseCount,
-        )
-    } else {
-        ""
-    }
-
-    ExtendedFloatingActionButton(
-        // Tagged by *state*, not by caption: which of the two is showing is the
-        // behaviour under test, and the captions are user-visible text a translation
-        // would change.
-        modifier = modifier.testTag(
-            if (resuming) TestTags.LIBRARY_RESUME else TestTags.LIBRARY_START,
-        ),
-        onClick = onClick,
-        text = {
-            Text(
-                text = if (resuming) {
-                    listOf(
-                        stringResource(R.string.library_resume_workout),
-                        elapsed,
-                        exercises,
-                    ).filter { it.isNotEmpty() }.joinToString(" \u00b7 ")
-                } else {
-                    stringResource(R.string.library_start_workout)
-                },
-            )
-        },
-        icon = {
-            Icon(
-                imageVector = if (resuming) Icons.Filled.PlayArrow else Icons.Filled.Add,
-                contentDescription = null,
-            )
-        },
-    )
-}
-
 /** The library's search box, split out so the screen composable stays readable. */
 @Composable
 private fun LibrarySearchField(
@@ -407,11 +340,9 @@ private fun ExerciseLibraryScreenPreview() {
                     ExerciseListItem("bench-press", "Barbell Bench Press", "Chest", "Barbell"),
                 ),
             ),
-            clock = remember { mutableStateOf(WorkoutClock()) },
             title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},
-            onStartWorkout = {},
         )
     }
 }
@@ -422,7 +353,6 @@ private fun ExerciseLibraryEmptyPreview() {
     AndroidAppTheme {
         ExerciseLibraryScreen(
             state = ExerciseLibraryUiState(query = "zzz", isLoading = false, items = emptyList()),
-            clock = remember { mutableStateOf(WorkoutClock()) },
             title = "Exercise library",
             onQueryChange = {},
             onExerciseClick = {},

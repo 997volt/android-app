@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.androidapp.ui.exercises.ExerciseDetailRoute
 import com.example.androidapp.ui.exercises.ExerciseLibraryRoute
+import com.example.androidapp.ui.home.WorkoutsHomeRoute
 import com.example.androidapp.ui.history.WorkoutDetailRoute
 import com.example.androidapp.ui.history.WorkoutHistoryRoute
 import com.example.androidapp.ui.workout.ActiveWorkoutRoute
@@ -27,16 +28,25 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = ExerciseLibrary,
+        startDestination = WorkoutsHome,
         modifier = modifier,
     ) {
+        composable<WorkoutsHome> {
+            WorkoutsHomeRoute(
+                onStartWorkout = { navController.navigate(ActiveWorkout) },
+                onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
+                onOpenHistory = { navController.navigate(WorkoutHistory) },
+                onOpenLibrary = { navController.navigate(ExerciseLibrary) },
+            )
+        }
+
         composable<ExerciseLibrary> {
             ExerciseLibraryRoute(
                 onExerciseClick = { exerciseId ->
                     navController.navigate(ExerciseDetail(exerciseId))
                 },
-                onStartWorkout = { navController.navigate(ActiveWorkout) },
                 onOpenHistory = { navController.navigate(WorkoutHistory) },
+                onBack = { navController.popBackStack() },
             )
         }
 

@@ -19,6 +19,14 @@ object TestTags {
     const val SET_INCREASE_REPS = "set_increase_reps"
     const val SET_DECREASE_REPS = "set_decrease_reps"
 
+    const val HOME_TITLE = "home_title"
+    const val HOME_START = "home_start"
+    const val HOME_RESUME = "home_resume"
+    const val HOME_RECENT_ROW = "home_recent_row"
+    const val HOME_SEE_ALL = "home_see_all"
+    const val HOME_FIRST_RUN = "home_first_run"
+    const val HOME_NO_RECENT = "home_no_recent"
+
     const val LIBRARY_TITLE = "library_title"
     const val LIBRARY_SEARCH_FIELD = "library_search_field"
 

@@ -50,29 +50,9 @@ left alone without being forgotten.
 
 ## Next — planned app changes
 
-Three changes to the app's shell and to planning, to land before anything in
-*Later*. They are ordered by what the others hang off, not by size.
-
-### N1 — Home is your recent workouts, not the exercise list
-
-The app opens on the exercise library, which is a reference, not a destination.
-Make the start destination a **Workouts** screen instead:
-
-- A short list of recent workouts, newest first. The month-grouped
-  [history screen](app/src/main/java/com/example/androidapp/ui/history/WorkoutHistoryScreen.kt)
-  already has the query and the row rendering — this is a home-sized view of it,
-  with a link through to the full history.
-- A prominent **Start workout**, plus the **Resume** affordance when a session is
-  open (the button that currently lives on the library).
-- A first-run empty state that points at Start workout.
-- The library becomes a screen you navigate *to*, and stays the picker inside a
-  workout. It keeps search; it loses its "start workout" button.
-
-Touches the start destination in
-[AppNavHost.kt](app/src/main/java/com/example/androidapp/ui/navigation/AppNavHost.kt),
-a new home screen and ViewModel, and
-[ExerciseLibraryScreen.kt](app/src/main/java/com/example/androidapp/ui/exercises/ExerciseLibraryScreen.kt)
-losing the button.
+Two changes left, to land before anything in *Later*. N1 — home as the start
+destination — is done; it is in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
+because shipped work lives there rather than here.
 
 ### N2 — A bigger library, and custom exercises while you train
 
@@ -106,7 +86,7 @@ smaller first version. It needs two new sync-shaped tables (`templates`,
 `template_exercises`) and therefore **migration 3→4**, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
 
-**Order:** N1 first, because it decides where N2 and N3 hang off. N2 and N3 are then
+**Order:** both hang off the home screen N1 introduced, and are otherwise
 independent of each other. Everything else stays in *Later* until these land.
 
 ## Later (still self-contained)

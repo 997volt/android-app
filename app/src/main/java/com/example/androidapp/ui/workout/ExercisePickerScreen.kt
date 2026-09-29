@@ -38,8 +38,6 @@ fun ExercisePickerRoute(
 
     ExerciseLibraryScreen(
         state = state,
-        // The picker has no start/resume button, so its clock never ticks.
-        clock = remember { mutableStateOf(WorkoutClock()) },
         title = stringResource(R.string.picker_title),
         onQueryChange = viewModel::onQueryChange,
         onExerciseClick = viewModel::onExerciseSelected,

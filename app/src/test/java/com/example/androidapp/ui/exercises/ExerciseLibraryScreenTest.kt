@@ -13,7 +13,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Instant
 
 /**
  * Instrumented UI tests for the library screen.
@@ -25,11 +24,8 @@ import java.time.Instant
  *
  *   ./gradlew connectedDebugAndroidTest
  */
-import androidx.compose.runtime.mutableStateOf
 
-import androidx.compose.runtime.remember
 
-import com.example.androidapp.ui.workout.WorkoutClock
 
 @RunWith(AndroidJUnit4::class)
 class ExerciseLibraryScreenTest {
@@ -42,49 +38,7 @@ class ExerciseLibraryScreenTest {
         ExerciseListItem(id = "hammer-curl", name = "Hammer Curl", muscleLabel = "Biceps", equipmentLabel = "Dumbbell"),
     )
 
-    @Test
-    fun withNothingRunning_theButtonOffersToStart() {
-        var started = false
-        setScreen(
-            ExerciseLibraryUiState(isLoading = false, items = items),
-            onStartWorkout = { started = true },
-        )
-
-        // useUnmergedTree: the FAB aggregates its slots, so the label lives on a
-        // child node rather than on the merged button.
-        composeTestRule.onNodeWithTag(TestTags.LIBRARY_START, useUnmergedTree = true)
-            .assertIsDisplayed()
-            .performClick()
-
-        assert(started) { "the button did not reach its callback" }
-    }
-
-    @Test
-    fun withAWorkoutRunning_theButtonOffersToResume_itWithTheElapsedTime() {
-        // Before P1.16 this screen said "Start workout" while a workout was open in
-        // the database, which quietly undid the crash recovery on the ordinary
-        // back-out path.
-        setScreen(
-            ExerciseLibraryUiState(
-                isLoading = false,
-                items = items,
-                activeWorkout = ActiveWorkoutInfo(
-                    startedAt = Instant.parse("2026-09-28T08:00:00Z"),
-                    exerciseCount = 3,
-                ),
-            ),
-            onStartWorkout = {},
-        )
-
-        composeTestRule.onNodeWithTag(TestTags.LIBRARY_RESUME, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText("3 exercises", substring = true, useUnmergedTree = true)
-            .assertIsDisplayed()
-        // The offer to start must be gone, not merely joined by a second button.
-        composeTestRule.onNodeWithTag(TestTags.LIBRARY_START).assertDoesNotExist()
-    }
-
-    @Test
+            @Test
     fun anEmptyLibrary_saysSo_ratherThanBlamingTheSearch() {
         setScreen(
             ExerciseLibraryUiState(isLoading = false, items = emptyList(), libraryIsEmpty = true),
@@ -113,16 +67,13 @@ class ExerciseLibraryScreenTest {
         state: ExerciseLibraryUiState,
         onQueryChange: (String) -> Unit = {},
         onExerciseClick: (String) -> Unit = {},
-        onStartWorkout: (() -> Unit)? = null,
     ) {
         composeTestRule.setContent {
             ExerciseLibraryScreen(
                 state = state,
-                clock = remember { mutableStateOf(WorkoutClock()) },
                 title = "Exercise library",
                 onQueryChange = onQueryChange,
                 onExerciseClick = onExerciseClick,
-                onStartWorkout = onStartWorkout,
             )
         }
     }
