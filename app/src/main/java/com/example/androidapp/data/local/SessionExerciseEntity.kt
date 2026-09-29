@@ -54,6 +54,12 @@ data class SessionExerciseEntity(
     val muscleFeel: Int? = null,
     /** Discomfort in joints or connective tissue, 1–10, or null (ROADMAP N8). */
     val jointPain: Int? = null,
+    /**
+     * Which joints hurt, or null (ROADMAP N9). Free text, and only meaningful
+     * beside [jointPain] — but stored either way, because the note is often what
+     * makes a past rating legible a month later.
+     */
+    val jointPainNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

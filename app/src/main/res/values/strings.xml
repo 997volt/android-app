@@ -135,11 +135,14 @@
          vocabulary for the same thing. -->
     <string name="rating_muscle_anchors">1 = barely worked, 10 = fully worked</string>
     <string name="rating_joint_anchors">1 = none, 10 = severe</string>
+    <string name="rating_joint_note_label">Which joints?</string>
+    <string name="rating_joint_note_hint">Optional — left shoulder, right knee</string>
     <string name="rating_skip">Skip</string>
     <string name="rating_row_title">How it felt</string>
     <string name="rating_row_add">Tap to rate</string>
     <string name="rating_muscle_value">Muscle feel %1$d</string>
     <string name="rating_joint_value">Joint pain %1$d</string>
+    <string name="rating_joint_note_value">%1$s</string>
 
     <!-- Exercise picker -->
     <string name="picker_title">Add exercise</string>

@@ -85,6 +85,12 @@ class BackupRoundTripTest {
         assertEquals(100_000L, set.weightGrams)
         assertEquals(5, set.reps)
         assertEquals(SetType.WARMUP, set.setType)
+
+        // What the ratings and N9's location look like after a restore.
+        val exercise = database.backupDao().allSessionExercises().single()
+        assertEquals(8, exercise.muscleFeel)
+        assertEquals(4, exercise.jointPain)
+        assertEquals("left shoulder", exercise.jointPainNote)
     }
 
     @Test
@@ -212,6 +218,14 @@ class BackupRoundTripTest {
                 sessionId = session.id,
                 exerciseId = "back-squat",
                 position = 0,
+                finishedAt = 2_000L,
+                // The ratings and N9's location are columns the hand-written codec
+                // has to name explicitly: one missing from the DTO is dropped by
+                // export and lost on restore, silently. The round trip is what
+                // catches that, so it seeds all three.
+                muscleFeel = 8,
+                jointPain = 4,
+                jointPainNote = "left shoulder",
                 createdAt = 1_000L,
                 updatedAt = 1_000L,
                 deletedAt = null,

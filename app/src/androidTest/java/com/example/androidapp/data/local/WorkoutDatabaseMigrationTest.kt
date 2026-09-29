@@ -352,6 +352,55 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration9To10_addsTheJointPainLocation_leavingItUnset() {
+        // A v9 database with a rating already recorded (ROADMAP N9).
+        helper.createDatabase(TEST_DB, 9).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, 2, NULL, NULL, NULL, 1, 2, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, finishedAt, muscleFeel,
+                     jointPain, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, NULL, 7, 4, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10)
+
+        migrated.query(
+            "SELECT jointPainNote, muscleFeel, jointPain FROM session_exercises WHERE id = 'se1'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.count)
+            assertTrue("no location is invented by the upgrade", cursor.isNull(0))
+            // The ratings that were already there are untouched.
+            assertEquals(7, cursor.getInt(1))
+            assertEquals(4, cursor.getInt(2))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

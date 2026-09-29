@@ -42,6 +42,7 @@ object TestTags {
      */
     const val RATING_MUSCLE_FIELD = "rating_muscle_field"
     const val RATING_JOINT_FIELD = "rating_joint_field"
+    const val RATING_JOINT_NOTE_FIELD = "rating_joint_note_field"
     const val RATING_SAVE = "rating_save"
     const val RATING_DISMISS = "rating_dismiss"
     const val EXERCISE_RATING_ROW = "exercise_rating_row"

@@ -40,6 +40,8 @@ data class HistoryExercise(
     val muscleFeel: Int? = null,
     /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
     val jointPain: Int? = null,
+    /** Which joints, or null (ROADMAP N9). */
+    val jointPainNote: String? = null,
 )
 
 data class WorkoutDetailUiState(
@@ -105,6 +107,7 @@ class WorkoutDetailViewModel @Inject constructor(
                         name = row.exerciseName,
                         muscleFeel = row.muscleFeel,
                         jointPain = row.jointPain,
+                        jointPainNote = row.jointPainNote,
                         sets = logged
                             .filter { it.sessionExerciseId == row.id }
                             .sortedBy { it.setIndex }
@@ -142,8 +145,13 @@ class WorkoutDetailViewModel @Inject constructor(
      * when an exercise is marked done, but they can be filled in or corrected
      * afterwards without reopening the workout.
      */
-    fun onRateExercise(sessionExerciseId: String, muscleFeel: Int?, jointPain: Int?) = write {
-        workoutRepository.rateExercise(sessionExerciseId, muscleFeel, jointPain)
+    fun onRateExercise(
+        sessionExerciseId: String,
+        muscleFeel: Int?,
+        jointPain: Int?,
+        jointPainNote: String?,
+    ) = write {
+        workoutRepository.rateExercise(sessionExerciseId, muscleFeel, jointPain, jointPainNote)
     }
 
     /**

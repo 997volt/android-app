@@ -97,6 +97,8 @@ interface WorkoutRepository {
         sessionExerciseId: String,
         muscleFeel: Int?,
         jointPain: Int?,
+        /** Which joints hurt, or null (ROADMAP N9). Blank is stored as null. */
+        jointPainNote: String? = null,
     ): DataResult<Unit>
 
     /** Marks the session complete. It stops being "active" and enters history. */

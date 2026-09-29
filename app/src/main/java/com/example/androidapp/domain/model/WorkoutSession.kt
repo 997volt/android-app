@@ -66,6 +66,8 @@ data class SessionExercise(
     val muscleFeel: Int? = null,
     /** Discomfort in joints or connective tissue, 1–10, or null (ROADMAP N8). */
     val jointPain: Int? = null,
+    /** Which joints, e.g. "left shoulder" (ROADMAP N9), or null. */
+    val jointPainNote: String? = null,
 ) {
     val isFinished: Boolean get() = finishedAt != null
 }

@@ -100,7 +100,8 @@ interface WorkoutDao {
                e.techniqueNote AS techniqueNote,
                se.finishedAt AS finishedAt,
                se.muscleFeel AS muscleFeel,
-               se.jointPain AS jointPain
+               se.jointPain AS jointPain,
+               se.jointPainNote AS jointPainNote
         FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = :sessionId
@@ -259,7 +260,10 @@ interface WorkoutDao {
     @Query(
         """
         UPDATE session_exercises
-        SET muscleFeel = :muscleFeel, jointPain = :jointPain, updatedAt = :at
+        SET muscleFeel = :muscleFeel,
+            jointPain = :jointPain,
+            jointPainNote = :jointPainNote,
+            updatedAt = :at
         WHERE id = :id AND deletedAt IS NULL
         """,
     )
@@ -267,6 +271,7 @@ interface WorkoutDao {
         id: String,
         muscleFeel: Int?,
         jointPain: Int?,
+        jointPainNote: String?,
         at: Long,
     ): Int
 

@@ -143,6 +143,7 @@ class RoomWorkoutRepository @Inject constructor(
         sessionExerciseId: String,
         muscleFeel: Int?,
         jointPain: Int?,
+        jointPainNote: String?,
     ): DataResult<Unit> = dataResultOf {
         // Both sit on the same 1–10 scale as a set's RPE, and all three are
         // skippable, so the one validator covers them (ROADMAP N8).
@@ -155,6 +156,10 @@ class RoomWorkoutRepository @Inject constructor(
             id = sessionExerciseId,
             muscleFeel = muscleFeel,
             jointPain = jointPain,
+            // Blank is stored as null rather than "": two representations of
+            // "nothing" would show up differently on screen (the same rule the
+            // readiness note follows).
+            jointPainNote = jointPainNote?.trim()?.ifEmpty { null },
             at = timeSource.nowEpochMillis(),
         )
         if (updated == 0) throw NotFoundException("session exercise $sessionExerciseId")

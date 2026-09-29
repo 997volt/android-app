@@ -235,27 +235,47 @@ class WorkoutDaoTest {
 
         assertEquals(
             1,
-            dao.setSessionExerciseRating(id = rowId, muscleFeel = 8, jointPain = 2, at = 5_000L),
+            dao.setSessionExerciseRating(
+                id = rowId,
+                muscleFeel = 8,
+                jointPain = 2,
+                jointPainNote = "left shoulder",
+                at = 5_000L,
+            ),
         )
         val rated = dao.observeSessionExerciseDetails(session.id).first().single()
         assertEquals(8, rated.muscleFeel)
         assertEquals(2, rated.jointPain)
+        assertEquals("left shoulder", rated.jointPainNote)
 
         // Nulls clear, because from the detail's editor the fields are the state.
         assertEquals(
             1,
-            dao.setSessionExerciseRating(id = rowId, muscleFeel = null, jointPain = null, at = 6_000L),
+            dao.setSessionExerciseRating(
+                id = rowId,
+                muscleFeel = null,
+                jointPain = null,
+                jointPainNote = null,
+                at = 6_000L,
+            ),
         )
         val cleared = dao.observeSessionExerciseDetails(session.id).first().single()
         assertNull(cleared.muscleFeel)
         assertNull(cleared.jointPain)
+        assertNull("the location goes with the rating it explains (N9)", cleared.jointPainNote)
     }
 
     @Test
     fun setSessionExerciseRating_reportsZeroRowsForAnUnknownExercise() = runTest {
         assertEquals(
             0,
-            dao.setSessionExerciseRating(id = "nope", muscleFeel = 5, jointPain = 5, at = 1L),
+            dao.setSessionExerciseRating(
+                id = "nope",
+                muscleFeel = 5,
+                jointPain = 5,
+                jointPainNote = null,
+                at = 1L,
+            ),
         )
     }
 

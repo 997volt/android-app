@@ -86,7 +86,7 @@ fun WorkoutDetailScreen(
     state: WorkoutDetailUiState,
     onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
     onDeleteSet: (String) -> Unit,
-    onRateExercise: (String, Int?, Int?) -> Unit,
+    onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onDeleteWorkout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -186,7 +186,7 @@ private fun DetailContent(
     state: WorkoutDetailUiState,
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (String) -> Unit,
-    onRate: (String, Int?, Int?) -> Unit,
+    onRate: (String, Int?, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -292,7 +292,7 @@ private fun ExerciseBlock(
     exercise: HistoryExercise,
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (HistorySet) -> Unit,
-    onRate: (String, Int?, Int?) -> Unit,
+    onRate: (String, Int?, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val editLabel = stringResource(R.string.set_edit_action)
@@ -367,7 +367,7 @@ private fun ExerciseBlock(
 @Composable
 private fun ExerciseRatingSection(
     exercise: HistoryExercise,
-    onRate: (String, Int?, Int?) -> Unit,
+    onRate: (String, Int?, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf(false) }
@@ -386,7 +386,7 @@ private fun ExerciseRatingSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = ratingSummary(exercise.muscleFeel, exercise.jointPain)
+            text = ratingSummary(exercise.muscleFeel, exercise.jointPain, exercise.jointPainNote)
                 ?: stringResource(R.string.rating_row_add),
             style = MaterialTheme.typography.bodyMedium,
             color = if (exercise.muscleFeel == null && exercise.jointPain == null) {
@@ -401,22 +401,29 @@ private fun ExerciseRatingSection(
         ExerciseRatingDialog(
             initialMuscleFeel = exercise.muscleFeel,
             initialJointPain = exercise.jointPain,
+            initialJointPainNote = exercise.jointPainNote.orEmpty(),
             isPrompt = false,
             onDismiss = { editing = false },
-            onSave = { feel, pain ->
+            onSave = { feel, pain, note ->
                 editing = false
-                onRate(exercise.id, feel, pain)
+                onRate(exercise.id, feel, pain, note)
             },
         )
     }
 }
 
-/** `Muscle feel 8 · Joint pain 2`, or null when neither was recorded. */
+/**
+ * `Muscle feel 8 · Joint pain 2` and, on the next line, where it hurt (N9).
+ *
+ * The location rides with the summary rather than being a row of its own: it is an
+ * aside to the rating, and "left shoulder" means nothing on its own.
+ */
 @Composable
-private fun ratingSummary(muscleFeel: Int?, jointPain: Int?): String? {
+private fun ratingSummary(muscleFeel: Int?, jointPain: Int?, jointPainNote: String?): String? {
     val parts = listOfNotNull(
         muscleFeel?.let { stringResource(R.string.rating_muscle_value, it) },
         jointPain?.let { stringResource(R.string.rating_joint_value, it) },
+        jointPainNote?.let { stringResource(R.string.rating_joint_note_value, it) },
     )
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
@@ -452,7 +459,7 @@ private fun WorkoutDetailScreenPreview() {
             ),
             onUpdateSet = { _, _, _, _, _ -> },
             onDeleteSet = {},
-            onRateExercise = { _, _, _ -> },
+            onRateExercise = { _, _, _, _ -> },
             onDeleteWorkout = {},
             onBack = {},
         )

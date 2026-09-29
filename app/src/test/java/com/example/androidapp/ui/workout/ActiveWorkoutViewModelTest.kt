@@ -849,11 +849,16 @@ class ActiveWorkoutViewModelTest {
             sessionExerciseId: String,
             muscleFeel: Int?,
             jointPain: Int?,
+            jointPainNote: String?,
         ): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             exercises.value = exercises.value.map {
                 if (it.id == sessionExerciseId) {
-                    it.copy(muscleFeel = muscleFeel, jointPain = jointPain)
+                    it.copy(
+                        muscleFeel = muscleFeel,
+                        jointPain = jointPain,
+                        jointPainNote = jointPainNote,
+                    )
                 } else {
                     it
                 }

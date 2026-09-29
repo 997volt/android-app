@@ -43,13 +43,15 @@ import com.example.androidapp.domain.model.TenPointScale
 fun ExerciseRatingDialog(
     initialMuscleFeel: Int?,
     initialJointPain: Int?,
+    initialJointPainNote: String,
     isPrompt: Boolean,
     onDismiss: () -> Unit,
-    onSave: (muscleFeel: Int?, jointPain: Int?) -> Unit,
+    onSave: (muscleFeel: Int?, jointPain: Int?, jointPainNote: String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var muscleText by rememberSaveable { mutableStateOf(initialMuscleFeel?.toString().orEmpty()) }
     var jointText by rememberSaveable { mutableStateOf(initialJointPain?.toString().orEmpty()) }
+    var noteText by rememberSaveable { mutableStateOf(initialJointPainNote) }
 
     val muscleFeel = muscleText.trim().ifEmpty { null }?.toIntOrNull()
     val jointPain = jointText.trim().ifEmpty { null }?.toIntOrNull()
@@ -75,13 +77,15 @@ fun ExerciseRatingDialog(
                 jointText = jointText,
                 onJointChange = { jointText = it },
                 jointIsValid = jointIsValid,
+                noteText = noteText,
+                onNoteChange = { noteText = it },
             )
         },
         confirmButton = {
             TextButton(
                 modifier = Modifier.testTag(TestTags.RATING_SAVE),
                 enabled = muscleIsValid && jointIsValid,
-                onClick = { onSave(muscleFeel, jointPain) },
+                onClick = { onSave(muscleFeel, jointPain, noteText.trim().ifEmpty { null }) },
             ) {
                 Text(stringResource(R.string.action_save))
             }
@@ -110,6 +114,8 @@ private fun RatingFields(
     jointText: String,
     onJointChange: (String) -> Unit,
     jointIsValid: Boolean,
+    noteText: String,
+    onNoteChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
@@ -134,6 +140,17 @@ private fun RatingFields(
             supportingText = { Text(stringResource(R.string.rating_joint_anchors)) },
             isError = jointText.isNotBlank() && !jointIsValid,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+        // N9's location box, under the rating it explains. Free text with no
+        // validation: which joints hurt is not a set of values the app can check,
+        // and a rating of 4 means more a month later if it says where.
+        OutlinedTextField(
+            value = noteText,
+            onValueChange = onNoteChange,
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.RATING_JOINT_NOTE_FIELD),
+            singleLine = true,
+            label = { Text(stringResource(R.string.rating_joint_note_label)) },
+            supportingText = { Text(stringResource(R.string.rating_joint_note_hint)) },
         )
     }
 }

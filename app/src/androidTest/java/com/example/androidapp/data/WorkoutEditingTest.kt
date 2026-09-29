@@ -213,6 +213,28 @@ class WorkoutEditingTest {
     }
 
     @Test
+    fun aJointPainLocation_isStored_andABlankOneBecomesNull() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+
+        assertTrue(
+            repository.rateExercise("se1", muscleFeel = 8, jointPain = 4, jointPainNote = "  left shoulder  ")
+                is DataResult.Success,
+        )
+        assertEquals(
+            "left shoulder",
+            database.workoutDao().observeSessionExerciseDetails(sessionId).first().single().jointPainNote,
+        )
+
+        repository.rateExercise("se1", muscleFeel = 8, jointPain = 4, jointPainNote = "   ")
+
+        // Two representations of "nothing" would render differently on screen, the
+        // same rule the readiness note follows (ROADMAP N9).
+        assertNull(
+            database.workoutDao().observeSessionExerciseDetails(sessionId).first().single().jointPainNote,
+        )
+    }
+
+    @Test
     fun aRatingOutsideTheScale_isRefused_withoutTouchingTheExercise() = runTest {
         val sessionId = seedOpenWorkoutWithASet()
 

@@ -99,6 +99,8 @@ data class SessionExerciseDto(
     val finishedAt: Long? = null,
     val muscleFeel: Int? = null,
     val jointPain: Int? = null,
+    /** Which joints, or null (ROADMAP N9). Defaulted, like every added field. */
+    val jointPainNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

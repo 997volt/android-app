@@ -32,7 +32,7 @@ class ActiveWorkoutScreenTest {
 
     private fun setScreen(
         state: ActiveWorkoutUiState,
-        onFinishExercise: (String, Int?, Int?) -> Unit = { _, _, _ -> },
+        onFinishExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onReopenExercise: (String) -> Unit = {},
         onRemoveExercise: (String) -> Unit = {},
     ) {
@@ -84,12 +84,20 @@ class ActiveWorkoutScreenTest {
         composeTestRule.onNodeWithText("Log set · 100 kg × 5").assertDoesNotExist()
     }
 
+    /** What the screen reports when an exercise is finished (N7, N8, N9). */
+    private data class FinishCall(
+        val id: String,
+        val muscleFeel: Int?,
+        val jointPain: Int?,
+        val jointPainNote: String?,
+    )
+
     @Test
     fun tappingDone_asksHowItFelt_beforeFinishing() {
-        var finished: Triple<String, Int?, Int?>? = null
+        var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
         )
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
@@ -100,37 +108,39 @@ class ActiveWorkoutScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
 
-        assertEquals("se1", finished?.first)
+        assertEquals("se1", finished?.id)
     }
 
     @Test
     fun skippingTheRatingPrompt_finishesWithoutRatings() {
-        var finished: Triple<String, Int?, Int?>? = null
+        var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
         )
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
 
         composeTestRule.onNodeWithTag(TestTags.RATING_DISMISS).performClick()
 
-        assertEquals(Triple("se1", null, null), finished)
+        assertEquals(FinishCall("se1", null, null, null), finished)
     }
 
     @Test
     fun savingTheRatings_passesBothThrough() {
-        var finished: Triple<String, Int?, Int?>? = null
+        var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain -> finished = Triple(id, feel, pain) },
+            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
         )
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
         composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("8")
         composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_FIELD).performTextInput("2")
+        // N9's location rides with the ratings the prompt collects.
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_NOTE_FIELD).performTextInput("left knee")
 
         composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
 
-        assertEquals(Triple("se1", 8, 2), finished)
+        assertEquals(FinishCall("se1", 8, 2, "left knee"), finished)
     }
 
     @Test

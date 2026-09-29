@@ -58,7 +58,7 @@ internal fun ExerciseList(
     onRemoveExercise: (String) -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
-    onFinishExercise: (String, Int?, Int?) -> Unit,
+    onFinishExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -98,7 +98,7 @@ private fun ExerciseSection(
     onRemoveExercise: () -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
-    onFinishExercise: (String, Int?, Int?) -> Unit,
+    onFinishExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -121,6 +121,7 @@ private fun ExerciseSection(
                     exerciseId = row.id,
                     muscleFeel = row.muscleFeel,
                     jointPain = row.jointPain,
+                    jointPainNote = row.jointPainNote,
                     onFinish = onFinishExercise,
                 )
             }
@@ -159,7 +160,8 @@ private fun FinishExerciseAction(
     exerciseId: String,
     muscleFeel: Int?,
     jointPain: Int?,
-    onFinish: (String, Int?, Int?) -> Unit,
+    jointPainNote: String,
+    onFinish: (String, Int?, Int?, String?) -> Unit,
 ) {
     var rating by remember { mutableStateOf(false) }
 
@@ -174,14 +176,15 @@ private fun FinishExerciseAction(
         ExerciseRatingDialog(
             initialMuscleFeel = muscleFeel,
             initialJointPain = jointPain,
+            initialJointPainNote = jointPainNote,
             isPrompt = true,
             onDismiss = {
                 rating = false
-                onFinish(exerciseId, null, null)
+                onFinish(exerciseId, null, null, null)
             },
-            onSave = { feel, pain ->
+            onSave = { feel, pain, note ->
                 rating = false
-                onFinish(exerciseId, feel, pain)
+                onFinish(exerciseId, feel, pain, note)
             },
         )
     }

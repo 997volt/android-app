@@ -54,24 +54,13 @@ left alone without being forgotten.
 
 ## Next
 
-Three additions to what a workout records. Everything shipped so far is in
-[CHANGELOG.md](CHANGELOG.md); this section holds only what is still queued.
+What a workout records, still queued. Everything shipped so far is in
+[CHANGELOG.md](CHANGELOG.md); this section holds only what is left.
 
 | # | Addition | Decision |
 | --- | --- | --- |
-| N9 | Joint pain location | A text box under the rating — the batch's only migration |
 | N10 | Ratings before finishing | Editable at any time, not only at the Done prompt |
 | N11 | A workout comment | A skippable prompt on Finish; no migration |
-
-### N9 — Joint pain location
-
-A text box under the joint-pain rating, for *which* joints: "left shoulder", "right
-knee". `session_exercises.jointPainNote`, nullable — **this batch's only migration**
-(the database is at v9 after templates, so 9→10).
-
-The trap worth naming: the export is a hand-written codec, so a column missing from
-the backup DTO is silently dropped by export and lost on restore. The migration test
-and the round-trip test both need the field.
 
 ### N10 — Muscle feel and joint pain before finishing
 

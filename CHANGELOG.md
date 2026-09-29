@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Joint pain says where.** The joint-pain rating gained an optional free-text box —
+  "left shoulder", "right knee" — because a 4 means more a month later with a place
+  attached to it. Stored per session exercise, editable wherever the rating is (the
+  Done prompt and the workout detail), and shown beside it there. Adds migration
+  9→10: one nullable column, no backfill, and carried by the export file like every
+  other column — the hand-written codec drops anything the DTO does not name.
 - **Trends: what the app collects, read back.** A screen over the last ten finished
   workouts showing RPE, muscle feel and joint pain — each as a line on the same fixed
   1–10 axis, with its latest value and its average. The details are the honest part: a

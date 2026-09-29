@@ -68,6 +68,8 @@ data class SessionExerciseRow(
     val muscleFeel: Int? = null,
     /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
     val jointPain: Int? = null,
+    /** Which joints, or empty (ROADMAP N9). */
+    val jointPainNote: String = "",
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -316,10 +318,16 @@ class ActiveWorkoutViewModel @Inject constructor(
         sessionExerciseId: String,
         muscleFeel: Int? = null,
         jointPain: Int? = null,
+        jointPainNote: String? = null,
     ) {
         viewModelScope.launch {
             if (muscleFeel != null || jointPain != null) {
-                val rated = workoutRepository.rateExercise(sessionExerciseId, muscleFeel, jointPain)
+                val rated = workoutRepository.rateExercise(
+                    sessionExerciseId = sessionExerciseId,
+                    muscleFeel = muscleFeel,
+                    jointPain = jointPain,
+                    jointPainNote = jointPainNote,
+                )
                 if (rated is DataResult.Failure) {
                     lastError.value = rated.error
                     return@launch
@@ -583,6 +591,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             isFinished = isFinished,
             muscleFeel = muscleFeel,
             jointPain = jointPain,
+            jointPainNote = jointPainNote.orEmpty(),
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

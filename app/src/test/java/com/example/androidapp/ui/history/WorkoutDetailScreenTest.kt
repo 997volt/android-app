@@ -64,7 +64,7 @@ class WorkoutDetailScreenTest {
         uiState: WorkoutDetailUiState = state,
         onUpdateSet: (String, Int, Long, Int?, String?) -> Unit = { _, _, _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
-        onRateExercise: (String, Int?, Int?) -> Unit = { _, _, _ -> },
+        onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},
     ) {
         composeTestRule.setContent {

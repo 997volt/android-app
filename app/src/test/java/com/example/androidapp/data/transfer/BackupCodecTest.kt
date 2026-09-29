@@ -78,6 +78,7 @@ class BackupCodecTest {
                 finishedAt = 12L,
                 muscleFeel = 8,
                 jointPain = 2,
+                jointPainNote = "left shoulder",
                 createdAt = 10L,
                 updatedAt = 12L,
                 deletedAt = null,
@@ -227,7 +228,8 @@ class BackupCodecTest {
         val olderSessionExercises = tree.getValue("sessionExercises").jsonArray.map { element ->
             JsonObject(
                 element.jsonObject.filterKeys {
-                    it != "finishedAt" && it != "muscleFeel" && it != "jointPain"
+                    it != "finishedAt" && it != "muscleFeel" &&
+                        it != "jointPain" && it != "jointPainNote"
                 },
             )
         }
@@ -251,6 +253,7 @@ class BackupCodecTest {
         assertEquals(null, restored.sessionExercises.first().finishedAt)
         assertEquals(null, restored.sessionExercises.first().muscleFeel)
         assertEquals(null, restored.sessionExercises.first().jointPain)
+        assertEquals(null, restored.sessionExercises.first().jointPainNote)
         assertEquals(null, restored.sets.first().rpe)
         assertEquals(null, restored.sets.first().note)
     }

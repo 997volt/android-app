@@ -223,6 +223,21 @@ private const val CREATE_TEMPLATE_EXERCISES_EXERCISE_ID_INDEX =
     "CREATE INDEX IF NOT EXISTS `index_template_exercises_exerciseId` " +
         "ON `template_exercises` (`exerciseId`)"
 
+/**
+ * v9 -> v10: which joints hurt (ROADMAP N9).
+ *
+ * One additive column, nullable and unset, so every rating already recorded reads
+ * back as "no location given" and nothing is backfilled.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_SESSION_EXERCISE_JOINT_PAIN_NOTE)
+    }
+}
+
+private const val ADD_SESSION_EXERCISE_JOINT_PAIN_NOTE =
+    "ALTER TABLE `session_exercises` ADD COLUMN `jointPainNote` TEXT"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -233,4 +248,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_6_7,
     MIGRATION_7_8,
     MIGRATION_8_9,
+    MIGRATION_9_10,
 )

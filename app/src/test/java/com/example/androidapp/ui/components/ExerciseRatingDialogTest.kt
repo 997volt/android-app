@@ -32,18 +32,26 @@ class ExerciseRatingDialogTest {
     val composeTestRule = createComposeRule()
 
     private var saved: Pair<Int?, Int?>? = null
+    private var savedNote: String? = null
     private var saveCalled = false
     private var dismissed = false
 
-    private fun show(initialFeel: Int? = null, initialPain: Int? = null, isPrompt: Boolean = true) {
+    private fun show(
+        initialFeel: Int? = null,
+        initialPain: Int? = null,
+        initialNote: String = "",
+        isPrompt: Boolean = true,
+    ) {
         composeTestRule.setContent {
             ExerciseRatingDialog(
                 initialMuscleFeel = initialFeel,
                 initialJointPain = initialPain,
+                initialJointPainNote = initialNote,
                 isPrompt = isPrompt,
                 onDismiss = { dismissed = true },
-                onSave = { feel, pain ->
+                onSave = { feel, pain, note ->
                     saved = feel to pain
+                    savedNote = note
                     saveCalled = true
                 },
             )
@@ -113,6 +121,36 @@ class ExerciseRatingDialogTest {
 
     private fun jointAnchors(): String =
         ApplicationProvider.getApplicationContext<Context>().getString(R.string.rating_joint_anchors)
+
+    @Test
+    fun theJointPainLocation_ridesAlongWithTheRating() {
+        // ROADMAP N9: the note is saved with the rating it explains, trimmed.
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("8")
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_FIELD).performTextInput("4")
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_NOTE_FIELD).performTextInput("  left shoulder  ")
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals(8 to 4, saved)
+        assertEquals("left shoulder", savedNote)
+    }
+
+    @Test
+    fun anEmptyLocation_isSavedAsNothing_ratherThanAnEmptyString() {
+        show(initialFeel = 8)
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_SAVE).performClick()
+
+        assertEquals(null, savedNote)
+    }
+
+    @Test
+    fun anExistingLocation_isPrefilled_whenEditingLater() {
+        show(initialNote = "right knee", isPrompt = false)
+
+        composeTestRule.onNodeWithTag(TestTags.RATING_JOINT_NOTE_FIELD).assertTextContains("right knee")
+    }
 
     @Test
     fun dismissing_writesNothing() {
