@@ -82,7 +82,7 @@ runs once the "Still to do" rows above are green.
 | R1.1 | Keystore (`workout.jks`) and `keystore.properties` created, both gitignored | ✅ done |
 | R1.2 | [`tools/build-apk.sh`](tools/build-apk.sh) builds a **signed** release APK and refuses an unsigned one | ✅ done |
 | R1.3 | App label is **Workout Log** — verified in the built APK for every locale and on the launcher un-ellipsized | ✅ done |
-| R1.4 | First `adb install -r` on the phone, then log a workout end to end | ☐ |
+| R1.4 | Signed release installed on the phone and a workout logged end to end. **Reported from the device, not reproduced here** — I cannot see the phone — but it is the first time the R8-minified build and its Hilt/Compose shrinking, the adaptive icon under a real launcher, and the notification/exact-alarm prompts ran on real hardware rather than an emulator. | ✅ done |
 | R1.5 | Upgrade test — bump `versionCode`, rebuild, install over the running app, confirm history survives | ☐ |
 
 **The key is permanent.** Every later build has to be signed with the same
