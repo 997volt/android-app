@@ -14,12 +14,27 @@ updates:
       androidx:
         patterns:
           - 'androidx.*'
-      # Kotlin, KSP and the serialization plugin share a version and must move
-      # together; a mismatch between them is a build break.
+      # The Kotlin plugin, stdlib and KSP share a version and must move together.
+      # `org.jetbrains.kotlin:*` and not `org.jetbrains.kotlin*`: the loose glob
+      # also matches `org.jetbrains.kotlinx`, which is versioned independently and
+      # dragged kotlinx-coroutines into this group on the first run.
       kotlin:
         patterns:
-          - 'org.jetbrains.kotlin*'
+          - 'org.jetbrains.kotlin:*'
           - 'com.google.devtools.ksp*'
+    ignore:
+      # 0.5.0+ targets detekt 2.0. Against detekt 1.23.x these rules load but
+      # register nothing, so the Compose gate would look present while catching
+      # nothing — and CI would stay green, because detekt still passes. Not
+      # something a test can catch; see the comment in gradle/libs.versions.toml.
+      - dependency-name: 'io.nlopez.compose.rules:detekt'
+        versions: ['>=0.5.0']
+      # Bumping coroutines-test without core compiles against internals that are
+      # not on the device classpath, and every instrumented test dies with
+      # NoSuchMethodError: runBlockingK$default. The first PR proved it: red CI.
+      # Unignore deliberately, together with kotlinx-coroutines-core.
+      - dependency-name: 'org.jetbrains.kotlinx:kotlinx-coroutines*'
+        versions: ['>=1.10.0']
 
   - package-ecosystem: github-actions
     directory: /
