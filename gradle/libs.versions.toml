@@ -29,7 +29,7 @@ detekt = "1.23.8"
 # Pinned to the 0.4.x line on purpose: 0.5.0+ of these rules targets detekt 2.0
 # (dev.detekt), and against detekt 1.23.x they load but silently register nothing,
 # which would make the Compose gate look present while catching nothing.
-detektComposeRules = "0.4.28"
+detektComposeRules = "0.6.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
