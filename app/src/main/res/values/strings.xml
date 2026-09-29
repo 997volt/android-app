@@ -107,6 +107,11 @@
     <string name="home_templates">Workout templates</string>
     <!-- The trends screen (ROADMAP N13): what the app collected, read back. -->
     <string name="home_trends">Trends</string>
+    <!-- The workout's own comment, asked once on Finish (ROADMAP N11). -->
+    <string name="workout_note_title">How did it go?</string>
+    <string name="workout_note_body">Optional — why it went well or badly. You can add it later from the workout.</string>
+    <string name="workout_note_label">Comment</string>
+    <string name="workout_note_row">Comment</string>
     <string name="trends_title">Trends</string>
     <string name="trends_loading">Loading trends…</string>
     <string name="trends_empty">Nothing to show yet</string>

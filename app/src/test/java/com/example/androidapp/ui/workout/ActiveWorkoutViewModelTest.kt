@@ -778,6 +778,64 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun finishingWithAComment_writesIt_thenClosesTheWorkout() = runTest(dispatcher) {
+        // ROADMAP N11: the moment of finishing is when the reason is remembered.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        viewModel.onFinish(note = "Slept badly, but the squats moved")
+        settle()
+
+        assertEquals("Slept badly, but the squats moved", repository.lastWorkoutNotes)
+        assertTrue("finishing still finishes", viewModel.closed.value)
+    }
+
+    @Test
+    fun skippingTheComment_finishesWithoutWritingOne() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        viewModel.onFinish()
+        settle()
+
+        assertNull("skipping must not invent a comment", repository.lastWorkoutNotes)
+        assertTrue(viewModel.closed.value)
+    }
+
+    @Test
+    fun aCommentThatCannotBeWritten_stopsBeforeTheWorkoutIsLost() = runTest(dispatcher) {
+        // A failed comment write must not silently close the workout: the failure is
+        // reported and the workout is still open to finish again.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        repository.failWrites = true
+
+        viewModel.onFinish(note = "Half a thought")
+        settle()
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertFalse("the workout must still be open", viewModel.closed.value)
+    }
+
+    @Test
     fun aTick_updatesTheClock_butNeverEmitsANewScreenState() = runTest(dispatcher) {
         // This is the mechanism behind F16, stated as a property: the exercise list
         // stops recomposing every second only if a tick cannot produce a new
@@ -830,6 +888,9 @@ class ActiveWorkoutViewModelTest {
 
         /** The readiness note the ViewModel last wrote, or null if never written. */
         var lastReadinessNote: String? = null
+
+        /** The workout comment the ViewModel last wrote, or null if never written. */
+        var lastWorkoutNotes: String? = null
 
         override fun observeActiveSession(): Flow<WorkoutSession?> = sessions
 
@@ -905,6 +966,13 @@ class ActiveWorkoutViewModelTest {
                     it
                 }
             }
+            return successUnit()
+        }
+
+        override suspend fun setWorkoutNotes(sessionId: String, note: String?): DataResult<Unit> {
+            if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
+            lastWorkoutNotes = note
+            sessions.value = sessions.value?.copy(notes = note)
             return successUnit()
         }
 

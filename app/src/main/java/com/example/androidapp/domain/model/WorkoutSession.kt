@@ -24,6 +24,15 @@ data class WorkoutSession(
      * session opens and editable afterwards from the workout header.
      */
     val readinessNote: String? = null,
+    /**
+     * The workout's own comment (ROADMAP N11), or null.
+     *
+     * The column has existed since v1 and was reserved for exactly this; it is the
+     * one free-text field about the workout as a whole, as distinct from
+     * [readinessNote], which is about how you felt going in, and a set's note
+     * (N6), which is about one set.
+     */
+    val notes: String? = null,
 ) {
     val isActive: Boolean get() = finishedAt == null
 }

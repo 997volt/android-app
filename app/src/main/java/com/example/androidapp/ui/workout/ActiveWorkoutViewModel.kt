@@ -515,8 +515,38 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    fun onFinish() = write(closeAfterwards = true) { sessionId ->
-        workoutRepository.finishSession(sessionId)
+    /**
+     * Finishes the workout, with the comment the prompt collected (ROADMAP N11).
+     *
+     * A null or blank [note] writes nothing at all, so *Skip* and *Save* on an empty
+     * field are the same thing — there is no second representation of "no comment"
+     * to get out of step.
+     */
+    fun onFinish(note: String? = null) {
+        viewModelScope.launch {
+            val sessionId = uiState.value.sessionId
+            if (sessionId == null) {
+                lastError.value = DataError.NotFound
+                return@launch
+            }
+            if (!note.isNullOrBlank()) {
+                val written = workoutRepository.setWorkoutNotes(sessionId, note)
+                if (written is DataResult.Failure) {
+                    // The comment is not worth losing the workout over, but it must
+                    // not disappear silently either.
+                    lastError.value = written.error
+                    return@launch
+                }
+            }
+            when (val result = workoutRepository.finishSession(sessionId)) {
+                is DataResult.Success -> {
+                    lastError.value = null
+                    _closed.value = true
+                }
+
+                is DataResult.Failure -> lastError.value = result.error
+            }
+        }
     }
 
     fun onDiscard() = write(closeAfterwards = true) { sessionId ->

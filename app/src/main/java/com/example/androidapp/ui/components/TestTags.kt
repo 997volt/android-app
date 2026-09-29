@@ -31,6 +31,9 @@ object TestTags {
     const val EXERCISE_REOPEN = "exercise_reopen"
     const val EXERCISE_FINISHED_LABEL = "exercise_finished_label"
 
+    /** The workout's Finish action, and the comment prompt behind it (ROADMAP N11). */
+    const val ACTIVE_WORKOUT_FINISH = "active_workout_finish"
+
     /** Removing an exercise, and the confirmation it now asks for (ROADMAP B2). */
     const val EXERCISE_REMOVE = "exercise_remove"
     const val EXERCISE_REMOVE_CONFIRM = "exercise_remove_confirm"
@@ -139,6 +142,11 @@ object TestTags {
     const val READINESS_NOTE = "readiness_note"
     const val READINESS_SAVE = "readiness_save"
     const val READINESS_DISMISS = "readiness_dismiss"
+
+    /** The workout comment asked for on Finish (ROADMAP N11), and its row in history. */
+    const val WORKOUT_NOTE = "workout_note"
+    const val WORKOUT_NOTE_SAVE = "workout_note_save"
+    const val WORKOUT_NOTE_SKIP = "workout_note_skip"
 
     /**
      * Workout templates (ROADMAP N3): the list, and one template's editor.

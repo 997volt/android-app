@@ -248,6 +248,27 @@ class WorkoutEditingTest {
     }
 
     @Test
+    fun aWorkoutComment_isStored_andABlankOneClearsIt() = runTest {
+        val sessionId = seedOpenWorkoutWithASet()
+
+        assertTrue(repository.setWorkoutNotes(sessionId, "  Felt strong  ") is DataResult.Success)
+        assertEquals("Felt strong", repository.observeSession(sessionId).first()?.notes)
+
+        repository.setWorkoutNotes(sessionId, "   ")
+
+        // One representation of "nothing", the same rule the readiness note follows.
+        assertNull(repository.observeSession(sessionId).first()?.notes)
+    }
+
+    @Test
+    fun aCommentOnAGoneWorkout_isNotFound() = runTest {
+        assertEquals(
+            DataError.NotFound,
+            (repository.setWorkoutNotes("no-such-session", "x") as DataResult.Failure).error,
+        )
+    }
+
+    @Test
     fun ratingsSurviveFinishingAndReopening() = runTest {
         val sessionId = seedOpenWorkoutWithASet()
         repository.rateExercise("se1", muscleFeel = 8, jointPain = 2)

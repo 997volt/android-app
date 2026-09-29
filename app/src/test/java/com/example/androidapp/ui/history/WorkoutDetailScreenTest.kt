@@ -136,6 +136,18 @@ class WorkoutDetailScreenTest {
     }
 
     @Test
+    fun theWorkoutsOwnComment_isShownInHistory() {
+        // ROADMAP N11: asked for once on Finish, and part of the record afterwards.
+        setScreen(
+            uiState = state.copy(
+                session = state.session?.copy(notes = "Legs felt heavy all the way through"),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Legs felt heavy all the way through").assertIsDisplayed()
+    }
+
+    @Test
     fun anExercisesFeelRatings_areShownInHistory() {
         // N8: captured when the exercise was marked done, and editable from here.
         setScreen(

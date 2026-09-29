@@ -130,6 +130,19 @@ class RoomWorkoutRepository @Inject constructor(
         dao.updateRestTimer(id = sessionId, restEndsAt = null, at = now)
     }
 
+    override suspend fun setWorkoutNotes(sessionId: String, note: String?): DataResult<Unit> =
+        dataResultOf {
+            // Blank is stored as null rather than "": two representations of
+            // "nothing" would show up differently on screen, the same rule the
+            // readiness note follows.
+            val updated = dao.setWorkoutNotes(
+                id = sessionId,
+                notes = note?.trim()?.ifEmpty { null },
+                at = timeSource.nowEpochMillis(),
+            )
+            if (updated == 0) throw NotFoundException("session $sessionId")
+        }
+
     override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> = dataResultOf {
         val updated = dao.setSessionExerciseFinished(
             id = sessionExerciseId,

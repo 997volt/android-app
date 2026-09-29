@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.ui.components.SetEditorDialog
+import com.example.androidapp.ui.components.WorkoutNoteDialog
 import com.example.androidapp.ui.components.ReadinessNoteDialog
 import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -130,7 +131,7 @@ fun ActiveWorkoutScreen(
     onUndoFinishExercise: () -> Unit,
     onDismissFinishUndo: () -> Unit,
     onReopenExercise: (String) -> Unit,
-    onFinish: () -> Unit,
+    onFinish: (String?) -> Unit,
     onDiscard: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -147,6 +148,7 @@ fun ActiveWorkoutScreen(
 
     // The set being edited, held here so the caller does not have to track it.
     var editing by remember { mutableStateOf<SetRow?>(null) }
+
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -190,6 +192,7 @@ fun ActiveWorkoutScreen(
         onUpdateSet = onUpdateSet,
         onDismiss = { editing = null },
     )
+
 }
 
 /**
@@ -314,7 +317,11 @@ private fun ShowFinishSnackbar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WorkoutTopBar(canFinish: Boolean, onFinish: () -> Unit, onBack: () -> Unit) {
+private fun WorkoutTopBar(canFinish: Boolean, onFinish: (String?) -> Unit, onBack: () -> Unit) {
+    // Whether the finish prompt is up. Dismissing it finishes without a comment
+    // (ROADMAP N11): the user asked to finish, and the comment is optional.
+    var commenting by remember { mutableStateOf(false) }
+
     TopAppBar(
         title = { Text(stringResource(R.string.active_workout_title)) },
         navigationIcon = {
@@ -327,11 +334,28 @@ private fun WorkoutTopBar(canFinish: Boolean, onFinish: () -> Unit, onBack: () -
         },
         actions = {
             // Nothing to finish until at least one set is logged.
-            TextButton(onClick = onFinish, enabled = canFinish) {
+            TextButton(
+                onClick = { commenting = true },
+                enabled = canFinish,
+                modifier = Modifier.testTag(TestTags.ACTIVE_WORKOUT_FINISH),
+            ) {
                 Text(stringResource(R.string.active_workout_finish))
             }
         },
     )
+
+    if (commenting) {
+        WorkoutNoteDialog(
+            onDismiss = {
+                commenting = false
+                onFinish(null)
+            },
+            onSave = { note ->
+                commenting = false
+                onFinish(note)
+            },
+        )
+    }
 }
 
 @Composable

@@ -13,6 +13,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.ui.components.TestTags
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,12 +32,21 @@ class ActiveWorkoutScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    /**
+     * The screen's events, grouped: one flat parameter per callback stops reading as
+     * a call site long before it stops compiling.
+     */
+    private data class Actions(
+        val onFinishExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
+        val onReopenExercise: (String) -> Unit = {},
+        val onRemoveExercise: (String) -> Unit = {},
+        val onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
+        val onFinish: (String?) -> Unit = {},
+    )
+
     private fun setScreen(
         state: ActiveWorkoutUiState,
-        onFinishExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
-        onReopenExercise: (String) -> Unit = {},
-        onRemoveExercise: (String) -> Unit = {},
-        onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
+        actions: Actions = Actions(),
     ) {
         composeTestRule.setContent {
             ActiveWorkoutScreen(
@@ -44,8 +55,11 @@ class ActiveWorkoutScreenTest {
                 onAddExercise = {},
                 onLogSet = {},
                 onUpdateSet = { _, _, _, _, _ -> },
-                onRemoveExercise = onRemoveExercise,
-                onRateExercise = onRateExercise,
+                onRemoveExercise = actions.onRemoveExercise,
+                onRateExercise = actions.onRateExercise,
+                onFinish = actions.onFinish,
+                onFinishExercise = actions.onFinishExercise,
+                onReopenExercise = actions.onReopenExercise,
                 onDeleteSet = {},
                 onUndoDelete = {},
                 onDismissUndo = {},
@@ -53,11 +67,8 @@ class ActiveWorkoutScreenTest {
                 onAdjustRest = {},
                 onSaveReadinessNote = {},
                 onDismissReadinessPrompt = {},
-                onFinishExercise = onFinishExercise,
                 onUndoFinishExercise = {},
                 onDismissFinishUndo = {},
-                onReopenExercise = onReopenExercise,
-                onFinish = {},
                 onDiscard = {},
                 onBack = {},
             )
@@ -99,7 +110,11 @@ class ActiveWorkoutScreenTest {
         var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
+            actions = Actions(
+                onFinishExercise = { id, feel, pain, note ->
+                    finished = FinishCall(id, feel, pain, note)
+                },
+            ),
         )
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
@@ -118,7 +133,11 @@ class ActiveWorkoutScreenTest {
         var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
+            actions = Actions(
+                onFinishExercise = { id, feel, pain, note ->
+                    finished = FinishCall(id, feel, pain, note)
+                },
+            ),
         )
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
 
@@ -132,7 +151,11 @@ class ActiveWorkoutScreenTest {
         var finished: FinishCall? = null
         setScreen(
             state(isFinished = false),
-            onFinishExercise = { id, feel, pain, note -> finished = FinishCall(id, feel, pain, note) },
+            actions = Actions(
+                onFinishExercise = { id, feel, pain, note ->
+                    finished = FinishCall(id, feel, pain, note)
+                },
+            ),
         )
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_DONE).performClick()
         composeTestRule.onNodeWithTag(TestTags.RATING_MUSCLE_FIELD).performTextInput("8")
@@ -150,9 +173,14 @@ class ActiveWorkoutScreenTest {
         // ROADMAP N10: the ratings used to be reachable only through the Done
         // prompt, which means recording how a set felt from memory, afterwards.
         var rated: Rounding? = null
-        setScreen(state(isFinished = false), onRateExercise = { id, feel, pain, note ->
-            rated = Rounding(id, feel, pain, note)
-        })
+        setScreen(
+            state(isFinished = false),
+            Actions(
+                onRateExercise = { id, feel, pain, note ->
+                    rated = Rounding(id, feel, pain, note)
+                },
+            ),
+        )
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_RATING_ROW, useUnmergedTree = true)
             .performClick()
@@ -177,7 +205,11 @@ class ActiveWorkoutScreenTest {
         var rated: Rounding? = null
         setScreen(
             state(isFinished = false).copy(exercises = listOf(finishedRow(rated = false))),
-            onRateExercise = { id, feel, pain, note -> rated = Rounding(id, feel, pain, note) },
+            Actions(
+                onRateExercise = { id, feel, pain, note ->
+                    rated = Rounding(id, feel, pain, note)
+                },
+            ),
         )
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_RATING_ROW, useUnmergedTree = true)
@@ -212,7 +244,7 @@ class ActiveWorkoutScreenTest {
     @Test
     fun tappingReopen_reportsThatExercise() {
         var reopened: String? = null
-        setScreen(state(isFinished = true), onReopenExercise = { reopened = it })
+        setScreen(state(isFinished = true), actions = Actions(onReopenExercise = { reopened = it }))
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_REOPEN).performClick()
 
@@ -220,10 +252,37 @@ class ActiveWorkoutScreenTest {
     }
 
     @Test
+    fun finishing_asksForAComment_andPassesItOn() {
+        // ROADMAP N11: the moment of finishing is when the reason is remembered.
+        var finished: String? = null
+        setScreen(state(isFinished = false), actions = Actions(onFinish = { note -> finished = note }))
+
+        composeTestRule.onNodeWithTag(TestTags.ACTIVE_WORKOUT_FINISH).performClick()
+        composeTestRule.onNodeWithTag(TestTags.WORKOUT_NOTE).performTextInput("Legs felt heavy")
+        composeTestRule.onNodeWithTag(TestTags.WORKOUT_NOTE_SAVE).performClick()
+
+        assertEquals("Legs felt heavy", finished)
+    }
+
+    @Test
+    fun skippingTheComment_stillFinishesTheWorkout() {
+        // A prompt, not a gate: the user asked to finish.
+        var finished: String? = null
+        var called = false
+        setScreen(state(isFinished = false), actions = Actions(onFinish = { note -> finished = note; called = true }))
+
+        composeTestRule.onNodeWithTag(TestTags.ACTIVE_WORKOUT_FINISH).performClick()
+        composeTestRule.onNodeWithTag(TestTags.WORKOUT_NOTE_SKIP).performClick()
+
+        assertTrue(called)
+        assertNull(finished)
+    }
+
+    @Test
     fun removingAnExercise_asksFirst_andWritesNothingUntilConfirmed() {
         // ROADMAP B2: the removal has no undo, so the dialog is the guard.
         var removed: String? = null
-        setScreen(state(isFinished = false), onRemoveExercise = { removed = it })
+        setScreen(state(isFinished = false), actions = Actions(onRemoveExercise = { removed = it }))
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE).performClick()
 
@@ -238,7 +297,7 @@ class ActiveWorkoutScreenTest {
     @Test
     fun dismissingTheRemovalDialog_leavesTheExerciseInPlace() {
         var removed: String? = null
-        setScreen(state(isFinished = false), onRemoveExercise = { removed = it })
+        setScreen(state(isFinished = false), actions = Actions(onRemoveExercise = { removed = it }))
 
         composeTestRule.onNodeWithTag(TestTags.EXERCISE_REMOVE).performClick()
         // The dialog's other button: backing out must not remove anything.

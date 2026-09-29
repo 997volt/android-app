@@ -213,11 +213,25 @@ private fun DetailContent(
             // noise, not information.
             state.session?.readinessNote?.let { note ->
                 item(key = "readiness") {
-                    ReadinessBlock(note)
+                    NoteBlock(
+                        title = stringResource(R.string.readiness_label),
+                        note = note,
+                    )
                     HorizontalDivider()
                 }
             }
-                items(items = state.exercises, key = { it.id }) { exercise ->
+            // The workout's own comment (ROADMAP N11), on the same terms as the
+            // readiness note: shown only when there is one.
+            state.session?.notes?.let { comment ->
+                item(key = "comment") {
+                    NoteBlock(
+                        title = stringResource(R.string.workout_note_row),
+                        note = comment,
+                    )
+                    HorizontalDivider()
+                }
+            }
+            items(items = state.exercises, key = { it.id }) { exercise ->
                     ExerciseBlock(
                         exercise = exercise,
                         onEditSet = onEditSet,
@@ -255,12 +269,12 @@ private fun DeleteWorkoutDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
-/** What was not recovered that day (ROADMAP N4), shown on a past workout. */
+/** A free-text note on the workout: its readiness note (N4) or its comment (N11). */
 @Composable
-private fun ReadinessBlock(note: String, modifier: Modifier = Modifier) {
+private fun NoteBlock(title: String, note: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(
-            text = stringResource(R.string.readiness_label),
+            text = title,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

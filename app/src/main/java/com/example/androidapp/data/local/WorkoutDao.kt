@@ -232,6 +232,16 @@ interface WorkoutDao {
     )
     suspend fun countLoggableSessionExercise(sessionExerciseId: String): Int
 
+    /** Sets or clears the workout's own comment (ROADMAP N11). Rows updated: 0 = gone. */
+    @Query(
+        """
+        UPDATE workout_sessions
+        SET notes = :notes, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setWorkoutNotes(id: String, notes: String?, at: Long): Int
+
     /**
      * Sets or clears a session exercise's done timestamp (ROADMAP N7). A null
      * [finishedAt] reopens it.

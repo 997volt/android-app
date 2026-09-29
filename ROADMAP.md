@@ -54,23 +54,11 @@ left alone without being forgotten.
 
 ## Next
 
-What a workout records, still queued. Everything shipped so far is in
-[CHANGELOG.md](CHANGELOG.md); this section holds only what is left.
+**Nothing.** Everything planned has shipped and lives in
+[CHANGELOG.md](CHANGELOG.md), because shipped work lives there rather than here.
 
-| # | Addition | Decision |
-| --- | --- | --- |
-| N11 | A workout comment | A skippable prompt on Finish; no migration |
-
-### N11 — A general comment on the workout
-
-**Decided: a skippable prompt when the workout is finished**, with the text shown in
-the workout detail afterwards — the moment you finish is when you remember why it
-went well or badly.
-
-**No migration.** `workout_sessions.notes` has been in the schema since v1, is
-already carried by export and import, and has never had a domain field or a UI. This
-is what it was reserved for; it needs the domain field, a repository setter, the
-prompt, and a line on the detail screen.
+What comes next is chosen from *Later* below, which is where candidates live until one
+is picked up, given an id and spelled out here.
 
 ## Later (still self-contained)
 

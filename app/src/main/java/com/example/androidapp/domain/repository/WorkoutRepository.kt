@@ -82,6 +82,13 @@ interface WorkoutRepository {
      */
     suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit>
 
+    /**
+     * Writes the workout's own comment (ROADMAP N11), or clears it when [note] is
+     * null or blank. Separate from the readiness note, which is about how you felt
+     * going *in*: this is about how it went.
+     */
+    suspend fun setWorkoutNotes(sessionId: String, note: String?): DataResult<Unit>
+
     /** Reopens a done exercise (ROADMAP N7), restoring logging and editing. */
     suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit>
 

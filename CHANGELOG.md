@@ -8,6 +8,11 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **A comment on the workout itself.** Finishing asks once, and skippably, how it
+  went — the moment you remember why — and the comment is shown in the workout detail
+  afterwards. No migration: `workout_sessions.notes` has been in the schema since v1,
+  already carried by export and import, and never had a domain field or a UI. This is
+  what it was reserved for.
 - **How it felt can be recorded at any time, not only at Done.** Each exercise in a
   workout now carries a "How it felt" row — the same one the workout detail has — so
   the two ratings and N9's location are written down while the set is fresh rather
