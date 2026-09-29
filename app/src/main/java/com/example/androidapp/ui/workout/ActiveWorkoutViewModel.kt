@@ -33,12 +33,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** A logged set as the screen shows it: position, weight, reps. */
+/** A logged set as the screen shows it: position, weight, reps, and N6's extras. */
 data class SetRow(
     val id: String,
     val number: Int,
     val reps: Int,
     val weightGrams: Long,
+    /** 1–10, or null when none was recorded (ROADMAP N6). */
+    val rpe: Int? = null,
+    /** A short comment on the set, or null (ROADMAP N6). */
+    val note: String? = null,
 )
 
 /** One exercise in the workout, with its sets and what the next set will prefill. */
@@ -266,8 +270,10 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long) {
-        viewModelScope.launch { handle(workoutRepository.updateSet(setId, reps, weightGrams)) }
+    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long, rpe: Int?, note: String?) {
+        viewModelScope.launch {
+            handle(workoutRepository.updateSet(setId, reps, weightGrams, rpe, note))
+        }
     }
 
     fun onDeleteSet(setId: String) {
@@ -428,6 +434,8 @@ class ActiveWorkoutViewModel @Inject constructor(
                     number = index + 1,
                     reps = set.reps,
                     weightGrams = set.weightGrams,
+                    rpe = set.rpe,
+                    note = set.note,
                 )
             }
 

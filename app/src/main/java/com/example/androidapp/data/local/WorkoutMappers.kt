@@ -25,5 +25,7 @@ internal fun SetEntryEntity.toDomain(): SetEntry = SetEntry(
     reps = reps,
     weightGrams = weightGrams,
     setType = setType,
+    rpe = rpe,
+    note = note,
     completedAt = completedAt?.let(Instant::ofEpochMilli),
 )

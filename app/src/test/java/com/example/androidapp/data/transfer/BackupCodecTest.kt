@@ -88,6 +88,8 @@ class BackupCodecTest {
                 reps = 5,
                 weightGrams = 100_000,
                 setType = SetType.WARMUP,
+                rpe = 8,
+                note = "Felt heavy",
                 completedAt = 11L,
                 createdAt = 11L,
                 updatedAt = 11L,
@@ -159,9 +161,9 @@ class BackupCodecTest {
     }
 
     @Test
-    fun aFileWrittenBeforeTheRestCueAndReadinessFieldsExisted_stillDecodes() {
-        // N4 and N5 added fields to two DTOs and deliberately did *not* bump the
-        // schema version (the version moves when a field changes meaning or is
+    fun aFileWrittenBeforeTheN4AndN5AndN6FieldsExisted_stillDecodes() {
+        // N4, N5 and N6 added fields to three DTOs and deliberately did *not* bump
+        // the schema version (the version moves when a field changes meaning or is
         // removed). That is only safe because every added field is defaulted, so a
         // file written before they existed must still decode — reading them unset.
         val json = Json { prettyPrint = false }
@@ -174,10 +176,14 @@ class BackupCodecTest {
         val olderSessions = tree.getValue("sessions").jsonArray.map { element ->
             JsonObject(element.jsonObject.filterKeys { it != "readinessNote" })
         }
+        val olderSets = tree.getValue("sets").jsonArray.map { element ->
+            JsonObject(element.jsonObject.filterKeys { it != "rpe" && it != "note" })
+        }
         val olderFile = JsonObject(
             tree + mapOf(
                 "exercises" to JsonArray(olderExercises),
                 "sessions" to JsonArray(olderSessions),
+                "sets" to JsonArray(olderSets),
             ),
         )
 
@@ -186,5 +192,7 @@ class BackupCodecTest {
         assertEquals(null, restored.exercises.first().restSeconds)
         assertEquals(null, restored.exercises.first().techniqueNote)
         assertEquals(null, restored.sessions.first().readinessNote)
+        assertEquals(null, restored.sets.first().rpe)
+        assertEquals(null, restored.sets.first().note)
     }
 }

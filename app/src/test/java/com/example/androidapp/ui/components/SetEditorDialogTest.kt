@@ -1,6 +1,5 @@
 package com.example.androidapp.ui.components
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -13,16 +12,18 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.ui.components.TestTags
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Instrumented UI tests for the number steppers (ROADMAP P1.3a).
+ * Instrumented UI tests for the number steppers (ROADMAP P1.3a) and for the set's
+ * RPE and comment (N6).
  *
  * `Weight.step` already had unit tests and no callers. These are about the wiring
- * the unit tests cannot see: that a tap actually moves the field, and that the
- * floors hold at the extremes.
+ * the unit tests cannot see: that a tap actually moves the field, that the floors
+ * hold at the extremes, and that an RPE outside the scale blocks Save.
  */
 @RunWith(AndroidJUnit4::class)
 class SetEditorDialogTest {
@@ -30,7 +31,7 @@ class SetEditorDialogTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private var saved: Pair<Int, Long>? = null
+    private var saved: SetEdit? = null
 
     private fun show(reps: Int = 5, weightGrams: Long = 100_000L) {
         composeTestRule.setContent {
@@ -38,7 +39,7 @@ class SetEditorDialogTest {
                 initialReps = reps,
                 initialWeightGrams = weightGrams,
                 onDismiss = {},
-                onSave = { r, w -> saved = r to w },
+                onSave = { saved = it },
             )
         }
     }
@@ -82,7 +83,7 @@ class SetEditorDialogTest {
 
         composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsEnabled().performClick()
 
-        assert(saved == 5 to 0L) { "expected a 0 kg set to save, got $saved" }
+        assertEquals(SetEdit(reps = 5, weightGrams = 0L, rpe = null, note = null), saved)
     }
 
     @Test
@@ -94,5 +95,54 @@ class SetEditorDialogTest {
 
         // Clamped by Weight.step, not by a second copy of the rule here.
         composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("0")
+    }
+
+    @Test
+    fun theRpeAndCommentFields_areAlwaysOffered_butMayStayEmpty() {
+        // N6's decision: RPE is visible on every edit, and the one-tap log path
+        // writes neither, so saving without them has to be the normal case.
+        //
+        // Existence rather than "displayed": the editor is taller than
+        // Robolectric's default window, and what matters is that the fields are
+        // always part of it, not where they land on a small screen.
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.SET_NOTE_FIELD).assertExists()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(SetEdit(reps = 5, weightGrams = 100_000L, rpe = null, note = null), saved)
+    }
+
+    @Test
+    fun anRpeAndComment_areReportedOnSave() {
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("8")
+        composeTestRule.onNodeWithTag(TestTags.SET_NOTE_FIELD).performTextInput("Felt heavy")
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(8, saved?.rpe)
+        assertEquals("Felt heavy", saved?.note)
+    }
+
+    @Test
+    fun anRpeOutsideTheScale_disablesSave_ratherThanClampingIt() {
+        // Silently turning 11 into 10 would be a lie about the set.
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("11")
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsNotEnabled()
+    }
+
+    @Test
+    fun anUnparseableRpe_disablesSave() {
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("hard")
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsNotEnabled()
     }
 }

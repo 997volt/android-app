@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -230,14 +231,11 @@ interface WorkoutDao {
     suspend fun countLoggableSessionExercise(sessionExerciseId: String): Int
 
     /** Rows updated: 0 means the set does not exist or was deleted. */
-    @Query(
-        """
-        UPDATE set_entries
-        SET reps = :reps, weightGrams = :weightGrams, updatedAt = :at
-        WHERE id = :id AND deletedAt IS NULL
-        """,
-    )
-    suspend fun updateSet(id: String, reps: Int, weightGrams: Long, at: Long): Int
+    @Update
+    suspend fun updateSet(set: SetEntryEntity): Int
+
+    @Query("SELECT * FROM set_entries WHERE id = :id AND deletedAt IS NULL")
+    suspend fun findSetById(id: String): SetEntryEntity?
 
     @Query("UPDATE set_entries SET deletedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun softDeleteSet(id: String, at: Long): Int

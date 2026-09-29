@@ -62,7 +62,7 @@ class WorkoutDetailScreenTest {
 
     private fun setScreen(
         uiState: WorkoutDetailUiState = state,
-        onUpdateSet: (String, Int, Long) -> Unit = { _, _, _ -> },
+        onUpdateSet: (String, Int, Long, Int?, String?) -> Unit = { _, _, _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
         onDeleteWorkout: () -> Unit = {},
     ) {
@@ -103,6 +103,34 @@ class WorkoutDetailScreenTest {
         setScreen()
 
         composeTestRule.onNodeWithText("Readiness").assertDoesNotExist()
+    }
+
+    @Test
+    fun aSetsRpeAndComment_areShownInHistory() {
+        // N6: the workout row carries only a marker, so this is where the comment's
+        // text actually lives.
+        setScreen(
+            uiState = state.copy(
+                exercises = listOf(
+                    HistoryExercise(
+                        id = "se1",
+                        name = "Back Squat",
+                        sets = listOf(
+                            HistorySet(
+                                id = "set1",
+                                reps = 5,
+                                weightGrams = 100_000,
+                                rpe = 8,
+                                note = "Felt heavy",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("RPE 8").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Felt heavy").assertIsDisplayed()
     }
 
     @Test

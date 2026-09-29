@@ -5,10 +5,12 @@ import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toDomain
 import com.example.androidapp.domain.DataResult
+import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.NotFoundException
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
@@ -158,15 +160,33 @@ class RoomWorkoutRepository @Inject constructor(
         )
     }
 
-    override suspend fun updateSet(setId: String, reps: Int, weightGrams: Long): DataResult<Unit> =
+    override suspend fun updateSet(
+        setId: String,
+        reps: Int,
+        weightGrams: Long,
+        rpe: Int?,
+        note: String?,
+    ): DataResult<Unit> =
         dataResultOf {
-            val updated = dao.updateSet(
-                id = setId,
+            // The editor's field is the real guard; this is the boundary that keeps
+            // an out-of-range value from reaching the database (ROADMAP N6).
+            if (!Rpe.isValid(rpe)) {
+                throw InvalidInputException("RPE must be between ${Rpe.MIN} and ${Rpe.MAX}.")
+            }
+
+            // Read the stored row first, so the columns an edit does not touch
+            // (setIndex, completedAt, createdAt) are preserved rather than invented,
+            // and so a soft-deleted set cannot be resurrected by an edit.
+            val stored = dao.findSetById(setId) ?: throw NotFoundException("set $setId")
+            val updated = stored.copy(
                 reps = reps.coerceAtLeast(1),
                 weightGrams = weightGrams.coerceAtLeast(0L),
-                at = timeSource.nowEpochMillis(),
+                rpe = rpe,
+                // A cleared comment is null, not "": one representation of nothing.
+                note = note?.trim()?.ifEmpty { null },
+                updatedAt = timeSource.nowEpochMillis(),
             )
-            if (updated == 0) throw NotFoundException("set $setId")
+            if (dao.updateSet(updated) == 0) throw NotFoundException("set $setId")
         }
 
     override suspend fun deleteSet(setId: String): DataResult<Unit> = dataResultOf {

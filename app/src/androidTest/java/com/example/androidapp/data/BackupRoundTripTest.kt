@@ -161,7 +161,7 @@ class BackupRoundTripTest {
         val json = exportedJson()
         val setId = database.backupDao().allSets().single().id
 
-        workouts.updateSet(setId, reps = 20, weightGrams = 100_000L)
+        workouts.updateSet(setId, reps = 20, weightGrams = 100_000L, rpe = null, note = null)
 
         repository.import(json)
 

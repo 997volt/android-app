@@ -21,7 +21,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** A set as the history detail shows it. */
-data class HistorySet(val id: String, val reps: Int, val weightGrams: Long)
+data class HistorySet(
+    val id: String,
+    val reps: Int,
+    val weightGrams: Long,
+    /** 1–10, or null when none was recorded (ROADMAP N6). */
+    val rpe: Int? = null,
+    /** The set's comment, or null (ROADMAP N6). */
+    val note: String? = null,
+)
 
 /** An exercise within a past workout, with everything that was logged for it. */
 data class HistoryExercise(
@@ -94,7 +102,15 @@ class WorkoutDetailViewModel @Inject constructor(
                         sets = logged
                             .filter { it.sessionExerciseId == row.id }
                             .sortedBy { it.setIndex }
-                            .map { HistorySet(id = it.id, reps = it.reps, weightGrams = it.weightGrams) },
+                            .map {
+                                HistorySet(
+                                    id = it.id,
+                                    reps = it.reps,
+                                    weightGrams = it.weightGrams,
+                                    rpe = it.rpe,
+                                    note = it.note,
+                                )
+                            },
                     )
                 },
                 error = error,
@@ -105,8 +121,8 @@ class WorkoutDetailViewModel @Inject constructor(
             initialValue = WorkoutDetailUiState(),
         )
 
-    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long) = write {
-        workoutRepository.updateSet(setId, reps, weightGrams)
+    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long, rpe: Int?, note: String?) = write {
+        workoutRepository.updateSet(setId, reps, weightGrams, rpe, note)
     }
 
     fun onDeleteSet(setId: String) = write {

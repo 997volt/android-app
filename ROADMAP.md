@@ -52,12 +52,12 @@ left alone without being forgotten.
 
 Changes left to land before anything in *Later*. N1 — home as the start
 destination — N2 — custom exercises while you train — N4 — the readiness note —
-and N5 — per-exercise rest and cues — are done; they are in
-[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
-rather than here.
+N5 — per-exercise rest and cues — and N6 — RPE and a comment per set — are done;
+they are in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work
+lives there rather than here.
 
 - **N3** is what can be set up in advance.
-- **N6–N8** are what a workout captures while you are in it.
+- **N7–N8** are what a workout captures while you are in it.
 
 ### N3 — Workout templates, planned before you train
 
@@ -76,15 +76,6 @@ This promotes P3.1 + P3.2 ahead of the rest of the backlog, with a deliberately
 smaller first version. It needs two new sync-shaped tables (`templates`,
 `template_exercises`) and therefore a migration, with the exported schema and a
 `MigrationTestHelper` test — the path migrations 1→2 and 2→3 already took.
-
-### N6 — RPE and a comment on every set
-
-- `rpe` (1–10) and `note` on `set_entries`.
-- **Decided: RPE is always visible in the set editor and may be left empty.**
-- The one-tap **Log set** path still writes neither, so logging stays fast; the row
-  shows a small marker when either is set, and the workout detail shows the text.
-
-This **replaces P1.5**, which asked for per-set notes and RPE in the abstract.
 
 ### N7 — End an exercise, so sets cannot be added by accident
 
@@ -112,29 +103,29 @@ Captured when an exercise is marked done (N7):
   between sessions, so labelling the ends is the obvious first refinement.
 - Feeds **P2.8** (balance warnings), or a discomfort view of its own.
 
-**Schema (N6–N8).** Every column is nullable and additive, the shape migration 2→3
+**Schema (N7–N8).** Every column is nullable and additive, the shape migration 2→3
 already used for `restEndsAt` — no backfill, no rewrite:
 
 | Table | New columns |
 | --- | --- |
-| `set_entries` | `rpe`, `note` |
 | `session_exercises` | `finishedAt`, `muscleFeel`, `jointPain` |
 
 `workout_sessions.notes` already exists but nothing sets it; the readiness note went
 to its own `readinessNote` column (N4) rather than into it, so a future per-workout
-note does not collide with a readiness note.
+note does not collide with a readiness note. A set's comment lives on `set_entries`
+(N6) for the same reason: one is about the set, the other about the workout.
 
-**Migration numbering follows shipment.** N5 took 3→4 and N4 took 4→5. Each change
-below takes the next version as it ships; columns for a feature that has not been
-built are *not* added ahead of it, because Room validates the declared entities
-against the migrated schema — a column added early would force an entity field
-nothing reads. N3 and the columns above therefore cannot share a version unless they
-ship in the same commit, and two half-written migrations are what the
+**Migration numbering follows shipment.** N5 took 3→4, N4 took 4→5 and N6 took 5→6.
+Each change below takes the next version as it ships; columns for a feature that has
+not been built are *not* added ahead of it, because Room validates the declared
+entities against the migrated schema — a column added early would force an entity
+field nothing reads. N3 and the columns above therefore cannot share a version
+unless they ship in the same commit, and two half-written migrations are what the
 `MigrationTestHelper` tests exist to catch.
 
-**Order:** N3 hangs off the home screen N1 introduced; N6 is independent of it. The
-one hard dependency is **N7 before N8**, since the ratings are captured at the moment
-an exercise is done. Everything else stays in *Later* until these land.
+**Order:** N3 hangs off the home screen N1 introduced. The one hard dependency is
+**N7 before N8**, since the ratings are captured at the moment an exercise is done.
+Everything else stays in *Later* until these land.
 
 ## Later (still self-contained)
 

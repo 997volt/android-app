@@ -129,5 +129,25 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
 private const val ADD_SESSION_READINESS_NOTE =
     "ALTER TABLE `workout_sessions` ADD COLUMN `readinessNote` TEXT"
 
+/**
+ * v5 -> v6: a set's RPE and its comment (ROADMAP N6).
+ *
+ * Both nullable and unset, so every set logged before this reads as "no RPE, no
+ * comment" — which is exactly what the one-tap **Log set** path keeps writing.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_SET_RPE)
+        db.execSQL(ADD_SET_NOTE)
+    }
+}
+
+private const val ADD_SET_RPE =
+    "ALTER TABLE `set_entries` ADD COLUMN `rpe` INTEGER"
+
+private const val ADD_SET_NOTE =
+    "ALTER TABLE `set_entries` ADD COLUMN `note` TEXT"
+
 /** Applied in order by the database builder. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+val ALL_MIGRATIONS =
+    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)

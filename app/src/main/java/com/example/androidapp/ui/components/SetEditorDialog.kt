@@ -26,30 +26,72 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.Rpe
 
 /**
- * Edits one set's reps and weight.
+ * Edits one set: reps, weight, and the optional RPE and comment (ROADMAP N6).
  *
  * Shared between the live workout screen and the history detail screen (P1.7),
  * because correcting a set you just logged and correcting one from last week are
  * the same edit. It was private to the workout screen until history needed it.
  *
- * Save stays disabled while either field is not a usable value — [Weight.parseKilograms]
- * returns null rather than guessing, so a typo cannot be written as a real set.
+ * RPE and the comment are always shown but may be left empty — the one-tap
+ * **Log set** path writes neither, so an empty field is the normal case. Save
+ * stays disabled while a field is not a usable value; in particular a typed RPE
+ * outside 1–10 is refused rather than clamped, because a silent 11 → 10 would be
+ * a lie about the set.
  */
 @Composable
 fun SetEditorDialog(
     initialReps: Int,
     initialWeightGrams: Long,
     onDismiss: () -> Unit,
-    onSave: (reps: Int, weightGrams: Long) -> Unit,
+    onSave: (SetEdit) -> Unit,
+    modifier: Modifier = Modifier,
+    initialRpe: Int? = null,
+    initialNote: String? = null,
+) {
+    var draft by remember {
+        mutableStateOf(
+            SetDraft(
+                repsText = initialReps.toString(),
+                weightText = Weight.kilograms(initialWeightGrams),
+                rpeText = initialRpe?.toString().orEmpty(),
+                noteText = initialNote.orEmpty(),
+            ),
+        )
+    }
+
+    SetEditorDialogContent(
+        draft = draft,
+        onDraftChange = { draft = it },
+        onDismiss = onDismiss,
+        onSave = onSave,
+        modifier = modifier,
+    )
+}
+
+/** The editor's raw field text, kept together so the dialog body stays readable. */
+private data class SetDraft(
+    val repsText: String,
+    val weightText: String,
+    val rpeText: String,
+    val noteText: String,
+)
+
+@Composable
+private fun SetEditorDialogContent(
+    draft: SetDraft,
+    onDraftChange: (SetDraft) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (SetEdit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var repsText by remember { mutableStateOf(initialReps.toString()) }
-    var weightText by remember { mutableStateOf(Weight.kilograms(initialWeightGrams)) }
-
-    val parsedReps = repsText.toIntOrNull()?.takeIf { it > 0 }
-    val parsedWeight = Weight.parseKilograms(weightText)
+    val parsedReps = draft.repsText.toIntOrNull()?.takeIf { it > 0 }
+    val parsedWeight = Weight.parseKilograms(draft.weightText)
+    val parsedRpe = draft.rpeText.trim().ifEmpty { null }?.toIntOrNull()
+    // Blank is valid; anything typed has to parse *and* sit on the scale.
+    val rpeIsValid = draft.rpeText.isBlank() || (parsedRpe != null && Rpe.isValid(parsedRpe))
 
     AlertDialog(
         modifier = modifier,
@@ -57,44 +99,29 @@ fun SetEditorDialog(
         title = { Text(stringResource(R.string.set_edit_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberStepper(
-                    label = stringResource(R.string.set_weight_label),
-                    testTag = TestTags.SET_WEIGHT_FIELD,
-                    increaseTag = TestTags.SET_INCREASE_WEIGHT,
-                    decreaseTag = TestTags.SET_DECREASE_WEIGHT,
-                    value = weightText,
-                    onValueChange = { weightText = it },
-                    keyboardType = KeyboardType.Decimal,
-                    // Wired to Weight.step, which had tests and no callers: the
-                    // clamp at zero lives there rather than being re-implemented.
-                    onStep = { delta ->
-                        val from = parsedWeight ?: 0L
-                        weightText = Weight.kilograms(
-                            Weight.step(from, delta * Weight.DEFAULT_STEP_GRAMS),
-                        )
-                    },
-                )
-                NumberStepper(
-                    label = stringResource(R.string.set_reps_label),
-                    testTag = TestTags.SET_REPS_FIELD,
-                    increaseTag = TestTags.SET_INCREASE_REPS,
-                    decreaseTag = TestTags.SET_DECREASE_REPS,
-                    value = repsText,
-                    onValueChange = { repsText = it },
-                    keyboardType = KeyboardType.Number,
-                    // A set of zero reps is not a set, so this floor is 1 rather
-                    // than 0 — unlike weight, where 0 is meaningful (bodyweight).
-                    onStep = { delta ->
-                        repsText = ((parsedReps ?: 1) + delta).coerceAtLeast(1).toString()
-                    },
+                SetEditorNumbers(draft = draft, onDraftChange = onDraftChange)
+                RpeAndNoteFields(
+                    draft = draft,
+                    onDraftChange = onDraftChange,
+                    rpeIsValid = rpeIsValid,
                 )
             }
         },
         confirmButton = {
             TextButton(
                 modifier = Modifier.testTag(TestTags.SET_SAVE),
-                enabled = parsedReps != null && parsedWeight != null,
-                onClick = { onSave(parsedReps ?: 0, parsedWeight ?: 0L) },
+                enabled = parsedReps != null && parsedWeight != null && rpeIsValid,
+                onClick = {
+                    onSave(
+                        SetEdit(
+                            reps = parsedReps ?: 0,
+                            weightGrams = parsedWeight ?: 0L,
+                            // Out of range is already excluded by `enabled`.
+                            rpe = parsedRpe?.takeIf { Rpe.isValid(it) },
+                            note = draft.noteText.trim().ifEmpty { null },
+                        ),
+                    )
+                },
             ) {
                 Text(stringResource(R.string.set_save))
             }
@@ -108,6 +135,78 @@ fun SetEditorDialog(
             }
         },
     )
+}
+
+@Composable
+private fun SetEditorNumbers(draft: SetDraft, onDraftChange: (SetDraft) -> Unit) {
+    val parsedWeight = Weight.parseKilograms(draft.weightText)
+    val parsedReps = draft.repsText.toIntOrNull()?.takeIf { it > 0 }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        NumberStepper(
+            label = stringResource(R.string.set_weight_label),
+            testTag = TestTags.SET_WEIGHT_FIELD,
+            increaseTag = TestTags.SET_INCREASE_WEIGHT,
+            decreaseTag = TestTags.SET_DECREASE_WEIGHT,
+            value = draft.weightText,
+            onValueChange = { onDraftChange(draft.copy(weightText = it)) },
+            keyboardType = KeyboardType.Decimal,
+            // Wired to Weight.step, which had tests and no callers: the clamp at
+            // zero lives there rather than being re-implemented.
+            onStep = { delta ->
+                onDraftChange(
+                    draft.copy(
+                        weightText = Weight.kilograms(
+                            Weight.step(parsedWeight ?: 0L, delta * Weight.DEFAULT_STEP_GRAMS),
+                        ),
+                    ),
+                )
+            },
+        )
+        NumberStepper(
+            label = stringResource(R.string.set_reps_label),
+            testTag = TestTags.SET_REPS_FIELD,
+            increaseTag = TestTags.SET_INCREASE_REPS,
+            decreaseTag = TestTags.SET_DECREASE_REPS,
+            value = draft.repsText,
+            onValueChange = { onDraftChange(draft.copy(repsText = it)) },
+            keyboardType = KeyboardType.Number,
+            // A set of zero reps is not a set, so this floor is 1 rather than 0 —
+            // unlike weight, where 0 is meaningful (bodyweight).
+            onStep = { delta ->
+                onDraftChange(
+                    draft.copy(repsText = ((parsedReps ?: 1) + delta).coerceAtLeast(1).toString()),
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun RpeAndNoteFields(
+    draft: SetDraft,
+    onDraftChange: (SetDraft) -> Unit,
+    rpeIsValid: Boolean,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = draft.rpeText,
+            onValueChange = { onDraftChange(draft.copy(rpeText = it)) },
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.SET_RPE_FIELD),
+            singleLine = true,
+            label = { Text(stringResource(R.string.set_rpe_label)) },
+            supportingText = { Text(stringResource(R.string.set_rpe_hint)) },
+            isError = draft.rpeText.isNotBlank() && !rpeIsValid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+        OutlinedTextField(
+            value = draft.noteText,
+            onValueChange = { onDraftChange(draft.copy(noteText = it)) },
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.SET_NOTE_FIELD),
+            label = { Text(stringResource(R.string.set_note_label)) },
+            minLines = 2,
+        )
+    }
 }
 
 /**

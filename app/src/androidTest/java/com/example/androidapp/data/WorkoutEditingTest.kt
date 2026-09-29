@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -61,7 +62,7 @@ class WorkoutEditingTest {
         // 100 kg x 5 = 500,000 gram-reps to begin with.
         assertEquals(500_000L, historyVolume())
 
-        val result = repository.updateSet(setId, reps = 8, weightGrams = 100_000L)
+        val result = repository.updateSet(setId, reps = 8, weightGrams = 100_000L, rpe = null, note = null)
 
         assertTrue(result is DataResult.Success)
         assertEquals("the list's aggregate must follow the edit", 800_000L, historyVolume())
@@ -87,10 +88,62 @@ class WorkoutEditingTest {
         val setId = database.backupDao().allSets().single().id
         repository.deleteSet(setId)
 
-        val result = repository.updateSet(setId, reps = 5, weightGrams = 1_000L)
+        val result = repository.updateSet(setId, reps = 5, weightGrams = 1_000L, rpe = null, note = null)
 
         // A stale screen holding a deleted set's id must not resurrect it.
         assertEquals(DataError.NotFound, (result as DataResult.Failure).error)
+    }
+
+    @Test
+    fun correctingASet_recordsItsRpeAndComment() = runTest {
+        seedFinishedWorkout()
+        val setId = database.backupDao().allSets().single().id
+
+        val result = repository.updateSet(
+            setId,
+            reps = 5,
+            weightGrams = 100_000L,
+            rpe = 8,
+            note = "Felt heavy",
+        )
+
+        assertTrue(result is DataResult.Success)
+        val stored = database.workoutDao().findSetById(setId)!!
+        assertEquals(8, stored.rpe)
+        assertEquals("Felt heavy", stored.note)
+        // The columns an edit does not touch are preserved, not invented.
+        assertEquals(0, stored.setIndex)
+        assertEquals("se1", stored.sessionExerciseId)
+    }
+
+    @Test
+    fun aBlankComment_isStoredAsNull_andRpeCanBeCleared() = runTest {
+        seedFinishedWorkout()
+        val setId = database.backupDao().allSets().single().id
+        repository.updateSet(setId, reps = 5, weightGrams = 100_000L, rpe = 8, note = "Felt heavy")
+
+        repository.updateSet(setId, reps = 5, weightGrams = 100_000L, rpe = null, note = "   ")
+
+        val stored = database.workoutDao().findSetById(setId)!!
+        assertNull(stored.note)
+        assertNull("clearing an RPE is how a mistyped one is undone", stored.rpe)
+    }
+
+    @Test
+    fun anRpeOutsideTheScale_isRefused_withoutTouchingTheSet() = runTest {
+        seedFinishedWorkout()
+        val setId = database.backupDao().allSets().single().id
+
+        val result = repository.updateSet(
+            setId,
+            reps = 5,
+            weightGrams = 100_000L,
+            rpe = 11,
+            note = null,
+        )
+
+        assertTrue((result as DataResult.Failure).error is DataError.Invalid)
+        assertNull("a refused write must leave the set alone", database.workoutDao().findSetById(setId)!!.rpe)
     }
 
     private suspend fun historyVolume(): Long =

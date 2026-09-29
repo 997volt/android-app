@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **An RPE and a comment on every set.** The set editor gained an optional 1–10
+  RPE and a free-text comment; the one-tap **Log set** path still writes neither,
+  so logging stays fast. A set carrying either shows a small marker in the
+  workout, and the workout detail shows the RPE and the comment's text. Adds
+  migration 5→6: two nullable columns, no backfill. An RPE outside 1–10 blocks
+  Save rather than being clamped, because a silent 11 → 10 would misstate the set.
 - **A readiness note when a workout starts.** A new workout asks once, and
   skippably, what is not recovered today — "shoulders still sore from Monday",
   "slept badly, legs heavy". It is deliberately free text, stored on the session,

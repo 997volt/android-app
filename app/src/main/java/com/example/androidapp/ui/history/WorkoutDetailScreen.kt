@@ -82,7 +82,7 @@ fun WorkoutDetailRoute(
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutDetailUiState,
-    onUpdateSet: (String, Int, Long) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
     onDeleteSet: (String) -> Unit,
     onDeleteWorkout: () -> Unit,
     onBack: () -> Unit,
@@ -120,9 +120,11 @@ fun WorkoutDetailScreen(
         SetEditorDialog(
             initialReps = set.reps,
             initialWeightGrams = set.weightGrams,
+            initialRpe = set.rpe,
+            initialNote = set.note,
             onDismiss = { editing = null },
-            onSave = { reps, weightGrams ->
-                onUpdateSet(set.id, reps, weightGrams)
+            onSave = { edit ->
+                onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
                 editing = null
             },
         )
@@ -296,26 +298,43 @@ private fun ExerciseBlock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .testTag(TestTags.SET_ROW)
                         .clickable(onClickLabel = editLabel) { onEditSet(set) },
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(
-                        text = "${index + 1}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.set_summary,
-                            Weight.kilograms(set.weightGrams),
-                            set.reps,
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.set_summary,
+                                Weight.kilograms(set.weightGrams),
+                                set.reps,
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        // The detail is where the full text lives (N6); the workout
+                        // row only carries a marker.
+                        set.rpe?.let { rpe ->
+                            Text(
+                                text = stringResource(R.string.set_rpe_marker, rpe),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    set.note?.let { comment ->
+                        Text(
+                            text = comment,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 IconButton(onClick = { onDeleteSet(set) }) {
                     Icon(
@@ -357,7 +376,7 @@ private fun WorkoutDetailScreenPreview() {
                     ),
                 ),
             ),
-            onUpdateSet = { _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _ -> },
             onDeleteSet = {},
             onDeleteWorkout = {},
             onBack = {},

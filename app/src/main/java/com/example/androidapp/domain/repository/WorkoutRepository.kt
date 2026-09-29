@@ -88,7 +88,19 @@ interface WorkoutRepository {
         setType: SetType = SetType.NORMAL,
     ): DataResult<Unit>
 
-    suspend fun updateSet(setId: String, reps: Int, weightGrams: Long): DataResult<Unit>
+    /**
+     * Rewrites a logged set, including its RPE and comment (ROADMAP N6).
+     *
+     * [rpe] and [note] are required rather than defaulted: an edit states what the
+     * set now says, so a caller cannot clear them by forgetting to pass them.
+     */
+    suspend fun updateSet(
+        setId: String,
+        reps: Int,
+        weightGrams: Long,
+        rpe: Int?,
+        note: String?,
+    ): DataResult<Unit>
 
     suspend fun deleteSet(setId: String): DataResult<Unit>
 

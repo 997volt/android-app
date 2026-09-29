@@ -99,6 +99,9 @@ data class SetDto(
     val reps: Int,
     val weightGrams: Long,
     val setType: SetType,
+    /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N6). */
+    val rpe: Int? = null,
+    val note: String? = null,
     val completedAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,

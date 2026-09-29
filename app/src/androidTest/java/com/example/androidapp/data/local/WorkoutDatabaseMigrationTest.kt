@@ -155,6 +155,61 @@ class WorkoutDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun migration5To6_addsRpeAndComment_leavingThemUnset() {
+        // A v5 database with a real logged set in it (ROADMAP N6). Every parent row
+        // is inserted too, so the ALTERs run against a table that already holds data.
+        helper.createDatabase(TEST_DB, 5).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, 2, NULL, NULL, NULL, 1, 2, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO set_entries
+                    (id, sessionExerciseId, setIndex, reps, weightGrams, setType,
+                     completedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('set1', 'se1', 0, 5, 100000, 'NORMAL', NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 6, true, MIGRATION_5_6)
+
+        migrated.query("SELECT rpe, note FROM set_entries WHERE id = 'set1'").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("the existing set must survive", 1, cursor.count)
+            // Unset is what the one-tap log path keeps writing, so nothing is
+            // backfilled and an old set reads as "no RPE, no comment".
+            assertTrue("rpe must default to null", cursor.isNull(0))
+            assertTrue("note must default to null", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

@@ -116,7 +116,7 @@ fun ActiveWorkoutScreen(
     clock: State<WorkoutClock>,
     onAddExercise: () -> Unit,
     onLogSet: (String) -> Unit,
-    onUpdateSet: (String, Int, Long) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onDeleteSet: (String) -> Unit,
     onUndoDelete: () -> Unit,
@@ -174,9 +174,11 @@ fun ActiveWorkoutScreen(
         SetEditorDialog(
             initialReps = set.reps,
             initialWeightGrams = set.weightGrams,
+            initialRpe = set.rpe,
+            initialNote = set.note,
             onDismiss = { editing = null },
-            onSave = { reps, weightGrams ->
-                onUpdateSet(set.id, reps, weightGrams)
+            onSave = { edit ->
+                onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
                 editing = null
             },
         )
@@ -480,6 +482,7 @@ private fun SetLine(
                 ),
                 style = MaterialTheme.typography.bodyLarge,
             )
+            SetExtrasMarker(set = set)
         }
         IconButton(onClick = onDelete) {
             Icon(
@@ -489,6 +492,29 @@ private fun SetLine(
                 contentDescription = stringResource(R.string.set_delete),
             )
         }
+    }
+}
+
+/**
+ * The small marker a set carries when it has an RPE or a comment (ROADMAP N6).
+ *
+ * A marker, not the text: the workout row has to stay scannable mid-set, and the
+ * comment itself belongs on the workout detail. Nothing is emitted when the set
+ * carries neither, which is the state the one-tap log path leaves it in.
+ */
+@Composable
+private fun SetExtrasMarker(set: SetRow, modifier: Modifier = Modifier) {
+    val rpeMarker = set.rpe?.let { stringResource(R.string.set_rpe_marker, it) }
+    val noteMarker = if (set.note != null) stringResource(R.string.set_note_marker) else null
+    val marker = listOfNotNull(rpeMarker, noteMarker).joinToString(" · ")
+
+    if (marker.isNotEmpty()) {
+        Text(
+            text = marker,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
     }
 }
 
@@ -651,7 +677,7 @@ private fun ActiveWorkoutScreenPreview() {
             },
             onAddExercise = {},
             onLogSet = {},
-            onUpdateSet = { _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _ -> },
             onRemoveExercise = {},
             onDeleteSet = {},
             onUndoDelete = {},

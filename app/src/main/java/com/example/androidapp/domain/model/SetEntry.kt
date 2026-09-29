@@ -17,6 +17,15 @@ data class SetEntry(
     val reps: Int,
     val weightGrams: Long,
     val setType: SetType = SetType.NORMAL,
+    /** Perceived effort, 1–10, or null when none was recorded (ROADMAP N6). */
+    val rpe: Int? = null,
+    /**
+     * A short comment on the set, or null (ROADMAP N6).
+     *
+     * Separate from `workout_sessions.notes`: one is about this set, the other
+     * about the workout.
+     */
+    val note: String? = null,
     val completedAt: Instant? = null,
 )
 
@@ -26,6 +35,20 @@ enum class SetType(val label: String) {
     WARMUP("Warm-up"),
     DROP("Drop"),
     FAILURE("Failure"),
+}
+
+/**
+ * The perceived-effort scale (ROADMAP N6).
+ *
+ * The bounds live here rather than in the editor and again in the repository, so
+ * the two cannot disagree about what is a usable value. Null is valid and means
+ * "not recorded" — the one-tap log path writes no RPE at all.
+ */
+object Rpe {
+    const val MIN = 1
+    const val MAX = 10
+
+    fun isValid(value: Int?): Boolean = value == null || value in MIN..MAX
 }
 
 /**

@@ -34,6 +34,14 @@ data class SetEntryEntity(
     val reps: Int,
     val weightGrams: Long,
     val setType: SetType,
+    /**
+     * Perceived effort, 1–10, or null when the set was logged without one
+     * (ROADMAP N6). Nullable so the one-tap **Log set** path can keep writing
+     * neither this nor [note].
+     */
+    val rpe: Int? = null,
+    /** A short comment on the set, or null (ROADMAP N6). */
+    val note: String? = null,
     val completedAt: Long?,
     val createdAt: Long,
     val updatedAt: Long,

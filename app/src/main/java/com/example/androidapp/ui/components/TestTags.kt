@@ -10,6 +10,10 @@ object TestTags {
     const val SET_WEIGHT_FIELD = "set_weight_field"
     const val SET_REPS_FIELD = "set_reps_field"
 
+    /** RPE and the set comment (ROADMAP N6). Both may be left empty. */
+    const val SET_RPE_FIELD = "set_rpe_field"
+    const val SET_NOTE_FIELD = "set_note_field"
+
     /** A logged set, tappable to edit it. */
     const val SET_ROW = "set_row"
     const val SET_SAVE = "set_save"

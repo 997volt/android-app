@@ -302,7 +302,35 @@ class ActiveWorkoutViewModelTest {
         val logged = repository.sets.value.single()
         assertEquals(DEFAULT_REPS, logged.reps)
         assertEquals(Weight.DEFAULT_GRAMS, logged.weightGrams)
+        // N6: the one-tap path deliberately writes neither, so logging stays fast.
+        assertNull(logged.rpe)
+        assertNull(logged.note)
         assertEquals("a rest must be armed on set completion", 1, notifier.scheduled.size)
+    }
+
+    @Test
+    fun editingASet_passesItsRpeAndCommentThrough() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        val logged = repository.sets.value.single()
+        viewModel.onUpdateSet(logged.id, reps = 5, weightGrams = 100_000L, rpe = 7, note = "Tough")
+        settle()
+
+        val stored = repository.sets.value.single()
+        assertEquals(5, stored.reps)
+        assertEquals(7, stored.rpe)
+        assertEquals("Tough", stored.note)
+        // And the row the screen renders carries them, for the marker.
+        val row = viewModel.uiState.value.exercises.single().sets.single()
+        assertEquals(7, row.rpe)
+        assertEquals("Tough", row.note)
     }
 
     @Test
@@ -576,10 +604,20 @@ class ActiveWorkoutViewModelTest {
             return successUnit()
         }
 
-        override suspend fun updateSet(setId: String, reps: Int, weightGrams: Long): DataResult<Unit> {
+        override suspend fun updateSet(
+            setId: String,
+            reps: Int,
+            weightGrams: Long,
+            rpe: Int?,
+            note: String?,
+        ): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.map {
-                if (it.id == setId) it.copy(reps = reps, weightGrams = weightGrams) else it
+                if (it.id == setId) {
+                    it.copy(reps = reps, weightGrams = weightGrams, rpe = rpe, note = note)
+                } else {
+                    it
+                }
             }
             return successUnit()
         }
