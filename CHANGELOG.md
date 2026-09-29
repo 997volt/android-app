@@ -5,10 +5,7 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [1.1] — 2026-09-29 (versionCode 2)
-
-The upgrade-test build: installed over 1.0 without uninstalling, and confirmed to
-keep the workout history.
+## [1.2] — 2026-09-29 (versionCode 3)
 
 ### Added
 - Set rows announce that they are editable, so a screen reader no longer reads a
@@ -18,6 +15,13 @@ keep the workout history.
 - A duration of an hour or more rendered differently in the rest timer than in the
   workout clock — `90:00` against `1:30:00`. Both now share one formatter and
   agree; the rest timer gains the hours field.
+
+## [1.1] — 2026-09-29 (versionCode 2)
+
+The upgrade-test build: installed over 1.0 without uninstalling, and confirmed to
+keep the workout history. **No user-visible changes** — it exists to prove that the
+permanent signing key accepts an upgrade rather than demanding an uninstall, which
+would have cost the history.
 
 ## [1.0] — 2026-09-28 (versionCode 1)
 
