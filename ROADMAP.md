@@ -1,6 +1,6 @@
 # Workout Tracker — Roadmap
 
-> **v1.2** is shipped and installed. Last reviewed against the code: 2026-09-29.
+> **v1.3** is shipped and installed. Last reviewed against the code: 2026-09-29.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -13,8 +13,9 @@ your history, keep your data.
 more trustworthy, it does not belong here. Anything that ships data off the device,
 or needs an account or a server, is out by default.
 
-Feature ids (`F#` foundations, `N#` the next planned changes, `P#.#` the product
-backlog, `R#.#` releases) are stable and are referenced from commit messages. They
+Feature ids (`F#` foundations, `B#` reported defects, `N#` the next planned changes,
+`P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
+commit messages. They
 were assigned when the work was planned, so they do not run in order — the
 `P4`/`P5` rows are simply the ones parked furthest out.
 
@@ -51,17 +52,78 @@ left alone without being forgotten.
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next — planned app changes
+## Next
 
-**Nothing.** Every change in this batch has shipped — N1 (home as the start
-destination), N2 (custom exercises while you train), N3 (workout templates), N4 (the
-readiness note), N5 (per-exercise rest and cues), N6 (RPE and a comment per set),
-N7 (Done per exercise) and N8 (how it felt). They are in
-[CHANGELOG.md](CHANGELOG.md) under *Unreleased*, because shipped work lives there
-rather than here.
+Queued in order: the reported defects first, then three additions to what a workout
+records. N1–N8 shipped in v1.3 and live in [CHANGELOG.md](CHANGELOG.md).
 
-What comes next is chosen from *Later* below, which is where candidates live until
-one is picked up and spelled out as a numbered change here.
+**Fixes first.**
+
+| # | Defect | Decision |
+| --- | --- | --- |
+| B1 | Export and import are two overflow menus deep | Move them to the home overflow |
+| B2 | Removing an exercise is irreversible | Ask first — a confirmation dialog |
+| B3 | An **Undo** can act on something that is already gone | Check the precondition and report, instead of doing nothing |
+
+### B1 — Export and import move to the home overflow
+
+App-level data management belongs at home. Today's path is Home ⋮ → *Exercise
+library* → ⋮ → *Export*, because N1 turned the library into a reference screen you
+have to navigate to on purpose — so the feature reads as missing. The home menu
+already carries Library, History and Templates; Export and Import join them, and the
+library's copy goes, so there is one path rather than two.
+
+### B2 — Removing an exercise asks first
+
+Removing an exercise soft-deletes it and — unlike deleting a set or marking one Done
+— has **no undo**, so a mis-tap silently reshapes the session. **Decided: a
+confirmation dialog**, not an undo snackbar. It is a rare action, and a confirm is
+easier to reason about than restoring a row whose sets went with it.
+
+### B3 — An Undo must not act on something that is gone
+
+Two different actions offer a button labelled **Undo** — a deleted set and a Done
+exercise — and both share one `SnackbarHostState`, so the button can outlive what it
+refers to. The reported sequence is exactly this: delete a set, remove its exercise,
+then tap the *Undo* still on screen. It undoes the **set**, not the removal, and that
+undo now fails the loggable-exercise guard, so nothing happens at all. Confirmed by
+reading the code: removing an exercise has no undo to begin with, so the button on
+screen could only have been another action's.
+
+Fix: each undo action checks its precondition and says so when it cannot proceed, and
+a snackbar is dismissed when the state it refers to disappears. B2 removes the
+mis-tap that makes this reachable, but the silent failure is its own bug.
+
+### N9 — Joint pain location
+
+A text box under the joint-pain rating, for *which* joints: "left shoulder", "right
+knee". `session_exercises.jointPainNote`, nullable — **this batch's only migration**
+(the database is at v9 after templates, so 9→10).
+
+The trap worth naming: the export is a hand-written codec, so a column missing from
+the backup DTO is silently dropped by export and lost on restore. The migration test
+and the round-trip test both need the field.
+
+### N10 — Muscle feel and joint pain before finishing
+
+The two ratings are only asked for at the moment an exercise is marked Done. Make
+them editable at any time on the session exercise, so how a set felt can be recorded
+while it is fresh.
+
+The write path already exists (`rateExercise`); this is a UI entry point. The Done
+prompt stays as a convenience, and becomes a last chance rather than the only one.
+N9's location box belongs with it.
+
+### N11 — A general comment on the workout
+
+**Decided: a skippable prompt when the workout is finished**, with the text shown in
+the workout detail afterwards — the moment you finish is when you remember why it
+went well or badly.
+
+**No migration.** `workout_sessions.notes` has been in the schema since v1, is
+already carried by export and import, and has never had a domain field or a UI. This
+is what it was reserved for; it needs the domain field, a repository setter, the
+prompt, and a line on the detail screen.
 
 ## Later (still self-contained)
 
