@@ -1,265 +1,194 @@
 # Workout Tracker — Roadmap
 
-A **local-only** workout logger. The product is one small app that does one thing
-well: start a workout, log sets, see your history, keep your data.
+> **v1.2** is shipped and installed. Last reviewed against the code: 2026-09-29.
+>
+> This file is forward-looking only. What shipped lives in
+> [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
+> [RELEASING.md](RELEASING.md).
 
-The MVP is deliberately tiny. If something is not on the MVP list below, it is
-either quality work that applies to every screen (see [Quality bar](#quality-bar-applies-throughout))
-or [parked on purpose](#parked--deliberately-not-planned). Feature ids (`F#`,
-`P#.#`, `R#.#`) are stable and are referenced from commit messages.
+**What this app is.** A local-only workout logger: start a workout, log sets, see
+your history, keep your data.
 
-## The MVP
+**The scope rule.** If it does not help log a set faster or make the stored history
+more trustworthy, it does not belong here. Anything that ships data off the device,
+or needs an account or a server, is out by default.
 
-**Open the app → start a workout → log sets → finish → find it in history → export.**
+Feature ids (`F#` foundations, `P#.#` product, `R#.#` release) are stable and are
+referenced from commit messages. They were assigned when the work was planned, so
+they do not run in order — the `P4`/`P5` rows are simply the ones parked furthest out.
 
-Nothing else is required to call this app usable.
+## Current state
 
-### Landed
+- **The MVP is complete and released**: exercise library, start/resume, set logging
+  with prefill and undo, rest timer, crash-safe sessions, workout history, edit and
+  delete, export/import.
+- **Local only.** No `INTERNET` permission, `allowBackup="false"`, no accounts, no
+  analytics; the export file is the only path off the device.
+- **Releases are manual**, signed with a permanent local key. The procedure and its
+  traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
+- **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
+  JVM under Robolectric rather than on a device.
 
-A `◐` marks a row that works but still has an open follow-up, named in the row
-itself. Everything unmarked here is done.
+Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
+current numbers; dependencies are declared in
+[`gradle/libs.versions.toml`](gradle/libs.versions.toml). Neither is repeated here on
+purpose — see [Keeping this true](#keeping-this-true).
 
-| # | Feature | Notes |
+## Open decisions
+
+Not tasks: choices with a real cost either way. Each names a trigger, so it can be
+left alone without being forgotten.
+
+| Decision | What it would take | Revisit when |
 | --- | --- | --- |
-| F1 | Backup / transfer opt-out | `allowBackup="false"` plus excludes for cloud backup, device-to-device transfer and iOS cross-platform transfer. Health data does not leave the device unless the user exports it. |
-| F2 | Navigation | `navigation-compose` with type-safe routes; arguments read via `SavedStateHandle.toRoute()`. |
-| F3 | Presentation layer | `@HiltViewModel` + `StateFlow<UiState>` + `collectAsStateWithLifecycle`, split into stateful `…Route` and stateless `…Screen`. |
-| F4 | Dependency injection | Hilt via KSP. |
-| F5 | Local persistence | Room, schema v3, committed [`app/schemas/`](app/schemas/), migrations validated by test, and **no** `fallbackToDestructiveMigration` — a forgotten migration fails loudly instead of wiping history. |
-| F7 | Result / error model | `DataResult` + a `DataError` taxonomy; writes return a value instead of throwing. |
-| F9 | `java.time` native | `minSdk` 26, so no core-library desugaring. |
-| F10 | Release pipeline | GitHub Actions: unit tests, lint, detekt, debug and R8-minified release. |
-| F12 | Lint / detekt gate | Warnings fail the build. The lint **baseline is deliberately not wired** — AGP auto-creates the file and would silently accept a warning on the next run; see the comment in [app/build.gradle.kts](app/build.gradle.kts). |
-| F13 | Rest-alert permissions | Requested on the first logged set, never at launch; refusal is non-fatal and not re-prompted. See [Built, but optional](#built-but-optional). |
-| F14 | Ship identity | `applicationId` = `io.github.volt997.workout`, a real adaptive icon (background + foreground + `monochrome` for themed icons), `versionCode`/`versionName` from a single [`version.properties`](version.properties), the launcher label **Workout Log**, and a 512 px listing icon at [`store/icon-512.png`](store/icon-512.png) rendered from the app's own vector by [`tools/MakeStoreIcon.java`](tools/MakeStoreIcon.java). |
-| F15 | Seed delivery | Seeded on *every* open with `INSERT OR IGNORE`, so first launch and upgrades both work, the first read is never empty, and a user's delete survives a top-up. |
-| F16 | Recomposition-safe clock | The 1-second tick no longer rebuilds the workout screen's exercise list. |
-| F17 | Input validation | Weight parsing is bounded (no exponent/hex, capped); `logSet` fails unless the exercise is live and its session is open. |
-| P1.1 | Exercise library | 30 seeded movements with primary/secondary muscles, equipment and pattern, persisted in Room. Search covers primary *and* secondary muscles on a locale-stable key, and the two empty states are distinct (P1.1a). |
-| P1.2 | Start a workout | Atomic find-or-create, so two taps cannot open two sessions. |
-| P1.3 | Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Numeric keyboards and −/+ steppers (P1.3a). |
-| P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
-| P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
-| P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import follows one rule — **bring back what is gone, never overwrite what is there**: missing rows are inserted, locally *deleted* rows are restored from the file (clearing `deletedAt`), and live rows are left alone. Idempotent, refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
-| P1.6 | Workout history | Chronological list grouped by month, with duration, volume and set count per workout, plus a read-only detail view. Totals are aggregated in SQL, and only finished sessions appear. |
-| P1.7 | Edit / delete | Correct or remove a past set, and delete a whole workout behind a confirmation. Makes `Finish` recoverable instead of a one-way door. |
-| P1.16 | Resume affordance | The library button reads "Resume workout" with the elapsed time and exercise count when a session is open, so backing out no longer hides a running workout. The clock is a separate flow only the button reads (see F16). |
-| P1.3a | Number entry | Numeric keyboards on both fields plus −/+ steppers wired to the already-written `Weight.step`. Typing stays unrestricted; validation happens on save. |
-| P1.1a | Search and empty states | Search matches primary *and* secondary muscles, and both the display label and the locale-stable enum name, so it survives translation. An empty library and a search with no hits now say different things. |
+| **Play Store listing** | A feature graphic (1024×500) and phone screenshots — the 512 px icon already exists and is generated from the app's own vector by [`tools/MakeStoreIcon.java`](tools/MakeStoreIcon.java). Then the console: Data safety, content rating, privacy-policy URL. Plus a real call on **Play App Signing**, which changes who holds the app signing key, while this project's release process assumes a permanent local one. | You want distribution beyond `adb install`. Self-install works today. |
+| **A crash-logs screen** | A small screen over [`CrashLogStore`](app/src/main/java/com/example/androidapp/platform/CrashLogStore.kt). | Reading a crash through an export actually annoys you. |
+| **Zone offset on sessions** | A `zoneOffset` column captured at session start, plus migration 3→4. Timestamps are UTC epoch millis today, so "which day was this" is answered in the *current* zone and drifts when you travel. | You train in a second timezone, or a feature needs local-day truth. |
+| **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
+| **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-74 JVM tests and 48 instrumented tests, all passing.
+## Next
 
-### Still to do
+**Nothing is outstanding.** Every MVP row is done and released, and the three items
+that followed v1.2 — local crash logs, the first design-system extraction, CI hygiene
+— are done too. That is the honest state, not a backlog in disguise.
 
-Nothing. Every MVP row is in *Landed* above, which is what makes the release
-checklist below the next thing to work through.
+If you want to keep going, this is the order I would take, all drawn from *Later*:
 
-### Recorded decision: the set row shape (P1.3a)
-
-`reps × weight` is the v1 row shape, and **bodyweight is already expressible**: a
-push-up is reps at 0 kg, which the parser accepts, which `Weight.step` clamps at,
-and which a set-editor test asserts actually saves. Such a set contributes 0 to
-volume — correct, because bodyweight is not external load.
-
-**Duration and distance are deliberately out of scope for v1.** The reason this
-decision was wanted before history accumulated is retrofit cost. That cost is
-bounded here: the schema already carries hand-written migrations with exported
-schemas and `MigrationTestHelper` coverage, so a `measure` column on `set_entries`
-(defaulting to weight-and-reps, which is what every existing row is) arrives as
-migration 3→4 and a routine test — not a rewrite. Deciding that they are not in v1
-*is* the decision; adding them later is a migration, a path this app has walked
-twice already.
-
-## First release (when the MVP is done)
-
-Not part of the MVP feature list — it is the step that turns the MVP into
-something running on the phone. No Play Store involved: a signed APK, installed
-by hand. The signing infrastructure is already in place; this is the checklist that
-runs once the "Still to do" rows above are green.
-
-| # | Step | State |
-| --- | --- | --- |
-| R1.1 | Keystore (`workout.jks`) and `keystore.properties` created, both gitignored | ✅ done |
-| R1.2 | [`tools/build-apk.sh`](tools/build-apk.sh) builds a **signed** release APK and refuses an unsigned one | ✅ done |
-| R1.3 | App label is **Workout Log** — verified in the built APK for every locale and on the launcher un-ellipsized | ✅ done |
-| R1.4 | Signed release installed on the phone and a workout logged end to end. **Reported from the device, not reproduced here** — I cannot see the phone — but it is the first time the R8-minified build and its Hilt/Compose shrinking, the adaptive icon under a real launcher, and the notification/exact-alarm prompts ran on real hardware rather than an emulator. | ✅ done |
-| R1.5 | Upgrade test — `versionCode` 1 → 2 (v1.1), installed **over** the running app without uninstalling; **workout history survived**, confirmed on the device. The decisive property was checked mechanically first: `apksigner` reports the same certificate SHA-256 for both builds (`dd27ec9f…`), which is what Android requires to accept an update rather than demand an uninstall. | ✅ done |
-
-## Repeat releases
-
-The first release is done (R1). Every later one follows
-[`RELEASING.md`](RELEASING.md), which exists because the second release nearly went
-wrong twice — a tag that briefly pointed at a commit outside `main`, and a
-changelog that credited changes to the wrong version. Both are easy to get wrong
-and invisible afterwards.
-
-| # | Step | State |
-| --- | --- | --- |
-| R2.1 | [`RELEASING.md`](RELEASING.md) records the procedure, including the rule that matters most: the tag must point at the commit that built the APK | ✅ done |
-| R2.2 | v1.2 published as a [GitHub release](https://github.com/997volt/android-app/releases/tag/v1.2) with the signed APK attached, and installed over 1.1 on the phone | ✅ done |
-| R2.3 | **Decided: releases stay manual.** Automating steps 4–7 would put `workout.jks` and its passwords in GitHub Secrets — a permanent signing key in a third party's store, where any workflow in this repository could reach it, for an app released a few times a year. Revisit if the cadence ever makes the ceremony the more expensive side. | ✅ decided |
-
-**The key is permanent.** Every later build has to be signed with the same
-`workout.jks`, or Android refuses the update and the only fix is to uninstall,
-which deletes the history because backup is off. Back up the keystore *and* its
-password outside this repo. This is exactly why **P1.12 (export) is the first MVP
-item**: until it exists, a signature change or a lost key means data loss with no
-way back.
-
-## Built, but optional
-
-The background rest alert — `AlarmManager` + a notification + a receiver + the
-ask-on-first-set logic in
-[RestAlertPermissions.kt](app/src/main/java/com/example/androidapp/ui/workout/RestAlertPermissions.kt)
-— exists for exactly one thing: buzzing you when rest ends with the screen off.
-
-It works, but it is **not required**, and it is the only reason the app requests
-*any* permission. An in-app timer with sound/vibration plus keep-screen-on (P1.10)
-covers the same need, and removing the alert would delete both manifest
-permissions and the whole `platform/` package. Keep it only if the
-phone-in-pocket case matters — and do not let anything else grow to depend on it.
-
-## Quality bar (applies throughout)
-
-- **Accessibility is MVP quality, not a later phase.** Set rows need an
-  `onClickLabel`; write failures must be *announced*, not just drawn (the exact
-  failure F7 exists to surface); add `testTag`s so UI tests stop asserting on
-  English literals. That is P1.17.
-- **Privacy:** local-only, **no `INTERNET` permission**, no ads, no analytics. Any
-  crash reporting must be GMS-free and must never carry set values, notes or body
-  measurements.
-- **No Google Play services at runtime.** The app runs on a degoogled device.
-  Firebase, `play-services-*`, Play Billing and Play Integrity are out by default
-  — a future integration has to argue its way past this line.
-- **Testing:** domain math, DAO and migration tests are covered. Missing: a Compose
-  UI test for the workout screen (the one screen the app exists for); a test that
-  seed ids are unique; `hilt-android-testing`, without which the Hilt-wired `Route`
-  layers cannot be tested end to end — though `ExerciseDetailViewModel`'s argument
-  reading is testable without it by constructing a `SavedStateHandle` directly, a
-  cheap win; a test that the DAO's soft-delete filters actually hide deleted rows
-  through the joined queries; a screenshot test for the design system; and any
-  coverage signal in CI.
-- **Errors:** writes return `DataResult`, but `ExerciseRepository.getExercise` and
-  the `observeExercises()` flows can still throw and take a screen down. Make reads
-  match writes, or record why they are exempt.
-- **Performance:** not measured yet. Baseline profile and a Compose stability
-  report once the logging screen stops changing.
+1. **P1.15 Repeat last workout** — one tap into the previous session's exercises.
+   `previousPerformance` already proves the query, and it is the highest-retention
+   action the app lacks.
+2. **P1.17 Full accessibility pass** — the MVP slice landed; this is follow-through.
+3. **P2.1 + P2.2 Per-exercise history and personal records** — the reason to open the
+   app on a rest day.
 
 ## Later (still self-contained)
 
-Post-MVP, same local-only premise. Ordered loosely by value.
+Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
 
-| # | Feature |
-| --- | --- |
-| P1.5 | Per-set and per-workout notes; optional RPE/RIR, off by default |
-| P1.9 | kg/lb display setting — storage is already canonical grams, so this is UI only |
-| P1.10 | Keep the screen on during a workout |
-| P1.11 | Onboarding: goal, experience level, weekly target |
-| P1.13 | Custom exercises (the schema already reserves `isCustom` and UUID ids) |
-| P1.14 | Rest sound / haptic feedback |
-| P1.15 | Repeat last workout in one tap |
-| P1.17 | Full accessibility pass (the MVP slice is in the quality bar) |
-| P2.1 | Per-exercise history |
-| P2.2 | Personal records and estimated 1RM |
-| P2.3 | Charts and trends — pick a charting approach before starting |
-| P2.6 | Plate calculator |
-| P2.7 | Warm-up set generator |
-| P2.8 | Muscle-group balance warnings |
-| P3.1, P3.2 | Routines: build one, start a workout from one |
-| P3.3, P3.4 | Programs / mesocycles and auto-progression (only once there is history) |
-| P3.5, P3.6 | Weekly scheduling, supersets / circuits |
-| P2.4, P2.5 | Body measurements, progress photos |
-| F8 | ✅ Design system, to the point of real reuse | Shared pieces in [`ui/components/`](app/src/main/java/com/example/androidapp/ui/components): `CenteredMessage`, `SetEditorDialog`, `dataErrorMessage`, `TestTags`. **Deliberately not the whole original list** — buttons, rows and number pickers still have a single caller each, and extracting a component with one use is indirection rather than reuse. Pull them out when a second screen needs them. |
+**Everyday logging**
+- **P1.15** Repeat last workout in one tap.
+- **P1.5** Per-set and per-workout notes; optional RPE/RIR, off by default.
+- **P1.13** Custom exercises — the schema already reserves `isCustom` and UUID ids.
+- **P1.14** Rest sound / haptic feedback.
+- **P1.10** Keep the screen on during a workout.
+- **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
+- **P1.11** Onboarding: goal, experience level, weekly target.
+
+**Insight** — why the app gets opened between workouts
+- **P2.1** Per-exercise history.
+- **P2.2** Personal records and estimated 1RM.
+- **P2.3** Charts and trends — choose the charting approach before starting.
+- **P2.8** Muscle-group balance warnings.
+- **P2.4** Body measurements.
+- **P2.5** Progress photos, in encrypted local storage.
+
+**Programming** — turns a logger into a plan
+- **P3.1 + P3.2** Routines: build one, start a workout from one.
+- **P3.4** Auto-progression suggestions — the strongest differentiator once there is
+  enough history to base them on.
+- **P3.3** Programs / mesocycles with scheduled deloads.
+- **P3.5 + P3.6** Weekly scheduling; supersets and circuits.
+
+**Small and self-contained**
+- **P2.6** Plate calculator.
+- **P2.7** Warm-up set generator.
+
+**Quality follow-through**
+- **P1.17** Full accessibility pass; the MVP slice is a quality-bar rule below.
+
+Design-system work (**F8**) is a rule rather than a row now: extract a component when
+a second screen needs it, not before.
 
 ## Parked — deliberately not planned
 
-Each is a product in its own right, or contradicts "local-only", or both. Parking
-them is a decision, not a backlog.
+Each is a product in its own right, contradicts "local-only", or both. Parking is a
+decision, not a backlog. Every row names what would change it.
 
-| # | Feature | Why parked |
+| # | Feature | Revisit only if |
 | --- | --- | --- |
-| P4.1 | Health Connect read/write | A data-*sharing* integration. The app stores data for its user, not for a platform health graph. Revisit only if a user asks. |
-| P4.2 | Foreground service | The alarm (or a plain in-app timer) already covers the one background need. |
-| P4.3 | Home-screen widget | A separate surface and toolkit for a glance the app already gives. |
-| P4.4 | Quick Settings / launcher shortcuts | Convenience; a second entry point to maintain and keep correct. |
-| P4.5 | Wear OS companion | Expensive, and `play-services-wearable` breaks the no-GMS line. |
-| P4.6 | Bluetooth heart-rate straps | A different product (heart-rate training), not logging. |
-| P4.7 | WorkManager reminders | Nudges do not make logging better. |
-| P4.8 | Large-screen layouts | Polish; revisit only if tablet users actually appear. |
-| P4.9 | Offline-first sync | Contradicts local-only. Needs a backend, accounts, and conflict resolution — a large irreversible commitment. |
-| P5.2, P3.7 | Friends, shared routines | Accounts, servers and moderation. |
-| P5.3 | Monetization / Play Billing | Adds a Play-services dependency; revisit only with a concrete reason to charge. |
-| P5.4 | Localization | Until there is a non-English user. |
-| F6 | Modularization into `:core:*` / `:feature:*` | **Deliberately not done.** One module is correct at this size — 74 source files, ~6,500 lines, 4 modules — and the split would add build friction for no payoff on a shipped app. Revisited after v1.2 and re-affirmed, so it is a decision rather than an untouched backlog row. **What would change the answer is a goal, not the refactor:** a measured build-time problem, wanting to work on one feature without compiling the rest, or a second surface (Wear, a widget). Name the goal first, then scope the split. |
-| F11 | ✅ Crash logs, local | Uncaught exceptions are recorded to app-private storage ([`CrashRecorder`](app/src/main/java/com/example/androidapp/platform/CrashRecorder.kt)) and ride along with an export, because a release build is not debuggable and that is the only way a crash reaches the user. **Nothing is transmitted** — no `INTERNET` permission, so the quality bar's line holds. Analytics: still no; on a single-user local tool it buys nothing. |
-| F18 | ✅ CI / repo hygiene | Dependabot (weekly, grouped), every action pinned to a commit SHA, Gradle wrapper validation, failing tests named in the job summary ([`tools/ci-summarise-failures.py`](tools/ci-summarise-failures.py)), [`.editorconfig`](.editorconfig) and a [`CHANGELOG`](CHANGELOG.md). An [MIT `LICENSE`](LICENSE). |
+| P4.1 | Health Connect read/write | A user asks to share with a platform health graph. It is a sharing integration; this app stores data for its user. |
+| P4.2 | Foreground service | The rest timer needs to survive something the alarm and the in-app timer cannot. |
+| P4.3 | Home-screen widget | The glance it would give turns out to be the missing thing. |
+| P4.4 | Quick Settings / launcher shortcuts | Starting a routine becomes frequent enough to deserve a second entry point. |
+| P4.5 | Wear OS companion | Wrist logging is genuinely wanted — and you accept `play-services-wearable`, which breaks the no-GMS line. |
+| P4.6 | Bluetooth heart-rate straps | The product becomes heart-rate training rather than logging. |
+| P4.7 | WorkManager reminders | Nudges demonstrably improve adherence. |
+| P4.8 | Large-screen layouts | Tablet or foldable users actually appear. |
+| P4.9 | Offline-first sync | There is a real multi-device story. It needs a backend, accounts and conflict resolution — the largest irreversible commitment on this list. |
+| P3.7, P5.2 | Friends, shared routines | Accounts, servers and moderation become worth owning. |
+| P5.3 | Monetization / Play Billing | There is a concrete reason to charge, and a willingness to take the Play-services dependency. |
+| P5.4 | Localization | A non-English user appears. |
+| F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
+| F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
+
+## Quality bar
+
+Rules to follow, not a status report.
+
+- **Accessibility accompanies each screen**; it is not a later phase. Name what a
+  control does (`onClickLabel`), *announce* state changes rather than only drawing
+  them, and tag things so tests do not assert on English literals.
+- **Privacy:** local-only. No `INTERNET` permission, no ads, no analytics. Crash logs
+  stay in app-private storage and leave only inside an export the user chose to make.
+- **No Google Play services at runtime.** The app runs on a degoogled device.
+  Firebase, `play-services-*`, Play Billing and Play Integrity are out by default; a
+  future integration has to argue past this line.
+- **Errors are values.** Writes return `DataResult`. Reads do not yet —
+  `ExerciseRepository` can still throw out of a flow and take a screen down. Make them
+  match, or record why they are exempt.
+- **Measure before optimizing.** The one known hot spot — a per-second recomposition
+  of the workout list — was found by reading the code and is fixed. Any further
+  performance claim should come with a measurement.
+- **Testing:** pure logic gets JVM tests, persistence gets DAO and migration tests,
+  composables get Robolectric tests with no device. There is no coverage target, and
+  the honest gap is a Compose test for the *active workout* screen.
+- **No dead weight.** Extract a shared component at its second caller, not its first;
+  delete an API the moment nothing calls it. Both hold today; this rule keeps them.
 
 ## Explicit non-goals
 
 Nutrition / calorie tracking, social feeds, live GPS route tracking, and a web
-dashboard.
+dashboard. Each is a product in its own right and would dilute the logging core.
 
-## Decisions worth remembering
+## Decisions already made
 
-- **Weights are whole grams in a `Long`** ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)).
-  Exact 0.5 kg and 1.25 kg steps, no floating-point drift, and a unit change is
-  purely presentational.
-- **Enum values are stored by name**, never by ordinal, so reordering a `MuscleGroup`
-  cannot silently reinterpret rows already on disk.
-- **Rows are already sync-shaped** — UUID ids, `createdAt` / `updatedAt` /
-  `deletedAt` soft deletes — so a future sync stays a decision rather than a
-  migration. What is still missing is a stored **zone offset**, which P1.6 (grouping
-  by week) and any future Health Connect write both need.
+Recorded so they are not relitigated:
+
+- **Weights are whole grams in a `Long`**
+  ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)) — exact
+  0.5 kg and 1.25 kg steps, no floating-point drift, and units are presentational.
+- **The v1 set row is `reps × weight`.** Bodyweight is reps at 0 kg — accepted,
+  clamped, and asserted by a test. Duration and distance are out of scope; adding
+  them later is migration 3→4 plus a test, a path this app has already walked twice.
+- **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows
+  already on disk.
+- **Rows are sync-shaped** — UUID ids and `createdAt`/`updatedAt`/`deletedAt` soft
+  deletes — so a future sync stays a decision, not a migration. The zone offset is
+  the one missing piece; it is an open decision above.
 - **The lint baseline is unwired on purpose.** Accepting a warning is a two-step,
   reviewed act, not a side effect of running the build.
-- **Verified on device:** process death mid-workout resumes the same session, with
-  its set and the rest countdown intact; the library renders on the very first read
-  after `pm clear`.
+- **Releases are manual**, and the tag must point at the commit that built the APK.
+- **Verified on device:** process death mid-workout resumes the session with its set
+  and rest intact; the library renders on the first read after `pm clear`; v1.1
+  installed over v1.0 and kept the history.
 
-## Publishing (only when you decide to)
+## Keeping this true
 
-Not part of the MVP. **Ship identity is done**: the label is *Workout Log*, the
-`applicationId` is settled (`io.github.volt997.workout`), and the 512 px listing
-icon is at [`store/icon-512.png`](store/icon-512.png).
+Three rules, because the drift they prevent has already happened twice:
 
-The icon is generated rather than drawn, from the app's own adaptive-icon vector,
-so it cannot drift from what the launcher shows:
+1. **Nothing marked done lives here.** Shipped work goes to
+   [CHANGELOG.md](CHANGELOG.md), and a finished row is deleted from this file.
+2. **No hand-maintained facts.** No test counts, no dependency lists, no inventory of
+   which files exist. Those are commands (`./gradlew …`) or links
+   ([libs.versions.toml](gradle/libs.versions.toml), [app/schemas](app/schemas)).
+3. **Every parked row names its revisit trigger**, so parking reads as a decision
+   rather than a forgotten item.
 
-```bash
-java tools/MakeStoreIcon.java store/icon-512.png
-```
+Bump the review stamp at the top whenever this file is checked against the code.
 
-Still missing for a real listing: a **feature graphic** (1024x500) and **phone
-screenshots** — neither can be derived from the icon, so both are genuinely new
-work. Then the Play Console side: Data safety form, content rating, privacy-policy
-URL and Play App Signing. The last is worth reading up on first, because enrolling
-changes who holds the app signing key, and this project's release process is built
-around a permanent local one.
+## References
 
-## Dependency notes
-
-| Area | Library / API |
-| --- | --- |
-| Present | `room-runtime` + KSP, Hilt, `navigation-compose`, Compose BOM + Material 3, `kotlinx-serialization`, `kotlinx-coroutines` |
-| P1.12 export / import | Storage Access Framework file picker + **`kotlinx-serialization-json`**, which is a *new* artifact — only `-core` is declared today. |
-| P2.3 charts | Compose canvas, or a vetted library — decide before starting |
-| Deliberately absent | No Google Play services, no Firebase, no Health Connect, no WorkManager, no billing. Note `kotlinx-coroutines` is transitive only: the single declared coroutines artifact is `kotlinx-coroutines-test`. |
-
-## Suggested next PRs
-
-**There is no next PR.** Everything this file listed as MVP, quality-bar or release
-work is done, including the last three — local crash logs (F11), the first real
-design-system extraction (F8), and CI hygiene (F18) — all after v1.2 shipped.
-
-What remains is a decision and a set of product choices, not a backlog:
-
-- **F6 (module split)** — deliberately not done. Its row above says what would change
-  that: a named goal, not a refactor.
-- **A "Crash logs" screen** — reading them through an export is awkward, so this is
-  worth doing only if it turns out to annoy in practice.
-- **The parked list** — each entry is a product in its own right.
-- **Analytics** — decided against; on a single-user local tool it buys nothing.
-
-If you are looking for the next thing to do, the honest answer is that the app is
-finished for its stated scope. Further work is a product decision, not an outstanding
-task — which is a different and better position than a long unfinished list.
+- [CHANGELOG.md](CHANGELOG.md) — what shipped, per version, with the reasoning
+- [RELEASING.md](RELEASING.md) — the release procedure and its traps
+- [README.md](README.md) — build, install on your own phone, local toolchain
