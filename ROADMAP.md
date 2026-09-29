@@ -178,7 +178,7 @@ them is a decision, not a backlog.
 | P5.4 | Localization | Until there is a non-English user. |
 | F6 | Modularization into `:core:*` / `:feature:*` | One module is correct at this size; the split would add build friction for no payoff. |
 | F11 | Product analytics | Crash reporting may be worth it; analytics on a local tool is not. |
-| F18 | CI / repo hygiene | Nice to have: Dependabot, SHA-pinned actions, wrapper validation, PR test annotations. |
+| F18 | ✅ CI / repo hygiene | Dependabot (weekly, grouped), every action pinned to a commit SHA, Gradle wrapper validation, failing tests named in the job summary ([`tools/ci-summarise-failures.py`](tools/ci-summarise-failures.py)), [`.editorconfig`](.editorconfig) and a [`CHANGELOG`](CHANGELOG.md). **No `LICENSE`** — that is an ownership decision, not a hygiene default. |
 
 ## Explicit non-goals
 
