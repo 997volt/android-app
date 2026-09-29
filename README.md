@@ -284,3 +284,12 @@ leaves device-to-device transfer fully enabled when the rules file has no
 
 `minSdk` is 26 deliberately: it is the Health Connect client's floor and makes
 `java.time` available without core library desugaring.
+
+## License
+
+[MIT](LICENSE) © 2026 997volt.
+
+The app bundles third-party libraries — Compose, Hilt, Room, kotlinx-serialization
+and AndroidX — all under Apache-2.0. That is a non-issue for sideloading your own
+build; if this were ever published, the tidy thing would be an in-app
+third-party-licences screen.
