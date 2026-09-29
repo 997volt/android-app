@@ -16,8 +16,8 @@ Nothing else is required to call this app usable.
 
 ### Landed
 
-A `◐` marks a row that works but still has an open follow-up; those follow-ups are
-the *Still to do* rows below. Everything unmarked here is done.
+A `◐` marks a row that works but still has an open follow-up, named in the row
+itself. Everything unmarked here is done.
 
 | # | Feature | Notes |
 | --- | --- | --- |
@@ -35,9 +35,9 @@ the *Still to do* rows below. Everything unmarked here is done.
 | F15 | Seed delivery | Seeded on *every* open with `INSERT OR IGNORE`, so first launch and upgrades both work, the first read is never empty, and a user's delete survives a top-up. |
 | F16 | Recomposition-safe clock | The 1-second tick no longer rebuilds the workout screen's exercise list. |
 | F17 | Input validation | Weight parsing is bounded (no exponent/hex, capped); `logSet` fails unless the exercise is live and its session is open. |
-| P1.1 | ◐ Exercise library | 30 seeded movements with primary/secondary muscles, equipment and pattern, persisted in Room. The search bug and the empty-vs-no-match state are still open — see P1.1a below. |
+| P1.1 | Exercise library | 30 seeded movements with primary/secondary muscles, equipment and pattern, persisted in Room. Search covers primary *and* secondary muscles on a locale-stable key, and the two empty states are distinct (P1.1a). |
 | P1.2 | Start a workout | Atomic find-or-create, so two taps cannot open two sessions. |
-| P1.3 | ◐ Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Number entry is still crude — see P1.3a below. |
+| P1.3 | Log sets / reps / weight | Prefill (what you just did → last time → default), tap to edit, delete with undo. Numeric keyboards and −/+ steppers (P1.3a). |
 | P1.4 | Rest timer | In-app countdown, +15s/−15s, skip. |
 | P1.8 | Crash-safe session | The open session is a database row, not memory, so a kill or reboot resumes it. Verified on device. |
 | P1.12 | Export / import | Whole database to a JSON file the user picks, through the Storage Access Framework — so no storage permission is needed. Import follows one rule — **bring back what is gone, never overwrite what is there**: missing rows are inserted, locally *deleted* rows are restored from the file (clearing `deletedAt`), and live rows are left alone. Idempotent, refuses a file from a newer schema version, carries soft-deleted rows, and rejects a malformed file before touching anything. |
