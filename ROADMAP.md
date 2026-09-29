@@ -63,9 +63,16 @@ because shipped work lives there rather than here.
   a "New exercise" action in the picker that saves and immediately adds it to the
   session. Stored `isCustom = true` with a UUID id — the schema already reserves both.
 - It then appears in the library and in search like any other exercise.
-- Decide at implementation time: how much taxonomy a custom entry captures (name
-  only, versus muscle, equipment and pattern), and whether custom exercises can be
-  edited or deleted afterwards.
+- **Decided — creation asks for the name only.** `ExerciseEntity`'s taxonomy fields
+  are non-nullable, so an unedited custom exercise stores an "unspecified" value:
+  `Equipment.OTHER` already exists, and `OTHER` gets added to `MuscleGroup` and
+  `MovementPattern`. Enums are stored by name, never ordinal, so existing rows and
+  backups are unaffected and **no migration is needed** — which is why this lands
+  before the N3/N4–N8 migration decision. The library row suppresses "Other" in its
+  `Quads · Barbell` subtitle rather than reading `Other · Other`.
+- **Decided — custom exercises are editable afterwards**, from the exercise detail
+  screen: name, muscle, equipment and pattern. Filling those in is what makes the
+  entry pickable in later workouts with real taxonomy rather than "Other".
 
 ### N3 — Workout templates, planned before you train
 
