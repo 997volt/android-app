@@ -54,8 +54,8 @@ Changes left to land before anything in *Later*. N1 — home as the start
 destination — is done; it is in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*,
 because shipped work lives there rather than here.
 
-- **N2–N3** reshape what can be set up in advance.
-- **N4–N8** are what a workout captures while you are in it.
+- **N3** is what can be set up in advance.
+- **N2 and N4–N8** are what a workout captures while you are in it.
 
 ### N2 — Custom exercises while you train
 
