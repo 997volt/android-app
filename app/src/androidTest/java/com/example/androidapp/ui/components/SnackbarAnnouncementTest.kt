@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,6 +27,12 @@ import org.junit.runner.RunWith
  * These assert the behaviour of [AnnouncingSnackbarHost] rather than of Material3.
  * That is deliberate: the app sets the live region itself, so a Material3 upgrade
  * cannot silently take the announcement away, and this test is checking our code.
+ *
+ * **The live region is sought on any node, not on the text node.** It is applied to
+ * the snackbar container, and `Modifier.semantics` does not merge descendants — so
+ * the region and the text legitimately live on different nodes. Asserting
+ * `onNodeWithText(...)` carries it looked reasonable and was simply wrong; that
+ * mismatch is what failed twice in CI before this was understood.
  */
 @RunWith(AndroidJUnit4::class)
 class SnackbarAnnouncementTest {
@@ -37,7 +44,7 @@ class SnackbarAnnouncementTest {
      * `SnackbarDuration.Indefinite` on purpose: it keeps the snackbar on screen
      * until dismissed, so the assertion cannot race a four-second timeout.
      */
-    private fun showFailure(message: String = "Couldn't save that. Your last change may not be stored.") {
+    private fun showFailure(message: String = MESSAGE) {
         composeTestRule.setContent {
             AndroidAppTheme {
                 val hostState = remember { SnackbarHostState() }
@@ -53,23 +60,29 @@ class SnackbarAnnouncementTest {
     fun aFailedWriteCarriesALiveRegion() {
         showFailure()
 
-        composeTestRule
-            .onNodeWithText("Couldn't save that. Your last change may not be stored.")
-            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
+        val liveRegion = SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)
+        composeTestRule.onNode(liveRegion).assertExists()
+        // The message must actually be on screen too, or the region announces
+        // nothing.
+        composeTestRule.onNodeWithText(MESSAGE).assertIsDisplayed()
     }
 
     @Test
     fun andItIsPolite_soItWaitsBehindWhateverTheUserIsDoing() {
         // Assertive would cut across the user mid-entry; a failed save can wait.
-        showFailure("Couldn't save that.")
+        showFailure()
 
         composeTestRule
-            .onNodeWithText("Couldn't save that.")
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
             .assert(
                 SemanticsMatcher.expectValue(
                     SemanticsProperties.LiveRegion,
                     LiveRegionMode.Polite,
                 ),
             )
+    }
+
+    private companion object {
+        const val MESSAGE = "Couldn't save that. Your last change may not be stored."
     }
 }

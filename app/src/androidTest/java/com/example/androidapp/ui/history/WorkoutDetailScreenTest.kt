@@ -54,7 +54,10 @@ class WorkoutDetailScreenTest {
         // matching on a translated string.
         setScreen()
 
-        composeTestRule.onNodeWithTag(TestTags.SET_ROW).assert(hasClickLabel())
+                // useUnmergedTree: a tag on a child of a merging parent is not visible in
+        // the merged tree — the same trap the FAB hit earlier in this file.
+        composeTestRule.onNodeWithTag(TestTags.SET_ROW, useUnmergedTree = true)
+            .assert(hasClickLabel())
     }
 
     private fun setScreen(
