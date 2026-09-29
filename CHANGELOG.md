@@ -7,6 +7,8 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+## [1.3] — 2026-09-29 (versionCode 4)
+
 ### Added
 - **Workout templates: a plan you build once and start in one tap.** Name a
   template, add exercises from the same picker the workout uses, and put them in the
