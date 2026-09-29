@@ -15,7 +15,7 @@ junit = "4.13.2"
 # Compose UI tests on the JVM (ROADMAP P1.17). 4.15.1 is the newest published;
 # it tops out below our targetSdk, so the simulated SDK is pinned in
 # src/test/resources/robolectric.properties.
-robolectric = "4.15.1"
+robolectric = "4.17"
 androidxJunit = "1.3.0"
 espressoCore = "3.7.0"
 # Pinned to what the dependency graph actually resolves for
