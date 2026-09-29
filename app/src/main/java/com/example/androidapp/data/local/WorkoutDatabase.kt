@@ -39,6 +39,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao
 
+    /** Read-only per-workout aggregates for the trends screen (ROADMAP N13). */
+    abstract fun trendsDao(): TrendsDao
+
     companion object {
         const val NAME = "workout.db"
     }

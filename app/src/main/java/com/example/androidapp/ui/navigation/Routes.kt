@@ -49,6 +49,10 @@ data class ActiveWorkout(val templateId: String? = null)
 @Serializable
 data class ExercisePicker(val templateId: String? = null)
 
+/** What the app collected, read back (ROADMAP N13). */
+@Serializable
+data object WorkoutTrends
+
 /** The template list (ROADMAP N3). */
 @Serializable
 data object WorkoutTemplates

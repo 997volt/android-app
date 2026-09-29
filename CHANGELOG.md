@@ -7,6 +7,17 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Trends: what the app collects, read back.** A screen over the last ten finished
+  workouts showing RPE, muscle feel and joint pain — each as a line on the same fixed
+  1–10 axis, with its latest value and its average. The details are the honest part: a
+  metric recorded once is a number rather than a line, a workout that did not record
+  one leaves a gap instead of being interpolated across, "not recorded" is never drawn
+  as zero, and a workout with nine rated sets does not shout louder than one with a
+  single rated set. No charting dependency — three series over ten points did not earn
+  one, so the lines are drawn on a `Canvas`, which settles the approach P2.3 asked
+  about for these series. Reached from the home overflow. No migration.
+
 ### Changed
 - **The 1–10 scales now say what their ends mean.** N8 shipped the muscle-feel and
   joint-pain ratings unlabelled on purpose — an anchor for what 3 or 7 means would be

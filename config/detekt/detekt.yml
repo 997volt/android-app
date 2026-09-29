@@ -30,8 +30,11 @@ style:
   MagicNumber:
     # The Material 3 colour palette is deliberately nothing but literal ARGB
     # values; constants would obscure it. Test sources are excluded too, because
-    # there the literal IS the expectation.
+    # there the literal IS the expectation. A @Preview is the same case as a test:
+    # its sample data is the point, and naming each value would add noise to the one
+    # place that is meant to read as made-up numbers.
     excludes: ['**/ui/theme/Color.kt', '**/test/**', '**/androidTest/**']
+    ignoreAnnotated: ['Preview']
 
   MaxLineLength:
     # One row per exercise keeps this seed table reviewable, and a wrapped row

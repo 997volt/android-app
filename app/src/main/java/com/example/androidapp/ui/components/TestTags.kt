@@ -61,6 +61,7 @@ object TestTags {
     /** The other half of the start action (ROADMAP N3): begin from a template. */
     const val HOME_START_FROM_TEMPLATE = "home_start_from_template"
     const val HOME_MENU = "home_menu"
+    const val HOME_TRENDS = "home_trends"
     const val HOME_TEMPLATES = "home_templates"
     const val HOME_RECENT_ROW = "home_recent_row"
     const val HOME_SEE_ALL = "home_see_all"
@@ -87,6 +88,18 @@ object TestTags {
 
     /** A library row, addressed by exercise id so tests need no display name. */
     fun exerciseRow(id: String) = "library_row_$id"
+
+    /** The trends screen (ROADMAP N13). A metric's series is tagged by its name. */
+    const val TRENDS_TITLE = "trends_title"
+    const val TRENDS_WINDOW = "trends_window"
+    const val TRENDS_EMPTY = "trends_empty"
+    const val TRENDS_READ_ERROR = "trends_read_error"
+
+    fun trendSection(metric: String) = "trend_section_$metric"
+
+    fun trendCaption(metric: String) = "trend_caption_$metric"
+
+    fun trendChart(metric: String) = "trend_chart_$metric"
 
     /** A read that failed, shown where the data would have been (ROADMAP B4). */
     const val LIBRARY_READ_ERROR = "library_read_error"

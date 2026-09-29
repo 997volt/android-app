@@ -13,6 +13,7 @@ import com.example.androidapp.ui.history.WorkoutDetailRoute
 import com.example.androidapp.ui.history.WorkoutHistoryRoute
 import com.example.androidapp.ui.home.WorkoutsHomeRoute
 import com.example.androidapp.ui.templates.TemplateEditorRoute
+import com.example.androidapp.ui.trends.TrendsRoute
 import com.example.androidapp.ui.templates.TemplatesRoute
 import com.example.androidapp.ui.workout.ActiveWorkoutRoute
 import com.example.androidapp.ui.workout.ExercisePickerRoute
@@ -57,7 +58,12 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             onOpenHistory = { navController.navigate(WorkoutHistory) },
             onOpenLibrary = { navController.navigate(ExerciseLibrary) },
             onOpenTemplates = { navController.navigate(WorkoutTemplates) },
+            onOpenTrends = { navController.navigate(WorkoutTrends) },
         )
+    }
+
+    composable<WorkoutTrends> {
+        TrendsRoute(onBack = { navController.popBackStack() })
     }
 
     composable<ExerciseLibrary> {

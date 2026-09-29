@@ -105,6 +105,25 @@
     <string name="template_delete_confirm_text">The plan goes away. Workouts you already did with it stay in your history.</string>
     <string name="home_start_from_template">Start from template</string>
     <string name="home_templates">Workout templates</string>
+    <!-- The trends screen (ROADMAP N13): what the app collected, read back. -->
+    <string name="home_trends">Trends</string>
+    <string name="trends_title">Trends</string>
+    <string name="trends_loading">Loading trends…</string>
+    <string name="trends_empty">Nothing to show yet</string>
+    <string name="trends_empty_hint">Trends come from the RPE, muscle feel and joint pain you record during a workout.</string>
+    <plurals name="trends_window">
+        <item quantity="one">Last %1$d workout</item>
+        <item quantity="other">Last %1$d workouts</item>
+    </plurals>
+    <string name="trends_metric_rpe">RPE</string>
+    <string name="trends_metric_muscle">Muscle feel</string>
+    <string name="trends_metric_joint">Joint pain</string>
+    <string name="trends_not_recorded">Not recorded in these workouts</string>
+    <string name="trends_recorded_once">Recorded once: %1$s</string>
+    <plurals name="trends_caption">
+        <item quantity="one">Latest %1$s · average %2$s over %3$d workout</item>
+        <item quantity="other">Latest %1$s · average %2$s over %3$d workouts</item>
+    </plurals>
     <!-- How an exercise felt (ROADMAP N8). Deliberately unlabelled ends: numbers
          only for now, because an anchor would be a claim the app cannot justify. -->
     <string name="rating_prompt_title">How did that feel?</string>

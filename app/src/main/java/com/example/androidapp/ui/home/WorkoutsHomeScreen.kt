@@ -64,6 +64,7 @@ fun WorkoutsHomeRoute(
     onOpenHistory: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenTemplates: () -> Unit,
+    onOpenTrends: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
@@ -87,6 +88,7 @@ fun WorkoutsHomeRoute(
         onOpenHistory = onOpenHistory,
         onOpenLibrary = onOpenLibrary,
         onOpenTemplates = onOpenTemplates,
+        onOpenTrends = onOpenTrends,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         message = message,
@@ -106,6 +108,7 @@ fun WorkoutsHomeScreen(
     onOpenLibrary: () -> Unit,
     onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTrends: () -> Unit = {},
     onStartFromTemplate: () -> Unit = {},
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
@@ -123,6 +126,7 @@ fun WorkoutsHomeScreen(
                 onOpenLibrary = onOpenLibrary,
                 onOpenHistory = onOpenHistory,
                 onOpenTemplates = onOpenTemplates,
+                onOpenTrends = onOpenTrends,
                 onExport = onExportData,
                 onImport = onImportData,
             )
@@ -351,6 +355,7 @@ private fun HomeTopBar(
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenTemplates: () -> Unit,
+    onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -380,6 +385,7 @@ private fun HomeTopBar(
                     onOpenLibrary = onOpenLibrary,
                     onOpenHistory = onOpenHistory,
                     onOpenTemplates = onOpenTemplates,
+                    onOpenTrends = onOpenTrends,
                     onExport = onExport,
                     onImport = onImport,
                     onDismiss = { menuOpen = false },
@@ -401,6 +407,7 @@ private fun HomeMenuItems(
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenTemplates: () -> Unit,
+    onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
     onDismiss: () -> Unit,
@@ -427,6 +434,14 @@ private fun HomeMenuItems(
                 onOpenTemplates()
             },
             modifier = Modifier.testTag(TestTags.HOME_TEMPLATES),
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.home_trends)) },
+            onClick = {
+                onDismiss()
+                onOpenTrends()
+            },
+            modifier = Modifier.testTag(TestTags.HOME_TRENDS),
         )
         // Export and import, moved down from the library (ROADMAP B1).
         if (onExport != null && onImport != null) {

@@ -3,10 +3,12 @@ package com.example.androidapp.di
 import com.example.androidapp.data.RoomBackupRepository
 import com.example.androidapp.data.RoomExerciseRepository
 import com.example.androidapp.data.RoomTemplateRepository
+import com.example.androidapp.data.RoomTrendsRepository
 import com.example.androidapp.data.RoomWorkoutRepository
 import com.example.androidapp.domain.repository.BackupRepository
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.repository.TrendsRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.RestNotifier
 import com.example.androidapp.platform.RestAlarmScheduler
@@ -39,6 +41,11 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTemplateRepository(impl: RoomTemplateRepository): TemplateRepository
+
+    /** The read-only trends over what the app collects (N13). */
+    @Binds
+    @Singleton
+    abstract fun bindTrendsRepository(impl: RoomTrendsRepository): TrendsRepository
 
     /** Backup/restore is a repository like any other (P1.12). */
     @Binds
