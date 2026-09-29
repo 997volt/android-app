@@ -237,9 +237,23 @@ around a permanent local one.
 
 ## Suggested next PRs
 
-1. **P1.12** — export / import. The only data-safety gap, and nothing depends on it.
-2. **P1.6 + P1.1a** — workout history, plus the search fix it shares a screen with.
-3. **P1.7 + P1.16** — edit / delete past workouts, plus the resume affordance.
-4. **P1.3a + P1.17** — number entry and accessibility on the logging screen.
-5. **R1** — build the signed APK, install it on the phone, and run the upgrade
-   test before real history accumulates.
+The MVP and the first release are both done — every earlier entry in this list has
+shipped. What is genuinely left, in the order it is worth doing:
+
+1. **P1.17 — accessibility.** The only unfinished item the quality bar itself calls
+   *"MVP quality, not a later phase"*. Set rows need an `onClickLabel`, and a failed
+   write must be **announced**, not merely drawn — which is the entire point of F7.
+   testTags have been added ad hoc (the set editor's fields); the pass has not been
+   made systematic. This is the one item that is arguably owed rather than optional.
+2. **The two trivia under *Simplicity*.** `RestTimer.format` and
+   `WorkoutFormat.elapsed` both implement `m:ss`; `SessionExerciseDetail.movementPattern`
+   is selected by the join and then dropped. A few lines each, and each misleads the
+   next reader.
+3. **F18 — CI and repo hygiene.** Worth doing *now* precisely because CI finally runs
+   green: Dependabot, SHA-pinned actions, wrapper validation, `LICENSE`, `CHANGELOG`.
+   Until the `android-37` fix, none of it would have been exercised.
+4. **F11 — crash reporting**, once a GMS-free backend is chosen. Blocked on that
+   decision, not on code; the privacy rules in the quality bar constrain it.
+5. **F8 / F6 — design system and module split.** Refactors with no user-visible
+   payoff yet. Do them when the duplication or the build time actually hurts, rather
+   than speculatively.
