@@ -81,30 +81,6 @@ is answered says so.
   the executed test count, or a step that fails when the result XML records fewer tests
   than the source declares. A fast green job that tested half the suite is worth less
   than the slow honest one this replaces.
-- **B9 — Read back what was recorded: the history detail screen.** The same ViewModel
-  as B5 has no test at all, which is how B5 shipped. Its `volumeGrams` carries a KDoc
-  saying the figure is "kept in step deliberately … the instrumented history test
-  asserts they agree" — **no such assertion exists**; the instrumented test checks the
-  SQL formula against literals. **Do:** a test for the ViewModel's own mapping, and
-  make the documented cross-check real by asserting this getter against the SQL figure
-  for the same rows.
-- **B10 — Trends: the halves-to-points conversion has no test.**
-  [`RoomTrendsRepository`](app/src/main/java/com/example/androidapp/data/RoomTrendsRepository.kt)
-  is referenced by no test in either source set. It is the only place RPE halves are
-  divided back into the points a chart shows; the DAO test asserts the average *in
-  halves* and the ViewModel test is handed already-converted values, so a wrong divisor
-  would silently mislabel every RPE chart. The same file's union-merge, its ordering,
-  and its failure path are unexercised too. **Do:** an instrumented test over a real
-  database, asserting a known halves average surfaces as the right number of points.
-- **B11 — Nothing checks that the migrations are all registered.** Each migration has a
-  good test that upgrades a database holding real rows, but every test passes its one
-  migration object explicitly. The [`ALL_MIGRATIONS`](app/src/main/java/com/example/androidapp/data/local/Migrations.kt)
-  array is consumed only by the database builder, so a migration written and tested but
-  forgotten in the array leaves the whole suite green — and crashes every install that
-  has data. **Do:** assert the array is complete and contiguous with the declared schema
-  version, and run one chain from the first schema to the current one so a collision
-  that only appears in sequence is not missed.
-
 ### What is merely untidy
 
 - **B12 — Five Gradle invocations where one would do.** The `build` job calls `./gradlew`
