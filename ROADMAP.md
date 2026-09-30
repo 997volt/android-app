@@ -4,7 +4,8 @@
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
-> [RELEASING.md](RELEASING.md).
+> [RELEASING.md](RELEASING.md); settled decisions and the rules that apply to every
+> change live in [DECISIONS.md](DECISIONS.md).
 
 **What this app is.** A local-only workout logger: start a workout, log sets, see
 your history, keep your data.
@@ -16,7 +17,7 @@ or needs an account or a server, is out by default.
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N8` have
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N13` have
 shipped and left the file.
 
 ## Current state
@@ -32,7 +33,7 @@ shipped and left the file.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
 - **Templates are the v1 half of P3.1**: a name and an ordered list of exercises,
-  started in one tap. The rest of the routine scope is in *Later*.
+  started in one tap. The rest of the routine scope is *Next*, as N14–N16.
 
 Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
 current numbers; dependencies are declared in
@@ -80,7 +81,7 @@ of a single generic suggestion.
 - **Start from template** prefills the planned sets as targets.
 - **Copy forward** in the editor — duplicate the plan's sets, then adjust. Without it,
   authoring this on a phone is where the feature stops being used: the plan that prompted
-  it has six exercises and sixteen sets of four fields each.
+  it has six exercises and thirty sets of four fields each.
 - The muscle-feel and joint-pain block is **not** part of a plan. Those are recorded after
   the exercise (N8, N9); a plan does not guess them.
 
@@ -115,8 +116,8 @@ A template can be pinned to a weekday, and home shows today's plan.
 it — an assisted exercise cannot be written without it. N16 last: a schedule pointing at
 a plan with no targets is thin.
 
-Each takes a migration as it lands (the quality bar's rule); none of them needs one
-before its code exists.
+Each takes a migration as it lands (the rule in [DECISIONS.md](DECISIONS.md)); none of
+them needs one before its code exists.
 
 ## Later (still self-contained)
 
@@ -139,8 +140,8 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P2.1** Per-exercise history.
 - **P2.2** Personal records and estimated 1RM.
 - **P2.3** Charts and trends — N13 settled the approach for the first three series
-  (hand-drawn on a `Canvas`, no dependency); a fuller chart screen, per-exercise
-  history and PRs over months, is still this and can reconsider.
+  (hand-drawn on a `Canvas`, no dependency). A fuller chart screen, per-exercise history
+  and PRs over months are still this row, and the approach can be revisited.
 - **P2.8** Muscle-group balance warnings.
 - **P2.4** Body measurements.
 - **P2.5** Progress photos, in encrypted local storage.
@@ -162,8 +163,8 @@ a spelled-out decision — when it is picked up, and leaves for
 
 **Quality follow-through**
 - **P1.17** Accessibility audit — a TalkBack pass over every screen, dynamic type at
-  200%, and a contrast check. The per-screen rule is in the quality bar; this is the
-  sweep that finds what the rule missed.
+  200%, and a contrast check. The per-screen rule is in [DECISIONS.md](DECISIONS.md);
+  this is the sweep that finds what the rule missed.
 
 Design-system work (**F8**) is a rule rather than a row now: extract a component when
 a second screen needs it, not before.
@@ -193,71 +194,16 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
 | F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
 
-## Quality bar
-
-Rules to follow, not a status report.
-
-- **Accessibility accompanies each screen**; it is not a later phase. Name what a
-  control does (`onClickLabel`), *announce* state changes rather than only drawing
-  them, and tag things so tests do not assert on English literals.
-- **Privacy:** local-only. No `INTERNET` permission, no ads, no analytics. Crash logs
-  stay in app-private storage and leave only inside an export the user chose to make.
-- **No Google Play services at runtime.** The app runs on a degoogled device.
-  Firebase, `play-services-*`, Play Billing and Play Integrity are out by default; a
-  future integration has to argue past this line.
-- **Errors are values.** Reads and writes both return `DataResult`, so a failure is
-  something a screen can render rather than an exception that disappears inside a
-  coroutine. The last two hold-outs — `ExerciseRepository`'s two reads — were closed
-  by B4; keep it that way for anything new.
-- **Measure before optimizing.** The one known hot spot — a per-second recomposition
-  of the workout list — was found by reading the code and is fixed. Any further
-  performance claim should come with a measurement.
-- **Testing:** pure logic gets JVM tests, persistence gets DAO and migration tests,
-  composables get Robolectric tests with no device. There is no coverage target. The
-  long-standing gap — a Compose test for the *active workout* screen — closed with
-  N7, which is the feature that made the screen's Done/Reopen and set-editability
-  rules worth asserting rather than eyeballing.
-- **No dead weight.** Extract a shared component at its second caller, not its first;
-  delete an API the moment nothing calls it. Both hold today; this rule keeps them.
-- **Schema changes are migration-numbered as they ship.** A migration takes the next
-  version when its feature lands; do not add columns or tables ahead of the code that
-  reads them, because Room validates the declared entities against the migrated
-  schema — an early column forces an entity field nothing reads. Every migration gets
-  an exported schema under [app/schemas](app/schemas) and a `MigrationTestHelper`
-  test that upgrades a database with real rows in it.
-
 ## Explicit non-goals
 
 Permanent, unlike *Parked* above: nutrition / calorie tracking, social feeds, live GPS
 route tracking, and a web dashboard. Each is a product in its own right and would
 dilute the logging core.
 
-## Decisions already made
-
-Recorded so they are not relitigated:
-
-- **Weights are whole grams in a `Long`**
-  ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)) — exact
-  0.5 kg and 1.25 kg steps, no floating-point drift, and units are presentational.
-- **The v1 set row is `reps × weight`.** Bodyweight is reps at 0 kg — accepted,
-  clamped, and asserted by a test. Duration and distance are out of scope; adding
-  them later is one more migration plus a test, a path this app has walked repeatedly.
-- **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows
-  already on disk.
-- **Rows are sync-shaped** — UUID ids and `createdAt`/`updatedAt`/`deletedAt` soft
-  deletes — so a future sync stays a decision, not a migration. The zone offset is
-  the one missing piece; it is an open decision above.
-- **The lint baseline is unwired on purpose.** Accepting a warning is a two-step,
-  reviewed act, not a side effect of running the build.
-- **Releases are manual**, and the tag must point at the commit that built the APK.
-- **Verified on device:** process death mid-workout resumes the session with its set
-  and rest intact; the library renders on the first read after `pm clear`; v1.1
-  installed over v1.0 and kept the history.
-
 ## Keeping this true
 
-Three rules. The drift they prevent has now happened three times — stale test counts,
-a dependency inventory, and an enumerated feature list that v1.3 quietly outgrew:
+Four rules. The drift they prevent has now happened three times — stale test counts, a
+dependency inventory, and an enumerated feature list that v1.3 quietly outgrew:
 
 1. **Nothing marked done lives here.** Shipped work goes to
    [CHANGELOG.md](CHANGELOG.md), and a finished row is deleted from this file.
@@ -266,16 +212,15 @@ a dependency inventory, and an enumerated feature list that v1.3 quietly outgrew
    ([libs.versions.toml](gradle/libs.versions.toml), [app/schemas](app/schemas)).
 3. **Every parked row names its revisit trigger**, so parking reads as a decision
    rather than a forgotten item.
+4. **Durable content lives in [DECISIONS.md](DECISIONS.md).** Settled decisions and the
+   rules that apply to every change are a reference, not a queue, and the two age
+   differently. A section here that accumulates rather than drains belongs there.
 
 Bump the review stamp at the top whenever this file is checked against the code.
 
-**Size check.** This file is at roughly 300 lines — the point where it stops being a
-queue and starts being a reference. *Decisions already made* and *Quality bar* are the
-two sections that accumulate rather than drain; at the next milestone, move them to a
-`DECISIONS.md` and leave this file as pure queue.
-
 ## References
 
+- [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change
 - [CHANGELOG.md](CHANGELOG.md) — what shipped, per version, with the reasoning
 - [RELEASING.md](RELEASING.md) — the release procedure and its traps
 - [README.md](README.md) — build, install on your own phone, local toolchain
