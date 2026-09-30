@@ -86,6 +86,15 @@ Notable changes to Workout Log, newest first. Format follows
   about for these series. Reached from the home overflow. No migration.
 
 ### Changed
+- **CI: one Gradle invocation where there were five, and a guard against a run that
+  skips tests.** The build job now names all five tasks in one `./gradlew` call with the
+  configuration cache on, because each separate call paid its own configuration. And the
+  emulator job — whose result XML once recorded 62 of 127 tests while reporting green —
+  now fails unless the executed count equals the count of `@Test` annotations in
+  `app/src/androidTest`, naming the classes that did not report. A result file older than
+  the sources is itself a failure, since that is what a replayed report looks like (B8,
+  B12).
+
 - **RPE takes half steps.** `9.5` can be recorded, not just whole numbers. It is stored
   as *halves in an integer* (`19` is 9.5) for the same reason weights are whole grams:
   9.5 has no exact binary representation, and an RPE that compares as `9.499999` — or

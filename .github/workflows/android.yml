@@ -56,8 +56,27 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
-      - name: Unit tests
-        run: ./gradlew testDebugUnitTest --console=plain
+      # Lint covers Android-specific issues and fails on any warning
+      # (warningsAsErrors); detekt adds complexity checks and the Compose ruleset,
+      # pinned to a detekt-1.x-compatible version in gradle/libs.versions.toml because
+      # a mismatched one loads silently and catches nothing. The release assembly has
+      # no signing config in CI, so it produces an unsigned APK — which is the point:
+      # it proves R8 shrinking succeeds on every change.
+      #
+      # B12. One invocation, not five: each separate ./gradlew call pays its own
+      # configuration, and measured on this checkout five calls cost a little over
+      # twice what one call naming all five tasks costs. The configuration cache is
+      # on because this build supports it (AGP 9, Hilt and KSP included).
+      - name: Unit tests, lint, detekt, debug and R8
+        run: >
+          ./gradlew
+          testDebugUnitTest
+          lint
+          detekt
+          assembleDebug
+          assembleRelease
+          --configuration-cache
+          --console=plain
 
       # F18. Gradle prints only "There were failing tests" with --console=plain; the
       # names live in the JUnit XML. Without this a red run says nothing about what
@@ -66,24 +85,9 @@ jobs:
         if: failure()
         run: python3 tools/ci-summarise-failures.py
 
-      # Fails on any lint warning: warningsAsErrors is set in app/build.gradle.kts.
-      - name: Lint
-        run: ./gradlew lint --console=plain
 
-      # Lint covers Android-specific issues; detekt adds complexity checks and the
-      # Compose ruleset. The Compose rules are pinned to a detekt-1.x-compatible
-      # version in gradle/libs.versions.toml — a mismatched one loads silently and
-      # catches nothing.
-      - name: Static analysis (detekt)
-        run: ./gradlew detekt --console=plain
 
-      - name: Assemble debug
-        run: ./gradlew assembleDebug --console=plain
 
-      # No signing config is present in CI, so this produces an unsigned APK.
-      # That is the point: it proves R8 shrinking succeeds on every change.
-      - name: Assemble release (R8)
-        run: ./gradlew assembleRelease --console=plain
 
       - name: Upload test and lint reports
         if: always()
@@ -146,6 +150,13 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           script: ./gradlew connectedDebugAndroidTest --console=plain
+
+      # B8. A green run whose XML records fewer tests than the source declares is the
+      # failure this job is least able to notice: no failures, no skipped tests, just a
+      # short report. This compares the two counts and fails when they differ.
+      - name: Every declared test executed
+        if: always()
+        run: python3 tools/ci-check-instrumented.py
 
       # F18. Gradle prints only "There were failing tests" with --console=plain; the
       # names live in the JUnit XML. Without this a red run says nothing about what

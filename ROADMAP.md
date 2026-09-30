@@ -66,29 +66,10 @@ is answered says so.
 
 ### What the app gets wrong today
 
-- **B8 — The instrumented job can pass while skipping most of its tests.**
-  [`android.yml`](.github/workflows/android.yml) runs `connectedDebugAndroidTest` on an
-  emulator. The only result artifact in this workspace records a **green** run — exit
-  code 0, no failures — that executed well under half of the declared instrumented
-  tests; the whole [`data/`](app/src/androidTest/java/com/example/androidapp/data)
-  instrumented suite and the two newest migration tests were absent from it. Every test
-  class is present in the built test APK, nothing is `@Ignore`d, and nothing is
-  `@SdkSuppress`ed, so the run stopped early and the job still reported success.
-  **The consequence is the point:** there is no evidence in the repository that the
-  backup round-trip suite or the newest migrations have ever run on a device, and the
-  job that would say so says "green".
-  **Do:** reproduce it, then make the count impossible to miss — an assertion floor on
-  the executed test count, or a step that fails when the result XML records fewer tests
-  than the source declares. A fast green job that tested half the suite is worth less
-  than the slow honest one this replaces.
+*(Nothing outstanding — B5 through B7 shipped.)*
+
 ### What is merely untidy
 
-- **B12 — Five Gradle invocations where one would do.** The `build` job calls `./gradlew`
-  once per task, and each call pays its own configuration. Measured on this checkout,
-  five calls cost a little over twice one call that names all five tasks, and the
-  configuration cache is available and works with this build (AGP 9, Hilt and KSP
-  included) — Gradle asks for it in every log line. **Do:** one invocation, configuration
-  cache on. See D1 for the thing **not** to do here.
 - **B13 — Delete what moved and left its shape behind.**
   [`ExerciseLibraryViewModel`](app/src/main/java/com/example/androidapp/ui/exercises/ExerciseLibraryViewModel.kt)
   still carries the whole "workout in progress / resume clock" apparatus — a state
