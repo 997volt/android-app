@@ -1,6 +1,6 @@
 # Workout Tracker — Roadmap
 
-> **v1.3** is shipped and installed. Last reviewed against the code: 2026-09-29.
+> **v1.4** is shipped and installed. Last reviewed against the code: 2026-09-30.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -32,8 +32,9 @@ shipped and left the file.
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
-- **Templates are the v1 half of P3.1**: a name and an ordered list of exercises,
-  started in one tap. The rest of the routine scope is *Next*, as N14–N16.
+- **Templates became plans, and shipped**: the v1 half of P3.1 is N3, and its planned
+  sets, per-plan rest and weekday schedule are N14–N16. What remains of the routine
+  scope is in *Later*.
 
 Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
 current numbers; dependencies are declared in
@@ -56,11 +57,166 @@ alone without being forgotten. Settled choices are the other document — see
 
 ## Next
 
-**Nothing.** Everything planned has shipped and lives in
-[CHANGELOG.md](CHANGELOG.md), because shipped work lives there rather than here.
+Assigned by the review of 2026-09-30. Nothing here is shipped. The review found three
+defects in what did ship, so those lead: the ordering below is what is wrong, then what
+is missing, then what is merely untidy. Shipped rows leave for
+[CHANGELOG.md](CHANGELOG.md) per the rules at the bottom; the choices this batch depends
+on are in [Decisions waiting](#decisions-waiting), and a row that cannot start until one
+is answered says so.
 
-What comes next is chosen from *Later* below, which is where candidates live until one
-is picked up, given an id and spelled out here.
+### What the app gets wrong today
+
+- **B5 — Assistance disappears from history.** A set logged on an assisted machine
+  stores the help in its own column, and the live workout screen shows it back as `-20`.
+  The workout **detail** screen shows `0 kg`, because
+  [`WorkoutDetailViewModel`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailViewModel.kt)
+  builds its `HistorySet` without passing `assistanceGrams`, so the field's default of
+  `0` is used, and
+  [`WorkoutDetailScreen`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailScreen.kt)
+  then asks `Weight.display` to render it. This is N15's feature reading back wrong
+  wherever the user goes to check what they did.
+  **Fix:** pass the column through. **Test:** the assisted case on the history detail
+  path — the current test builds its state by hand, which is exactly why it could not
+  see this.
+- **B6 — A plan's RPE is shown in halves.**
+  [`TemplatePlanDialogs`](app/src/main/java/com/example/androidapp/ui/components/TemplatePlanDialogs.kt)
+  formats a planned set with `stringResource(R.string.set_rpe_marker, targetRpeHalves)`,
+  passing the stored half-point count. The marker is `"RPE %1$s"`, so a plan that says
+  9.5 renders as **"RPE 19"** — the precise corruption the halves representation exists
+  to prevent. The two sibling call sites already wrap the value in `Rpe.format`
+  ([`WorkoutExerciseSection`](app/src/main/java/com/example/androidapp/ui/workout/WorkoutExerciseSection.kt)
+  and [`WorkoutDetailScreen`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailScreen.kt));
+  this one does not. **Fix:** use `Rpe.format`, and cover the formatting where it is
+  shared rather than per call site.
+- **B7 — One-tap "Log set" throws away planned assistance.** The button reads
+  *"Log set · -20 kg × 8"* and then writes a set with no assistance:
+  [`ActiveWorkoutViewModel.onLogSet`](app/src/main/java/com/example/androidapp/ui/workout/ActiveWorkoutViewModel.kt)
+  passes `reps` and `weightGrams` and lets `assistanceGrams` default to `0`, although
+  it is already there in `row.suggestion` — the value the button just displayed.
+  `onUndoDelete` in the same file omits it too, so an undone set comes back without its
+  help. **Fix:** pass it in both. **Decide first:** see D3 — a one-tap log and a plan
+  target are two different things to reconcile, and the wrong choice here is the one
+  that makes the button lie.
+
+### What is missing
+
+- **B8 — The instrumented job can pass while skipping most of its tests.**
+  [`android.yml`](.github/workflows/android.yml) runs `connectedDebugAndroidTest` on an
+  emulator. The only result artifact in this workspace records a **green** run — exit
+  code 0, no failures — that executed well under half of the declared instrumented
+  tests; the whole [`data/`](app/src/androidTest/java/com/example/androidapp/data)
+  instrumented suite and the two newest migration tests were absent from it. Every test
+  class is present in the built test APK, nothing is `@Ignore`d, and nothing is
+  `@SdkSuppress`ed, so the run stopped early and the job still reported success.
+  **The consequence is the point:** there is no evidence in the repository that the
+  backup round-trip suite or the newest migrations have ever run on a device, and the
+  job that would say so says "green".
+  **Do:** reproduce it, then make the count impossible to miss — an assertion floor on
+  the executed test count, or a step that fails when the result XML records fewer tests
+  than the source declares. A fast green job that tested half the suite is worth less
+  than the slow honest one this replaces.
+- **B9 — Read back what was recorded: the history detail screen.** The same ViewModel
+  as B5 has no test at all, which is how B5 shipped. Its `volumeGrams` carries a KDoc
+  saying the figure is "kept in step deliberately … the instrumented history test
+  asserts they agree" — **no such assertion exists**; the instrumented test checks the
+  SQL formula against literals. **Do:** a test for the ViewModel's own mapping, and
+  make the documented cross-check real by asserting this getter against the SQL figure
+  for the same rows.
+- **B10 — Trends: the halves-to-points conversion has no test.**
+  [`RoomTrendsRepository`](app/src/main/java/com/example/androidapp/data/RoomTrendsRepository.kt)
+  is referenced by no test in either source set. It is the only place RPE halves are
+  divided back into the points a chart shows; the DAO test asserts the average *in
+  halves* and the ViewModel test is handed already-converted values, so a wrong divisor
+  would silently mislabel every RPE chart. The same file's union-merge, its ordering,
+  and its failure path are unexercised too. **Do:** an instrumented test over a real
+  database, asserting a known halves average surfaces as the right number of points.
+- **B11 — Nothing checks that the migrations are all registered.** Each migration has a
+  good test that upgrades a database holding real rows, but every test passes its one
+  migration object explicitly. The [`ALL_MIGRATIONS`](app/src/main/java/com/example/androidapp/data/local/Migrations.kt)
+  array is consumed only by the database builder, so a migration written and tested but
+  forgotten in the array leaves the whole suite green — and crashes every install that
+  has data. **Do:** assert the array is complete and contiguous with the declared schema
+  version, and run one chain from the first schema to the current one so a collision
+  that only appears in sequence is not missed.
+
+### What is merely untidy
+
+- **B12 — Five Gradle invocations where one would do.** The `build` job calls `./gradlew`
+  once per task, and each call pays its own configuration. Measured on this checkout,
+  five calls cost a little over twice one call that names all five tasks, and the
+  configuration cache is available and works with this build (AGP 9, Hilt and KSP
+  included) — Gradle asks for it in every log line. **Do:** one invocation, configuration
+  cache on. See D1 for the thing **not** to do here.
+- **B13 — Delete what moved and left its shape behind.**
+  [`ExerciseLibraryViewModel`](app/src/main/java/com/example/androidapp/ui/exercises/ExerciseLibraryViewModel.kt)
+  still carries the whole "workout in progress / resume clock" apparatus — a state
+  field, two flows, a ticker, and the `TimeSource` and `WorkoutRepository` dependencies
+  that exist only to feed it — but the screen stopped reading it when the resume button
+  moved to [`WorkoutsHomeScreen`](app/src/main/java/com/example/androidapp/ui/home/WorkoutsHomeScreen.kt).
+  The only reader left is a test asserting the dead state is null. Alongside it:
+  [`@ApplicationScope` and `CoroutineModule`](app/src/main/java/com/example/androidapp/di/CoroutineModule.kt)
+  bind a scope nothing injects; [`TemplateDao.findTemplateSets`](app/src/main/java/com/example/androidapp/data/local/TemplateDao.kt),
+  `WorkoutSession.isActive`, `WorkoutSummary.hasVolume` and `PreviousPerformance.isEmpty`
+  have no caller at all. **Do:** delete the cluster and the test that keeps it alive,
+  then the loose declarations. This is the rule the project already states — *delete an
+  API the moment nothing calls it* — being enforced on its own code. **Decide first:**
+  see **D2**, which decides where the line falls for the test-only APIs in the same
+  family.
+
+### Decisions waiting
+
+Four choices the work above depends on. Each is a real trade, so each is recorded with
+its options rather than settled here.
+
+- **D1 — Should the JVM tests run in parallel?** The obvious CI speed-up is to fork
+  them across JVMs, and it is **not** obviously right: measured on this checkout,
+  `maxParallelForks = 4` was *slower* wall-clock (65 s vs 63 s) while summing six times
+  the CPU, because only ~20 s of the task is test execution and the rest is compilation
+  and Robolectric's resource merging.
+  *Take it* if a 4-core runner measures faster; *leave it* otherwise. Either way the
+  choice is made from a measurement on the runner, not from this file — the project's
+  own rule is that a performance claim comes with one.
+- **D2 — Do "no caller in `main`, tests only" APIs count as dead?** `Weight.step`,
+  `successUnit`, `DataResult.map`, `ExerciseDao.count/insertAll/softDelete` and
+  `CrashLogStore.latest/clear` are called from tests and nowhere else — and `Weight.step`
+  is the clear case, since production uses `stepLoad` and the test file says out loud
+  that it "had no callers".
+  *Strict* — the rule says delete; tests should exercise what ships, not hold up what
+  does not. *Lenient* — a test is a caller, and the DAO and store methods are the only
+  way to arrange the rows the *real* tests then read. Left open deliberately: it changes
+  what "no dead weight" means for every future change, which belongs in
+  [DECISIONS.md](DECISIONS.md) rather than being decided by a cleanup.
+- **D3 — What should one-tap "Log set" do with a plan's assistance?** B7's fix is not
+  mechanical: a plan may prescribe help, and the button may display it, but the set the
+  user actually performs is the one they adjusted.
+  *Write the suggestion* — the button does what it says; the row records the plan's help
+  unless it was edited. *Drop the display* — keep the write as it is and stop showing
+  assistance on the button, so the two agree by making the button say less.
+  The wrong answer is the current one: displaying a number that is not what gets stored.
+- **D4 — The test tags applied in production that no test asserts on.** Each is
+  referenced by nothing — either the tests they were added for were never written, or the
+  tag was added ahead of its test.
+  *Keep and write the tests* (they mark real controls: plan dialogs, set steppers, the
+  exercise editor). *Delete them* if those tests are not coming. A tag that exists only
+  to be ignored is drift in the one namespace meant to stop tests asserting on English.
+
+### Rule violations found, not new work
+
+Presented as findings rather than rows, because each is an existing rule not being
+followed. They belong to the change that next touches those files, and F8 — *extract a
+component at its second caller, not its first* — is the rule most of them break: three
+`CenteredMessage` composables exist while the shared one documents that it exists to
+prevent them; two near-identical `SetType` pickers; two identical `ActiveWorkoutInfo`
+types; two `DayOfWeek` formatters; `HALVES_PER_POINT` defined twice. Name-content
+mismatches sit with them: `ErrorText.kt` declares no `ErrorText`, `ExercisePickerScreen.kt`
+declares only a route, `NoteDialog.kt` holds three dialogs, and `RestAlarmReceiver` lives
+in `RestAlarmScheduler.kt`.
+
+Two stale statements are worth correcting rather than queueing, being one line each:
+the comment on `Rpe.HALF_STEP` describes it as a whole 1–10 rating when it is RPE's own
+half-step parser (the behaviour is right — the comment is not), and the Robolectric
+comment in [`libs.versions.toml`](gradle/libs.versions.toml) still says 4.15.1 is the
+newest published while the catalog declares 4.17.
 
 ## Later (still self-contained)
 
@@ -91,9 +247,9 @@ a spelled-out decision — when it is picked up, and leaves for
 
 **Programming** — turns a logger into a plan
 - **P3.1 + P3.2** shipped their v1 as **N3** (templates: a name, exercises, order), and
-  their targets, per-plan rest and weekday schedule are **N14–N16** above. What remains
-  here is **P3.6** supersets and circuits; drop sets are a set role in N14, and giant-set
-  notation is deliberately not modelled.
+  their targets, per-plan rest and weekday schedule are **N14–N16**, which shipped in
+  v1.4. What remains here is **P3.6** supersets and circuits; drop sets are a set role in
+  N14, and giant-set notation is deliberately not modelled.
 - **P3.4** Auto-progression suggestions — the strongest differentiator once there is
   enough history to base them on.
 - **P3.3** Programs / mesocycles with scheduled deloads.
@@ -110,7 +266,8 @@ a spelled-out decision — when it is picked up, and leaves for
   this is the sweep that finds what the rule missed.
 
 Design-system work (**F8**) is a rule rather than a row now: extract a component when
-a second screen needs it, not before.
+a second screen needs it, not before. *Next*'s "rule violations found" is that rule
+being broken in five places, so it is enforcement of F8 rather than new work.
 
 ## Parked — deliberately not planned
 
@@ -145,8 +302,10 @@ dilute the logging core.
 
 ## Keeping this true
 
-Four rules. The drift they prevent has now happened three times — stale test counts, a
-dependency inventory, and an enumerated feature list that v1.3 quietly outgrew:
+Four rules. The drift they prevent has now happened four times — stale test counts, a
+dependency inventory, an enumerated feature list that v1.3 quietly outgrew, and a
+review stamp still reading v1.3 while *Next* said "Nothing" after v1.4 had shipped
+with defects unfound. Two of those four were this file describing itself wrongly:
 
 1. **Nothing marked done lives here.** Shipped work goes to
    [CHANGELOG.md](CHANGELOG.md), and a finished row is deleted from this file.
