@@ -32,6 +32,13 @@ Notable changes to Workout Log, newest first. Format follows
   chain is run once from the first schema.
 
 ### Changed
+- **The configuration cache is on for local builds too, and the wrapper retries a
+  distribution download.** CI already passed `--configuration-cache` on its combined
+  invocation; `gradle.properties` now sets it, so an ordinary `./gradlew` gets the same
+  reuse and the flag and the setting cannot drift apart. The wrapper's `retries` went
+  from 0 to 3, so a flaky connection fails a download rather than the build — the
+  distribution is still validated against Gradle's published checksum, so a retry cannot
+  substitute a different artifact.
 - **CI: one Gradle invocation where there were five, and a guard against a run that
   skips tests.** The build job now names all five tasks in one `./gradlew` call with the
   configuration cache on, because each separate call paid its own configuration. And the
@@ -62,6 +69,13 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+- **A cancelled export no longer reports a failed one.** The backup and restore
+  callbacks run in the screen's coroutine scope, and both wrapped their file IO in
+  `runCatching` — which catches `Throwable`, and so swallows the `CancellationException`
+  raised when the user leaves the screen mid-write. Leaving during an export could say
+  "couldn't write the backup file", and the coroutine refused to finish cancelling. Both
+  now rethrow cancellation, the rule `dataResultOf` already stated and this pair
+  contradicted.
 - **An assisted set no longer loses its help in history.** The live workout showed a set
   on an assisted machine as `-20 kg`; the workout **detail** screen showed `0 kg`,
   because its ViewModel built the row without passing the column and the screen rendered

@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.androidapp.R
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.repository.ImportSummary
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /** The two actions the data menu offers, ready to invoke from `onClick`. */
@@ -75,12 +76,23 @@ private suspend fun writeBackup(
 ) {
     when (val outcome = viewModel.export()) {
         is ExportOutcome.Ready -> {
-            val written = runCatching {
+            // Rethrowing CancellationException is the reason this is not `runCatching`,
+            // which catches Throwable and so swallows it too. See the note on
+            // `DataResult.dataResultOf`: this coroutine belongs to the composable's
+            // scope, so a cancelled write means "this screen is gone", not "the file
+            // could not be written" — reporting the latter would be a lie, and the
+            // coroutine would refuse to finish cancelling.
+            val written = try {
                 context.contentResolver.openOutputStream(uri)?.use { stream ->
                     stream.write(outcome.json.toByteArray())
+                    true
                 } ?: error("openOutputStream returned null for $uri")
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                false
             }
-            onMessage(if (written.isSuccess) messages.exported else messages.exportFailed)
+            onMessage(if (written) messages.exported else messages.exportFailed)
         }
 
         is ExportOutcome.Failed -> onMessage(messages.forError(outcome.error))
@@ -94,9 +106,17 @@ private suspend fun readBackup(
     messages: TransferMessages,
     onMessage: (String) -> Unit,
 ) {
-    val text = runCatching {
+    val text = try {
+        // `null` here is a readable file that is simply empty, which is a failed read
+        // rather than a failure — the same message either way.
         context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
-    }.getOrNull()
+    } catch (cancellation: CancellationException) {
+        // Not a failure, for the reason spelled out in `writeBackup`. Without this the
+        // cancellation would surface as "couldn't read that file".
+        throw cancellation
+    } catch (_: Throwable) {
+        null
+    }
 
     if (text == null) {
         onMessage(messages.readFailed)
