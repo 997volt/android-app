@@ -42,3 +42,7 @@ release/
 *.log
 .DS_Store
 Thumbs.db
+
+# ---- Generated data: kept locally, never committed ----
+# Built from the training spreadsheet; imported into the app by hand.
+Gym-2026-M6-backup.json
