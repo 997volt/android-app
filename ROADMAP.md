@@ -70,17 +70,16 @@ those files.
 
 ### Rule violations found, not new work
 
-Findings rather than rows: each is an existing rule not being followed, and each
-belongs to the change that next touches those files. F8 — *extract a component at its
-second caller, not its first* — is what most of them break: three `CenteredMessage`
-composables exist while the shared one documents that it exists to prevent them.
+**Nothing outstanding.** Every finding from the review is settled:
 
 Settled: `HALVES_PER_POINT` is one constant on `Rpe`; the two `DayOfWeek` formatters are
 one shared pair of composables; the two `SetType` pickers are one shared `SetRoleSelector`;
 the duplicate `ActiveWorkoutInfo` went with B13's dead state; and the name-content
 mismatches are named for what they hold (`DataErrorMessage.kt`, `NoteDialogs.kt`,
 `ExercisePickerRoute.kt`, and `RestAlarmReceiver` in its own file, since Android
-instantiates it by name).
+instantiates it by name); and the three `CenteredMessage` copies are gone, with the
+shared one gaining the spinner its callers needed — a shared component that cannot do
+what its callers do is a component they stop using.
 
 Two stale statements are worth correcting rather than queueing, being one line each:
 the comment on `Rpe.HALF_STEP` describes it as a whole 1–10 rating when it is RPE's own

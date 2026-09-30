@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -581,21 +582,6 @@ private fun EmptyWorkout(onDiscard: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun CenteredMessage(text: String, showSpinner: Boolean, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (showSpinner) CircularProgressIndicator()
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(16.dp),
-        )
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

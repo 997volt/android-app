@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,12 +36,22 @@ fun CenteredMessage(
     modifier: Modifier = Modifier,
     hint: String? = null,
     textStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    /**
+     * A spinner above the message.
+     *
+     * Here because the two screens that had their own copy needed it, and a shared
+     * component that cannot do what its callers do is a component they stop using.
+     */
+    showSpinner: Boolean = false,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (showSpinner) {
+            CircularProgressIndicator(modifier = Modifier.padding(bottom = 16.dp))
+        }
         Text(text = text, style = textStyle)
         hint?.let {
             Text(

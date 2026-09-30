@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.exercises
 
+import com.example.androidapp.ui.components.CenteredMessage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -516,25 +517,6 @@ private fun AttributeRow(label: String, value: String, modifier: Modifier = Modi
     }
 }
 
-@Composable
-private fun CenteredMessage(
-    text: String,
-    showSpinner: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (showSpinner) CircularProgressIndicator()
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
