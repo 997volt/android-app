@@ -233,6 +233,9 @@ dependencies {
 // Pointing the *test JVM's* home at the build directory keeps it inside the
 // workspace and still lets Robolectric fetch what it needs.
 tasks.withType<Test>().configureEach {
+    // D1 experiment: does forking the JVM tests pay on a 4-core runner? The roadmap
+    // requires the answer to come from the runner, not from a local measurement.
+    maxParallelForks = 4
     val robolectricHome = layout.buildDirectory.dir("robolectric-home").get().asFile
     systemProperty("user.home", robolectricHome.absolutePath)
     // Robolectric creates a lock file directly under the home directory and does
