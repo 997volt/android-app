@@ -56,6 +56,7 @@ import com.example.androidapp.ui.theme.AndroidAppTheme
 @Composable
 fun ExerciseDetailRoute(
     onBack: () -> Unit,
+    onOpenTrends: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseDetailViewModel = hiltViewModel(),
 ) {
@@ -63,6 +64,7 @@ fun ExerciseDetailRoute(
     ExerciseDetailScreen(
         state = state,
         onBack = onBack,
+        onOpenTrends = onOpenTrends,
         onEdit = viewModel::onEdit,
         onCancelEdit = viewModel::onCancelEdit,
         onSave = viewModel::onSave,
@@ -76,6 +78,7 @@ fun ExerciseDetailScreen(
     state: ExerciseDetailUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTrends: (String) -> Unit = {},
     onEdit: () -> Unit = {},
     onCancelEdit: () -> Unit = {},
     onSave: (ExerciseEdit) -> Unit = {},
@@ -96,6 +99,16 @@ fun ExerciseDetailScreen(
                     }
                 },
                 actions = {
+                    // The lift's own trends (ROADMAP N17): the narrow question a lifter
+                    // asks is about one movement, not about everything at once.
+                    state.exercise?.let { exercise ->
+                        TextButton(
+                            onClick = { onOpenTrends(exercise.id) },
+                            modifier = Modifier.testTag(TestTags.EXERCISE_TRENDS),
+                        ) {
+                            Text(stringResource(R.string.exercise_trends_open_short))
+                        }
+                    }
                     // Only a custom exercise is editable here (ROADMAP N2), and the
                     // action disappears while the form is already open.
                     if (state.canEdit) {

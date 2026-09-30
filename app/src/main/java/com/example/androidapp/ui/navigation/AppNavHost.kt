@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.navigation
 
+import com.example.androidapp.ui.trends.ExerciseTrendsRoute
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
@@ -80,7 +81,15 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
     }
 
     composable<ExerciseDetail> {
-        ExerciseDetailRoute(onBack = { navController.popBackStack() })
+        ExerciseDetailRoute(
+            onBack = { navController.popBackStack() },
+            // The lift's own trends (ROADMAP N17), reached from the library.
+            onOpenTrends = { exerciseId -> navController.navigate(ExerciseTrends(exerciseId)) },
+        )
+    }
+
+    composable<ExerciseTrends> {
+        ExerciseTrendsRoute(onBack = { navController.popBackStack() })
     }
 }
 
@@ -137,6 +146,12 @@ private fun NavGraphBuilder.historyDestinations(navController: NavHostController
     }
 
     composable<WorkoutDetail> {
-        WorkoutDetailRoute(onBack = { navController.popBackStack() })
+        WorkoutDetailRoute(
+            onBack = { navController.popBackStack() },
+            // The lift you just did, tapped to see how it is going (ROADMAP N17).
+            onOpenExerciseTrends = { exerciseId ->
+                navController.navigate(ExerciseTrends(exerciseId))
+            },
+        )
     }
 }

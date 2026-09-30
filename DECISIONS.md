@@ -79,6 +79,17 @@ into this file once the feature ships.
   deleting them would mean testing through a different door than the app uses. The line
   is what the API is for, not where it is called from.
 
+- **A per-exercise trend plots the number that moves, and says which way is forward**
+  (N17). Load series come from *working* sets only: a warm-up must not become the
+  "heaviest set" on a chart, which is why N14's roles had to exist first. A set with no
+  added weight is not a load at all — bodyweight and assisted work carry reps and volume
+  (both zero) exactly as N15 decided they carry. For an assisted exercise the series is
+  the *least* assistance of the session, labelled "less is more", because on a machine a
+  climbing line means the machine is doing more of the work. A one-rep-max estimate is
+  Epley's, taken from the heaviest working set, refused beyond twelve reps (where it
+  extrapolates rather than calculates) and rounded to the nearest half-kilo, because an
+  estimate is not precise to the gram.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

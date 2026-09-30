@@ -61,6 +61,7 @@ fun WorkoutDetailRoute(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutDetailViewModel = hiltViewModel(),
+    onOpenExerciseTrends: (String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val deleted by viewModel.deleted.collectAsStateWithLifecycle()
@@ -73,6 +74,7 @@ fun WorkoutDetailRoute(
     }
 
     WorkoutDetailScreen(
+        onOpenExerciseTrends = onOpenExerciseTrends,
         state = state,
         onUpdateSet = viewModel::onUpdateSet,
         onDeleteSet = viewModel::onDeleteSet,
@@ -93,6 +95,7 @@ fun WorkoutDetailScreen(
     onDeleteWorkout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenExerciseTrends: (String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     state.error?.let { error ->
@@ -115,6 +118,7 @@ fun WorkoutDetailScreen(
         },
     ) { innerPadding ->
         DetailContent(
+            onOpenExerciseTrends = onOpenExerciseTrends,
             state = state,
             onEditSet = { editing = it },
             onDeleteSet = onDeleteSet,
@@ -198,6 +202,7 @@ private fun DetailContent(
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (String) -> Unit,
     onRate: (String, Int?, Int?, String?) -> Unit,
+    onOpenExerciseTrends: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -244,6 +249,7 @@ private fun DetailContent(
             }
             items(items = state.exercises, key = { it.id }) { exercise ->
                     ExerciseBlock(
+                        onOpenTrends = onOpenExerciseTrends,
                         exercise = exercise,
                         onEditSet = onEditSet,
                         onDeleteSet = { onDeleteSet(it.id) },
@@ -318,11 +324,19 @@ private fun ExerciseBlock(
     onEditSet: (HistorySet) -> Unit,
     onDeleteSet: (HistorySet) -> Unit,
     onRate: (String, Int?, Int?, String?) -> Unit,
+    onOpenTrends: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val editLabel = stringResource(R.string.set_edit_action)
+    val trendsLabel = stringResource(R.string.exercise_trends_open)
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(text = exercise.name, style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = exercise.name,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .testTag(TestTags.historyExerciseTrends(exercise.id))
+                .clickable(onClickLabel = trendsLabel) { onOpenTrends(exercise.id) },
+        )
 
         exercise.sets.forEachIndexed { index, set ->
             HistorySetRow(

@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.trends
 
+import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.TrendMetric
@@ -154,6 +155,11 @@ class TrendsViewModelTest {
         private val points: List<TrendPoint> = emptyList(),
         private val failure: DataError? = null,
     ) : TrendsRepository {
+        override fun observeExerciseTrends(
+            exerciseId: String,
+            limit: Int,
+        ): Flow<DataResult<List<ExerciseTrendPoint>>> = flowOf(DataResult.Success(emptyList()))
+
         override fun observeTrends(limit: Int): Flow<DataResult<List<TrendPoint>>> =
             flowOf(failure?.let { DataResult.Failure(it) } ?: DataResult.Success(points))
     }

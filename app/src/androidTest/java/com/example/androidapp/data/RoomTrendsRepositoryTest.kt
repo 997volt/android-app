@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -123,12 +124,14 @@ class RoomTrendsRepositoryTest {
         rpeHalves: List<Int>,
         muscleFeel: Int? = null,
         jointPain: Int? = null,
+        finished: Boolean = true,
+        sets: List<PlannedSet>? = null,
     ) {
         database.workoutDao().insertSession(
             WorkoutSessionEntity(
                 id = id,
                 startedAt = startedAt,
-                finishedAt = startedAt + 1,
+                finishedAt = if (finished) startedAt + 1 else null,
                 notes = null,
                 restEndsAt = null,
                 readinessNote = null,
@@ -150,16 +153,19 @@ class RoomTrendsRepositoryTest {
                 deletedAt = null,
             ),
         )
-        rpeHalves.forEachIndexed { index, halves ->
+        val planned = sets ?: rpeHalves.map { PlannedSet(weightGrams = 100_000L, reps = 5) }
+        planned.forEachIndexed { index, set ->
             database.workoutDao().insertSet(
                 SetEntryEntity(
                     id = "$id-set$index",
                     sessionExerciseId = "$id-se",
                     setIndex = index,
-                    reps = 5,
-                    weightGrams = 100_000L,
-                    setType = SetType.NORMAL,
-                    rpeHalves = halves,
+                    reps = set.reps,
+                    weightGrams = set.weightGrams,
+                    assistanceGrams = set.assistanceGrams,
+                    setType = set.setType,
+                    // The rating stays on the set even when the test supplies its own.
+                    rpeHalves = rpeHalves.getOrNull(index),
                     completedAt = startedAt,
                     createdAt = startedAt,
                     updatedAt = startedAt,
@@ -180,5 +186,115 @@ class RoomTrendsRepositoryTest {
         createdAt = 0L,
         updatedAt = 0L,
         deletedAt = null,
+    )
+
+    @Test
+    fun oneExercisesSeries_excludesWarmUps_andEstimatesFromTheHeaviestWorkingSet() = runTest {
+        // ROADMAP N17 against real SQL: the warm-up must not become the heaviest set,
+        // which is the whole reason N14's roles had to exist first.
+        seedSession(
+            id = "s1",
+            startedAt = 1_000L,
+            rpeHalves = listOf(16),
+            sets = listOf(
+                PlannedSet(weightGrams = 60_000L, reps = 8, setType = SetType.WARMUP),
+                PlannedSet(weightGrams = 100_000L, reps = 5, setType = SetType.NORMAL),
+            ),
+        )
+
+        val point = (repository.observeExerciseTrends("back-squat").first() as DataResult.Success)
+            .data
+            .single()
+
+        assertEquals(100_000L, point.heaviestSetGrams)
+        assertEquals(500_000L, point.volumeGrams)
+        assertEquals(5, point.totalReps)
+        assertEquals(116_500L, point.estimatedOneRepMaxGrams)
+    }
+
+    @Test
+    fun anAssistedSet_isNotALoad_butIsRepsAndVolume() = runTest {
+        // N15 and N17 agreeing: the help is not a load, and it is not negative tonnage.
+        seedSession(
+            id = "s1",
+            startedAt = 1_000L,
+            rpeHalves = listOf(19),
+            sets = listOf(PlannedSet(weightGrams = 0L, reps = 8, assistanceGrams = 20_000L)),
+        )
+
+        val point = (repository.observeExerciseTrends("back-squat").first() as DataResult.Success)
+            .data
+            .single()
+
+        assertNull("0 kg is not a load to plot", point.heaviestSetGrams)
+        assertEquals(20_000L, point.leastAssistanceGrams)
+        assertEquals(8, point.totalReps)
+        assertEquals(0L, point.volumeGrams)
+    }
+
+    @Test
+    fun theWindow_countsSessions_notSets() = runTest {
+        // `LIMIT` on a join would cut a workout in half and drop the sets that did not
+        // fit — which is why the subquery takes the sessions.
+        seedSession(
+            id = "s1",
+            startedAt = 1_000L,
+            rpeHalves = emptyList(),
+            sets = List(8) { PlannedSet(weightGrams = 100_000L, reps = 5) },
+        )
+
+        val points = (repository.observeExerciseTrends("back-squat", limit = 1).first() as
+            DataResult.Success).data
+
+        assertEquals(1, points.size)
+        assertEquals("all eight sets belong to the one session", 4_000_000L, points.single().volumeGrams)
+    }
+
+    @Test
+    fun onlyFinishedSessions_appear_oldestFirst() = runTest {
+        seedSession(id = "old", startedAt = 1_000L, rpeHalves = emptyList(), finished = true)
+        seedSession(id = "new", startedAt = 3_000L, rpeHalves = emptyList(), finished = true)
+        seedSession(id = "open", startedAt = 2_000L, rpeHalves = emptyList(), finished = false)
+
+        val points = (repository.observeExerciseTrends("back-squat").first() as DataResult.Success)
+            .data
+
+        assertEquals(
+            "an unfinished workout is not history",
+            listOf(Instant.ofEpochMilli(1_000L), Instant.ofEpochMilli(3_000L)),
+            points.map { it.startedAt },
+        )
+    }
+
+    @Test
+    fun anotherExercisesWorkouts_areNotInThisSeries() = runTest {
+        seedSession(id = "s1", startedAt = 1_000L, rpeHalves = emptyList())
+        // The foreign key is real: an exercise has to exist before a session can log it.
+        database.exerciseDao().insertAll(listOf(exercise().copy(id = "bench-press", name = "Bench Press")))
+        database.workoutDao().insertSessionExercise(
+            SessionExerciseEntity(
+                id = "s1-other",
+                sessionId = "s1",
+                exerciseId = "bench-press",
+                position = 1,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+
+        val points = (repository.observeExerciseTrends("bench-press").first() as DataResult.Success)
+            .data
+
+        assertEquals(1, points.size)
+        assertNull("that exercise logged no set", points.single().heaviestSetGrams)
+    }
+
+    /** One set as the seeding helper needs it. */
+    private data class PlannedSet(
+        val weightGrams: Long,
+        val reps: Int,
+        val setType: SetType = SetType.NORMAL,
+        val assistanceGrams: Long = 0L,
     )
 }

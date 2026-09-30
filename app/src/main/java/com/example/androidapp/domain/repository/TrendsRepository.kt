@@ -1,6 +1,7 @@
 package com.example.androidapp.domain.repository
 
 import com.example.androidapp.domain.DataResult
+import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.domain.model.TrendPoint
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,18 @@ import kotlinx.coroutines.flow.Flow
  * already recorded rather than a thing the user maintains.
  */
 interface TrendsRepository {
+
+    /**
+     * One exercise's own series over the most recent [limit] finished sessions that
+     * recorded it, **oldest first** (ROADMAP N17).
+     *
+     * The window counts *sessions*, not sets: a workout with eight sets of the lift is
+     * one point on the chart, the same way N13's trends count sessions.
+     */
+    fun observeExerciseTrends(
+        exerciseId: String,
+        limit: Int = TREND_WINDOW,
+    ): Flow<DataResult<List<ExerciseTrendPoint>>>
 
     /**
      * The most recent [limit] finished workouts that carry at least one signal,
@@ -29,3 +42,6 @@ interface TrendsRepository {
         const val DEFAULT_LIMIT = 10
     }
 }
+
+/** The default window: the last ten sessions that recorded the exercise. */
+const val TREND_WINDOW = 10

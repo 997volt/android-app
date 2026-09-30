@@ -23,6 +23,10 @@ data object ExerciseLibrary
 @Serializable
 data class ExerciseDetail(val exerciseId: String)
 
+/** One exercise's own trends (ROADMAP N17), reached from the library or a past lift. */
+@Serializable
+data class ExerciseTrends(val exerciseId: String)
+
 /**
  * The in-progress workout (ROADMAP P1.2).
  *

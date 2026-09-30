@@ -206,6 +206,17 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** One exercise's own trends (ROADMAP N17). */
+    const val EXERCISE_TRENDS = "exercise_trends"
+    const val EXERCISE_TRENDS_EMPTY = "exercise_trends_empty"
+    const val EXERCISE_TRENDS_ERROR = "exercise_trends_error"
+    const val EXERCISE_TRENDS_DIRECTION = "exercise_trends_direction"
+
+    fun historyExerciseTrends(id: String) = "history_exercise_trends_$id"
+
+    /** A part of a per-exercise trend section: `chart`, `caption` or `section`. */
+    fun exerciseTrend(part: String, metric: String) = "exercise_trend_${part}_$metric"
+
     /** Pinning a plan to a weekday (ROADMAP N16). */
     const val TEMPLATE_WEEKDAY = "template_weekday"
 

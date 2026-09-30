@@ -1,5 +1,10 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.data.local.ExerciseTrendRowEntity
+import com.example.androidapp.domain.model.toExerciseTrendPoints
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.ExerciseTrendRow
+import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.TrendPoint
@@ -33,6 +38,32 @@ class RoomTrendsRepository @Inject constructor(
 ) : TrendsRepository {
 
     private val dao = database.trendsDao()
+
+    override fun observeExerciseTrends(
+        exerciseId: String,
+        limit: Int,
+    ): Flow<DataResult<List<ExerciseTrendPoint>>> =
+        dao.observeExerciseTrendRows(exerciseId, limit)
+            .map<List<ExerciseTrendRowEntity>, DataResult<List<ExerciseTrendPoint>>> { rows ->
+                // Grouping and arithmetic live in the domain type, where they are pure
+                // and tested; this is only the storage-to-domain translation.
+                DataResult.Success(
+                    rows.map { row ->
+                        ExerciseTrendRow(
+                            sessionId = row.sessionId,
+                            startedAt = Instant.ofEpochMilli(row.startedAt),
+                            muscleFeel = row.muscleFeel,
+                            jointPain = row.jointPain,
+                            weightGrams = row.weightGrams,
+                            reps = row.reps,
+                            rpeHalves = row.rpeHalves,
+                            setType = row.setType?.let(SetType::valueOf),
+                            assistanceGrams = row.assistanceGrams,
+                        )
+                    }.toExerciseTrendPoints(),
+                )
+            }
+            .catch { emit(DataResult.Failure(it.toDataError())) }
 
     override fun observeTrends(limit: Int): Flow<DataResult<List<TrendPoint>>> =
         combine(

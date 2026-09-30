@@ -85,7 +85,21 @@ Notable changes to Workout Log, newest first. Format follows
   one, so the lines are drawn on a `Canvas`, which settles the approach P2.3 asked
   about for these series. Reached from the home overflow. No migration.
 
-### Changed
+### Added
+- **Trends for one exercise.** N13 reads the app's signals across everything; this
+  answers the narrower question a lifter actually asks — *how is my bench press going* —
+  from rows the app already writes. Over the last ten finished sessions that recorded the
+  lift: heaviest working set, estimated one-rep-max, volume, total reps, and that
+  exercise's own average RPE, muscle feel and joint pain, which the app has been
+  recording since N6 and N8 without ever showing them per lift. **Warm-up sets are
+  excluded from the load series**, which only became expressible when N14's roles
+  existed: a warm-up must not become the "heaviest set" on a chart. N13's hand-drawn
+  chart is now shared between the two screens, and nothing new is stored. Reached from
+  the exercise's own screen and by tapping a lift in a past workout.
+- **Assisted work says which way is forward.** On an assisted machine more help is not
+  progress, so that series is the least assistance of the session — the hardest set —
+  labelled "less is more", rather than a climb that reads as improvement.
+
 - **Deleted what moved and left its shape behind** (B13). The exercise library's
   ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
   state field, two flows, a per-second ticker, and the `TimeSource` and

@@ -68,38 +68,10 @@ is answered says so.
 
 *(Nothing outstanding — B5 through B7 shipped.)*
 
-### Then — the next feature
-
-- **N17 — Trends for one exercise.** N13 reads the app's signals back over time, but only
-  across the whole app: RPE, muscle feel and joint pain over the last ten rated workouts.
-  The question a lifter actually asks is narrower — *how is my bench press going?* — and
-  nothing answers it.
-
-  **Entry:** the exercise detail screen, and a lift tapped from a past workout.
-
-  **Series**, over finished sessions, oldest first: heaviest working set, estimated 1RM
-  (Epley/Brzycki), volume, and total reps — plus this exercise's own average RPE, muscle
-  feel and joint pain, which the app has been recording since N6 and N8 without ever
-  showing them per lift.
-
-  **Reuse, not new machinery:** N13's hand-drawn chart and the `TrendsRepository` shape,
-  narrowed by exercise. The charts stay dependency-free, and nothing new is stored —
-  every series comes out of rows already written.
-
-  **Warm-up sets are excluded from the load series.** That is only expressible now that
-  N14's roles exist, and it matters: a warm-up must not become the "heaviest set" on the
-  chart. Drop and failure sets are working sets, and count.
-
-  **Assisted exercises need a direction, not just a line.** For a movement logged with
-  assistance, more help is not progress, so the screen must say which way is forward
-  rather than drawing a climb that reads as improvement. Decide with the screen in front
-  of you: plot the assistance magnitude and label it "less is more", or keep assisted
-  sets out of the load series and show reps and volume alone.
-
 ### Decisions waiting
 
-Four choices the work above depends on. Each is a real trade, so each is recorded with
-its options rather than settled here.
+Two choices are still open. D2 and D3 were settled by the work that needed them and
+moved into [DECISIONS.md](DECISIONS.md), which is where a taken decision lives.
 
 - **D1 — Should the JVM tests run in parallel?** The obvious CI speed-up is to fork
   them across JVMs, and it is **not** obviously right: measured on this checkout,
@@ -109,23 +81,6 @@ its options rather than settled here.
   *Take it* if a 4-core runner measures faster; *leave it* otherwise. Either way the
   choice is made from a measurement on the runner, not from this file — the project's
   own rule is that a performance claim comes with one.
-- **D2 — Do "no caller in `main`, tests only" APIs count as dead?** `Weight.step`,
-  `successUnit`, `DataResult.map`, `ExerciseDao.count/insertAll/softDelete` and
-  `CrashLogStore.latest/clear` are called from tests and nowhere else — and `Weight.step`
-  is the clear case, since production uses `stepLoad` and the test file says out loud
-  that it "had no callers".
-  *Strict* — the rule says delete; tests should exercise what ships, not hold up what
-  does not. *Lenient* — a test is a caller, and the DAO and store methods are the only
-  way to arrange the rows the *real* tests then read. Left open deliberately: it changes
-  what "no dead weight" means for every future change, which belongs in
-  [DECISIONS.md](DECISIONS.md) rather than being decided by a cleanup.
-- **D3 — What should one-tap "Log set" do with a plan's assistance?** B7's fix is not
-  mechanical: a plan may prescribe help, and the button may display it, but the set the
-  user actually performs is the one they adjusted.
-  *Write the suggestion* — the button does what it says; the row records the plan's help
-  unless it was edited. *Drop the display* — keep the write as it is and stop showing
-  assistance on the button, so the two agree by making the button say less.
-  The wrong answer is the current one: displaying a number that is not what gets stored.
 - **D4 — The test tags applied in production that no test asserts on.** Each is
   referenced by nothing — either the tests they were added for were never written, or the
   tag was added ahead of its test.
