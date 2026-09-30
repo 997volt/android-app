@@ -5,7 +5,7 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [Unreleased]
+## [1.4] — 2026-09-30 (versionCode 5)
 
 ### Added
 - **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
