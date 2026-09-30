@@ -5,9 +5,22 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [1.4] — 2026-09-30 (versionCode 5)
+## [Unreleased]
 
 ### Added
+- **Trends for one exercise.** N13 reads the app's signals across everything; this
+  answers the narrower question a lifter actually asks — *how is my bench press going* —
+  from rows the app already writes. Over the last ten finished sessions that recorded the
+  lift: heaviest working set, estimated one-rep-max, volume, total reps, and that
+  exercise's own average RPE, muscle feel and joint pain, which the app has been
+  recording since N6 and N8 without ever showing them per lift. **Warm-up sets are
+  excluded from the load series**, which only became expressible when N14's roles
+  existed: a warm-up must not become the "heaviest set" on a chart. N13's hand-drawn
+  chart is now shared between the two screens, and nothing new is stored. Reached from
+  the exercise's own screen and by tapping a lift in a past workout.
+- **Assisted work says which way is forward.** On an assisted machine more help is not
+  progress, so that series is the least assistance of the session — the hardest set —
+  labelled "less is more", rather than a climb that reads as improvement.
 - **Tests for the gaps the review found** (B9–B11). The history detail's ViewModel had no
   test at all, which is how B5 shipped, and its `volumeGrams` KDoc claimed a cross-check
   against the SQL figure that no test made — both are real now. The trends repository,
@@ -18,6 +31,53 @@ Notable changes to Workout Log, newest first. Format follows
   with data — the array is now asserted against the runtime schema version, and the whole
   chain is run once from the first schema.
 
+### Changed
+- **CI: one Gradle invocation where there were five, and a guard against a run that
+  skips tests.** The build job now names all five tasks in one `./gradlew` call with the
+  configuration cache on, because each separate call paid its own configuration. And the
+  emulator job — whose result XML once recorded 62 of 127 tests while reporting green —
+  now fails unless the executed count equals the count of `@Test` annotations in
+  `app/src/androidTest`, naming the classes that did not report. A result file older than
+  the sources is itself a failure, since that is what a replayed report looks like (B8,
+  B12).
+- **The review's rule violations are settled.** `HALVES_PER_POINT` is one constant on
+  `Rpe`; the two `DayOfWeek` formatters are one shared pair of composables; the two
+  `SetType` pickers are one `SetRoleSelector`; the duplicate `ActiveWorkoutInfo` went with
+  B13's dead state; and the three `CenteredMessage` copies are one composable, which
+  gained the spinner its callers needed — a shared component that cannot do what its
+  callers do is one they stop using. Four files are named for what they hold
+  (`DataErrorMessage.kt`, `NoteDialogs.kt`, `ExercisePickerRoute.kt`, and a
+  `RestAlarmReceiver.kt` of its own, since Android instantiates it by name).
+
+### Removed
+- **Deleted what moved and left its shape behind** (B13). The exercise library's
+  ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
+  state field, two flows, a per-second ticker, and the `TimeSource` and
+  `WorkoutRepository` dependencies that existed only to feed it — months after the resume
+  button moved to home, kept alive by a test asserting the dead state was null. With it:
+  `@ApplicationScope` and the module binding a scope nothing injects, and four
+  declarations nothing called (`TemplateDao.findTemplateSets`, `WorkoutSession.isActive`,
+  `WorkoutSummary.hasVolume`, `PreviousPerformance.isEmpty`). Per D2, `Weight.step`,
+  `DataResult.map` and `successUnit` went too — APIs whose only caller was the test that
+  tested them.
+
+### Fixed
+- **An assisted set no longer loses its help in history.** The live workout showed a set
+  on an assisted machine as `-20 kg`; the workout **detail** screen showed `0 kg`,
+  because its ViewModel built the row without passing the column and the screen rendered
+  the field's default. One tap into history and N15's feature read back wrong (B5).
+- **A plan's target RPE reads as a lifter writes it.** The plan dialog passed the stored
+  half-point count straight to the marker, so a plan saying 9.5 rendered as **"RPE 19"** —
+  the confusion the halves representation exists to prevent. The three screens that show
+  an RPE now share one formatter (B6).
+- **One-tap "Log set" writes the set its button described.** The button reads
+  *"Log set · -20 kg × 8"* and wrote a set with no assistance, because the value was in
+  the suggestion and simply not passed; undoing a deleted set dropped it too (B7).
+  Decided as D3: the button does what it says rather than saying less.
+
+## [1.4] — 2026-09-30 (versionCode 5)
+
+### Added
 - **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
   share a day — training twice on a Friday is a thing people do — and each is listed with
   a Start action that goes straight into that plan's workout. A plan with no day is a
@@ -85,41 +145,7 @@ Notable changes to Workout Log, newest first. Format follows
   one, so the lines are drawn on a `Canvas`, which settles the approach P2.3 asked
   about for these series. Reached from the home overflow. No migration.
 
-### Added
-- **Trends for one exercise.** N13 reads the app's signals across everything; this
-  answers the narrower question a lifter actually asks — *how is my bench press going* —
-  from rows the app already writes. Over the last ten finished sessions that recorded the
-  lift: heaviest working set, estimated one-rep-max, volume, total reps, and that
-  exercise's own average RPE, muscle feel and joint pain, which the app has been
-  recording since N6 and N8 without ever showing them per lift. **Warm-up sets are
-  excluded from the load series**, which only became expressible when N14's roles
-  existed: a warm-up must not become the "heaviest set" on a chart. N13's hand-drawn
-  chart is now shared between the two screens, and nothing new is stored. Reached from
-  the exercise's own screen and by tapping a lift in a past workout.
-- **Assisted work says which way is forward.** On an assisted machine more help is not
-  progress, so that series is the least assistance of the session — the hardest set —
-  labelled "less is more", rather than a climb that reads as improvement.
-
-- **Deleted what moved and left its shape behind** (B13). The exercise library's
-  ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
-  state field, two flows, a per-second ticker, and the `TimeSource` and
-  `WorkoutRepository` dependencies that existed only to feed it — months after the resume
-  button moved to home, kept alive by a test asserting the dead state was null. With it:
-  `@ApplicationScope` and the module binding a scope nothing injects, and four
-  declarations nothing called (`TemplateDao.findTemplateSets`, `WorkoutSession.isActive`,
-  `WorkoutSummary.hasVolume`, `PreviousPerformance.isEmpty`). Per D2, `Weight.step`,
-  `DataResult.map` and `successUnit` went too — APIs whose only caller was the test that
-  tested them.
-
-- **CI: one Gradle invocation where there were five, and a guard against a run that
-  skips tests.** The build job now names all five tasks in one `./gradlew` call with the
-  configuration cache on, because each separate call paid its own configuration. And the
-  emulator job — whose result XML once recorded 62 of 127 tests while reporting green —
-  now fails unless the executed count equals the count of `@Test` annotations in
-  `app/src/androidTest`, naming the classes that did not report. A result file older than
-  the sources is itself a failure, since that is what a replayed report looks like (B8,
-  B12).
-
+### Changed
 - **RPE takes half steps.** `9.5` can be recorded, not just whole numbers. It is stored
   as *halves in an integer* (`19` is 9.5) for the same reason weights are whole grams:
   9.5 has no exact binary representation, and an RPE that compares as `9.499999` — or
@@ -141,19 +167,6 @@ Notable changes to Workout Log, newest first. Format follows
   vocabulary on every past workout.
 
 ### Fixed
-- **An assisted set no longer loses its help in history.** The live workout showed a set
-  on an assisted machine as `-20 kg`; the workout **detail** screen showed `0 kg`,
-  because its ViewModel built the row without passing the column and the screen rendered
-  the field's default. One tap into history and N15's feature read back wrong (B5).
-- **A plan's target RPE reads as a lifter writes it.** The plan dialog passed the stored
-  half-point count straight to the marker, so a plan saying 9.5 rendered as **"RPE 19"** —
-  the confusion the halves representation exists to prevent. The three screens that show
-  an RPE now share one formatter (B6).
-- **One-tap "Log set" writes the set its button described.** The button reads
-  *"Log set · -20 kg × 8"* and wrote a set with no assistance, because the value was in
-  the suggestion and simply not passed; undoing a deleted set dropped it too (B7).
-  Decided as D3: the button does what it says rather than saying less.
-
 - **Export and import are back where you start.** They lived two overflow menus
   deep — home, then the exercise library N1 demoted to a reference screen — so the
   feature read as missing. They are in the home overflow now, beside Library,
