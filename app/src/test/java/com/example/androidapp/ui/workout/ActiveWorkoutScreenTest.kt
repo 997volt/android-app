@@ -236,7 +236,7 @@ class ActiveWorkoutScreenTest {
         isFinished = true,
         muscleFeel = if (rated) 8 else null,
         jointPain = if (rated) 2 else null,
-        jointPainNote = if (rated) "left knee" else "",
+        jointPainNote = if (rated) "left knee" else null,
         sets = listOf(SetRow(id = "set1", number = 1, reps = 5, weightGrams = 100_000)),
         suggestion = SetSuggestion(reps = 5, weightGrams = 100_000),
     )

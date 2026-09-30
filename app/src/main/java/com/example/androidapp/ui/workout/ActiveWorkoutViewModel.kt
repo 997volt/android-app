@@ -68,8 +68,8 @@ data class SessionExerciseRow(
     val muscleFeel: Int? = null,
     /** Joint or connective-tissue discomfort, 1–10, or null (ROADMAP N8). */
     val jointPain: Int? = null,
-    /** Which joints, or empty (ROADMAP N9). */
-    val jointPainNote: String = "",
+    /** Which joints, or null (ROADMAP N9) — the same "nothing" as everywhere else. */
+    val jointPainNote: String? = null,
     val sets: List<SetRow> = emptyList(),
     val suggestion: SetSuggestion = SetSuggestion(DEFAULT_REPS, Weight.DEFAULT_GRAMS),
     val lastTime: SetRow? = null,
@@ -646,7 +646,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             isFinished = isFinished,
             muscleFeel = muscleFeel,
             jointPain = jointPain,
-            jointPainNote = jointPainNote.orEmpty(),
+            jointPainNote = jointPainNote,
             sets = loggedSets,
             suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->

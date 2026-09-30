@@ -154,7 +154,7 @@ private fun ExerciseSection(
         ExerciseRatingSection(
             muscleFeel = row.muscleFeel,
             jointPain = row.jointPain,
-            jointPainNote = row.jointPainNote.ifEmpty { null },
+            jointPainNote = row.jointPainNote,
             onRate = { feel, pain, note -> onRateExercise(row.id, feel, pain, note) },
         )
     }
@@ -174,7 +174,7 @@ private fun FinishExerciseAction(
     exerciseId: String,
     muscleFeel: Int?,
     jointPain: Int?,
-    jointPainNote: String,
+    jointPainNote: String?,
     onFinish: (String, Int?, Int?, String?) -> Unit,
 ) {
     var rating by remember { mutableStateOf(false) }
@@ -190,7 +190,7 @@ private fun FinishExerciseAction(
         ExerciseRatingDialog(
             initialMuscleFeel = muscleFeel,
             initialJointPain = jointPain,
-            initialJointPainNote = jointPainNote,
+            initialJointPainNote = jointPainNote.orEmpty(),
             isPrompt = true,
             onDismiss = {
                 rating = false

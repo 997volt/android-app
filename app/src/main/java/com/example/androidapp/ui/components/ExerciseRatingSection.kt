@@ -95,7 +95,9 @@ private fun ratingSummary(
     val parts = listOfNotNull(
         muscleFeel?.let { stringResource(R.string.rating_muscle_value, it) },
         jointPain?.let { stringResource(R.string.rating_joint_value, it) },
-        jointPainNote?.let { stringResource(R.string.rating_joint_note_value, it) },
+        // The note is shown as written; a resource that only echoes its argument
+        // would give a translator nothing to decide.
+        jointPainNote,
     )
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }

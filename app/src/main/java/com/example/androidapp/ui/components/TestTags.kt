@@ -76,14 +76,6 @@ object TestTags {
     const val LIBRARY_SEARCH_FIELD = "library_search_field"
 
     /**
-     * The library's primary button, tagged by *state* rather than by its caption.
-     * "Start workout" and "Resume workout" are user-visible text a translation would
-     * change; which of the two is showing is the behaviour under test.
-     */
-    const val LIBRARY_START = "library_start"
-    const val LIBRARY_RESUME = "library_resume"
-
-    /**
      * Two empty states, two tags — deliberately. The distinction is the feature
      * (P1.1a): an empty library wants different words from a search with no hits.
      */
