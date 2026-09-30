@@ -406,6 +406,6 @@ private fun TemplateSet.summary(): String {
         )
         else -> null
     }
-    val rpeHalves = targetRpeHalves?.let { stringResource(R.string.set_rpe_marker, it) }
+    val rpeHalves = targetRpeHalves?.let { rpeMarker(it) }
     return listOfNotNull(weight, reps, rpeHalves, note).joinToString(" · ")
 }

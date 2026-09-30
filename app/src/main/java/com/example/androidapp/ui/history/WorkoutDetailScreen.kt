@@ -50,6 +50,7 @@ import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.ExerciseRatingSection
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.rpeMarker
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutFormat
@@ -381,7 +382,7 @@ private fun HistorySetRow(
                     // row only carries a marker.
                     set.rpeHalves?.let { rpeHalves ->
                         Text(
-                            text = stringResource(R.string.set_rpe_marker, Rpe.format(rpeHalves)),
+                            text = rpeMarker(rpeHalves),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -39,6 +39,7 @@ import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.ExerciseRatingSection
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.rpeMarker
 
 
 
@@ -432,11 +433,9 @@ private fun SetExtrasMarker(set: SetRow, modifier: Modifier = Modifier) {
     val roleMarker = set.setType
         .takeIf { it != SetType.NORMAL }
         ?.let { stringResource(R.string.set_role_marker, it.label) }
-    val rpeMarker = set.rpeHalves?.let {
-        stringResource(R.string.set_rpe_marker, Rpe.format(it))
-    }
+    val rpePart = set.rpeHalves?.let { rpeMarker(it) }
     val noteMarker = if (set.note != null) stringResource(R.string.set_note_marker) else null
-    val marker = listOfNotNull(roleMarker, rpeMarker, noteMarker).joinToString(" · ")
+    val marker = listOfNotNull(roleMarker, rpePart, noteMarker).joinToString(" · ")
 
     if (marker.isNotEmpty()) {
         Text(

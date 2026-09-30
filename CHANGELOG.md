@@ -97,6 +97,19 @@ Notable changes to Workout Log, newest first. Format follows
   vocabulary on every past workout.
 
 ### Fixed
+- **An assisted set no longer loses its help in history.** The live workout showed a set
+  on an assisted machine as `-20 kg`; the workout **detail** screen showed `0 kg`,
+  because its ViewModel built the row without passing the column and the screen rendered
+  the field's default. One tap into history and N15's feature read back wrong (B5).
+- **A plan's target RPE reads as a lifter writes it.** The plan dialog passed the stored
+  half-point count straight to the marker, so a plan saying 9.5 rendered as **"RPE 19"** —
+  the confusion the halves representation exists to prevent. The three screens that show
+  an RPE now share one formatter (B6).
+- **One-tap "Log set" writes the set its button described.** The button reads
+  *"Log set · -20 kg × 8"* and wrote a set with no assistance, because the value was in
+  the suggestion and simply not passed; undoing a deleted set dropped it too (B7).
+  Decided as D3: the button does what it says rather than saying less.
+
 - **Export and import are back where you start.** They lived two overflow menus
   deep — home, then the exercise library N1 demoted to a reference screen — so the
   feature read as missing. They are in the home overflow now, beside Library,

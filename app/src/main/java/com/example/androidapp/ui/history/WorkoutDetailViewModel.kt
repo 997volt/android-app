@@ -121,6 +121,9 @@ class WorkoutDetailViewModel @Inject constructor(
                                     weightGrams = it.weightGrams,
                                     rpeHalves = it.rpeHalves,
                                     note = it.note,
+                                    // Every column the row has, or the screen silently
+                                    // renders a default (ROADMAP B5, N15).
+                                    assistanceGrams = it.assistanceGrams,
                                 )
                             },
                     )

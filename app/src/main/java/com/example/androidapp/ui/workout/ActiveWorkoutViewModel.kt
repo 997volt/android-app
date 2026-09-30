@@ -435,6 +435,9 @@ class ActiveWorkoutViewModel @Inject constructor(
                 sessionExerciseId = sessionExerciseId,
                 reps = row.suggestion.reps,
                 weightGrams = row.suggestion.weightGrams,
+                // The button reads "-20 kg × 8"; a set written without the help would
+                // be a different set from the one it just described (ROADMAP B7, D3).
+                assistanceGrams = row.suggestion.assistanceGrams,
             )
             handle(result)
             // The exercise's own rest when it has one, otherwise the app default
@@ -504,6 +507,8 @@ class ActiveWorkoutViewModel @Inject constructor(
                     reps = set.reps,
                     weightGrams = set.weightGrams,
                     setType = set.setType,
+                    // An undo puts back the set that was deleted, help included (B7).
+                    assistanceGrams = set.assistanceGrams,
                 ),
             )
         }

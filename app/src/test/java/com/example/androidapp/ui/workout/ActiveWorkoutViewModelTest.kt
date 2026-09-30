@@ -1054,6 +1054,9 @@ class ActiveWorkoutViewModelTest {
                 reps = reps,
                 weightGrams = weightGrams,
                 setType = setType,
+                // Without this the fake silently dropped the help, which is how B7's
+                // fix could have gone unnoticed by its own test.
+                assistanceGrams = assistanceGrams,
             )
             return successUnit()
         }
@@ -1070,7 +1073,13 @@ class ActiveWorkoutViewModelTest {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.map {
                 if (it.id == setId) {
-                    it.copy(reps = reps, weightGrams = weightGrams, rpeHalves = rpeHalves, note = note)
+                    it.copy(
+                        reps = reps,
+                        weightGrams = weightGrams,
+                        rpeHalves = rpeHalves,
+                        note = note,
+                        assistanceGrams = assistanceGrams,
+                    )
                 } else {
                     it
                 }
@@ -1259,5 +1268,75 @@ class ActiveWorkoutViewModelTest {
         ): DataResult<Unit> = notUsed()
 
         private fun notUsed(): Nothing = error("this test does not write a plan")
+    }
+
+    @Test
+    fun oneTapLog_writesTheAssistanceTheButtonShowed() = runTest(dispatcher) {
+        // ROADMAP B7: the button reads "Log set · -20 kg × 8", so the set it writes has
+        // to be that set. D3 chose "the button does what it says" over saying less.
+        val repository = FakeWorkoutRepository()
+        val templates = FakeTemplateRepository(
+            planned = listOf(
+                plannedExercise(
+                    position = 0,
+                    sets = listOf(
+                        TemplateSet(
+                            id = "ts-0",
+                            templateExerciseId = "te-0",
+                            setIndex = 0,
+                            targetRepsMax = 8,
+                            targetAssistanceGrams = 20_000L,
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val viewModel = viewModelFor(repository, templateId = "t1", templates = templates)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val shown = viewModel.uiState.value.exercises.single().suggestion
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        val written = repository.sets.value.single()
+        assertEquals("the help the button showed", 20_000L, written.assistanceGrams)
+        assertEquals(shown.reps, written.reps)
+        assertEquals(shown.weightGrams, written.weightGrams)
+    }
+
+    @Test
+    fun undoingADeletedAssistedSet_bringsTheHelpBack() = runTest(dispatcher) {
+        // The same omission as B7, one call site later.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        val exerciseId = viewModel.uiState.value.exercises.single().id
+        viewModel.onLogSet(exerciseId)
+        settle()
+        val logged = repository.sets.value.single()
+        viewModel.onUpdateSet(
+            logged.id,
+            reps = logged.reps,
+            weightGrams = 0L,
+            assistanceGrams = 20_000L,
+        )
+        settle()
+
+        viewModel.onDeleteSet(repository.sets.value.single().id)
+        settle()
+        viewModel.onUndoDelete()
+        settle()
+
+        assertEquals(
+            "an undone set comes back as it was",
+            20_000L,
+            repository.sets.value.single().assistanceGrams,
+        )
     }
 }

@@ -66,40 +66,6 @@ is answered says so.
 
 ### What the app gets wrong today
 
-- **B5 — Assistance disappears from history.** A set logged on an assisted machine
-  stores the help in its own column, and the live workout screen shows it back as `-20`.
-  The workout **detail** screen shows `0 kg`, because
-  [`WorkoutDetailViewModel`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailViewModel.kt)
-  builds its `HistorySet` without passing `assistanceGrams`, so the field's default of
-  `0` is used, and
-  [`WorkoutDetailScreen`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailScreen.kt)
-  then asks `Weight.display` to render it. This is N15's feature reading back wrong
-  wherever the user goes to check what they did.
-  **Fix:** pass the column through. **Test:** the assisted case on the history detail
-  path — the current test builds its state by hand, which is exactly why it could not
-  see this.
-- **B6 — A plan's RPE is shown in halves.**
-  [`TemplatePlanDialogs`](app/src/main/java/com/example/androidapp/ui/components/TemplatePlanDialogs.kt)
-  formats a planned set with `stringResource(R.string.set_rpe_marker, targetRpeHalves)`,
-  passing the stored half-point count. The marker is `"RPE %1$s"`, so a plan that says
-  9.5 renders as **"RPE 19"** — the precise corruption the halves representation exists
-  to prevent. The two sibling call sites already wrap the value in `Rpe.format`
-  ([`WorkoutExerciseSection`](app/src/main/java/com/example/androidapp/ui/workout/WorkoutExerciseSection.kt)
-  and [`WorkoutDetailScreen`](app/src/main/java/com/example/androidapp/ui/history/WorkoutDetailScreen.kt));
-  this one does not. **Fix:** use `Rpe.format`, and cover the formatting where it is
-  shared rather than per call site.
-- **B7 — One-tap "Log set" throws away planned assistance.** The button reads
-  *"Log set · -20 kg × 8"* and then writes a set with no assistance:
-  [`ActiveWorkoutViewModel.onLogSet`](app/src/main/java/com/example/androidapp/ui/workout/ActiveWorkoutViewModel.kt)
-  passes `reps` and `weightGrams` and lets `assistanceGrams` default to `0`, although
-  it is already there in `row.suggestion` — the value the button just displayed.
-  `onUndoDelete` in the same file omits it too, so an undone set comes back without its
-  help. **Fix:** pass it in both. **Decide first:** see D3 — a one-tap log and a plan
-  target are two different things to reconcile, and the wrong choice here is the one
-  that makes the button lie.
-
-### What is missing
-
 - **B8 — The instrumented job can pass while skipping most of its tests.**
   [`android.yml`](.github/workflows/android.yml) runs `connectedDebugAndroidTest` on an
   emulator. The only result artifact in this workspace records a **green** run — exit
