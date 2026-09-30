@@ -129,9 +129,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
-      # Runs on the KVM-accelerated runner emulator. This is the slowest and
-      # most environment-sensitive job; if it proves flaky, move it behind
-      # workflow_dispatch rather than deleting it, so the tests still exist.
+      # The slowest and most environment-sensitive job here, and the only one that
+      # has failed on infrastructure rather than on a test. The hosted Linux runner
+      # has no hardware acceleration, so a boot takes minutes: twice now the job has
+      # gone red without a test running — once on a corrupt system-image download
+      # ("Error on ZipFile unknown archive"), once on a boot that outran the default
+      # 600 s timeout. The timeout is raised rather than the job hidden; if it proves
+      # flaky again, move it behind workflow_dispatch rather than deleting it, so the
+      # tests still exist.
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -139,6 +144,7 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
+          emulator-boot-timeout: 900
           script: ./gradlew connectedDebugAndroidTest --console=plain
 
       # F18. Gradle prints only "There were failing tests" with --console=plain; the
