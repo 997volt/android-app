@@ -18,12 +18,29 @@ junit = "4.13.2"
 robolectric = "4.17"
 androidxJunit = "1.3.0"
 espressoCore = "3.7.0"
+# Test-only assertion and Flow libraries. Truth's `assertThat(actual)` puts the actual
+# first and the expected second, so the argument order JUnit makes easy to swap is
+# impossible to get wrong, and a failure names the value rather than two numbers.
+# Turbine asserts a *sequence* of Flow emissions: the only way to check a transition,
+# rather than a snapshot polled after the fact.
+truth = "1.4.5"
+turbine = "1.2.1"
 # Pinned to what the dependency graph actually resolves for
 # kotlinx-coroutines-core. A kotlinx-coroutines-bom in the graph (via Room /
 # lifecycle) holds core at 1.9.0, so a newer coroutines-test compiles against
 # core internals that are not on the device classpath and every instrumented
 # test dies with NoSuchMethodError: runBlockingK$default. Bumping this means
 # bumping core too - check `./gradlew :app:dependencies` first.
+#
+# The `debugUnitTestRuntimeClasspath` is the one exception, and deliberately left
+# alone: Turbine asks for core 1.10.2, so the JVM unit tests resolve a minor ahead of
+# the device. That is safe because those tests run on the host JVM, where the
+# device-classpath internals the note above worries about are not what they link
+# against - and the shipped and instrumented classpaths were checked and still resolve
+# 1.9.0 exactly. Constraining it back was tried and reverted: the multiplatform
+# metadata and the `-jvm` artifact resolve as separate modules, so it took a `strictly`
+# on four coordinates to hold, which is more resolver machinery than a test-only
+# difference in a failure-message library is worth.
 coroutines = "1.9.0"
 detekt = "1.23.8"
 # Pinned to the 0.4.x line on purpose: 0.5.0+ of these rules targets detekt 2.0
@@ -65,6 +82,10 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+# The core artifact, not truth-android: these tests run on the JVM, and the Android
+# variant pulls androidx.test stubs alongside Robolectric's.
+truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 # Compose-specific detekt ruleset (F12): catches modifier/state mistakes lint does not.
 detekt-rules-compose = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "detektComposeRules" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }

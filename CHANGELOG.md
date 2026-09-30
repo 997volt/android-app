@@ -32,6 +32,14 @@ Notable changes to Workout Log, newest first. Format follows
   chain is run once from the first schema.
 
 ### Changed
+- **Tests assert with Truth, and Flow sequences with Turbine.** `assertEquals(expected,
+  actual)` puts two bare values side by side with nothing saying which is which, and the
+  arguments are easy to swap the wrong way round; `assertThat(actual).isEqualTo(expected)`
+  cannot be. Turbine covers what a polled `.value` cannot express at all — a sequence of
+  emissions, or an invariant across one — which is how the readiness note is now checked:
+  the note and the dismissed prompt must arrive in the *same* state, so no observer sees
+  one without the other. Both are JVM-only test dependencies. Existing files use JUnit and
+  migrate **as they are touched**, never in a sweep, so there is no half-converted file.
 - **The configuration cache is on for local builds too, and the wrapper retries a
   distribution download.** CI already passed `--configuration-cache` on its combined
   invocation; `gradle.properties` now sets it, so an ordinary `./gradlew` gets the same

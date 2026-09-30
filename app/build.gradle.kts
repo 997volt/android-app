@@ -207,6 +207,12 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Truth replaces JUnit's `assertEquals(expected, actual)` where a test is being
+    // written or touched: those two arguments are easy to swap and the failure message
+    // does not say which value was which. Turbine makes a sequence of emissions
+    // assertable, which a polled `.value` cannot express at all. Both are JVM-only.
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine)
     // Compose UI tests run on the JVM under Robolectric, so a UI assertion costs
     // seconds instead of a 26-minute CI emulator cycle. The instrumented job stays
     // for anything that genuinely needs a device.

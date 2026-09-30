@@ -49,6 +49,14 @@ into this file once the feature ships.
   every volume trend. The editor shows the load as one signed number (`-20`), and the
   steppers step *that* number, so pressing + on an assisted set reduces the help; the
   weight column itself still cannot go below zero.
+- **`Load` stays a two-property `data class`; it cannot be a `value class`.** A
+  `@JvmInline value class` wraps exactly one property, so the only way to inline `Load`
+  is to store the load as one signed number — which is precisely the signed weight the
+  entry above rejects, because it would make an assisted set subtract from volume. The
+  inlining would also buy nothing at the call sites that exist: `parseLoad` returns
+  `Load?` and the editor holds it in a nullable field, so the value is boxed anyway, and
+  the project's own rule is that a performance claim comes with a measurement. Recorded
+  so the suggestion is not re-litigated without new information.
 
 - **RPE is half-points in an `Int`, and the feel and pain ratings are not** (N6,
   extended for 9.5). `19` is 9.5, exactly, for the reason weights are grams: no binary
@@ -124,6 +132,17 @@ into this file once the feature ships.
 - **Testing:** pure logic gets JVM tests, persistence gets DAO and migration tests,
   composables get Robolectric tests with no device. There is no coverage target. The
   long-standing gap — a Compose test for the *active workout* screen — closed with N7.
+- **New and touched tests assert with Truth, and assert Flow sequences with Turbine.**
+  JUnit's `assertEquals(expected, actual)` puts two bare values side by side with nothing
+  saying which was which, and the arguments are easy to swap; `assertThat(actual)
+  .isEqualTo(expected)` cannot be written the wrong way round. Turbine is for what a
+  polled `.value` cannot express at all: a *sequence* of emissions, or an invariant that
+  has to hold across one. Both are JVM-only (`testImplementation`), and the core Truth
+  artifact rather than `truth-android`, which would pull androidx.test stubs alongside
+  Robolectric's. Adopted after the review, so most files still use JUnit: they migrate
+  **as they are touched**, never in a sweep, and a file is not left half-converted. This
+  is a preference about failure messages, not a correctness gate — do not spend a change
+  on migration alone.
 - **No dead weight.** Extract a shared component at its second caller, not its first;
   delete an API the moment nothing calls it. Both hold today; this rule keeps them.
 - **Schema changes are migration-numbered as they ship.** A migration takes the next
