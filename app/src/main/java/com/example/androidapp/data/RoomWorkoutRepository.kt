@@ -233,6 +233,7 @@ class RoomWorkoutRepository @Inject constructor(
         reps: Int,
         weightGrams: Long,
         setType: SetType,
+        assistanceGrams: Long,
     ): DataResult<Unit> = dataResultOf {
         // A stale screen can hold an id for an exercise that was removed, or whose
         // session was already finished. Writing anyway would file the set under
@@ -250,6 +251,9 @@ class RoomWorkoutRepository @Inject constructor(
                 // trusting the caller keeps a mistyped field out of the history.
                 reps = reps.coerceAtLeast(1),
                 weightGrams = weightGrams.coerceAtLeast(0L),
+                // A magnitude, so a negative arriving here becomes none rather than
+                // a weight that subtracts (ROADMAP N15).
+                assistanceGrams = assistanceGrams.coerceAtLeast(0L),
                 setType = setType,
                 completedAt = now,
                 createdAt = now,
@@ -266,6 +270,7 @@ class RoomWorkoutRepository @Inject constructor(
         rpe: Int?,
         note: String?,
         setType: SetType,
+        assistanceGrams: Long,
     ): DataResult<Unit> =
         dataResultOf {
             // The editor's field is the real guard; this is the boundary that keeps
@@ -282,8 +287,10 @@ class RoomWorkoutRepository @Inject constructor(
                 reps = reps.coerceAtLeast(1),
                 weightGrams = weightGrams.coerceAtLeast(0L),
                 rpe = rpe,
-                // The role is part of what the set was (ROADMAP N14).
+                // The role is part of what the set was (ROADMAP N14), and so is
+                // what the machine took off (N15).
                 setType = setType,
+                assistanceGrams = assistanceGrams.coerceAtLeast(0L),
                 // A cleared comment is null, not "": one representation of nothing.
                 note = note?.trim()?.ifEmpty { null },
                 updatedAt = timeSource.nowEpochMillis(),

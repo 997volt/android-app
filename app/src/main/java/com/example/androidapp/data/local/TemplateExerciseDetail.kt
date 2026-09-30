@@ -44,6 +44,7 @@ internal fun TemplateSetEntity.toDomain(): TemplateSet = TemplateSet(
     setIndex = setIndex,
     role = role,
     targetWeightGrams = targetWeightGrams,
+    targetAssistanceGrams = targetAssistanceGrams,
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
     targetRpe = targetRpe,

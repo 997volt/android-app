@@ -49,6 +49,8 @@ data class TemplateSet(
     val setIndex: Int,
     val role: SetType = SetType.NORMAL,
     val targetWeightGrams: Long? = null,
+    /** The assistance the plan prescribes, or null (ROADMAP N15). */
+    val targetAssistanceGrams: Long? = null,
     /** The target reps: both ends nullable, since a plan may write only an upper bound. */
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,

@@ -88,4 +88,41 @@ class SetSuggestionTest {
         assertEquals(DEFAULT_REPS, suggestion.reps)
         assertEquals(Weight.DEFAULT_GRAMS, suggestion.weightGrams)
     }
+
+    @Test
+    fun aPlanThatPrescribesAssistance_prefillsIt() {
+        // ROADMAP N15: the assisted pull-up plan is a column of negative numbers, and
+        // the workout has to show them back.
+        val suggestion = suggestionForNextSet(
+            loggedSets = emptyList(),
+            previous = null,
+            nextIndex = 0,
+            planned = PlannedTarget(reps = 8, weightGrams = null, assistanceGrams = 20_000L),
+        )
+
+        assertEquals(8, suggestion.reps)
+        assertEquals(20_000L, suggestion.assistanceGrams)
+        // And no weight: an assisted set that also carried the fallback's default
+        // would report 20 kg of volume for a set the machine did the work on.
+        assertEquals(0L, suggestion.weightGrams)
+    }
+
+    @Test
+    fun repeatingASet_repeatsItsAssistance() {
+        val suggestion = suggestionForNextSet(
+            loggedSets = listOf(
+                SetRow(
+                    id = "s1",
+                    number = 1,
+                    reps = 8,
+                    weightGrams = 0L,
+                    assistanceGrams = 20_000L,
+                ),
+            ),
+            previous = null,
+            nextIndex = 1,
+        )
+
+        assertEquals(20_000L, suggestion.assistanceGrams)
+    }
 }

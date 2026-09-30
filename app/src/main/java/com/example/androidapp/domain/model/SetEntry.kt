@@ -16,6 +16,13 @@ data class SetEntry(
     val setIndex: Int,
     val reps: Int,
     val weightGrams: Long,
+    /**
+     * How much assistance the machine gave, in grams, or 0 for none (ROADMAP N15).
+     *
+     * Not a signed weight: an assisted pull-up is not negative tonnage. Volume counts
+     * `weightGrams * reps` alone, so an assisted set contributes nothing.
+     */
+    val assistanceGrams: Long = 0,
     val setType: SetType = SetType.NORMAL,
     /** Perceived effort, 1–10, or null when none was recorded (ROADMAP N6). */
     val rpe: Int? = null,

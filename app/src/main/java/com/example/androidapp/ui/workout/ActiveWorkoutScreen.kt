@@ -118,7 +118,7 @@ fun ActiveWorkoutScreen(
     clock: State<WorkoutClock>,
     onAddExercise: () -> Unit,
     onLogSet: (String) -> Unit,
-    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onDeleteSet: (String) -> Unit,
     onUndoDelete: () -> Unit,
@@ -205,7 +205,7 @@ fun ActiveWorkoutScreen(
 @Composable
 private fun SetEditorSection(
     set: SetRow?,
-    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (set == null) return
@@ -217,7 +217,15 @@ private fun SetEditorSection(
         initialNote = set.note,
         onDismiss = onDismiss,
         onSave = { edit ->
-            onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note, edit.setType)
+            onUpdateSet(
+                set.id,
+                edit.reps,
+                edit.weightGrams,
+                edit.rpe,
+                edit.note,
+                edit.setType,
+                edit.assistanceGrams,
+            )
             onDismiss()
         },
     )
@@ -621,7 +629,7 @@ private fun ActiveWorkoutScreenPreview() {
             },
             onAddExercise = {},
             onLogSet = {},
-            onUpdateSet = { _, _, _, _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _, _, _ -> },
             onRemoveExercise = {},
             onDeleteSet = {},
             onUndoDelete = {},

@@ -85,7 +85,7 @@ fun WorkoutDetailRoute(
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutDetailUiState,
-    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit,
     onDeleteSet: (String) -> Unit,
     onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onDeleteWorkout: () -> Unit,
@@ -136,6 +136,7 @@ fun WorkoutDetailScreen(
                     edit.rpe,
                     edit.note,
                     edit.setType,
+                    edit.assistanceGrams,
                 )
                 editing = null
             },
@@ -370,7 +371,7 @@ private fun HistorySetRow(
                     Text(
                         text = stringResource(
                             R.string.set_summary,
-                            Weight.kilograms(set.weightGrams),
+                            Weight.display(set.weightGrams, set.assistanceGrams),
                             set.reps,
                         ),
                         style = MaterialTheme.typography.bodyLarge,
@@ -432,7 +433,7 @@ private fun WorkoutDetailScreenPreview() {
                     ),
                 ),
             ),
-            onUpdateSet = { _, _, _, _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _, _, _ -> },
             onDeleteSet = {},
             onRateExercise = { _, _, _, _ -> },
             onDeleteWorkout = {},

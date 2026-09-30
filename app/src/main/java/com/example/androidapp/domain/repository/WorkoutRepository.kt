@@ -126,6 +126,8 @@ interface WorkoutRepository {
         reps: Int,
         weightGrams: Long,
         setType: SetType = SetType.NORMAL,
+        /** The machine's assistance, as a magnitude (ROADMAP N15). */
+        assistanceGrams: Long = 0,
     ): DataResult<Unit>
 
     /**
@@ -142,6 +144,8 @@ interface WorkoutRepository {
         note: String? = null,
         /** The role the set was performed as (ROADMAP N14). */
         setType: SetType = SetType.NORMAL,
+        /** The machine's assistance, as a magnitude (ROADMAP N15). */
+        assistanceGrams: Long = 0,
     ): DataResult<Unit>
 
     suspend fun deleteSet(setId: String): DataResult<Unit>

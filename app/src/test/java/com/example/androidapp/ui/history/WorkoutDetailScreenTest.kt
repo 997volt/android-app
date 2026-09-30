@@ -63,7 +63,8 @@ class WorkoutDetailScreenTest {
 
     private fun setScreen(
         uiState: WorkoutDetailUiState = state,
-        onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit = { _, _, _, _, _, _ -> },
+        onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit =
+        { _, _, _, _, _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
         onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},

@@ -118,6 +118,8 @@ data class SetDto(
     val setIndex: Int,
     val reps: Int,
     val weightGrams: Long,
+    /** The machine's assistance in grams, 0 for none (ROADMAP N15). */
+    val assistanceGrams: Long = 0,
     val setType: SetType,
     /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N6). */
     val rpe: Int? = null,
@@ -158,6 +160,7 @@ data class TemplateSetDto(
     val setIndex: Int,
     val role: SetType,
     val targetWeightGrams: Long? = null,
+    val targetAssistanceGrams: Long? = null,
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
     val targetRpe: Int? = null,

@@ -338,4 +338,25 @@ class WorkoutEditingTest {
         )
         return session.id
     }
+
+    @Test
+    fun anAssistedSet_takesNothingOffTheVolume() = runTest {
+        // ROADMAP N15: assistance is a separate magnitude, so volume stays
+        // `weight × reps`. A signed weight would have made this set subtract, which
+        // is the whole reason it is not one.
+        seedFinishedWorkout()
+        repository.updateSet(
+            setId = "set1",
+            reps = 8,
+            weightGrams = 20_000L,
+            assistanceGrams = 20_000L,
+        )
+
+        val stored = database.workoutDao().findSetById("set1")!!
+        assertEquals(20_000L, stored.assistanceGrams)
+        assertEquals("the weight is what was added, not netted", 20_000L, stored.weightGrams)
+
+        // 20 kg × 8 is 160 kg; the 20 kg of help is not subtracted from it.
+        assertEquals(160_000L, historyVolume())
+    }
 }

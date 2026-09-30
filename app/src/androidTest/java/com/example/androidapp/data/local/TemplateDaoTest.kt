@@ -253,6 +253,7 @@ class TemplateDaoTest {
         setIndex = setIndex,
         role = SetType.NORMAL,
         targetWeightGrams = 100_000L,
+        targetAssistanceGrams = null,
         targetRepsMin = 3,
         targetRepsMax = 3,
         targetRpe = 8,

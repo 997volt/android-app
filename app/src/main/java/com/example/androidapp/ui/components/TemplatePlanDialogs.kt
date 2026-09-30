@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
+import com.example.androidapp.domain.Load
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.TemplateSet
@@ -237,21 +238,29 @@ data class TemplateSetDraft(
 ) {
     constructor(edit: TemplateSetEdit) : this(
         role = edit.role,
-        weightText = edit.targetWeightGrams?.let { Weight.kilograms(it) }.orEmpty(),
+        weightText = if (edit.targetWeightGrams != null || edit.targetAssistanceGrams != null) {
+            Weight.display(edit.targetWeightGrams ?: 0L, edit.targetAssistanceGrams ?: 0L)
+        } else {
+            ""
+        },
         repsMinText = edit.targetRepsMin?.toString().orEmpty(),
         repsMaxText = edit.targetRepsMax?.toString().orEmpty(),
         rpeText = edit.targetRpe?.toString().orEmpty(),
         note = edit.note.orEmpty(),
     )
 
-    val weight: Long? get() = Weight.parseKilograms(weightText)
+    // The plan writes assistance the same way a set does: -20 in the weight field
+    // (ROADMAP N15).
+    val load: Load? get() = Weight.parseLoad(weightText)
+    val weight: Long? get() = load?.weightGrams
+    val assistanceGrams: Long? get() = load?.assistanceGrams
     val repsMin: Int? get() = repsMinText.trim().ifEmpty { null }?.toIntOrNull()
     val repsMax: Int? get() = repsMaxText.trim().ifEmpty { null }?.toIntOrNull()
     val rpe: Int? get() = rpeText.trim().ifEmpty { null }?.toIntOrNull()
 
     // Blank is allowed everywhere; anything typed has to be a usable number, and a
     // range that runs backwards is refused rather than silently swapped.
-    val weightIsValid: Boolean get() = weightText.isBlank() || weight != null
+    val weightIsValid: Boolean get() = weightText.isBlank() || load != null
     val repsAreValid: Boolean
         get() {
             // Read once into locals: a computed property has a custom getter, so Kotlin
@@ -268,6 +277,7 @@ data class TemplateSetDraft(
     fun toEdit() = TemplateSetEdit(
         role = role,
         targetWeightGrams = weight,
+        targetAssistanceGrams = assistanceGrams?.takeIf { it > 0L },
         targetRepsMin = repsMin,
         targetRepsMax = repsMax,
         targetRpe = rpe,
@@ -365,8 +375,13 @@ private fun RoleSelector(role: SetType, onSelect: (SetType) -> Unit) {
 /** `100 kg × 3`, `× 3–5`, `RPE 8` — whatever the plan actually wrote, in one line. */
 @Composable
 private fun TemplateSet.summary(): String {
-    val weight = targetWeightGrams?.let {
-        stringResource(R.string.template_set_weight_value, Weight.kilograms(it))
+    val weight = if (targetWeightGrams != null || targetAssistanceGrams != null) {
+        stringResource(
+            R.string.template_set_weight_value,
+            Weight.display(targetWeightGrams ?: 0L, targetAssistanceGrams ?: 0L),
+        )
+    } else {
+        null
     }
     val reps = when {
         targetRepsMin != null && targetRepsMax != null ->

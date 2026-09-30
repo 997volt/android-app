@@ -89,14 +89,44 @@ class SetEditorDialogTest {
     }
 
     @Test
-    fun steppingWeightDown_stopsAtZero() {
+    fun steppingWeightDown_pastZero_becomesAssistance() {
+        // The field is one signed number (ROADMAP N15): 1 kg down twice is 1 − 2.5,
+        // and a *negative* weight is still impossible — it is assistance instead.
+        // Stepping is how a machine's help is reached without typing a minus.
         show(weightGrams = 1_000L)
 
-        composeTestRule.onNodeWithTag(TestTags.SET_DECREASE_WEIGHT).performClick()
+        // One step down from 1 kg: 1 − 2.5.
         composeTestRule.onNodeWithTag(TestTags.SET_DECREASE_WEIGHT).performClick()
 
-        // Clamped by Weight.step, not by a second copy of the rule here.
-        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("0")
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("-1.5")
+    }
+
+    @Test
+    fun typingAMinus_storesAssistance_againstAZeroWeight() {
+        // ROADMAP N15: one field, two columns.
+        show(weightGrams = 0L)
+
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).performTextClearance()
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).performTextInput("-20")
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(0L, saved?.weightGrams)
+        assertEquals(20_000L, saved?.assistanceGrams)
+    }
+
+    @Test
+    fun anAssistedSet_opensShowingTheMinus() {
+        composeTestRule.setContent {
+            SetEditorDialog(
+                initialReps = 8,
+                initialWeightGrams = 0L,
+                initialAssistanceGrams = 20_000L,
+                onDismiss = {},
+                onSave = { saved = it },
+            )
+        }
+
+        composeTestRule.onNodeWithTag(TestTags.SET_WEIGHT_FIELD).assertTextContains("-20")
     }
 
     @Test

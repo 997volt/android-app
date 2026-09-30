@@ -30,6 +30,8 @@ data class HistorySet(
     val rpe: Int? = null,
     /** The set's comment, or null (ROADMAP N6). */
     val note: String? = null,
+    /** The machine's assistance, 0 for none (ROADMAP N15). */
+    val assistanceGrams: Long = 0,
 )
 
 /** An exercise within a past workout, with everything that was logged for it. */
@@ -138,8 +140,17 @@ class WorkoutDetailViewModel @Inject constructor(
         rpe: Int? = null,
         note: String? = null,
         setType: SetType = SetType.NORMAL,
+        assistanceGrams: Long = 0,
     ) = write {
-        workoutRepository.updateSet(setId, reps, weightGrams, rpe, note, setType)
+        workoutRepository.updateSet(
+            setId = setId,
+            reps = reps,
+            weightGrams = weightGrams,
+            rpe = rpe,
+            note = note,
+            setType = setType,
+            assistanceGrams = assistanceGrams,
+        )
     }
 
     fun onDeleteSet(setId: String) = write {

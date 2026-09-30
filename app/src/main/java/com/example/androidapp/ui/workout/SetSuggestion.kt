@@ -1,11 +1,17 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.Load
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.TemplateExercise
 
 /** The values a new set will be logged with, before the user adjusts them. */
-data class SetSuggestion(val reps: Int, val weightGrams: Long)
+data class SetSuggestion(
+    val reps: Int,
+    val weightGrams: Long,
+    /** The assistance to prefill, or 0 for none (ROADMAP N15). */
+    val assistanceGrams: Long = 0,
+)
 
 /**
  * What a plan prescribes for one set, or nulls where it prescribes nothing
@@ -14,7 +20,12 @@ data class SetSuggestion(val reps: Int, val weightGrams: Long)
  * Both fields nullable, because a plan may say "work up to a heavy single" and mean
  * it: there is no weight to prefill, and a zero would be a claim.
  */
-data class PlannedTarget(val reps: Int?, val weightGrams: Long?)
+data class PlannedTarget(
+    val reps: Int?,
+    val weightGrams: Long?,
+    /** The assistance the plan prescribes, or null (ROADMAP N15). */
+    val assistanceGrams: Long? = null,
+)
 
 /**
  * Chooses what to prefill the next set with (ROADMAP P1.3, N14).
@@ -37,19 +48,37 @@ fun suggestionForNextSet(
 ): SetSuggestion {
     val withoutPlan = when {
         // Repeating what you just did is almost always right within a session.
-        loggedSets.isNotEmpty() -> loggedSets.last().let { SetSuggestion(it.reps, it.weightGrams) }
+        loggedSets.isNotEmpty() -> loggedSets.last().let {
+            SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
+        }
+
         // Otherwise start from what you did last time you trained this.
-        previous?.at(nextIndex) != null ->
-            previous.at(nextIndex)!!.let { SetSuggestion(it.reps, it.weightGrams) }
+        previous?.at(nextIndex) != null -> previous.at(nextIndex)!!.let {
+            SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
+        }
 
         else -> SetSuggestion(reps = DEFAULT_REPS, weightGrams = Weight.DEFAULT_GRAMS)
     }
     if (planned == null) return withoutPlan
 
+    // A plan's load is *one* number: `-20` is 20 kg of help and no added weight, and
+    // `100` is 100 kg and no help. Taking the half it names and the other half from
+    // the fallback would build a set that is both — which would count the default
+    // 20 kg as volume on an assisted set, the exact corruption a signed weight was
+    // rejected for (ROADMAP N15).
+    val plannedLoad = when {
+        planned.assistanceGrams != null && planned.assistanceGrams > 0L ->
+            Load(weightGrams = 0L, assistanceGrams = planned.assistanceGrams)
+
+        planned.weightGrams != null -> Load(planned.weightGrams, assistanceGrams = 0L)
+        else -> null
+    }
+
     return SetSuggestion(
         // The upper bound is the one that matters in a written plan (`max 2`).
         reps = planned.reps ?: withoutPlan.reps,
-        weightGrams = planned.weightGrams ?: withoutPlan.weightGrams,
+        weightGrams = plannedLoad?.weightGrams ?: withoutPlan.weightGrams,
+        assistanceGrams = plannedLoad?.assistanceGrams ?: withoutPlan.assistanceGrams,
     )
 }
 
@@ -73,6 +102,7 @@ fun plannedTargetFor(
         PlannedTarget(
             reps = set.targetRepsMax ?: set.targetRepsMin,
             weightGrams = set.targetWeightGrams,
+            assistanceGrams = set.targetAssistanceGrams,
         )
     }
 

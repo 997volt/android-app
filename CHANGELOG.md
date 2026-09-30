@@ -8,6 +8,16 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Assisted load.** An assisted pull-up can be written down at last: the load field
+  takes a leading minus, so `-20` means the machine took 20 kg off. What is stored is a
+  separate `assistanceGrams` — a magnitude, never a signed weight — which is what keeps
+  an assisted set from reporting *negative* tonnage and corrupting every volume trend.
+  Volume stays `weight × reps`, so an assisted set contributes what it should: nothing,
+  exactly as bodyweight does. A plan can prescribe assistance too, and the prefill
+  carries it into the workout.
+- Migration **12→13** adds `set_entries.assistanceGrams`, defaulting to 0 so every set
+  already recorded keeps meaning what it meant, and a nullable `targetAssistanceGrams`
+  on a plan's sets.
 - **Templates are plans now.** A template exercise carries planned sets — a role,
   a target weight, a target rep range, a target RPE and a note — plus the rest and cue
   the plan prescribes for that exercise. Starting a workout from a template prefills

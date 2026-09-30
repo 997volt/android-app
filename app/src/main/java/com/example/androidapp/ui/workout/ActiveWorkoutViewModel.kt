@@ -51,6 +51,8 @@ data class SetRow(
     val note: String? = null,
     /** The role it was performed as (ROADMAP N14). */
     val setType: SetType = SetType.NORMAL,
+    /** The machine's assistance, 0 for none (ROADMAP N15). */
+    val assistanceGrams: Long = 0,
 )
 
 /** One exercise in the workout, with its sets and what the next set will prefill. */
@@ -450,9 +452,20 @@ class ActiveWorkoutViewModel @Inject constructor(
         rpe: Int? = null,
         note: String? = null,
         setType: SetType = SetType.NORMAL,
+        assistanceGrams: Long = 0,
     ) {
         viewModelScope.launch {
-            handle(workoutRepository.updateSet(setId, reps, weightGrams, rpe, note, setType))
+            handle(
+                workoutRepository.updateSet(
+                    setId = setId,
+                    reps = reps,
+                    weightGrams = weightGrams,
+                    rpe = rpe,
+                    note = note,
+                    setType = setType,
+                    assistanceGrams = assistanceGrams,
+                ),
+            )
         }
     }
 
@@ -672,6 +685,7 @@ class ActiveWorkoutViewModel @Inject constructor(
                     rpe = set.rpe,
                     note = set.note,
                     setType = set.setType,
+                    assistanceGrams = set.assistanceGrams,
                 )
             }
 
@@ -694,7 +708,13 @@ class ActiveWorkoutViewModel @Inject constructor(
                 planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
             ),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->
-                SetRow(id = first.id, number = 1, reps = first.reps, weightGrams = first.weightGrams)
+                SetRow(
+                    id = first.id,
+                    number = 1,
+                    reps = first.reps,
+                    weightGrams = first.weightGrams,
+                    assistanceGrams = first.assistanceGrams,
+                )
             },
         )
     }

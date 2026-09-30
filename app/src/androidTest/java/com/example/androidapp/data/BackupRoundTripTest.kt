@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -83,6 +84,7 @@ class BackupRoundTripTest {
         // The values that matter survived, not just the row counts.
         val set = database.backupDao().allSets().single()
         assertEquals(100_000L, set.weightGrams)
+        assertEquals("the assistance survived too", 20_000L, set.assistanceGrams)
         assertEquals(5, set.reps)
         assertEquals(SetType.WARMUP, set.setType)
 
@@ -268,7 +270,10 @@ class BackupRoundTripTest {
                 templateExerciseId = "template-exercise-1",
                 setIndex = 0,
                 role = SetType.TOP_SET,
-                targetWeightGrams = 140_000L,
+                // An assisted plan target: the column the codec must name (N15), and
+                // null weight beside it, because a plan's load is one number.
+                targetWeightGrams = null,
+                targetAssistanceGrams = 20_000L,
                 targetRepsMin = 1,
                 targetRepsMax = 2,
                 targetRpe = 9,
@@ -286,6 +291,7 @@ class BackupRoundTripTest {
                 setIndex = 0,
                 reps = 5,
                 weightGrams = 100_000L,
+                assistanceGrams = 20_000L,
                 setType = SetType.WARMUP,
                 completedAt = 2_000L,
                 createdAt = 2_000L,
@@ -329,7 +335,8 @@ class BackupRoundTripTest {
         assertEquals(1, sets.size)
         val set = sets.single()
         assertEquals(SetType.TOP_SET, set.role)
-        assertEquals(140_000L, set.targetWeightGrams)
+        assertNull("an assisted target has no weight of its own", set.targetWeightGrams)
+        assertEquals(20_000L, set.targetAssistanceGrams)
         assertEquals(1, set.targetRepsMin)
         assertEquals(2, set.targetRepsMax)
         assertEquals(9, set.targetRpe)

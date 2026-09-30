@@ -25,6 +25,7 @@ internal fun SetEntryEntity.toDomain(): SetEntry = SetEntry(
     setIndex = setIndex,
     reps = reps,
     weightGrams = weightGrams,
+    assistanceGrams = assistanceGrams,
     setType = setType,
     rpe = rpe,
     note = note,

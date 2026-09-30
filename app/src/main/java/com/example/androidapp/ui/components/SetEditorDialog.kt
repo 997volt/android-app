@@ -59,12 +59,14 @@ fun SetEditorDialog(
     initialRpe: Int? = null,
     initialNote: String? = null,
     initialSetType: SetType = SetType.NORMAL,
+    initialAssistanceGrams: Long = 0,
 ) {
     var draft by remember {
         mutableStateOf(
             SetDraft(
                 repsText = initialReps.toString(),
-                weightText = Weight.kilograms(initialWeightGrams),
+                // Shown as one signed number: -20 is 20 kg of assistance (N15).
+                weightText = Weight.display(initialWeightGrams, initialAssistanceGrams),
                 rpeText = initialRpe?.toString().orEmpty(),
                 noteText = initialNote.orEmpty(),
                 setType = initialSetType,
@@ -131,7 +133,8 @@ private fun SetEditorDialogContent(
     modifier: Modifier = Modifier,
 ) {
     val parsedReps = draft.repsText.toIntOrNull()?.takeIf { it > 0 }
-    val parsedWeight = Weight.parseKilograms(draft.weightText)
+    // One field, two columns: a leading minus is assistance (ROADMAP N15).
+    val parsedLoad = Weight.parseLoad(draft.weightText)
     val parsedRpe = draft.rpeText.trim().ifEmpty { null }?.toIntOrNull()
     // Blank is valid; anything typed has to parse *and* sit on the scale.
     val rpeIsValid = draft.rpeText.isBlank() || (parsedRpe != null && TenPointScale.isValid(parsedRpe))
@@ -157,13 +160,14 @@ private fun SetEditorDialogContent(
         confirmButton = {
             TextButton(
                 modifier = Modifier.testTag(TestTags.SET_SAVE),
-                enabled = parsedReps != null && parsedWeight != null && rpeIsValid,
+                enabled = parsedReps != null && parsedLoad != null && rpeIsValid,
                 onClick = {
                     onSave(
                         SetEdit(
                             reps = parsedReps ?: 0,
-                            weightGrams = parsedWeight ?: 0L,
+                            weightGrams = parsedLoad?.weightGrams ?: 0L,
                             setType = draft.setType,
+                            assistanceGrams = parsedLoad?.assistanceGrams ?: 0L,
                             // Out of range is already excluded by `enabled`.
                             rpe = parsedRpe?.takeIf { TenPointScale.isValid(it) },
                             note = draft.noteText.trim().ifEmpty { null },
@@ -187,7 +191,7 @@ private fun SetEditorDialogContent(
 
 @Composable
 private fun SetEditorNumbers(draft: SetDraft, onDraftChange: (SetDraft) -> Unit) {
-    val parsedWeight = Weight.parseKilograms(draft.weightText)
+    val parsedLoad = Weight.parseLoad(draft.weightText)
     val parsedReps = draft.repsText.toIntOrNull()?.takeIf { it > 0 }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -199,14 +203,16 @@ private fun SetEditorNumbers(draft: SetDraft, onDraftChange: (SetDraft) -> Unit)
             value = draft.weightText,
             onValueChange = { onDraftChange(draft.copy(weightText = it)) },
             keyboardType = KeyboardType.Decimal,
-            // Wired to Weight.step, which had tests and no callers: the clamp at
-            // zero lives there rather than being re-implemented.
+            // Steps the signed number on screen (ROADMAP N15), so + on an assisted
+            // set reduces the help rather than deepening it.
             onStep = { delta ->
+                val stepped = Weight.stepLoad(
+                    signedGrams = parsedLoad?.signedGrams ?: 0L,
+                    deltaGrams = delta * Weight.DEFAULT_STEP_GRAMS,
+                )
                 onDraftChange(
                     draft.copy(
-                        weightText = Weight.kilograms(
-                            Weight.step(parsedWeight ?: 0L, delta * Weight.DEFAULT_STEP_GRAMS),
-                        ),
+                        weightText = Weight.display(stepped.weightGrams, stepped.assistanceGrams),
                     ),
                 )
             },

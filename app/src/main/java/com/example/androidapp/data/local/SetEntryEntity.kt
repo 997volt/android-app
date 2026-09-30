@@ -33,6 +33,15 @@ data class SetEntryEntity(
     val setIndex: Int,
     val reps: Int,
     val weightGrams: Long,
+    /**
+     * How much the machine took off, in grams, or 0 for none (ROADMAP N15).
+     *
+     * A separate column rather than a signed weight: assistance is not negative
+     * tonnage, and a sign would make an assisted set subtract from volume — quietly
+     * corrupting every trend built on it. Volume stays `weightGrams * reps`, so an
+     * assisted set contributes nothing, exactly as bodyweight does.
+     */
+    val assistanceGrams: Long = 0,
     val setType: SetType,
     /**
      * Perceived effort, 1–10, or null when the set was logged without one

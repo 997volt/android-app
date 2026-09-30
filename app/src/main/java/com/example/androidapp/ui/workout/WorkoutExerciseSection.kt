@@ -297,7 +297,7 @@ private fun ExerciseSets(
                         R.string.set_log,
                         stringResource(
                             R.string.set_summary,
-                            Weight.kilograms(row.suggestion.weightGrams),
+                            Weight.display(row.suggestion.weightGrams, row.suggestion.assistanceGrams),
                             row.suggestion.reps,
                         ),
                     ),
@@ -339,7 +339,11 @@ private fun ExerciseNames(row: SessionExerciseRow, modifier: Modifier = Modifier
             Text(
                 text = stringResource(
                     R.string.set_last_time,
-                    stringResource(R.string.set_summary, Weight.kilograms(last.weightGrams), last.reps),
+                    stringResource(
+                        R.string.set_summary,
+                        Weight.display(last.weightGrams, last.assistanceGrams),
+                        last.reps,
+                    ),
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -393,7 +397,7 @@ private fun SetLine(
             Text(
                 text = stringResource(
                     R.string.set_summary,
-                    Weight.kilograms(set.weightGrams),
+                    Weight.display(set.weightGrams, set.assistanceGrams),
                     set.reps,
                 ),
                 style = MaterialTheme.typography.bodyLarge,

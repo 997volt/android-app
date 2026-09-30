@@ -1,5 +1,6 @@
 package com.example.androidapp.domain
 
+import com.example.androidapp.domain.Load
 import java.time.Duration
 import java.time.Instant
 import org.junit.Assert.assertEquals
@@ -126,5 +127,46 @@ class RestTimerTest {
         assertEquals("0:05", RestTimer.format(5))
         assertEquals("0:00", RestTimer.format(0))
         assertEquals("0:00", RestTimer.format(-10))
+    }
+
+    @Test
+    fun aLoadIsAWeightOrAssistance_dependingOnTheSign() {
+        // One field, two columns: the sign is how assistance is said (ROADMAP N15).
+        assertEquals(Load(weightGrams = 100_000L, assistanceGrams = 0L), Weight.parseLoad("100"))
+        assertEquals(Load(weightGrams = 0L, assistanceGrams = 20_000L), Weight.parseLoad("-20"))
+        assertEquals(Load(0L, 20_000L), Weight.parseLoad("  -20  "))
+        assertEquals(Load(0L, 500L), Weight.parseLoad("-0,5"))
+        assertEquals(Load(60_000L, 0L), Weight.parseLoad("60.0"))
+    }
+
+    @Test
+    fun aLoadThatIsNotANumber_isNull_ratherThanZero() {
+        assertNull(Weight.parseLoad(""))
+        assertNull(Weight.parseLoad("heavy"))
+        assertNull(Weight.parseLoad("--20"))
+        assertNull(Weight.parseLoad("-"))
+        assertNull(Weight.parseLoad("20-"))
+    }
+
+    @Test
+    fun anAssistedLoad_showsTheMinusBack() {
+        assertEquals("-20", Weight.display(weightGrams = 0L, assistanceGrams = 20_000L))
+        assertEquals("20", Weight.display(weightGrams = 20_000L, assistanceGrams = 0L))
+        assertEquals("0", Weight.display(0L, 0L))
+        // Assistance wins when both are set, which the editor cannot produce: it is
+        // the number that changes how the set reads.
+        assertEquals("-20", Weight.display(20_000L, 20_000L))
+    }
+
+    @Test
+    fun steppingAnAssistedLoad_movesTowardLessHelp_thenBecomesAWeight() {
+        // + on -20 is a harder set, which is what the number on screen means.
+        assertEquals(Load(0L, 17_500L), Weight.stepLoad(signedGrams = -20_000L, deltaGrams = 2_500L))
+        assertEquals(Load(0L, 22_500L), Weight.stepLoad(signedGrams = -20_000L, deltaGrams = -2_500L))
+        // Crossing zero in either direction swaps which half is set, because the
+        // field is one signed number. Stepping down past 0 kg therefore *enters*
+        // assistance, which is how a machine's help is reached without typing.
+        assertEquals(Load(2_500L, 0L), Weight.stepLoad(signedGrams = -2_500L, deltaGrams = 5_000L))
+        assertEquals(Load(0L, 2_500L), Weight.stepLoad(signedGrams = 0L, deltaGrams = -2_500L))
     }
 }

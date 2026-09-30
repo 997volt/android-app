@@ -332,4 +332,26 @@ class BackupCodecTest {
         assertNull(set.targetRepsMax)
         assertNull(set.targetRpe)
     }
+
+    @Test
+    fun aFileWrittenBeforeAssistanceExisted_stillDecodes_seeingNone() {
+        // N15 added a column to sets and a target to plans. A file from before it must
+        // decode with 0 and null — "no assistance" — rather than fail or invent one.
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val sets = tree["sets"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject - "assistanceGrams")
+        }
+        val planSets = tree["templateSets"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject - "targetAssistanceGrams")
+        }
+        val olderFile = JsonObject(
+            tree + ("sets" to JsonArray(sets)) + ("templateSets" to JsonArray(planSets)),
+        )
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertEquals(0L, restored.sets.first().assistanceGrams)
+        assertNull(restored.templateSets.first().targetAssistanceGrams)
+    }
 }

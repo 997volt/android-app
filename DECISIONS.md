@@ -43,6 +43,13 @@ into this file once the feature ships.
   (N14, extending N5). They are copied onto the session exercise when it is seeded from
   a plan, so a workout started from a plan that says "3m break" counts 3m.
 
+- **Assistance is a magnitude in its own column, never a signed weight** (N15).
+  `weightGrams` stays non-negative and volume stays `weight * reps`, so an assisted set
+  contributes nothing rather than subtracting — a sign would have quietly corrupted
+  every volume trend. The editor shows the load as one signed number (`-20`), and the
+  steppers step *that* number, so pressing + on an assisted set reduces the help; the
+  weight column itself still cannot go below zero.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

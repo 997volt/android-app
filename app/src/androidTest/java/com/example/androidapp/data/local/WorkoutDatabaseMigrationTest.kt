@@ -520,4 +520,63 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration12To13_addsAssistance_defaultingToNone() {
+        // A v12 database with a real set in it: every set already recorded took no
+        // assistance, so the column must arrive as 0 rather than as null or a value
+        // that would have to be guessed (ROADMAP N15).
+        helper.createDatabase(TEST_DB, 12).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('assisted-pull-up', 'Assisted Pull-Up', 'BACK', '', 'MACHINE',
+                     'PULL', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, finishedAt, muscleFeel,
+                     jointPain, jointPainNote, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'assisted-pull-up', 0, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO set_entries
+                    (id, sessionExerciseId, setIndex, reps, weightGrams, setType,
+                     rpe, note, completedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('set1', 'se1', 0, 8, 0, 'NORMAL', NULL, NULL, 1, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 13, true, MIGRATION_12_13)
+
+        migrated.query("SELECT assistanceGrams, weightGrams FROM set_entries").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("an old set took no assistance", 0, cursor.getInt(0))
+            assertEquals("and its weight is untouched", 0, cursor.getInt(1))
+        }
+        // The plan's target is nullable: a plan may say nothing about assistance.
+        migrated.query("SELECT COUNT(*) FROM template_sets").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
 }

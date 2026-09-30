@@ -127,6 +127,7 @@ class RoomTemplateRepository @Inject constructor(
                 setIndex = dao.maxSetIndex(templateExerciseId) + 1,
                 role = edit.role,
                 targetWeightGrams = edit.targetWeightGrams,
+                targetAssistanceGrams = edit.targetAssistanceGrams,
                 targetRepsMin = edit.targetRepsMin,
                 targetRepsMax = edit.targetRepsMax,
                 targetRpe = edit.targetRpe,
@@ -147,6 +148,7 @@ class RoomTemplateRepository @Inject constructor(
                 stored.copy(
                     role = edit.role,
                     targetWeightGrams = edit.targetWeightGrams,
+                    targetAssistanceGrams = edit.targetAssistanceGrams,
                     targetRepsMin = edit.targetRepsMin,
                     targetRepsMax = edit.targetRepsMax,
                     targetRpe = edit.targetRpe,
@@ -241,10 +243,27 @@ class RoomTemplateRepository @Inject constructor(
      * weight, a zero-rep set, or a range that runs backwards.
      */
     private fun validate(edit: TemplateSetEdit) {
+        validateLoad(edit)
+        validateEffort(edit)
+    }
+
+    /** A load is a weight or a magnitude of assistance, never a negative either way. */
+    private fun validateLoad(edit: TemplateSetEdit) {
         val problem = when {
             edit.targetWeightGrams != null && edit.targetWeightGrams < 0 ->
                 "A target weight cannot be negative."
 
+            edit.targetAssistanceGrams != null && edit.targetAssistanceGrams < 0 ->
+                "Assistance is a magnitude, not a negative weight."
+
+            else -> null
+        }
+        if (problem != null) throw InvalidInputException(problem)
+    }
+
+    /** Reps are a range that can be absent at either end, and RPE sits on the scale. */
+    private fun validateEffort(edit: TemplateSetEdit) {
+        val problem = when {
             edit.targetRepsMin != null && edit.targetRepsMin < 1 -> "Target reps must be at least 1."
             edit.targetRepsMax != null && edit.targetRepsMax < 1 -> "Target reps must be at least 1."
             edit.targetRepsMin != null && edit.targetRepsMax != null &&
@@ -256,8 +275,6 @@ class RoomTemplateRepository @Inject constructor(
 
             else -> null
         }
-        // One throw: the caller's contract is the same whichever target is unusable,
-        // and the message is what the user reads.
         if (problem != null) throw InvalidInputException(problem)
     }
 

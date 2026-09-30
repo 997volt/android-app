@@ -38,6 +38,8 @@ data class TemplateSetEntity(
     val setIndex: Int,
     val role: SetType,
     val targetWeightGrams: Long?,
+    /** How much assistance the plan prescribes, or null (ROADMAP N15). */
+    val targetAssistanceGrams: Long?,
     /**
      * The target reps, as a range with both ends nullable (ROADMAP N14).
      *

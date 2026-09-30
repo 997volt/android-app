@@ -288,6 +288,25 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * v12 -> v13: assisted load (ROADMAP N15).
+ *
+ * `set_entries.assistanceGrams` defaults to 0 — "the machine took nothing off" — so
+ * every set already recorded keeps meaning exactly what it meant. On a plan's set the
+ * target is nullable instead, because a plan may say nothing about assistance, and
+ * only the performed set needs a definite answer.
+ */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE `set_entries` ADD COLUMN `assistanceGrams` INTEGER NOT NULL DEFAULT 0",
+        )
+        db.execSQL(
+            "ALTER TABLE `template_sets` ADD COLUMN `targetAssistanceGrams` INTEGER",
+        )
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -301,4 +320,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_9_10,
     MIGRATION_10_11,
     MIGRATION_11_12,
+    MIGRATION_12_13,
 )

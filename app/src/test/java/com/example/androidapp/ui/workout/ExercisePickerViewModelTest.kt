@@ -364,6 +364,7 @@ class ExercisePickerViewModelTest {
             reps: Int,
             weightGrams: Long,
             setType: SetType,
+        assistanceGrams: Long,
         ): DataResult<Unit> = unused()
         override suspend fun updateSet(
             setId: String,
@@ -372,6 +373,7 @@ class ExercisePickerViewModelTest {
             rpe: Int?,
             note: String?,
             setType: SetType,
+        assistanceGrams: Long,
         ): DataResult<Unit> = unused()
         override suspend fun deleteSet(setId: String): DataResult<Unit> = unused()
         override suspend fun previousPerformance(

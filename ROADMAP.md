@@ -54,25 +54,10 @@ alone without being forgotten. Settled choices are the other document — see
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next — the rest of the plan
+## Next — a schedule over plans
 
-N14 turned a template into a *plan*; what remains is the load a plan can prescribe and
-the day it belongs to.
-
-### N15 — Assisted load
-
-Assisted work has no representation at all: `weightGrams` is non-negative, capped at
-1000 kg, and `Weight.step` clamps at zero — so the assisted pull-up in that plan
-(`-20, -10, -13, -16`) cannot be written down today.
-
-- **Decided: a separate `assistanceGrams`**, not a signed weight. The editor takes one
-  field that accepts a leading minus and stores the magnitude; the display shows it back
-  as `-20`.
-- **Excluded from volume**, exactly as 0 kg bodyweight is. Letting a weight's sign carry
-  assistance would make a hard assisted set report negative tonnage and quietly corrupt
-  every volume trend built on it — including N13's.
-- Touches parsing, the cap, `step`, the set editor, the plan editor and the backup codec,
-  which is why it is its own item rather than a column inside N14.
+N14 made a template a plan and N15 gave those plans a load. What remains is the day a
+plan belongs to.
 
 ### N16 — Weekly schedule
 
@@ -86,9 +71,8 @@ A template can be pinned to a weekday, and home shows today's plan.
   plan instances would add a plan-per-date entity, plan generation and skipped-week
   handling, to support a comparison the logged sets already allow.
 
-**Order:** N15 next — a plan with an assisted exercise in it cannot be written without
-it, and the plan editor now has somewhere to put the number. N16 last: a schedule
-pointing at the plans N14 built is the last piece, not the first.
+**Order:** N16 is all that is left of this batch, and it can be built now: the plans it
+schedules have targets and a load.
 
 Each takes a migration as it lands (the rule in [DECISIONS.md](DECISIONS.md)); none of
 them needs one before its code exists.

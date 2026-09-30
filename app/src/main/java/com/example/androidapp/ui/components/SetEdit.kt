@@ -16,4 +16,6 @@ data class SetEdit(
     val note: String?,
     /** What kind of set it was (ROADMAP N14): warm-up, working, top set, drop, failure. */
     val setType: SetType = SetType.NORMAL,
+    /** The machine's assistance, 0 for none (ROADMAP N15). */
+    val assistanceGrams: Long = 0,
 )

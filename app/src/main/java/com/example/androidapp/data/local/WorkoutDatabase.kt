@@ -24,7 +24,7 @@ import androidx.room.TypeConverters
         TemplateExerciseEntity::class,
         TemplateSetEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

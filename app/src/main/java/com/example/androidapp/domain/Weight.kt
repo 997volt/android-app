@@ -87,4 +87,52 @@ object Weight {
 
     /** Never negative: a weight below zero is meaningless and would corrupt totals. */
     fun step(grams: Long, deltaGrams: Long): Long = (grams + deltaGrams).coerceAtLeast(0L)
+
+    /**
+     * Steps a *signed* load (ROADMAP N15).
+     *
+     * Below zero there is no floor: assistance is a magnitude that can grow, while a
+     * plain weight still cannot go negative — which is the floor [step] holds.
+     */
+    fun stepLoad(signedGrams: Long, deltaGrams: Long): Load {
+        val stepped = signedGrams + deltaGrams
+        return if (stepped < 0L) Load(weightGrams = 0L, assistanceGrams = -stepped) else Load(stepped, 0L)
+    }
+
+    /**
+     * A load as one typed field: a plain weight, or `-20` for 20 kg of assistance
+     * (ROADMAP N15).
+     *
+     * The sign is how the user *says* assistance; what gets stored is a magnitude in
+     * its own column, because a signed weight would make an assisted set subtract
+     * from volume. One field rather than two because that is how a plan writes it —
+     * "-20, -10, -13, -16" is a column of numbers, not a pair per row.
+     */
+    fun parseLoad(text: String): Load? {
+        val trimmed = text.trim()
+        val assisted = trimmed.startsWith("-")
+        val magnitude = parseKilograms(trimmed.removePrefix("-")) ?: return null
+        return if (assisted) Load(weightGrams = 0L, assistanceGrams = magnitude) else Load(magnitude, 0L)
+    }
+
+    /**
+     * The same field, shown back: `-20` when there is assistance, the weight otherwise.
+     *
+     * Assistance wins the display when a set somehow carries both, which the editor
+     * cannot produce: a machine's help is the number that changes how the set reads.
+     */
+    fun display(weightGrams: Long, assistanceGrams: Long): String =
+        if (assistanceGrams > 0L) "-" + kilograms(assistanceGrams) else kilograms(weightGrams)
+}
+
+/** A typed load, split into the two columns it is stored in (ROADMAP N15). */
+data class Load(val weightGrams: Long, val assistanceGrams: Long) {
+    /**
+     * The same load as one signed number: negative is assistance.
+     *
+     * The steppers work on this, so pressing + on `-20` moves toward `-17.5` — less
+     * help, a harder set — and crossing zero turns it into a plain weight. That is
+     * what the number on screen means, which is the only rule a single field can have.
+     */
+    val signedGrams: Long get() = if (assistanceGrams > 0L) -assistanceGrams else weightGrams
 }

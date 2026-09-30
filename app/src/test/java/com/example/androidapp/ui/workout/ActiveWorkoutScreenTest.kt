@@ -54,7 +54,7 @@ class ActiveWorkoutScreenTest {
                 clock = remember { mutableStateOf(WorkoutClock()) },
                 onAddExercise = {},
                 onLogSet = {},
-                onUpdateSet = { _, _, _, _, _, _ -> },
+                onUpdateSet = { _, _, _, _, _, _, _ -> },
                 onRemoveExercise = actions.onRemoveExercise,
                 onRateExercise = actions.onRateExercise,
                 onFinish = actions.onFinish,

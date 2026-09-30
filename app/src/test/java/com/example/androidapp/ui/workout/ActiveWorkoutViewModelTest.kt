@@ -1043,6 +1043,7 @@ class ActiveWorkoutViewModelTest {
             reps: Int,
             weightGrams: Long,
             setType: SetType,
+        assistanceGrams: Long,
         ): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value + SetEntry(
@@ -1063,6 +1064,7 @@ class ActiveWorkoutViewModelTest {
             rpe: Int?,
             note: String?,
             setType: SetType,
+        assistanceGrams: Long,
         ): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.map {

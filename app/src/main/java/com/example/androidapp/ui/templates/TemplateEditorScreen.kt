@@ -484,6 +484,7 @@ private fun RestAndCue(
 private fun TemplateSet.toEdit() = TemplateSetEdit(
     role = role,
     targetWeightGrams = targetWeightGrams,
+    targetAssistanceGrams = targetAssistanceGrams,
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
     targetRpe = targetRpe,

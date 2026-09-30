@@ -96,6 +96,8 @@ interface TemplateRepository {
 data class TemplateSetEdit(
     val role: SetType = SetType.NORMAL,
     val targetWeightGrams: Long? = null,
+    /** The assistance the plan prescribes, as a magnitude (ROADMAP N15). */
+    val targetAssistanceGrams: Long? = null,
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
     val targetRpe: Int? = null,
