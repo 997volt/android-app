@@ -359,7 +359,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             lastError.value = GONE_FROM_SESSION
             return
         }
-        reopen(id)
+        onReopenExercise(id)
     }
 
     fun onDismissFinishUndo() {
@@ -392,11 +392,12 @@ class ActiveWorkoutViewModel @Inject constructor(
     }
 
     /** Reopens a done exercise from its own button (N7). */
+    /**
+     * Puts a done exercise back into edit (N7): from its own button, or from the
+     * snackbar's undo, which is why both go through here rather than through two
+     * paths that could drift apart.
+     */
     fun onReopenExercise(sessionExerciseId: String) {
-        reopen(sessionExerciseId)
-    }
-
-    private fun reopen(sessionExerciseId: String) {
         viewModelScope.launch {
             when (val result = workoutRepository.reopenExercise(sessionExerciseId)) {
                 is DataResult.Success -> lastError.value = null
@@ -541,12 +542,24 @@ class ActiveWorkoutViewModel @Inject constructor(
             when (val result = workoutRepository.finishSession(sessionId)) {
                 is DataResult.Success -> {
                     lastError.value = null
-                    _closed.value = true
+                    closeSession()
                 }
 
                 is DataResult.Failure -> lastError.value = result.error
             }
         }
+    }
+
+    /**
+     * What "this workout is over" means, in one place.
+     *
+     * Every path that closes the screen goes through here: a workout that is over must
+     * not leave a rest alarm armed, and a path that forgot the cancel would be silent —
+     * exactly what happened when N11 rewrote `onFinish` and skipped `write`.
+     */
+    private fun closeSession() {
+        restNotifier.cancel()
+        _closed.value = true
     }
 
     fun onDiscard() = write(closeAfterwards = true) { sessionId ->
@@ -586,11 +599,7 @@ class ActiveWorkoutViewModel @Inject constructor(
             when (val result = block(sessionId)) {
                 is DataResult.Success -> {
                     lastError.value = null
-                    if (closeAfterwards) {
-                        // A workout that is over must not leave an alarm armed.
-                        restNotifier.cancel()
-                        _closed.value = true
-                    }
+                    if (closeAfterwards) closeSession()
                 }
 
                 is DataResult.Failure -> lastError.value = result.error

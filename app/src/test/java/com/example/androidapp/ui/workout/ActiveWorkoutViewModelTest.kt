@@ -462,7 +462,8 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun finishingMarksTheScreenClosed_andClearsTheSession() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val viewModel = viewModelFor(repository)
+        val notifier = FakeRestNotifier()
+        val viewModel = viewModelFor(repository, notifier)
         observe(viewModel)
         settle()
 
@@ -471,6 +472,28 @@ class ActiveWorkoutViewModelTest {
 
         assertTrue("the screen should leave after finishing", viewModel.closed.value)
         assertEquals(null, viewModel.uiState.value.sessionId)
+        // Asserted here because the code path that does it was rewritten once and the
+        // cancel was lost: a finished workout must not leave a rest alarm armed.
+        assertEquals("finishing must cancel any rest alert", 1, notifier.cancelCount)
+    }
+
+    @Test
+    fun finishingWithAComment_alsoCancelsTheRestAlert() = runTest(dispatcher) {
+        // The comment is written first, so this is a different path to the same close.
+        val repository = FakeWorkoutRepository()
+        val notifier = FakeRestNotifier()
+        val viewModel = viewModelFor(repository, notifier)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        viewModel.onFinish(note = "Good session")
+        settle()
+
+        assertEquals(1, notifier.cancelCount)
     }
 
     @Test
