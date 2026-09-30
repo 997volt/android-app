@@ -57,11 +57,10 @@ alone without being forgotten. Settled choices are the other document — see
 
 ## Next
 
-Assigned by the review of 2026-09-30. Its defects, gaps and the feature have shipped —
-B5–B13 and N17 — and live in [CHANGELOG.md](CHANGELOG.md) per the rules at the bottom, as
-have the four decisions the batch depended on ([DECISIONS.md](DECISIONS.md)). What is left
-of that review below is the list of rule violations, each belonging to the change that
-next touches those files — plus one queued feature.
+The review of 2026-09-30 is closed: its defects, gaps and feature (B5–B13, N17) shipped
+and live in [CHANGELOG.md](CHANGELOG.md), as do the decisions it needed
+([DECISIONS.md](DECISIONS.md)). One feature is queued below, and behind it a three-tier
+plan — payoff for what already exists, then the differentiator, then polish.
 
 ### N18 — Clean everything, after offering a way out
 
@@ -98,6 +97,51 @@ let it go.
 It must not touch the exported file itself: that belongs to the user, lives outside the
 database, and deleting it would make "export first" worthless.
 
+### After it — the plan, in tiers
+
+**Tier 1 — close the loop on what already shipped.** Small, and every one of them is
+friction the app created by growing.
+
+- **N19 (was P1.20) — Choose a set's role as it is logged.** The one-tap **Log set** writes
+  a working set, so three warm-ups cost three log-then-edit round trips. The role picker
+  exists; it is simply behind the editor. Best value-to-effort ratio on the board.
+- **N20 (was P1.18) — A post-workout summary on Finish, with plan versus actual.** Finish
+  is a dead end today: the ratings, the readiness note and the totals go nowhere. And the
+  app now writes plans and logs performed sets while **never comparing them** — targets
+  only was right *during* a workout, but the payoff for planning is the review:
+  prescribed 6×2 at 92.2, performed 6×2 at 92.2, top single 2.5 over plan. Without that,
+  plans are write-only.
+- **N21 — A settings screen.** There is none: no route, no files. Meanwhile the app-wide
+  default rest is a hardcoded `RestTimer.DEFAULT_SECONDS = 90` with no way to change it,
+  and three *Later* rows — P1.9 units, P1.10 screen-on, P1.14 rest sound — have nowhere to
+  live. This is a prerequisite wearing a feature's clothes: it unblocks three rows and
+  makes the default rest editable.
+
+**Tier 2 — the differentiator the data now supports.**
+
+- **N22 (was P3.4) — Auto-progression suggestions.** Plans, targets, roles and enough
+  history all exist now; this is the one feature that makes the app actively smarter rather
+  than a better notepad. The largest item here, and the first genuinely large one.
+- **N23 (was P2.2, reduced) — Rep-max personal records, and noticing one as it happens.**
+  N17 already computes estimated 1RM (Epley, refusing to guess above a rep ceiling), so
+  what remains is records across rep ranges and a "that's a PR" moment mid-set. Warm-up
+  sets became excludable with N14's roles, which is *why* a record is finally correct
+  rather than approximately correct.
+- **N24 (was P3.6) — Supersets and circuits.** Deliberately deferred when N14 shipped —
+  giant-set notation was never modelled — so this is a real question about your programming
+  rather than an oversight.
+
+**Tier 3 — polish, in the order I would take it.** These stay in *Later*; naming the order
+here is the whole point of listing them.
+
+- **P2.7** Warm-up set generator — a much better feature than it was before N14, because it
+  can *write* warm-up sets into a plan using the `WARMUP` role instead of only suggesting
+  numbers.
+- **P1.10** Keep the screen on, **P1.14** rest sound and haptics, **P1.15** repeat last in
+  one tap, **P2.6** plate calculator.
+- **P1.9** kg/lb units — only if you ever lift in pounds.
+- **P1.17** Accessibility audit.
+
 ### Decisions waiting
 
 **None.** D1 through D4 were settled by the work that needed them and moved into
@@ -105,16 +149,9 @@ database, and deleting it would make "export first" worthless.
 
 ### Rule violations found, not new work
 
-**Nothing outstanding.** Every finding from the review is settled:
-
-Settled: `HALVES_PER_POINT` is one constant on `Rpe`; the two `DayOfWeek` formatters are
-one shared pair of composables; the two `SetType` pickers are one shared `SetRoleSelector`;
-the duplicate `ActiveWorkoutInfo` went with B13's dead state; and the name-content
-mismatches are named for what they hold (`DataErrorMessage.kt`, `NoteDialogs.kt`,
-`ExercisePickerRoute.kt`, and `RestAlarmReceiver` in its own file, since Android
-instantiates it by name); and the three `CenteredMessage` copies are gone, with the
-shared one gaining the spinner its callers needed — a shared component that cannot do
-what its callers do is a component they stop using.
+**Nothing outstanding.** Every finding from the review is settled, and how each was settled
+is recorded in [CHANGELOG.md](CHANGELOG.md) under *Unreleased* — per the rule that finished
+work leaves this file.
 
 Two stale statements are worth correcting rather than queueing, being one line each:
 the comment on `Rpe.HALF_STEP` describes it as a whole 1–10 rating when it is RPE's own
@@ -135,33 +172,25 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P1.14** Rest sound / haptic feedback.
 - **P1.10** Keep the screen on during a workout.
 - **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
-- **P1.11** Onboarding: goal, experience level, weekly target.
-- **P1.18** Post-workout summary on Finish — duration, volume, sets, best set, and the
-  readiness note and ratings the workout collected.
-- **P1.20** Choose a set's role as it is logged. The one-tap **Log set** writes a working
-  set, so a warm-up is currently log-then-edit; the role picker exists, but only behind
-  the editor.
 
 **Insight** — why the app gets opened between workouts
-- **P2.1** Per-exercise history.
-- **P2.2** Personal records and estimated 1RM.
-- **P2.3** Charts and trends — N13 settled the approach for the first three series
-  (hand-drawn on a `Canvas`, no dependency). A fuller chart screen, per-exercise history
-  and PRs over months are still this row, and the approach can be revisited.
+- **P2.1** Set-by-set history for one lift — N17 delivered the per-exercise chart and its
+  entry point, so what remains is the full list of past performances, if that is wanted.
+- **P2.3** A fuller chart screen over months — N13 settled the drawing approach (a `Canvas`,
+  no dependency) and N17 used it for one lift; this is the longer horizon. Personal records
+  are **N23** and are not this row.
 - **P2.8** Muscle-group balance warnings.
 - **P2.4** Body measurements.
 - **P2.5** Progress photos, in encrypted local storage.
 
 **Programming** — turns a logger into a plan
-- **P3.1 + P3.2** shipped their v1 as **N3** (templates: a name, exercises, order), and
-  their targets, per-plan rest and weekday schedule are **N14–N16**, which shipped in
-  v1.4. What remains here is **P3.6** supersets and circuits; drop sets are a set role in
-  N14, and giant-set notation is deliberately not modelled.
-- **P3.4** Auto-progression suggestions — the strongest differentiator once there is
-  enough history to base them on.
 - **P3.3** Programs / mesocycles with scheduled deloads.
-- **P3.5** The weekly schedule ships as **N16**; what remains here is planned-vs-completed
-  adherence over a longer window, and a calendar view.
+- **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
+  the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
+  **N20**.
+
+Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
+as **N14–N16**. Auto-progression is **N22** and supersets are **N24**, both queued above.
 
 **Small and self-contained**
 - **P2.6** Plate calculator.
@@ -198,6 +227,7 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | P3.7, P5.2 | Friends, shared routines | Accounts, servers and moderation become worth owning. |
 | P5.3 | Monetization / Play Billing | There is a concrete reason to charge, and a willingness to take the Play-services dependency. |
 | P5.4 | Localization | A non-English user appears. |
+| P1.11 | Onboarding: goal, experience level, weekly target | This stops being a single-user local tool with one obvious user. It personalises defaults, and there are no defaults to personalise. |
 | F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
 | F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
 
