@@ -44,6 +44,8 @@ data class BackupFile(
      */
     val templates: List<TemplateDto> = emptyList(),
     val templateExercises: List<TemplateExerciseDto> = emptyList(),
+    /** A plan's sets (ROADMAP N14). Defaulted, like every added collection. */
+    val templateSets: List<TemplateSetDto> = emptyList(),
     /**
      * Diagnostics, not user data (ROADMAP F11). They ride along with an export
      * because a release build is not debuggable and this is the only way a crash log
@@ -101,6 +103,9 @@ data class SessionExerciseDto(
     val jointPain: Int? = null,
     /** Which joints, or null (ROADMAP N9). Defaulted, like every added field. */
     val jointPainNote: String? = null,
+    /** The rest and cue the plan prescribed for this exercise, if any (N14). */
+    val restSeconds: Int? = null,
+    val techniqueNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -138,6 +143,25 @@ data class TemplateExerciseDto(
     val templateId: String,
     val exerciseId: String,
     val position: Int,
+    /** The rest and cue the plan prescribes, or null to use the library's (N14). */
+    val restSeconds: Int? = null,
+    val techniqueNote: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+@Serializable
+data class TemplateSetDto(
+    val id: String,
+    val templateExerciseId: String,
+    val setIndex: Int,
+    val role: SetType,
+    val targetWeightGrams: Long? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpe: Int? = null,
+    val note: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

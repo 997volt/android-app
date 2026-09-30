@@ -72,8 +72,17 @@ class RoomWorkoutRepository @Inject constructor(
                     now = timeSource.nowEpochMillis(),
                 )
                 if (start.created && templateId != null) {
-                    templateDao.findExerciseIdsInOrder(templateId).forEach { exerciseId ->
-                        appendExercise(start.session.id, exerciseId)
+                    templateDao.findPlannedExercises(templateId).forEach { planned ->
+                        // The plan's rest and cue come with it (ROADMAP N14): a plan
+                        // that says "3m break" and a workout counting 90 seconds is
+                        // the plan being ignored. Null leaves the library's showing
+                        // through, which is the fallback N5 established.
+                        appendExercise(
+                            sessionId = start.session.id,
+                            exerciseId = planned.exerciseId,
+                            restSeconds = planned.restSeconds,
+                            techniqueNote = planned.techniqueNote,
+                        )
                     }
                 }
                 StartedSession(id = start.session.id, isNew = start.created)
@@ -93,7 +102,12 @@ class RoomWorkoutRepository @Inject constructor(
      * exercise" and by starting a workout from a template (ROADMAP N3) — so the
      * order a template produces is the same order the picker would produce.
      */
-    private suspend fun appendExercise(sessionId: String, exerciseId: String) {
+    private suspend fun appendExercise(
+        sessionId: String,
+        exerciseId: String,
+        restSeconds: Int? = null,
+        techniqueNote: String? = null,
+    ) {
         val now = timeSource.nowEpochMillis()
         dao.insertSessionExercise(
             SessionExerciseEntity(
@@ -101,6 +115,8 @@ class RoomWorkoutRepository @Inject constructor(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
                 position = dao.maxPosition(sessionId) + 1,
+                restSeconds = restSeconds,
+                techniqueNote = techniqueNote,
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,
@@ -249,6 +265,7 @@ class RoomWorkoutRepository @Inject constructor(
         weightGrams: Long,
         rpe: Int?,
         note: String?,
+        setType: SetType,
     ): DataResult<Unit> =
         dataResultOf {
             // The editor's field is the real guard; this is the boundary that keeps
@@ -265,6 +282,8 @@ class RoomWorkoutRepository @Inject constructor(
                 reps = reps.coerceAtLeast(1),
                 weightGrams = weightGrams.coerceAtLeast(0L),
                 rpe = rpe,
+                // The role is part of what the set was (ROADMAP N14).
+                setType = setType,
                 // A cleared comment is null, not "": one representation of nothing.
                 note = note?.trim()?.ifEmpty { null },
                 updatedAt = timeSource.nowEpochMillis(),

@@ -2,10 +2,13 @@ package com.example.androidapp.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.TenPointScale
 
 /**
@@ -34,6 +38,10 @@ import com.example.androidapp.domain.model.TenPointScale
  * Shared between the live workout screen and the history detail screen (P1.7),
  * because correcting a set you just logged and correcting one from last week are
  * the same edit. It was private to the workout screen until history needed it.
+ *
+ * The set's **role** is here too (ROADMAP N14): `SetType` has carried warm-up, drop
+ * and failure since the beginning with no way to reach them, and a plan that can say
+ * "top set" while a logged set cannot is two vocabularies for one idea.
  *
  * RPE and the comment are always shown but may be left empty — the one-tap
  * **Log set** path writes neither, so an empty field is the normal case. Save
@@ -50,6 +58,7 @@ fun SetEditorDialog(
     modifier: Modifier = Modifier,
     initialRpe: Int? = null,
     initialNote: String? = null,
+    initialSetType: SetType = SetType.NORMAL,
 ) {
     var draft by remember {
         mutableStateOf(
@@ -58,6 +67,7 @@ fun SetEditorDialog(
                 weightText = Weight.kilograms(initialWeightGrams),
                 rpeText = initialRpe?.toString().orEmpty(),
                 noteText = initialNote.orEmpty(),
+                setType = initialSetType,
             ),
         )
     }
@@ -71,12 +81,45 @@ fun SetEditorDialog(
     )
 }
 
+/**
+ * The role picker: the same values a planned set offers (ROADMAP N14).
+ *
+ * A dropdown rather than a row of chips because five options with words on them do not
+ * fit a phone's dialog width, and the chosen one is the only one that needs to be read.
+ */
+@Composable
+private fun SetRoleSelector(role: SetType, onSelect: (SetType) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.testTag(TestTags.SET_ROLE),
+        ) {
+            Text(stringResource(R.string.set_role, role.label))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            SetType.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    onClick = {
+                        open = false
+                        onSelect(option)
+                    },
+                    modifier = Modifier.testTag(TestTags.setRole(option.name)),
+                )
+            }
+        }
+    }
+}
+
 /** The editor's raw field text, kept together so the dialog body stays readable. */
 private data class SetDraft(
     val repsText: String,
     val weightText: String,
     val rpeText: String,
     val noteText: String,
+    val setType: SetType = SetType.NORMAL,
 )
 
 @Composable
@@ -99,6 +142,10 @@ private fun SetEditorDialogContent(
         title = { Text(stringResource(R.string.set_edit_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SetRoleSelector(
+                    role = draft.setType,
+                    onSelect = { onDraftChange(draft.copy(setType = it)) },
+                )
                 SetEditorNumbers(draft = draft, onDraftChange = onDraftChange)
                 RpeAndNoteFields(
                     draft = draft,
@@ -116,6 +163,7 @@ private fun SetEditorDialogContent(
                         SetEdit(
                             reps = parsedReps ?: 0,
                             weightGrams = parsedWeight ?: 0L,
+                            setType = draft.setType,
                             // Out of range is already excluded by `enabled`.
                             rpe = parsedRpe?.takeIf { TenPointScale.isValid(it) },
                             note = draft.noteText.trim().ifEmpty { null },

@@ -1,12 +1,14 @@
 package com.example.androidapp.ui.templates
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
@@ -43,8 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -53,9 +57,13 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.TemplateExercise
+import com.example.androidapp.domain.model.TemplateSet
+import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.TemplatePlanDialog
+import com.example.androidapp.ui.components.TemplateSetDialog
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
@@ -91,6 +99,11 @@ fun TemplateEditorRoute(
         onMoveExercise = viewModel::onMoveExercise,
         onDeleteTemplate = viewModel::onDeleteTemplate,
         onAddExercise = { templateId?.let(onAddExercise) },
+        onAddSet = viewModel::onAddSet,
+        onUpdateSet = viewModel::onUpdateSet,
+        onRemoveSet = viewModel::onRemoveSet,
+        onDuplicateSets = viewModel::onDuplicateSets,
+        onSaveExercisePlan = viewModel::onSaveExercisePlan,
         onDismissMessage = viewModel::onErrorShown,
         onBack = onBack,
         modifier = modifier,
@@ -109,6 +122,11 @@ fun TemplateEditorScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onDismissMessage: () -> Unit = {},
+    onAddSet: (String, TemplateSetEdit) -> Unit = { _, _ -> },
+    onUpdateSet: (String, TemplateSetEdit) -> Unit = { _, _ -> },
+    onRemoveSet: (String) -> Unit = {},
+    onDuplicateSets: (String) -> Unit = {},
+    onSaveExercisePlan: (String, Int?, String?) -> Unit = { _, _, _ -> },
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
@@ -146,6 +164,11 @@ fun TemplateEditorScreen(
             onRename = onRename,
             onRemoveExercise = onRemoveExercise,
             onMoveExercise = onMoveExercise,
+            onAddSet = onAddSet,
+            onUpdateSet = onUpdateSet,
+            onRemoveSet = onRemoveSet,
+            onDuplicateSets = onDuplicateSets,
+            onSaveExercisePlan = onSaveExercisePlan,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -200,6 +223,11 @@ private fun TemplateEditorBody(
     onRename: (String) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onMoveExercise: (String, Int) -> Unit,
+    onAddSet: (String, TemplateSetEdit) -> Unit,
+    onUpdateSet: (String, TemplateSetEdit) -> Unit,
+    onRemoveSet: (String) -> Unit,
+    onDuplicateSets: (String) -> Unit,
+    onSaveExercisePlan: (String, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (state.isLoading) {
@@ -232,7 +260,7 @@ private fun TemplateEditorBody(
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
                 itemsIndexed(items = state.exercises, key = { _, exercise -> exercise.id }) { index, exercise ->
-                    TemplateExerciseRow(
+                    TemplateExerciseBlock(
                         exercise = exercise,
                         position = index + 1,
                         isFirst = index == 0,
@@ -240,6 +268,11 @@ private fun TemplateEditorBody(
                         onMoveUp = { onMoveExercise(exercise.id, -1) },
                         onMoveDown = { onMoveExercise(exercise.id, 1) },
                         onRemove = { onRemoveExercise(exercise.id) },
+                        onAddSet = { edit -> onAddSet(exercise.id, edit) },
+                        onUpdateSet = onUpdateSet,
+                        onRemoveSet = onRemoveSet,
+                        onDuplicateSets = { onDuplicateSets(exercise.id) },
+                        onSavePlan = { rest, cue -> onSaveExercisePlan(exercise.id, rest, cue) },
                     )
                     HorizontalDivider()
                 }
@@ -290,6 +323,172 @@ private fun TemplateNameField(
         }
     }
 }
+
+/**
+ * One exercise in the editor: its header, the plan's sets, and the rest and cue the
+ * plan prescribes (ROADMAP N14).
+ *
+ * The dialogs live here rather than in the screen, the same shape as the exercise
+ * section in a workout: the state that says "this panel is open" belongs next to the
+ * row that opens it.
+ */
+@Composable
+private fun TemplateExerciseBlock(
+    exercise: TemplateExercise,
+    position: Int,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onRemove: () -> Unit,
+    onAddSet: (TemplateSetEdit) -> Unit,
+    onUpdateSet: (String, TemplateSetEdit) -> Unit,
+    onRemoveSet: (String) -> Unit,
+    onDuplicateSets: () -> Unit,
+    onSavePlan: (Int?, String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var planOpen by rememberSaveable { mutableStateOf(false) }
+    var editing by rememberSaveable { mutableStateOf<String?>(null) }
+    var adding by rememberSaveable { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        TemplateExerciseRow(
+            exercise = exercise,
+            position = position,
+            isFirst = isFirst,
+            isLast = isLast,
+            onMoveUp = onMoveUp,
+            onMoveDown = onMoveDown,
+            onRemove = onRemove,
+        )
+        PlanRow(exercise = exercise, onClick = { planOpen = true })
+        RestAndCue(
+            exercise = exercise,
+            onSave = onSavePlan,
+        )
+    }
+
+    if (planOpen) {
+        TemplatePlanDialog(
+            exerciseName = exercise.exerciseName,
+            sets = exercise.sets,
+            onAddSet = { adding = true },
+            onEditSet = { editing = it.id },
+            onDeleteSet = onRemoveSet,
+            onDuplicate = onDuplicateSets,
+            onDismiss = { planOpen = false },
+        )
+    }
+
+    val edited = exercise.sets.firstOrNull { it.id == editing }
+    if (adding || edited != null) {
+        TemplateSetDialog(
+            initial = edited?.let { it.toEdit() } ?: TemplateSetEdit(),
+            isNew = edited == null,
+            onDismiss = {
+                adding = false
+                editing = null
+            },
+            onSave = { edit ->
+                if (edited == null) onAddSet(edit) else onUpdateSet(edited.id, edit)
+                adding = false
+                editing = null
+            },
+        )
+    }
+}
+
+/** `Planned sets · 3` — the way into the plan for this exercise. */
+@Composable
+private fun PlanRow(
+    exercise: TemplateExercise,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.template_plan_row)) },
+        supportingContent = {
+            Text(
+                if (exercise.sets.isEmpty()) {
+                    stringResource(R.string.template_plan_none)
+                } else {
+                    pluralStringResource(
+                        R.plurals.template_plan_summary,
+                        exercise.sets.size,
+                        exercise.sets.size,
+                    )
+                },
+            )
+        },
+        modifier = modifier
+            .testTag(TestTags.TEMPLATE_PLAN_ROW)
+            .clickable(onClick = onClick),
+    )
+}
+
+/**
+ * The rest and cue this exercise's plan prescribes (N14), over the library's (N5).
+ *
+ * Both blank means "use the library's", which is the state a plan is in until someone
+ * writes one — so the fields are empty rather than zero.
+ */
+@Composable
+private fun RestAndCue(
+    exercise: TemplateExercise,
+    onSave: (Int?, String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var rest by rememberSaveable(exercise.id) {
+        mutableStateOf(exercise.restSeconds?.toString().orEmpty())
+    }
+    var cue by rememberSaveable(exercise.id) { mutableStateOf(exercise.techniqueNote.orEmpty()) }
+    val restSeconds = rest.trim().ifEmpty { null }?.toIntOrNull()
+    val restIsValid = rest.isBlank() || (restSeconds != null && restSeconds > 0)
+    val changed = restSeconds != exercise.restSeconds || cue.trim().ifEmpty { null } != exercise.techniqueNote
+
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = rest,
+            onValueChange = { rest = it },
+            modifier = Modifier.width(120.dp).testTag(TestTags.TEMPLATE_REST_FIELD),
+            singleLine = true,
+            isError = !restIsValid,
+            label = { Text(stringResource(R.string.template_rest_label)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+        OutlinedTextField(
+            value = cue,
+            onValueChange = { cue = it },
+            modifier = Modifier.weight(1f).testTag(TestTags.TEMPLATE_CUE_FIELD),
+            singleLine = true,
+            label = { Text(stringResource(R.string.template_cue_label)) },
+        )
+        IconButton(
+            onClick = { onSave(restSeconds, cue.trim().ifEmpty { null }) },
+            enabled = changed && restIsValid,
+            modifier = Modifier.testTag(TestTags.TEMPLATE_REST_CUE_SAVE),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = stringResource(R.string.template_rest_cue_save),
+            )
+        }
+    }
+}
+
+private fun TemplateSet.toEdit() = TemplateSetEdit(
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpe = targetRpe,
+    note = note,
+)
 
 @Composable
 private fun TemplateExerciseRow(

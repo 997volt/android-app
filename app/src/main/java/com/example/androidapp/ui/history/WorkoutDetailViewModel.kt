@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.SetType
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -130,8 +131,15 @@ class WorkoutDetailViewModel @Inject constructor(
             initialValue = WorkoutDetailUiState(),
         )
 
-    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long, rpe: Int?, note: String?) = write {
-        workoutRepository.updateSet(setId, reps, weightGrams, rpe, note)
+    fun onUpdateSet(
+        setId: String,
+        reps: Int,
+        weightGrams: Long,
+        rpe: Int? = null,
+        note: String? = null,
+        setType: SetType = SetType.NORMAL,
+    ) = write {
+        workoutRepository.updateSet(setId, reps, weightGrams, rpe, note, setType)
     }
 
     fun onDeleteSet(setId: String) = write {

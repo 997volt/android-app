@@ -44,6 +44,8 @@ class RoomBackupRepository @Inject constructor(
                 // A template is a plan, and the plan is the user's work too (N3).
                 templates = dao.allTemplates().map { it.toDto() },
                 templateExercises = dao.allTemplateExercises().map { it.toDto() },
+                // A plan's sets are the plan (ROADMAP N14).
+                templateSets = dao.allTemplateSets().map { it.toDto() },
                 // Diagnostics ride along so they are reachable on a release
                 // build; import ignores them, deliberately.
                 crashLogs = crashLogStore.all(),
@@ -72,6 +74,7 @@ class RoomBackupRepository @Inject constructor(
             val hiddenSets = dao.softDeletedSetIds().toSet()
             val hiddenTemplates = dao.softDeletedTemplateIds().toSet()
             val hiddenTemplateExercises = dao.softDeletedTemplateExerciseIds().toSet()
+            val hiddenTemplateSets = dao.softDeletedTemplateSetIds().toSet()
 
             val exercisesToRestore = file.exercises.filter { it.id in hiddenExercises }
             val sessionsToRestore = file.sessions.filter { it.id in hiddenSessions }
@@ -80,6 +83,7 @@ class RoomBackupRepository @Inject constructor(
             val templatesToRestore = file.templates.filter { it.id in hiddenTemplates }
             val templateExercisesToRestore =
                 file.templateExercises.filter { it.id in hiddenTemplateExercises }
+            val templateSetsToRestore = file.templateSets.filter { it.id in hiddenTemplateSets }
 
             // Updates, so no foreign-key ordering is involved: every row already
             // exists, and only its own columns change.
@@ -89,6 +93,7 @@ class RoomBackupRepository @Inject constructor(
             dao.restoreSets(setsToRestore.map { it.toEntity() })
             dao.restoreTemplates(templatesToRestore.map { it.toEntity() })
             dao.restoreTemplateExercises(templateExercisesToRestore.map { it.toEntity() })
+            dao.restoreTemplateSets(templateSetsToRestore.map { it.toEntity() })
 
             // Only a row the file itself has *live* actually came back. One the
             // file also records as deleted is still deleted, and counting it as
@@ -98,7 +103,8 @@ class RoomBackupRepository @Inject constructor(
                 sessionExercisesToRestore.count { it.deletedAt == null } +
                 setsToRestore.count { it.deletedAt == null } +
                 templatesToRestore.count { it.deletedAt == null } +
-                templateExercisesToRestore.count { it.deletedAt == null }
+                templateExercisesToRestore.count { it.deletedAt == null } +
+                templateSetsToRestore.count { it.deletedAt == null }
 
             // Parents before children: the foreign keys have to hold as rows go in.
             // IGNORE skips live rows and the ones just restored, so this counts
@@ -116,10 +122,12 @@ class RoomBackupRepository @Inject constructor(
             val addedTemplateExercises =
                 dao.insertTemplateExercises(file.templateExercises.map { it.toEntity() })
                     .count { it != SKIPPED }
+            val addedTemplateSets = dao.insertTemplateSets(file.templateSets.map { it.toEntity() })
+                .count { it != SKIPPED }
 
             ImportSummary(
                 added = addedExercises + addedSessions + addedSessionExercises + addedSets +
-                    addedTemplates + addedTemplateExercises,
+                    addedTemplates + addedTemplateExercises + addedTemplateSets,
                 restored = restored,
             )
         }

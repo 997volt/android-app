@@ -254,6 +254,7 @@ class ExerciseLibraryViewModelTest {
             weightGrams: Long,
             rpe: Int?,
             note: String?,
+            setType: SetType,
         ): DataResult<Unit> = unused()
         override suspend fun deleteSet(setId: String): DataResult<Unit> = unused()
         override suspend fun previousPerformance(

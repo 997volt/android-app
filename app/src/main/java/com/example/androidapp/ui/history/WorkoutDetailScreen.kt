@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -84,7 +85,7 @@ fun WorkoutDetailRoute(
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutDetailUiState,
-    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
     onDeleteSet: (String) -> Unit,
     onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onDeleteWorkout: () -> Unit,
@@ -128,7 +129,14 @@ fun WorkoutDetailScreen(
             initialNote = set.note,
             onDismiss = { editing = null },
             onSave = { edit ->
-                onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
+                onUpdateSet(
+                    set.id,
+                    edit.reps,
+                    edit.weightGrams,
+                    edit.rpe,
+                    edit.note,
+                    edit.setType,
+                )
                 editing = null
             },
         )
@@ -424,7 +432,7 @@ private fun WorkoutDetailScreenPreview() {
                     ),
                 ),
             ),
-            onUpdateSet = { _, _, _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _, _ -> },
             onDeleteSet = {},
             onRateExercise = { _, _, _, _ -> },
             onDeleteWorkout = {},

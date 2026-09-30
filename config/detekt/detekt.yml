@@ -50,6 +50,10 @@ complexity:
     excludes: ['**/test/**', '**/androidTest/**']
 
   LongParameterList:
+    # A parameter with a default is optional at the call site, and every call site
+    # here names it anyway (`rpe = 7, note = "Tough"`). The rule exists to stop
+    # positional calls from becoming unreadable, which defaults prevent.
+    ignoreDefaultParameters: true
     # A composable's parameter list is its state plus one callback per event;
     # that is the intended shape, not a design smell. The seed table is excluded
     # for the separate reason that its terse `barbell(...)` builder exists so each
@@ -76,3 +80,9 @@ complexity:
     thresholdInInterfaces: 30
     thresholdInClasses: 26
     thresholdInFiles: 20
+    # `TestTags` is a flat namespace of tags, and the parameterised ones (a row
+    # addressed by id, a chart addressed by metric) are the pattern the quality bar
+    # asks for: a test addresses a control by identity rather than by position or by
+    # English. One more arrives with each list-shaped screen, which is growth in the
+    # surface being tested rather than a type doing too much.
+    thresholdInObjects: 20

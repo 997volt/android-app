@@ -33,6 +33,15 @@ data class SetEntry(
 enum class SetType(val label: String) {
     NORMAL("Working"),
     WARMUP("Warm-up"),
+
+    /**
+     * The heavy single the rest of the session is built around (ROADMAP N14).
+     *
+     * Added for *planned* sets and available to performed ones, because a plan that
+     * says "top set" and a log that cannot is two vocabularies for one idea. Stored
+     * by name like every other enum, so adding it touched no row already on disk.
+     */
+    TOP_SET("Top set"),
     DROP("Drop"),
     FAILURE("Failure"),
 }

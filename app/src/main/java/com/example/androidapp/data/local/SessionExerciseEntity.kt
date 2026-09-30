@@ -40,6 +40,15 @@ data class SessionExerciseEntity(
     val exerciseId: String,
     val position: Int,
     /**
+     * A rest this session's plan prescribed, or null to use the library's (N14).
+     *
+     * Seeded when the workout is started from a template, because a plan that says
+     * "3m break" and a workout that counts 90 seconds is the plan being ignored.
+     */
+    val restSeconds: Int? = null,
+    /** A cue the plan prescribed, or null to use the library's (N14). */
+    val techniqueNote: String? = null,
+    /**
      * When this exercise was marked done, or null while it is still open
      * (ROADMAP N7).
      *

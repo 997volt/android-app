@@ -138,8 +138,10 @@ interface WorkoutRepository {
         setId: String,
         reps: Int,
         weightGrams: Long,
-        rpe: Int?,
-        note: String?,
+        rpe: Int? = null,
+        note: String? = null,
+        /** The role the set was performed as (ROADMAP N14). */
+        setType: SetType = SetType.NORMAL,
     ): DataResult<Unit>
 
     suspend fun deleteSet(setId: String): DataResult<Unit>

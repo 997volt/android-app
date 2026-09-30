@@ -54,41 +54,10 @@ alone without being forgotten. Settled choices are the other document — see
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next — a template you can plan
+## Next — the rest of the plan
 
-Templates today are a name and an ordered list of exercises; starting one seeds the
-session with those and nothing else. This turns a template into a *plan*: what to lift,
-how much, in what shape, and on which day.
-
-### N14 — Planned sets on templates
-
-A template exercise gains planned sets, so starting a workout prefills a session instead
-of a single generic suggestion.
-
-- A `template_sets` table per template exercise: set index, **role**, target weight,
-  target reps, target RPE, note.
-- **Roles**: warm-up, working, **top set**, drop. `SetType` already carries warm-up, drop
-  and failure; top set is the one new value, and the enum should serve planned and
-  performed sets alike.
-- **The same roles apply to a performed set.** The set editor gains a role selector, so a
-  logged set can be marked a warm-up, a top set or a drop. That is the half of this that
-  is not about planning, and it is also what finally makes `SetType`'s warm-up, drop and
-  failure values reachable from the UI.
-- **Reps are a range whose upper bound is the one that matters.** In the plan that
-  prompted this, `(max 2)` on a bench press means the target's upper bound is 2 while the
-  lower bound is simply not written down — so both columns are nullable.
-- **Targets only.** A logged set is a separate row and is expected to differ; nothing
-  verifies the plan. That is what keeps this small, and it is a decision rather than an
-  omission.
-- **Rest and cue per template exercise**: nullable `restSeconds` and `techniqueNote` on
-  `template_exercises`, falling back to the library values N5 stores. A plan prescribes
-  "3m break, slow descent, no sinking" where the library only knows the movement.
-- **Start from template** prefills the planned sets as targets.
-- **Copy forward** in the editor — duplicate the plan's sets, then adjust. Without it,
-  authoring this on a phone is where the feature stops being used: the plan that prompted
-  it has six exercises and thirty sets of four fields each.
-- The muscle-feel and joint-pain block is **not** part of a plan. Those are recorded after
-  the exercise (N8, N9); a plan does not guess them.
+N14 turned a template into a *plan*; what remains is the load a plan can prescribe and
+the day it belongs to.
 
 ### N15 — Assisted load
 
@@ -117,9 +86,9 @@ A template can be pinned to a weekday, and home shows today's plan.
   plan instances would add a plan-per-date entity, plan generation and skipped-week
   handling, to support a comparison the logged sets already allow.
 
-**Order:** N14 first, since it is the substance. N15 is independent but this plan needs
-it — an assisted exercise cannot be written without it. N16 last: a schedule pointing at
-a plan with no targets is thin.
+**Order:** N15 next — a plan with an assisted exercise in it cannot be written without
+it, and the plan editor now has somewhere to put the number. N16 last: a schedule
+pointing at the plans N14 built is the last piece, not the first.
 
 Each takes a migration as it lands (the rule in [DECISIONS.md](DECISIONS.md)); none of
 them needs one before its code exists.

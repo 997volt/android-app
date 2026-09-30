@@ -1,5 +1,7 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.model.SetType
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -229,4 +231,152 @@ class TemplateRepositoryTest {
         updatedAt = 0L,
         deletedAt = null,
     )
+
+    @Test
+    fun aPlannedSet_isAppended_andComesBackWithItsTargets() = runTest {
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+
+        repository.addSet(
+            exercise,
+            TemplateSetEdit(
+                role = SetType.TOP_SET,
+                targetWeightGrams = 140_000L,
+                targetRepsMin = 1,
+                targetRepsMax = 2,
+                targetRpe = 9,
+                note = "grind",
+            ),
+        )
+
+        val stored = repository.observeExercises(template).first().single().sets.single()
+        assertEquals(0, stored.setIndex)
+        assertEquals(SetType.TOP_SET, stored.role)
+        assertEquals(140_000L, stored.targetWeightGrams)
+        assertEquals(1, stored.targetRepsMin)
+        assertEquals(2, stored.targetRepsMax)
+        assertEquals(9, stored.targetRpe)
+        assertEquals("grind", stored.note)
+    }
+
+    @Test
+    fun aPlanWithNoTargets_isValid_ratherThanZeroed() = runTest {
+        // "Work up to a heavy single" has no weight to write down (ROADMAP N14).
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+
+        val result = repository.addSet(exercise, TemplateSetEdit(role = SetType.WARMUP))
+
+        assertTrue(result is DataResult.Success)
+        val stored = repository.observeExercises(template).first().single().sets.single()
+        assertNull(stored.targetWeightGrams)
+        assertNull(stored.targetRepsMin)
+        assertNull(stored.targetRpe)
+    }
+
+    @Test
+    fun aPlanThatDoesNotMakeSense_isRefused() = runTest {
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+
+        val negative = repository.addSet(exercise, TemplateSetEdit(targetWeightGrams = -1))
+        val zeroReps = repository.addSet(exercise, TemplateSetEdit(targetRepsMin = 0))
+        val backwards = repository.addSet(exercise, TemplateSetEdit(targetRepsMin = 8, targetRepsMax = 3))
+        val offScaleRpe = repository.addSet(exercise, TemplateSetEdit(targetRpe = 11))
+
+        assertTrue("a negative weight", negative is DataResult.Failure)
+        assertTrue("a zero-rep target", zeroReps is DataResult.Failure)
+        assertTrue("a range that runs backwards", backwards is DataResult.Failure)
+        assertTrue("an RPE off the scale", offScaleRpe is DataResult.Failure)
+        assertTrue(
+            "nothing is stored when the plan is refused",
+            repository.observeExercises(template).first().single().sets.isEmpty(),
+        )
+    }
+
+    @Test
+    fun copyForward_duplicatesTheSets_soTheyCanBeAdjusted() = runTest {
+        // The clause that makes a plan usable on a phone: one set authored, then
+        // doubled twice, rather than thirty forms (ROADMAP N14).
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+        repository.addSet(exercise, TemplateSetEdit(targetWeightGrams = 100_000L, targetRepsMax = 3))
+
+        repository.duplicateSets(exercise)
+        repository.duplicateSets(exercise)
+
+        val sets = repository.observeExercises(template).first().single().sets
+        assertEquals(4, sets.size)
+        assertEquals("appended in order", listOf(0, 1, 2, 3), sets.map { it.setIndex })
+        assertTrue("the copies carry the targets", sets.all { it.targetWeightGrams == 100_000L })
+        assertEquals("copies are their own rows", 4, sets.map { it.id }.toSet().size)
+    }
+
+    @Test
+    fun updatingAPlannedSet_keepsItsPlace_andCanClearATarget() = runTest {
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+        repository.addSet(exercise, TemplateSetEdit(targetRepsMax = 5))
+        repository.addSet(exercise, TemplateSetEdit(targetRepsMax = 5))
+        val first = repository.observeExercises(template).first().single().sets.first()
+
+        repository.updateSet(first.id, TemplateSetEdit(role = SetType.DROP, targetRepsMax = 8))
+
+        val sets = repository.observeExercises(template).first().single().sets
+        assertEquals(2, sets.size)
+        assertEquals("the order is untouched", listOf(0, 1), sets.map { it.setIndex })
+        assertEquals(SetType.DROP, sets[0].role)
+        assertEquals(8, sets[0].targetRepsMax)
+        assertNull("a cleared target is null, not zero", sets[0].targetWeightGrams)
+    }
+
+    @Test
+    fun removingAPlannedSet_leavesTheOthersAlone() = runTest {
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+        repository.addSet(exercise, TemplateSetEdit(targetRepsMax = 3))
+        repository.addSet(exercise, TemplateSetEdit(targetRepsMax = 5))
+        val first = repository.observeExercises(template).first().single().sets.first()
+
+        repository.removeSet(first.id)
+
+        val sets = repository.observeExercises(template).first().single().sets
+        assertEquals(1, sets.size)
+        assertEquals(5, sets.single().targetRepsMax)
+    }
+
+    @Test
+    fun aPlanForAnExerciseThatIsGone_isNotFound() = runTest {
+        assertTrue(repository.addSet("nope", TemplateSetEdit()) is DataResult.Failure)
+        assertTrue(repository.removeSet("nope") is DataResult.Failure)
+        assertTrue(repository.updateSet("nope", TemplateSetEdit()) is DataResult.Failure)
+    }
+
+    @Test
+    fun aPlansRestAndCue_reachTheExercise_andBlankBecomesUnset() = runTest {
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+
+        repository.setExercisePlan(exercise, restSeconds = 180, techniqueNote = "  Slow descent  ")
+        val written = repository.observeExercises(template).first().single()
+        assertEquals(180, written.restSeconds)
+        assertEquals("Slow descent", written.techniqueNote)
+
+        // Blank is "use the library's" (N5), and a rest of zero is not a rest.
+        repository.setExercisePlan(exercise, restSeconds = null, techniqueNote = "   ")
+        val cleared = repository.observeExercises(template).first().single()
+        assertNull(cleared.restSeconds)
+        assertNull(cleared.techniqueNote)
+        assertTrue(
+            repository.setExercisePlan(exercise, restSeconds = 0, techniqueNote = null) is
+                DataResult.Failure,
+        )
+    }
+
+    /** A template with one exercise added, for the plan tests to write sets against. */
+    private suspend fun plannedExercise(templateId: String): String {
+        repository.addExercise(templateId, "back-squat")
+        return repository.observeExercises(templateId).first().single().id
+    }
+
 }

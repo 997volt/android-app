@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.model.TemplateSet
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
@@ -276,6 +278,34 @@ class ExercisePickerViewModelTest {
         override fun observeTemplate(templateId: String): Flow<WorkoutTemplate?> = flowOf(null)
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> =
             flowOf(emptyList())
+        override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun addSet(
+            templateExerciseId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+
+        override suspend fun updateSet(
+            templateSetId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+
+        override suspend fun removeSet(templateSetId: String): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+        override suspend fun duplicateSets(templateExerciseId: String): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+        override suspend fun setExercisePlan(
+            templateExerciseId: String,
+            restSeconds: Int?,
+            techniqueNote: String?,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
 
         override suspend fun createTemplate(name: String): DataResult<String> = unused()
         override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> = unused()
@@ -341,6 +371,7 @@ class ExercisePickerViewModelTest {
             weightGrams: Long,
             rpe: Int?,
             note: String?,
+            setType: SetType,
         ): DataResult<Unit> = unused()
         override suspend fun deleteSet(setId: String): DataResult<Unit> = unused()
         override suspend fun previousPerformance(
@@ -363,4 +394,5 @@ class ExercisePickerViewModelTest {
             movementPattern = MovementPattern.SQUAT,
         )
     }
+
 }

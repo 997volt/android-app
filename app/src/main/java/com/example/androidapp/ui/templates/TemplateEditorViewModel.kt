@@ -9,6 +9,7 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.ui.navigation.TemplateEditor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -76,6 +77,31 @@ class TemplateEditorViewModel @Inject constructor(
     /** [delta] -1 moves the exercise up, +1 down. */
     fun onMoveExercise(templateExerciseId: String, delta: Int) = write {
         repository.moveExercise(templateExerciseId, delta)
+    }
+
+    /** Appends a planned set to an exercise (ROADMAP N14). */
+    fun onAddSet(templateExerciseId: String, edit: TemplateSetEdit) = write {
+        repository.addSet(templateExerciseId, edit)
+    }
+
+    fun onUpdateSet(templateSetId: String, edit: TemplateSetEdit) = write {
+        repository.updateSet(templateSetId, edit)
+    }
+
+    fun onRemoveSet(templateSetId: String) = write { repository.removeSet(templateSetId) }
+
+    /** Copy forward: the same shape again, to adjust (ROADMAP N14). */
+    fun onDuplicateSets(templateExerciseId: String) = write {
+        repository.duplicateSets(templateExerciseId)
+    }
+
+    /** The rest and cue this exercise's plan prescribes, over the library's (N14). */
+    fun onSaveExercisePlan(
+        templateExerciseId: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+    ) = write {
+        repository.setExercisePlan(templateExerciseId, restSeconds, techniqueNote)
     }
 
     fun onDeleteTemplate() {

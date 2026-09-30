@@ -12,10 +12,13 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.WorkoutRepository
+import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.ui.navigation.ActiveWorkout
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
@@ -46,6 +49,8 @@ data class SetRow(
     val rpe: Int? = null,
     /** A short comment on the set, or null (ROADMAP N6). */
     val note: String? = null,
+    /** The role it was performed as (ROADMAP N14). */
+    val setType: SetType = SetType.NORMAL,
 )
 
 /** One exercise in the workout, with its sets and what the next set will prefill. */
@@ -152,6 +157,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
     private val timeSource: TimeSource,
     private val restNotifier: RestNotifier,
+    private val templateRepository: TemplateRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -163,6 +169,17 @@ class ActiveWorkoutViewModel @Inject constructor(
      * leaves this unused, which is what makes a template start idempotent.
      */
     private val templateId: String? = savedStateHandle.toRoute<ActiveWorkout>().templateId
+
+    /**
+     * The plan this workout was started from, or empty (ROADMAP N14).
+     *
+     * Nothing is stored on the session to link it: the route already carries the
+     * template, and the back stack keeps it across process death, so the plan stays a
+     * plan — editing it changes what the next workout prefills, which is what N16
+     * calls a living template.
+     */
+    private val plannedExercises: Flow<List<TemplateExercise>> =
+        templateId?.let { templateRepository.observeExercises(it) } ?: flowOf(emptyList())
 
     private val lastError = MutableStateFlow<DataError?>(null)
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
@@ -206,6 +223,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         val exercises: List<SessionExercise>,
         val sets: List<SetEntry>,
         val previous: Map<String, PreviousPerformance>,
+        val planned: List<TemplateExercise>,
     )
 
     private val snapshots: Flow<Snapshot> = combine(
@@ -213,8 +231,9 @@ class ActiveWorkoutViewModel @Inject constructor(
         sessionExercises,
         setsState,
         previousByExercise,
-    ) { session, exercises, logged, previous ->
-        Snapshot(session, exercises, logged, previous)
+        plannedExercises,
+    ) { session, exercises, logged, previous, planned ->
+        Snapshot(session, exercises, logged, previous, planned)
     }
 
     /** Drives both the elapsed clock and the rest countdown; stops when unsubscribed. */
@@ -424,9 +443,16 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    fun onUpdateSet(setId: String, reps: Int, weightGrams: Long, rpe: Int?, note: String?) {
+    fun onUpdateSet(
+        setId: String,
+        reps: Int,
+        weightGrams: Long,
+        rpe: Int? = null,
+        note: String? = null,
+        setType: SetType = SetType.NORMAL,
+    ) {
         viewModelScope.launch {
-            handle(workoutRepository.updateSet(setId, reps, weightGrams, rpe, note))
+            handle(workoutRepository.updateSet(setId, reps, weightGrams, rpe, note, setType))
         }
     }
 
@@ -617,7 +643,9 @@ class ActiveWorkoutViewModel @Inject constructor(
             isLoading = false,
             sessionId = session?.id,
             startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
-            exercises = exercises.map { it.toRow(sets = sets, previous = previous[it.exerciseId]) },
+            exercises = exercises.map {
+                it.toRow(sets = sets, previous = previous[it.exerciseId], planned = planned)
+            },
             pendingUndo = undo,
             pendingFinishedExerciseId = pendingFinishedExerciseId,
             readinessNote = session?.readinessNote,
@@ -628,6 +656,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     private fun SessionExercise.toRow(
         sets: List<SetEntry>,
         previous: PreviousPerformance?,
+        planned: List<TemplateExercise>,
     ): SessionExerciseRow {
         val loggedSets = sets
             .filter { it.sessionExerciseId == id }
@@ -642,6 +671,7 @@ class ActiveWorkoutViewModel @Inject constructor(
                     weightGrams = set.weightGrams,
                     rpe = set.rpe,
                     note = set.note,
+                    setType = set.setType,
                 )
             }
 
@@ -657,7 +687,12 @@ class ActiveWorkoutViewModel @Inject constructor(
             jointPain = jointPain,
             jointPainNote = jointPainNote,
             sets = loggedSets,
-            suggestion = suggestionForNextSet(loggedSets, previous, nextIndex = loggedSets.size),
+            suggestion = suggestionForNextSet(
+                loggedSets = loggedSets,
+                previous = previous,
+                nextIndex = loggedSets.size,
+                planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
+            ),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->
                 SetRow(id = first.id, number = 1, reps = first.reps, weightGrams = first.weightGrams)
             },

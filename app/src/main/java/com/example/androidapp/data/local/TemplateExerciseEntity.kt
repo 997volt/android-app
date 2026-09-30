@@ -39,6 +39,14 @@ data class TemplateExerciseEntity(
     val templateId: String,
     val exerciseId: String,
     val position: Int,
+    /**
+     * A rest this exercise prescribes, or null to fall back to the library's (N5).
+     *
+     * A plan says "3m break" where the library only knows the movement.
+     */
+    val restSeconds: Int? = null,
+    /** A cue this exercise prescribes, or null to fall back to the library's (N5). */
+    val techniqueNote: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

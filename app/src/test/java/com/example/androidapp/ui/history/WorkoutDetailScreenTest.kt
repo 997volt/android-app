@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.SetType
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -62,7 +63,7 @@ class WorkoutDetailScreenTest {
 
     private fun setScreen(
         uiState: WorkoutDetailUiState = state,
-        onUpdateSet: (String, Int, Long, Int?, String?) -> Unit = { _, _, _, _, _ -> },
+        onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit = { _, _, _, _, _, _ -> },
         onDeleteSet: (String) -> Unit = {},
         onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},

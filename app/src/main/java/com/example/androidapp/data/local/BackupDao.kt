@@ -42,6 +42,10 @@ interface BackupDao {
     @Query("SELECT * FROM template_exercises")
     suspend fun allTemplateExercises(): List<TemplateExerciseEntity>
 
+    /** A plan's sets too (ROADMAP N14): a plan is the user's work like any other. */
+    @Query("SELECT * FROM template_sets")
+    suspend fun allTemplateSets(): List<TemplateSetEntity>
+
     /**
      * Ids of rows the user deleted, which are still present with `deletedAt` set.
      *
@@ -68,6 +72,9 @@ interface BackupDao {
     @Query("SELECT id FROM template_exercises WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedTemplateExerciseIds(): List<String>
 
+    @Query("SELECT id FROM template_sets WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedTemplateSetIds(): List<String>
+
     /**
      * Rewrites rows by primary key, which restores a soft-deleted row *and* clears
      * its `deletedAt` because the file's value overwrites it. Only ever called for
@@ -91,6 +98,9 @@ interface BackupDao {
     @Update
     suspend fun restoreTemplateExercises(rows: List<TemplateExerciseEntity>): Int
 
+    @Update
+    suspend fun restoreTemplateSets(rows: List<TemplateSetEntity>): Int
+
     /** Returns one rowid per input row, `-1` where a row was skipped as a duplicate. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertExercises(rows: List<ExerciseEntity>): List<Long>
@@ -109,4 +119,7 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTemplateExercises(rows: List<TemplateExerciseEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertTemplateSets(rows: List<TemplateSetEntity>): List<Long>
 }

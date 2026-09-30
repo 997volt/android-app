@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import org.junit.Assert.assertNull
 import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
@@ -124,6 +125,26 @@ class BackupCodecTest {
                 templateId = "t1",
                 exerciseId = "back-squat",
                 position = 0,
+                restSeconds = 180,
+                techniqueNote = "Slow descent, no sinking",
+                createdAt = 30L,
+                updatedAt = 30L,
+                deletedAt = null,
+            ),
+        ),
+        // A plan's sets are the plan (ROADMAP N14). This sample is what proves the
+        // codec carries them: a field the DTO does not name is dropped in silence.
+        templateSets = listOf(
+            TemplateSetDto(
+                id = "ts1",
+                templateExerciseId = "te1",
+                setIndex = 0,
+                role = SetType.TOP_SET,
+                targetWeightGrams = 140_000L,
+                targetRepsMin = 1,
+                targetRepsMax = 2,
+                targetRpe = 9,
+                note = "grind",
                 createdAt = 30L,
                 updatedAt = 30L,
                 deletedAt = null,
@@ -200,12 +221,13 @@ class BackupCodecTest {
         // instead of failing to decode.
         val json = Json { prettyPrint = false }
         val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
-        val olderFile = JsonObject(tree - "templates" - "templateExercises")
+        val olderFile = JsonObject(tree - "templates" - "templateExercises" - "templateSets")
 
         val restored = BackupCodec.decode(olderFile.toString())
 
         assertEquals(emptyList<TemplateDto>(), restored.templates)
         assertEquals(emptyList<TemplateExerciseDto>(), restored.templateExercises)
+        assertEquals(emptyList<TemplateSetDto>(), restored.templateSets)
         assertEquals("everything else still decodes", "Push day", sample.templates.first().name)
     }
 
@@ -256,5 +278,58 @@ class BackupCodecTest {
         assertEquals(null, restored.sessionExercises.first().jointPainNote)
         assertEquals(null, restored.sets.first().rpe)
         assertEquals(null, restored.sets.first().note)
+    }
+
+    @Test
+    fun aFileWrittenBeforePlansExisted_stillDecodes_withThePlanFieldsUnset() {
+        // N14 added a collection *and* two fields on template exercises. A file from
+        // before it must decode, with the plan absent and the rest and cue unset —
+        // which is "use the library's", not zero (ROADMAP N14, N5).
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val exercises = tree["templateExercises"]!!.jsonArray.map { element ->
+            JsonObject(
+                element.jsonObject -
+                    "restSeconds" -
+                    "techniqueNote",
+            )
+        }
+        val olderFile = JsonObject(
+            tree - "templateSets" + ("templateExercises" to JsonArray(exercises)),
+        )
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertEquals(emptyList<TemplateSetDto>(), restored.templateSets)
+        val exercise = restored.templateExercises.single()
+        assertNull(exercise.restSeconds)
+        assertNull(exercise.techniqueNote)
+        assertEquals("the rest of the exercise still decodes", "back-squat", exercise.exerciseId)
+    }
+
+    @Test
+    fun aPlanWithNoTargets_survivesTheRoundTrip_asNulls() {
+        // Nullable targets are the point: an absent weight is not a zero (N14).
+        val bare = sample.copy(
+            templateSets = listOf(
+                TemplateSetDto(
+                    id = "ts1",
+                    templateExerciseId = "te1",
+                    setIndex = 0,
+                    role = SetType.WARMUP,
+                    createdAt = 1L,
+                    updatedAt = 1L,
+                ),
+            ),
+        )
+
+        val restored = BackupCodec.decode(BackupCodec.encode(bare))
+
+        val set = restored.templateSets.single()
+        assertEquals(SetType.WARMUP, set.role)
+        assertNull(set.targetWeightGrams)
+        assertNull(set.targetRepsMin)
+        assertNull(set.targetRepsMax)
+        assertNull(set.targetRpe)
     }
 }

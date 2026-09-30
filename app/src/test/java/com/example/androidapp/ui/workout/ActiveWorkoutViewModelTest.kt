@@ -1,5 +1,10 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.model.WorkoutTemplate
+import com.example.androidapp.domain.model.TemplateSet
+import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.RestNotifier
@@ -98,7 +103,14 @@ class ActiveWorkoutViewModelTest {
         repository: FakeWorkoutRepository,
         notifier: FakeRestNotifier = FakeRestNotifier(),
         templateId: String? = null,
-    ) = ActiveWorkoutViewModel(repository, clock, notifier, activeWorkoutRoute(templateId))
+        templates: FakeTemplateRepository = FakeTemplateRepository(),
+    ) = ActiveWorkoutViewModel(
+        repository,
+        clock,
+        notifier,
+        templates,
+        activeWorkoutRoute(templateId),
+    )
 
     @Test
     fun startsASessionOnEntry_soNothingCanBeLostBeforeItExists() = runTest(dispatcher) {
@@ -560,7 +572,14 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         val logged = repository.sets.value.single()
-        viewModel.onUpdateSet(logged.id, reps = 5, weightGrams = 100_000L, rpe = 7, note = "Tough")
+        viewModel.onUpdateSet(
+            logged.id,
+            reps = 5,
+            weightGrams = 100_000L,
+            rpe = 7,
+            note = "Tough",
+            setType = SetType.WARMUP,
+        )
         settle()
 
         val stored = repository.sets.value.single()
@@ -869,6 +888,7 @@ class ActiveWorkoutViewModelTest {
             FakeWorkoutRepository(),
             tickingClock,
             FakeRestNotifier(),
+            FakeTemplateRepository(),
             activeWorkoutRoute(),
         )
 
@@ -1042,6 +1062,7 @@ class ActiveWorkoutViewModelTest {
             weightGrams: Long,
             rpe: Int?,
             note: String?,
+            setType: SetType,
         ): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.map {
@@ -1098,5 +1119,137 @@ class ActiveWorkoutViewModelTest {
 
     private companion object {
         val FIXED_INSTANT: Instant = Instant.parse("2026-09-28T08:00:00Z")
+    }
+
+    @Test
+    fun startingFromAPlan_prefillsTheFirstSetsTargets() = runTest(dispatcher) {
+        // ROADMAP N14: "Start from template prefills the planned sets as targets."
+        // Nothing is logged as a set — the plan is a target, and a logged set is a
+        // separate row that is expected to differ.
+        val repository = FakeWorkoutRepository()
+        val templates = FakeTemplateRepository(
+            planned = listOf(
+                plannedExercise(
+                    position = 0,
+                    sets = listOf(plannedSet(index = 0, reps = 3, weightGrams = 140_000L)),
+                ),
+            ),
+        )
+        val viewModel = viewModelFor(repository, templateId = "t1", templates = templates)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val suggestion = viewModel.uiState.value.exercises.single().suggestion
+        assertEquals("the plan's reps, not the default", 3, suggestion.reps)
+        assertEquals(140_000L, suggestion.weightGrams)
+        assertTrue(
+            "a plan prefills targets; it does not log sets",
+            viewModel.uiState.value.exercises.single().sets.isEmpty(),
+        )
+    }
+
+    @Test
+    fun aPlanWithNoTargetForTheNextSet_leavesTheOlderRuleAlone() = runTest(dispatcher) {
+        // The plan is silent about set two, so the set just logged decides (P1.3).
+        val repository = FakeWorkoutRepository()
+        val templates = FakeTemplateRepository(
+            planned = listOf(
+                plannedExercise(
+                    position = 0,
+                    sets = listOf(plannedSet(index = 0, reps = 3, weightGrams = 140_000L)),
+                ),
+            ),
+        )
+        val viewModel = viewModelFor(repository, templateId = "t1", templates = templates)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        // The user adjusted the first set away from the plan, which is expected: a
+        // logged set is its own row and nothing verifies it against the plan.
+        val logged = viewModel.uiState.value.exercises.single().sets.single()
+        viewModel.onUpdateSet(
+            logged.id,
+            reps = 5,
+            weightGrams = 100_000L,
+            rpe = null,
+            note = null,
+            setType = SetType.NORMAL,
+        )
+        settle()
+
+        val suggestion = viewModel.uiState.value.exercises.single().suggestion
+        assertEquals("the set just logged decides set two", 5, suggestion.reps)
+        assertEquals(100_000L, suggestion.weightGrams)
+    }
+
+    /** One exercise of a plan, at a position in the session. */
+    private fun plannedExercise(position: Int, sets: List<TemplateSet>) = TemplateExercise(
+        id = "te-$position",
+        templateId = "t1",
+        exerciseId = "back-squat",
+        position = position,
+        exerciseName = "Back Squat",
+        primaryMuscle = MuscleGroup.QUADS,
+        equipment = Equipment.BARBELL,
+        sets = sets,
+    )
+
+    private fun plannedSet(index: Int, reps: Int, weightGrams: Long) = TemplateSet(
+        id = "ts-$index",
+        templateExerciseId = "te-0",
+        setIndex = index,
+        role = SetType.NORMAL,
+        targetWeightGrams = weightGrams,
+        targetRepsMax = reps,
+    )
+
+    /** Reads only: this test never writes a plan, and the plan's reads are enough. */
+    private class FakeTemplateRepository(
+        private val planned: List<TemplateExercise> = emptyList(),
+    ) : TemplateRepository {
+        override fun observeTemplates(): Flow<List<WorkoutTemplate>> = flowOf(emptyList())
+        override fun observeTemplate(templateId: String): Flow<WorkoutTemplate?> = flowOf(null)
+        override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> =
+            flowOf(planned)
+
+        override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun createTemplate(name: String): DataResult<String> = notUsed()
+        override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> =
+            notUsed()
+
+        override suspend fun deleteTemplate(templateId: String): DataResult<Unit> = notUsed()
+        override suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit> =
+            notUsed()
+
+        override suspend fun removeExercise(templateExerciseId: String): DataResult<Unit> =
+            notUsed()
+
+        override suspend fun moveExercise(templateExerciseId: String, delta: Int): DataResult<Unit> =
+            notUsed()
+
+        override suspend fun addSet(
+            templateExerciseId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> = notUsed()
+
+        override suspend fun updateSet(
+            templateSetId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> = notUsed()
+
+        override suspend fun removeSet(templateSetId: String): DataResult<Unit> = notUsed()
+        override suspend fun duplicateSets(templateExerciseId: String): DataResult<Unit> = notUsed()
+        override suspend fun setExercisePlan(
+            templateExerciseId: String,
+            restSeconds: Int?,
+            techniqueNote: String?,
+        ): DataResult<Unit> = notUsed()
+
+        private fun notUsed(): Nothing = error("this test does not write a plan")
     }
 }

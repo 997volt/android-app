@@ -95,6 +95,44 @@
     <string name="template_name_label">Name</string>
     <string name="template_save_name">Save name</string>
     <string name="template_add_exercise">Add exercise</string>
+    <!-- A plan's sets (ROADMAP N14): what to lift, how much, in what shape. -->
+    <string name="template_plan_row">Planned sets</string>
+
+    <string name="template_plan_none">No planned sets</string>
+    <string name="template_plan_title">%1$s — the plan</string>
+    <string name="template_plan_empty">No planned sets yet. Add one, or duplicate once the first is written.</string>
+    <string name="template_plan_add">Add set</string>
+    <string name="template_plan_duplicate">Duplicate</string>
+    <string name="template_plan_set">%1$d · %2$s</string>
+    <string name="template_plan_remove">Remove planned set %1$d</string>
+    <string name="template_set_title">Planned set</string>
+    <string name="template_set_title_new">Add a planned set</string>
+    <string name="template_set_role">Role: %1$s</string>
+    <string name="template_set_weight">Target weight (kg)</string>
+    <string name="template_set_reps_min">Reps from</string>
+    <string name="template_set_reps_max">Reps to</string>
+    <string name="template_set_note">Note</string>
+    <string name="template_set_weight_value">%1$s kg</string>
+    <plurals name="template_plan_summary">
+        <item quantity="one">%1$d planned set</item>
+        <item quantity="other">%1$d planned sets</item>
+    </plurals>
+    <plurals name="template_reps_range">
+        <item quantity="one">%1$d–%2$d rep</item>
+        <item quantity="other">%1$d–%2$d reps</item>
+    </plurals>
+    <plurals name="template_reps_min_only">
+        <item quantity="one">%1$d+ rep</item>
+        <item quantity="other">%1$d+ reps</item>
+    </plurals>
+    <plurals name="template_reps_max_only">
+        <item quantity="one">max %1$d rep</item>
+        <item quantity="other">max %1$d reps</item>
+    </plurals>
+    <string name="template_rest_label">Rest (seconds)</string>
+    <string name="template_cue_label">Cue</string>
+    <string name="template_rest_cue_save">Save rest and cue</string>
+    <string name="action_close">Close</string>
     <string name="template_no_exercises">No exercises yet</string>
     <string name="template_no_exercises_hint">Add the exercises you want, then put them in the order you train them.</string>
     <string name="template_move_up">Move %1$s up</string>
@@ -177,6 +215,9 @@
     <!-- RPE and comment per set (ROADMAP N6). Both optional: the one-tap log path
          writes neither, so an empty field is the normal case. -->
     <string name="set_rpe_label">RPE (1–10)</string>
+    <!-- The role a performed set was (ROADMAP N14), the same vocabulary as a plan's. -->
+    <string name="set_role">Role: %1$s</string>
+    <string name="set_role_marker">%1$s</string>
     <string name="set_rpe_hint">Optional</string>
     <string name="set_note_label">Comment</string>
     <!-- The marker on a logged set that carries either (ROADMAP N6). -->

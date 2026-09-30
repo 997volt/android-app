@@ -4,6 +4,7 @@ import androidx.room.Room
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.SetType
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
@@ -180,6 +181,84 @@ class TemplateDaoTest {
         isCustom = false,
         createdAt = 0L,
         updatedAt = 0L,
+        deletedAt = null,
+    )
+
+    @Test
+    fun aTemplatesPlannedSets_comeBackInExerciseThenSetOrder() = runTest {
+        // The editor reads one flow for the whole template, so the order has to be
+        // the order the plan is written in (ROADMAP N14).
+        dao.insertTemplate(template("t1", "Legs"))
+        dao.insertTemplateExercise(templateExercise("te2", "t1", "bench-press", 1))
+        dao.insertTemplateExercise(templateExercise("te1", "t1", "back-squat", 0))
+        dao.insertTemplateSet(plannedSet("s3", "te2", 0))
+        dao.insertTemplateSet(plannedSet("s1", "te1", 0))
+        dao.insertTemplateSet(plannedSet("s2", "te1", 1))
+
+        val rows = dao.observeTemplateSets("t1").first()
+
+        assertEquals(listOf("s1", "s2", "s3"), rows.map { it.id })
+        assertEquals(listOf(0, 1, 0), rows.map { it.setIndex })
+    }
+
+    @Test
+    fun aRemovedPlannedSet_leavesTheFlow_butNotTheTable() = runTest {
+        dao.insertTemplate(template("t1", "Legs"))
+        dao.insertTemplateExercise(templateExercise("te1", "t1", "back-squat", 0))
+        dao.insertTemplateSet(plannedSet("s1", "te1", 0))
+        dao.insertTemplateSet(plannedSet("s2", "te1", 1))
+
+        dao.softDeleteTemplateSet("s1", at = 500L)
+
+        assertEquals(listOf("s2"), dao.observeTemplateSets("t1").first().map { it.id })
+        assertEquals(listOf("s2"), dao.findSetsForExercise("te1").map { it.id })
+        assertNull("a soft-deleted set is not found by id", dao.findTemplateSet("s1"))
+    }
+
+    @Test
+    fun theNextSetIndex_followsTheOnesAlreadyPlanned() = runTest {
+        dao.insertTemplate(template("t1", "Legs"))
+        dao.insertTemplateExercise(templateExercise("te1", "t1", "back-squat", 0))
+
+        assertEquals("an empty plan starts at 0", -1, dao.maxSetIndex("te1"))
+        dao.insertTemplateSet(plannedSet("s1", "te1", 0))
+        dao.insertTemplateSet(plannedSet("s2", "te1", 1))
+        assertEquals(1, dao.maxSetIndex("te1"))
+    }
+
+    @Test
+    fun aPlansRestAndCue_areWrittenAndCanBeCleared() = runTest {
+        // Clearing matters: null is "use the library's", not zero (ROADMAP N14, N5).
+        dao.insertTemplate(template("t1", "Legs"))
+        dao.insertTemplateExercise(templateExercise("te1", "t1", "back-squat", 0))
+
+        dao.setExerciseRestAndCue("te1", restSeconds = 180, techniqueNote = "Slow descent", at = 2L)
+        val written = dao.findTemplateExercise("te1")!!
+        assertEquals(180, written.restSeconds)
+        assertEquals("Slow descent", written.techniqueNote)
+
+        dao.setExerciseRestAndCue("te1", restSeconds = null, techniqueNote = null, at = 3L)
+        val cleared = dao.findTemplateExercise("te1")!!
+        assertNull(cleared.restSeconds)
+        assertNull(cleared.techniqueNote)
+    }
+
+    private fun plannedSet(
+        id: String,
+        templateExerciseId: String,
+        setIndex: Int,
+    ) = TemplateSetEntity(
+        id = id,
+        templateExerciseId = templateExerciseId,
+        setIndex = setIndex,
+        role = SetType.NORMAL,
+        targetWeightGrams = 100_000L,
+        targetRepsMin = 3,
+        targetRepsMax = 3,
+        targetRpe = 8,
+        note = null,
+        createdAt = 1_000L,
+        updatedAt = 1_000L,
         deletedAt = null,
     )
 }

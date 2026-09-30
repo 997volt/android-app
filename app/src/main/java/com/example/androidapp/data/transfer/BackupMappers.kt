@@ -5,6 +5,7 @@ import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.TemplateEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
+import com.example.androidapp.data.local.TemplateSetEntity
 import com.example.androidapp.data.local.WorkoutSessionEntity
 
 /**
@@ -83,6 +84,8 @@ internal fun SessionExerciseEntity.toDto() = SessionExerciseDto(
     muscleFeel = muscleFeel,
     jointPain = jointPain,
     jointPainNote = jointPainNote,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
@@ -97,6 +100,8 @@ internal fun SessionExerciseDto.toEntity() = SessionExerciseEntity(
     muscleFeel = muscleFeel,
     jointPain = jointPain,
     jointPainNote = jointPainNote,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
@@ -153,6 +158,8 @@ internal fun TemplateExerciseEntity.toDto() = TemplateExerciseDto(
     templateId = templateId,
     exerciseId = exerciseId,
     position = position,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
@@ -163,6 +170,38 @@ internal fun TemplateExerciseDto.toEntity() = TemplateExerciseEntity(
     templateId = templateId,
     exerciseId = exerciseId,
     position = position,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateSetEntity.toDto() = TemplateSetDto(
+    id = id,
+    templateExerciseId = templateExerciseId,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpe = targetRpe,
+    note = note,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun TemplateSetDto.toEntity() = TemplateSetEntity(
+    id = id,
+    templateExerciseId = templateExerciseId,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpe = targetRpe,
+    note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

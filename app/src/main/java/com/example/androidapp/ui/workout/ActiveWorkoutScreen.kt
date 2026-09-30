@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -117,7 +118,7 @@ fun ActiveWorkoutScreen(
     clock: State<WorkoutClock>,
     onAddExercise: () -> Unit,
     onLogSet: (String) -> Unit,
-    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onDeleteSet: (String) -> Unit,
     onUndoDelete: () -> Unit,
@@ -204,7 +205,7 @@ fun ActiveWorkoutScreen(
 @Composable
 private fun SetEditorSection(
     set: SetRow?,
-    onUpdateSet: (String, Int, Long, Int?, String?) -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (set == null) return
@@ -216,7 +217,7 @@ private fun SetEditorSection(
         initialNote = set.note,
         onDismiss = onDismiss,
         onSave = { edit ->
-            onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note)
+            onUpdateSet(set.id, edit.reps, edit.weightGrams, edit.rpe, edit.note, edit.setType)
             onDismiss()
         },
     )
@@ -620,7 +621,7 @@ private fun ActiveWorkoutScreenPreview() {
             },
             onAddExercise = {},
             onLogSet = {},
-            onUpdateSet = { _, _, _, _, _ -> },
+            onUpdateSet = { _, _, _, _, _, _ -> },
             onRemoveExercise = {},
             onDeleteSet = {},
             onUndoDelete = {},

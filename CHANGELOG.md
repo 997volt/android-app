@@ -8,6 +8,25 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Templates are plans now.** A template exercise carries planned sets — a role,
+  a target weight, a target rep range, a target RPE and a note — plus the rest and cue
+  the plan prescribes for that exercise. Starting a workout from a template prefills
+  each set from the plan, so a written ramp is the numbers you actually see, and the
+  plan's rest replaces the library's for that session. **Copy forward** duplicates an
+  exercise's sets so a shape authored once becomes five sets in two taps, because
+  thirty sets of four fields on a phone is where a plan stops being written down.
+- **A set's role.** Planned and performed sets share one vocabulary — working, warm-up,
+  **top set** (the one new value), drop and failure. The set editor gains a role
+  selector, which is what finally makes `SetType`'s values reachable from the UI at
+  all, and a logged set shows its role when it is not a plain working set. That is the
+  half of this that is not about planning.
+- Targets only: nothing verifies a plan against what was lifted, and a logged set is a
+  separate row that is expected to differ. Declining to check the plan is what keeps
+  this a plan rather than a compliance feature.
+- Two migrations as the work landed: **10→11** adds `template_sets` and the plan's
+  `restSeconds`/`techniqueNote`, **11→12** adds those two to `session_exercises` so the
+  plan's rest and cue can reach a session. Both additive, nothing backfilled, and the
+  backup codec carries all three or an export would drop them in silence.
 - **A comment on the workout itself.** Finishing asks once, and skippably, how it
   went — the moment you remember why — and the comment is shown in the workout detail
   afterwards. No migration: `workout_sessions.notes` has been in the schema since v1,

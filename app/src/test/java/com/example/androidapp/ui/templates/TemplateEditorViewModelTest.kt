@@ -1,5 +1,9 @@
 package com.example.androidapp.ui.templates
 
+import com.example.androidapp.domain.model.SetType
+import kotlinx.coroutines.flow.flowOf
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.model.TemplateSet
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
@@ -192,6 +196,9 @@ class TemplateEditorViewModelTest {
         val removed = mutableListOf<String>()
         val moved = mutableListOf<Pair<String, Int>>()
         val deleted = mutableListOf<String>()
+        val addedSets = mutableListOf<Pair<String, TemplateSetEdit>>()
+        val duplicated = mutableListOf<String>()
+        val savedPlans = mutableListOf<Triple<String, Int?, String?>>()
         var failWrites = false
 
         override fun observeTemplates(): Flow<List<WorkoutTemplate>> = templates
@@ -200,6 +207,34 @@ class TemplateEditorViewModelTest {
             templates.map { rows -> rows.firstOrNull { it.id == templateId } }
 
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> = exercises
+        override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun addSet(
+            templateExerciseId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> {
+            addedSets += templateExerciseId to edit
+            return DataResult.Success(Unit)
+        }
+
+        override suspend fun updateSet(
+            templateSetId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> = DataResult.Success(Unit)
+
+        override suspend fun removeSet(templateSetId: String): DataResult<Unit> =
+            DataResult.Success(Unit)
+        override suspend fun duplicateSets(templateExerciseId: String): DataResult<Unit> {
+            duplicated += templateExerciseId
+            return DataResult.Success(Unit)
+        }
+        override suspend fun setExercisePlan(
+            templateExerciseId: String,
+            restSeconds: Int?,
+            techniqueNote: String?,
+        ): DataResult<Unit> {
+            savedPlans += Triple(templateExerciseId, restSeconds, techniqueNote)
+            return DataResult.Success(Unit)
+        }
 
         override suspend fun createTemplate(name: String): DataResult<String> =
             DataResult.Success("t-new")
@@ -232,5 +267,62 @@ class TemplateEditorViewModelTest {
         }
 
         private fun failure() = DataResult.Failure(DataError.Storage(IOException("disk full")))
+    }
+
+
+    @Test
+    fun addingAPlannedSet_passesItsTargetsToTheRepository() = runTest(dispatcher) {
+        // The plan editor's whole job: what the dialog collected is what is stored
+        // (ROADMAP N14).
+        val repository = FakeTemplateRepository()
+        val viewModel = viewModelFor(repository)
+        advanceUntilIdle()
+
+        viewModel.onAddSet(
+            "te1",
+            TemplateSetEdit(
+                role = SetType.TOP_SET,
+                targetWeightGrams = 140_000L,
+                targetRepsMin = 1,
+                targetRepsMax = 2,
+                targetRpe = 9,
+                note = "grind",
+            ),
+        )
+        advanceUntilIdle()
+
+        val (exerciseId, edit) = repository.addedSets.single()
+        assertEquals("te1", exerciseId)
+        assertEquals(SetType.TOP_SET, edit.role)
+        assertEquals(140_000L, edit.targetWeightGrams)
+        assertEquals(2, edit.targetRepsMax)
+        assertEquals(9, edit.targetRpe)
+    }
+
+    @Test
+    fun duplicatingAPlan_asksTheRepositoryForTheExercise() = runTest(dispatcher) {
+        val repository = FakeTemplateRepository()
+        val viewModel = viewModelFor(repository)
+        advanceUntilIdle()
+
+        viewModel.onDuplicateSets("te1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("te1"), repository.duplicated)
+    }
+
+    @Test
+    fun savingARestAndCue_passesBothThrough() = runTest(dispatcher) {
+        val repository = FakeTemplateRepository()
+        val viewModel = viewModelFor(repository)
+        advanceUntilIdle()
+
+        viewModel.onSaveExercisePlan("te1", restSeconds = 180, techniqueNote = "Slow descent")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(Triple("te1", 180, "Slow descent")),
+            repository.savedPlans,
+        )
     }
 }

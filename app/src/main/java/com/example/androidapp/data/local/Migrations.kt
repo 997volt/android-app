@@ -238,6 +238,56 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
 private const val ADD_SESSION_EXERCISE_JOINT_PAIN_NOTE =
     "ALTER TABLE `session_exercises` ADD COLUMN `jointPainNote` TEXT"
 
+/**
+ * v10 -> v11: a plan's sets, and the rest and cue it prescribes (ROADMAP N14).
+ *
+ * A new table plus two additive columns. Nothing existing is touched, so an upgrade
+ * cannot lose a template that was already there.
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_TEMPLATE_SETS)
+        db.execSQL(CREATE_TEMPLATE_SETS_INDEX)
+        db.execSQL(ADD_TEMPLATE_EXERCISE_REST_SECONDS)
+        db.execSQL(ADD_TEMPLATE_EXERCISE_TECHNIQUE_NOTE)
+    }
+}
+
+private const val CREATE_TEMPLATE_SETS =
+    "CREATE TABLE IF NOT EXISTS `template_sets` (" +
+        "`id` TEXT NOT NULL, `templateExerciseId` TEXT NOT NULL, `setIndex` INTEGER NOT NULL, " +
+        "`role` TEXT NOT NULL, `targetWeightGrams` INTEGER, `targetRepsMin` INTEGER, " +
+        "`targetRepsMax` INTEGER, `targetRpe` INTEGER, `note` TEXT, " +
+        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, " +
+        "PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`templateExerciseId`) REFERENCES `template_exercises`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_TEMPLATE_SETS_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_template_sets_templateExerciseId` " +
+        "ON `template_sets` (`templateExerciseId`)"
+
+private const val ADD_TEMPLATE_EXERCISE_REST_SECONDS =
+    "ALTER TABLE `template_exercises` ADD COLUMN `restSeconds` INTEGER"
+
+private const val ADD_TEMPLATE_EXERCISE_TECHNIQUE_NOTE =
+    "ALTER TABLE `template_exercises` ADD COLUMN `techniqueNote` TEXT"
+
+/**
+ * v11 -> v12: the rest and cue a *plan* prescribed, carried onto the session exercise
+ * (ROADMAP N14).
+ *
+ * Nullable and unset for a workout that was not started from a plan (or was started
+ * from a template that prescribes neither), which is what leaves the library's values
+ * showing through — the fallback direction the roadmap names.
+ */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `restSeconds` INTEGER")
+        db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `techniqueNote` TEXT")
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -249,4 +299,6 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_7_8,
     MIGRATION_8_9,
     MIGRATION_9_10,
+    MIGRATION_10_11,
+    MIGRATION_11_12,
 )

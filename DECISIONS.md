@@ -24,6 +24,25 @@ into this file once the feature ships.
   deletes — so a future sync stays a decision, not a migration. The zone offset is the
   one missing piece, and it is an open question in the roadmap.
 
+## Templates and plans
+
+- **A plan's sets are targets, and nothing verifies them** (N14). The set the user logs
+  is a separate row in `set_entries` and is expected to differ; the plan describes the
+  shape of a session rather than predicting it. Every target is nullable, because "work
+  up to a heavy single" has no weight to write down and a zero would be a claim the app
+  cannot check.
+- **One role vocabulary for planned and performed sets.** `SetType` gained `TOP_SET`
+  rather than a parallel enum for plans, so a plan that says "top set" and a log that
+  cannot would not be two names for one idea. Enums are stored by name, so adding it
+  touched no row already on disk.
+- **A template is living, and a session reads it at the start.** Nothing links a session
+  to the plan it came from beyond the route that started it: editing a plan changes what
+  the next workout prefills, which is what N16 relies on. Writing the targets onto the
+  session instead would freeze them and make "living" false.
+- **The plan's rest and cue win over the library's, and null means "the library's"**
+  (N14, extending N5). They are copied onto the session exercise when it is seeded from
+  a plan, so a workout started from a plan that says "3m break" counts 3m.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

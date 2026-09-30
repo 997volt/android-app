@@ -190,6 +190,7 @@ class BackupRoundTripTest {
         sets = database.backupDao().allSets().size,
         templates = database.backupDao().allTemplates().size,
         templateExercises = database.backupDao().allTemplateExercises().size,
+        templateSets = database.backupDao().allTemplateSets().size,
     )
 
     private data class Counts(
@@ -199,9 +200,11 @@ class BackupRoundTripTest {
         val sets: Int,
         val templates: Int,
         val templateExercises: Int,
+        val templateSets: Int,
     ) {
         val total: Int
-            get() = exercises + sessions + sessionExercises + sets + templates + templateExercises
+            get() = exercises + sessions + sessionExercises + sets + templates +
+                templateExercises + templateSets
     }
 
     private suspend fun seedAWorkout() {
@@ -249,6 +252,27 @@ class BackupRoundTripTest {
                 templateId = "template-1",
                 exerciseId = "back-squat",
                 position = 0,
+                // The plan's rest and cue, and the plan's sets: N14's table is the one
+                // most easily forgotten, because a plan that loses its sets still
+                // restores as a template with the right exercises in it.
+                restSeconds = 180,
+                techniqueNote = "Slow descent",
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+        templateDao.insertTemplateSet(
+            com.example.androidapp.data.local.TemplateSetEntity(
+                id = "template-set-1",
+                templateExerciseId = "template-exercise-1",
+                setIndex = 0,
+                role = SetType.TOP_SET,
+                targetWeightGrams = 140_000L,
+                targetRepsMin = 1,
+                targetRepsMax = 2,
+                targetRpe = 9,
+                note = "grind",
                 createdAt = 1_000L,
                 updatedAt = 1_000L,
                 deletedAt = null,
@@ -286,4 +310,33 @@ class BackupRoundTripTest {
         updatedAt = 1L,
         deletedAt = null,
     )
+
+    @Test
+    fun aPlanSurvivesTheRoundTrip_withItsSetsRestAndCue() = runTest {
+        // The reason this exists: the codec is hand-written, so a table or column the
+        // DTO does not name is dropped on export and lost on restore, in silence
+        // (ROADMAP N14 — the same trap N9's location was).
+        seedAWorkout()
+        val before = counts()
+
+        val json = exportedJson()
+        database.clearAllTables()
+        repository.import(json)
+
+        assertEquals(before, counts())
+
+        val sets = database.backupDao().allTemplateSets()
+        assertEquals(1, sets.size)
+        val set = sets.single()
+        assertEquals(SetType.TOP_SET, set.role)
+        assertEquals(140_000L, set.targetWeightGrams)
+        assertEquals(1, set.targetRepsMin)
+        assertEquals(2, set.targetRepsMax)
+        assertEquals(9, set.targetRpe)
+        assertEquals("grind", set.note)
+
+        val exercise = database.backupDao().allTemplateExercises().single()
+        assertEquals(180, exercise.restSeconds)
+        assertEquals("Slow descent", exercise.techniqueNote)
+    }
 }

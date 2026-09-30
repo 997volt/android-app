@@ -3,6 +3,7 @@ package com.example.androidapp.data.local
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.TemplateExercise
+import com.example.androidapp.domain.model.TemplateSet
 
 /**
  * A template exercise joined with the library exercise it refers to.
@@ -18,9 +19,13 @@ data class TemplateExerciseDetail(
     val exerciseName: String,
     val primaryMuscle: MuscleGroup,
     val equipment: Equipment,
+    val restSeconds: Int?,
+    val techniqueNote: String?,
 )
 
-internal fun TemplateExerciseDetail.toDomain(): TemplateExercise = TemplateExercise(
+internal fun TemplateExerciseDetail.toDomain(
+    sets: List<TemplateSet> = emptyList(),
+): TemplateExercise = TemplateExercise(
     id = id,
     templateId = templateId,
     exerciseId = exerciseId,
@@ -28,6 +33,21 @@ internal fun TemplateExerciseDetail.toDomain(): TemplateExercise = TemplateExerc
     exerciseName = exerciseName,
     primaryMuscle = primaryMuscle,
     equipment = equipment,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
+    sets = sets,
+)
+
+internal fun TemplateSetEntity.toDomain(): TemplateSet = TemplateSet(
+    id = id,
+    templateExerciseId = templateExerciseId,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpe = targetRpe,
+    note = note,
 )
 
 /**

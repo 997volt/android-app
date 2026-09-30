@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.components
 
+import com.example.androidapp.domain.model.SetType
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -144,5 +146,47 @@ class SetEditorDialogTest {
         composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("hard")
 
         composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsNotEnabled()
+    }
+
+    @Test
+    fun theRoleSelector_changesWhatIsSaved() {
+        // ROADMAP N14: `SetType` carried warm-up, drop and failure with no way to
+        // reach them from the UI until this selector existed.
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_ROLE).performClick()
+        composeTestRule.onNodeWithTag(TestTags.setRole("TOP_SET")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(SetType.TOP_SET, saved?.setType)
+    }
+
+    @Test
+    fun aSetLeftAlone_isAPlainWorkingSet() {
+        // The common case must not need a tap: nothing selected is NORMAL (N14).
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(SetType.NORMAL, saved?.setType)
+    }
+
+    @Test
+    fun anExistingSetsRole_isShownRatherThanReset() {
+        // Editing a set you logged as a warm-up must keep it one.
+        composeTestRule.setContent {
+            SetEditorDialog(
+                initialReps = 5,
+                initialWeightGrams = 60_000L,
+                initialSetType = SetType.WARMUP,
+                onDismiss = {},
+                onSave = { saved = it },
+            )
+        }
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(SetType.WARMUP, saved?.setType)
+        composeTestRule.onNodeWithText("Role: Warm-up").assertIsDisplayed()
     }
 }

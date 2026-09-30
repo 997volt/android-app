@@ -16,6 +16,11 @@ object TestTags {
 
     /** A logged set, tappable to edit it. */
     const val SET_ROW = "set_row"
+    /** The role a performed set was (ROADMAP N14). */
+    const val SET_ROLE = "set_role"
+
+    fun setRole(role: String) = "set_role_$role"
+
     const val SET_SAVE = "set_save"
     const val SET_CANCEL = "set_cancel"
     const val SET_INCREASE_WEIGHT = "set_increase_weight"
@@ -169,4 +174,29 @@ object TestTags {
     fun templateMoveDown(id: String) = "template_move_down_$id"
 
     fun templateRemove(id: String) = "template_remove_$id"
+
+    /** A plan's sets (ROADMAP N14): the list, one target, and its rest and cue. */
+    const val TEMPLATE_PLAN_ROW = "template_plan_row"
+    const val TEMPLATE_PLAN_TITLE = "template_plan_title"
+    const val TEMPLATE_PLAN_EMPTY = "template_plan_empty"
+    const val TEMPLATE_PLAN_ADD = "template_plan_add"
+    const val TEMPLATE_PLAN_DUPLICATE = "template_plan_duplicate"
+    const val TEMPLATE_PLAN_CLOSE = "template_plan_close"
+    const val TEMPLATE_SET_ROLE = "template_set_role"
+    const val TEMPLATE_SET_WEIGHT = "template_set_weight"
+    const val TEMPLATE_SET_REPS_MIN = "template_set_reps_min"
+    const val TEMPLATE_SET_REPS_MAX = "template_set_reps_max"
+    const val TEMPLATE_SET_RPE = "template_set_rpe"
+    const val TEMPLATE_SET_NOTE = "template_set_note"
+    const val TEMPLATE_SET_SAVE = "template_set_save"
+    const val TEMPLATE_SET_CANCEL = "template_set_cancel"
+    const val TEMPLATE_REST_FIELD = "template_rest_field"
+    const val TEMPLATE_CUE_FIELD = "template_cue_field"
+    const val TEMPLATE_REST_CUE_SAVE = "template_rest_cue_save"
+
+    fun templatePlanSet(id: String) = "template_plan_set_$id"
+
+    fun templatePlanRemove(id: String) = "template_plan_remove_$id"
+
+    fun templateSetRole(role: String) = "template_set_role_$role"
 }

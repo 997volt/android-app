@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.templates
 
+import kotlinx.coroutines.flow.flowOf
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.model.TemplateSet
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.TemplateExercise
@@ -151,6 +154,34 @@ class TemplatesViewModelTest {
             templates.map { rows -> rows.firstOrNull { it.id == templateId } }
 
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> = exercises
+        override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun addSet(
+            templateExerciseId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+
+        override suspend fun updateSet(
+            templateSetId: String,
+            edit: TemplateSetEdit,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+
+        override suspend fun removeSet(templateSetId: String): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+        override suspend fun duplicateSets(templateExerciseId: String): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
+        override suspend fun setExercisePlan(
+            templateExerciseId: String,
+            restSeconds: Int?,
+            techniqueNote: String?,
+        ): DataResult<Unit> {
+            error("these tests do not write a plan")
+        }
 
         override suspend fun createTemplate(name: String): DataResult<String> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
@@ -180,4 +211,5 @@ class TemplatesViewModelTest {
             DataResult.Success(Unit)
         }
     }
+
 }

@@ -183,7 +183,12 @@ class RoomWorkoutSessionTest {
         )
     }
 
-    private suspend fun seedTemplate(templateId: String, exerciseIds: List<String>) {
+    private suspend fun seedTemplate(
+        templateId: String,
+        exerciseIds: List<String>,
+        restSeconds: Int? = null,
+        techniqueNote: String? = null,
+    ) {
         database.templateDao().insertTemplate(
             TemplateEntity(
                 id = templateId,
@@ -218,6 +223,8 @@ class RoomWorkoutSessionTest {
                     templateId = templateId,
                     exerciseId = exerciseId,
                     position = index,
+                    restSeconds = restSeconds,
+                    techniqueNote = techniqueNote,
                     createdAt = 1_000L,
                     updatedAt = 1_000L,
                     deletedAt = null,
@@ -228,4 +235,30 @@ class RoomWorkoutSessionTest {
 
     private suspend fun start(templateId: String? = null): StartedSession =
         (repository.startOrResumeSession(templateId) as DataResult.Success).data
+
+    @Test
+    fun startingFromAPlan_carriesItsRestAndCueOntoTheSession() = runTest {
+        // ROADMAP N14: the plan's rest and cue exist to be used, and the fallback to
+        // the library's is only observable if the plan's value wins.
+        seedTemplate("t1", listOf("back-squat"), restSeconds = 180, techniqueNote = "Slow descent")
+
+        val started = start("t1")
+        val row = repository.observeSessionExercises(started.id).first().single()
+
+        assertEquals("the plan's break, not the library's", 180, row.restSeconds)
+        assertEquals("Slow descent", row.techniqueNote)
+    }
+
+    @Test
+    fun aPlanThatPrescribesNoRest_leavesTheLibrarysShowing() = runTest {
+        seedTemplate("t1", listOf("back-squat"))
+
+        val started = start("t1")
+        val row = repository.observeSessionExercises(started.id).first().single()
+
+        // The exercise seeded by this test has no library rest of its own, so the
+        // fallback shows as null rather than as an override with nothing (N5).
+        assertNull(row.restSeconds)
+        assertNull(row.techniqueNote)
+    }
 }

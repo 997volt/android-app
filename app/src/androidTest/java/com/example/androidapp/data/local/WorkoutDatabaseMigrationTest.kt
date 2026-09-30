@@ -404,4 +404,120 @@ class WorkoutDatabaseMigrationTest {
     private companion object {
         const val TEST_DB = "migration-test.db"
     }
+
+    @Test
+    fun migration10To11_addsThePlannedSets_leavingAtemplateAlone() {
+        // A v10 database with a real template in it: a plan is the user's work, and
+        // the upgrade must not disturb one that was already written (ROADMAP N14).
+        helper.createDatabase(TEST_DB, 10).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Heavy lower', 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO template_exercises
+                    (id, templateId, exerciseId, position, createdAt, updatedAt, deletedAt)
+                VALUES ('te1', 't1', 'back-squat', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 11, true, MIGRATION_10_11)
+
+        // The new table exists and is empty...
+        migrated.query("SELECT COUNT(*) FROM template_sets").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("no planned set is invented by the upgrade", 0, cursor.getInt(0))
+        }
+
+        // ...the plan's two new columns are null rather than zeroed, so the exercise
+        // still falls back to the library's rest and cue (N5)...
+        migrated.query(
+            "SELECT restSeconds, techniqueNote FROM template_exercises WHERE id = 'te1'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertTrue("an unset rest must stay unset", cursor.isNull(0))
+            assertTrue("an unset cue must stay unset", cursor.isNull(1))
+        }
+
+        // ...and the template that was already there is untouched.
+        migrated.query("SELECT id, name FROM templates").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.count)
+            assertEquals("Heavy lower", cursor.getString(1))
+        }
+
+        migrated.close()
+    }
+
+    @Test
+    fun migration11To12_addsThePlansRestAndCue_leavingThemLibraryOwned() {
+        // A v11 database with a real session: the new columns are what a *plan*
+        // prescribes, so they must arrive unset and let the library's show through
+        // (ROADMAP N14).
+        helper.createDatabase(TEST_DB, 11).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt,
+                     restSeconds, techniqueNote)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL, 90, 'Brace hard')
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, finishedAt, muscleFeel,
+                     jointPain, jointPainNote, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 12, true, MIGRATION_11_12)
+
+        migrated.query(
+            "SELECT restSeconds, techniqueNote FROM session_exercises WHERE id = 'se1'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertTrue("the plan prescribed nothing, so the column is unset", cursor.isNull(0))
+            assertTrue(cursor.isNull(1))
+        }
+        // The library's own values are untouched, which is what the session falls back to.
+        migrated.query(
+            "SELECT restSeconds, techniqueNote FROM exercises WHERE id = 'back-squat'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(90, cursor.getInt(0))
+            assertEquals("Brace hard", cursor.getString(1))
+        }
+
+        migrated.close()
+    }
 }

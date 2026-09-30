@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -72,7 +73,9 @@ interface TemplateDao {
                te.position AS position,
                e.name AS exerciseName,
                e.primaryMuscle AS primaryMuscle,
-               e.equipment AS equipment
+               e.equipment AS equipment,
+               te.restSeconds AS restSeconds,
+               te.techniqueNote AS techniqueNote
         FROM template_exercises te
         JOIN exercises e ON e.id = te.exerciseId
         WHERE te.templateId = :templateId
@@ -96,6 +99,111 @@ interface TemplateDao {
         """,
     )
     suspend fun findExerciseIdsInOrder(templateId: String): List<String>
+
+    /**
+     * The same list with what the plan prescribes for each exercise (ROADMAP N14),
+     * which is what a session started from this template seeds onto its rows.
+     */
+    @Query(
+        """
+        SELECT te.exerciseId AS exerciseId, te.restSeconds AS restSeconds,
+               te.techniqueNote AS techniqueNote
+        FROM template_exercises te
+        WHERE te.templateId = :templateId AND te.deletedAt IS NULL
+        ORDER BY te.position ASC
+        """,
+    )
+    suspend fun findPlannedExercises(templateId: String): List<PlannedExercise>
+
+    /** One exercise of a plan, as seeding needs it. */
+    @Suppress("LongParameterList")
+    data class PlannedExercise(
+        val exerciseId: String,
+        val restSeconds: Int?,
+        val techniqueNote: String?,
+    )
+
+    /**
+     * Every planned set of a template, ordered by the exercise's position then the
+     * set's index (ROADMAP N14).
+     *
+     * One query for the whole template rather than one per exercise: the editor shows
+     * them all at once, and N+1 flows would be a subscription per exercise.
+     */
+    @Query(
+        """
+        SELECT ts.* FROM template_sets ts
+        JOIN template_exercises te ON te.id = ts.templateExerciseId
+        WHERE te.templateId = :templateId
+          AND ts.deletedAt IS NULL
+          AND te.deletedAt IS NULL
+        ORDER BY te.position ASC, ts.setIndex ASC
+        """,
+    )
+    fun observeTemplateSets(templateId: String): Flow<List<TemplateSetEntity>>
+
+    /** The same list one-shot, for starting a workout from a plan. */
+    @Query(
+        """
+        SELECT ts.* FROM template_sets ts
+        JOIN template_exercises te ON te.id = ts.templateExerciseId
+        WHERE te.templateId = :templateId
+          AND ts.deletedAt IS NULL
+          AND te.deletedAt IS NULL
+        ORDER BY te.position ASC, ts.setIndex ASC
+        """,
+    )
+    suspend fun findTemplateSets(templateId: String): List<TemplateSetEntity>
+
+    @Query("SELECT * FROM template_sets WHERE id = :id AND deletedAt IS NULL")
+    suspend fun findTemplateSet(id: String): TemplateSetEntity?
+
+    @Query(
+        """
+        SELECT * FROM template_sets
+        WHERE templateExerciseId = :templateExerciseId AND deletedAt IS NULL
+        ORDER BY setIndex ASC
+        """,
+    )
+    suspend fun findSetsForExercise(templateExerciseId: String): List<TemplateSetEntity>
+
+    @Query(
+        """
+        SELECT COALESCE(MAX(setIndex), -1) FROM template_sets
+        WHERE templateExerciseId = :templateExerciseId AND deletedAt IS NULL
+        """,
+    )
+    suspend fun maxSetIndex(templateExerciseId: String): Int
+
+    @Insert
+    suspend fun insertTemplateSet(row: TemplateSetEntity)
+
+    @Update
+    suspend fun updateTemplateSet(row: TemplateSetEntity): Int
+
+    @Query(
+        """
+        UPDATE template_sets
+        SET deletedAt = :at, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun softDeleteTemplateSet(id: String, at: Long): Int
+
+    /** Writes a template exercise's prescribed rest and cue (ROADMAP N14). */
+    @Query(
+        """
+        UPDATE template_exercises
+        SET restSeconds = :restSeconds, techniqueNote = :techniqueNote, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setExerciseRestAndCue(
+        id: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+        at: Long,
+    ): Int
 
     /** Next free position; -1 on an empty template, so callers add 1. */
     @Query("SELECT COALESCE(MAX(position), -1) FROM template_exercises WHERE templateId = :templateId")
