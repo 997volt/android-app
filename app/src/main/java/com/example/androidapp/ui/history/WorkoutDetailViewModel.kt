@@ -36,7 +36,16 @@ data class HistorySet(
 
 /** An exercise within a past workout, with everything that was logged for it. */
 data class HistoryExercise(
+    /** The session's own row id — what a set's edit and delete address (N6). */
     val id: String,
+    /**
+     * The *library* exercise this row is an instance of (ROADMAP N17).
+     *
+     * Distinct from [id] on purpose: `id` is one workout's row, while the trends screen
+     * wants the movement, which is the only id under which a series exists. Passing the
+     * row id there is a query that silently matches nothing.
+     */
+    val exerciseId: String,
     val name: String,
     val sets: List<HistorySet>,
     /** How well the target muscle was worked, 1–10, or null (ROADMAP N8). */
@@ -107,6 +116,7 @@ class WorkoutDetailViewModel @Inject constructor(
                 exercises = exerciseRows.map { row ->
                     HistoryExercise(
                         id = row.id,
+                        exerciseId = row.exerciseId,
                         name = row.exerciseName,
                         muscleFeel = row.muscleFeel,
                         jointPain = row.jointPain,

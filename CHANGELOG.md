@@ -77,6 +77,11 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+- **Tapping a lift in a past workout showed no trends for it.** The history screen passed
+  the session's own row id to the trends screen, where a series exists only under the
+  *library* exercise's id — a query that silently matches nothing, so the screen said
+  "nothing recorded yet" for a lift just logged. Found by device verification against the
+  published 1.4 upgrade, and covered by a test now (N17).
 - **A cancelled export no longer reports a failed one.** The backup and restore
   callbacks run in the screen's coroutine scope, and both wrapped their file IO in
   `runCatching` — which catches `Throwable`, and so swallows the `CancellationException`

@@ -335,7 +335,7 @@ private fun ExerciseBlock(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier
                 .testTag(TestTags.historyExerciseTrends(exercise.id))
-                .clickable(onClickLabel = trendsLabel) { onOpenTrends(exercise.id) },
+                .clickable(onClickLabel = trendsLabel) { onOpenTrends(exercise.exerciseId) },
         )
 
         exercise.sets.forEachIndexed { index, set ->
@@ -441,6 +441,7 @@ private fun WorkoutDetailScreenPreview() {
                 exercises = listOf(
                     HistoryExercise(
                         id = "se1",
+                        exerciseId = "back-squat",
                         name = "Back Squat",
                         sets = listOf(
                             HistorySet("1", reps = 5, weightGrams = 100_000),

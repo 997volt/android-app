@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import org.junit.Assert.assertEquals
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -42,6 +43,7 @@ class WorkoutDetailScreenTest {
         exercises = listOf(
             HistoryExercise(
                 id = "se1",
+                exerciseId = "back-squat",
                 name = "Back Squat",
                 sets = listOf(HistorySet(id = "set1", reps = 5, weightGrams = 100_000)),
             ),
@@ -68,6 +70,7 @@ class WorkoutDetailScreenTest {
         onDeleteSet: (String) -> Unit = {},
         onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},
+        onOpenExerciseTrends: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
             WorkoutDetailScreen(
@@ -76,6 +79,7 @@ class WorkoutDetailScreenTest {
                 onDeleteSet = onDeleteSet,
                 onRateExercise = onRateExercise,
                 onDeleteWorkout = onDeleteWorkout,
+                onOpenExerciseTrends = onOpenExerciseTrends,
                 onBack = {},
             )
         }
@@ -118,6 +122,7 @@ class WorkoutDetailScreenTest {
                 exercises = listOf(
                     HistoryExercise(
                         id = "se1",
+                        exerciseId = "back-squat",
                         name = "Back Squat",
                         sets = listOf(
                             HistorySet(
@@ -157,6 +162,7 @@ class WorkoutDetailScreenTest {
                 exercises = listOf(
                     HistoryExercise(
                         id = "se1",
+                        exerciseId = "back-squat",
                         name = "Back Squat",
                         sets = emptyList(),
                         muscleFeel = 8,
@@ -201,9 +207,36 @@ class WorkoutDetailScreenTest {
         composeTestRule.onNodeWithText("Delete this workout?").assertIsDisplayed()
         assert(!deleted) { "the workout was deleted before it was confirmed" }
     }
+    @Test
+    fun tappingALift_opensTrendsForTheLibraryExercise_notTheSessionsRow() {
+        // The bug device verification found (N17): the row id is one workout's, while a
+        // series exists only under the library's exercise id — so passing the row id is a
+        // query that silently matches nothing, and the screen says "nothing recorded yet"
+        // for a lift the user just did.
+        val opened = mutableListOf<String>()
+        setScreen(
+            uiState = state.copy(
+                exercises = listOf(
+                    HistoryExercise(
+                        id = "se1",
+                        exerciseId = "back-squat",
+                        name = "Back Squat",
+                        sets = listOf(HistorySet(id = "set1", reps = 5, weightGrams = 100_000L)),
+                    ),
+                ),
+            ),
+            onOpenExerciseTrends = { opened += it },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.historyExerciseTrends("se1")).performClick()
+
+        assertEquals(listOf("back-squat"), opened)
+    }
+
 }
 
 /** True when the node's click action carries an accessibility label. */
 private fun hasClickLabel(): SemanticsMatcher = SemanticsMatcher("has a click label") { node ->
     node.config.getOrNull(SemanticsActions.OnClick)?.label != null
+
 }
