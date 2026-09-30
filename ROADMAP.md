@@ -52,13 +52,71 @@ left alone without being forgotten.
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next
+## Next — a template you can plan
 
-**Nothing.** Everything planned has shipped and lives in
-[CHANGELOG.md](CHANGELOG.md), because shipped work lives there rather than here.
+Templates today are a name and an ordered list of exercises; starting one seeds the
+session with those and nothing else. This turns a template into a *plan*: what to lift,
+how much, in what shape, and on which day.
 
-What comes next is chosen from *Later* below, which is where candidates live until one
-is picked up, given an id and spelled out here.
+### N14 — Planned sets on templates
+
+A template exercise gains planned sets, so starting a workout prefills a session instead
+of a single generic suggestion.
+
+- A `template_sets` table per template exercise: set index, **role**, target weight,
+  target reps, target RPE, note.
+- **Roles**: warm-up, working, **top set**, drop. `SetType` already carries warm-up, drop
+  and failure; top set is the one new value, and the enum should serve planned and
+  performed sets alike.
+- **Reps are a range whose upper bound is the one that matters.** In the plan that
+  prompted this, `(max 2)` on a bench press means the target's upper bound is 2 while the
+  lower bound is simply not written down — so both columns are nullable.
+- **Targets only.** A logged set is a separate row and is expected to differ; nothing
+  verifies the plan. That is what keeps this small, and it is a decision rather than an
+  omission.
+- **Rest and cue per template exercise**: nullable `restSeconds` and `techniqueNote` on
+  `template_exercises`, falling back to the library values N5 stores. A plan prescribes
+  "3m break, slow descent, no sinking" where the library only knows the movement.
+- **Start from template** prefills the planned sets as targets.
+- **Copy forward** in the editor — duplicate the plan's sets, then adjust. Without it,
+  authoring this on a phone is where the feature stops being used: the plan that prompted
+  it has six exercises and sixteen sets of four fields each.
+- The muscle-feel and joint-pain block is **not** part of a plan. Those are recorded after
+  the exercise (N8, N9); a plan does not guess them.
+
+### N15 — Assisted load
+
+Assisted work has no representation at all: `weightGrams` is non-negative, capped at
+1000 kg, and `Weight.step` clamps at zero — so the assisted pull-up in that plan
+(`-20, -10, -13, -16`) cannot be written down today.
+
+- **Decided: a separate `assistanceGrams`**, not a signed weight. The editor takes one
+  field that accepts a leading minus and stores the magnitude; the display shows it back
+  as `-20`.
+- **Excluded from volume**, exactly as 0 kg bodyweight is. Letting a weight's sign carry
+  assistance would make a hard assisted set report negative tonnage and quietly corrupt
+  every volume trend built on it — including N13's.
+- Touches parsing, the cap, `step`, the set editor, the plan editor and the backup codec,
+  which is why it is its own item rather than a column inside N14.
+
+### N16 — Weekly schedule
+
+A template can be pinned to a weekday, and home shows today's plan.
+
+- `templates.weekday`, nullable. Several templates may share a day; home lists what is
+  scheduled and offers to start it.
+- **Decided: a living template, not dated instances.** There is one Friday plan. Editing
+  its sets changes every future Friday until it is edited again — exercises repeat weekly
+  while sets vary. What you *performed* is the record, and that is already kept. Dated
+  plan instances would add a plan-per-date entity, plan generation and skipped-week
+  handling, to support a comparison the logged sets already allow.
+
+**Order:** N14 first, since it is the substance. N15 is independent but this plan needs
+it — an assisted exercise cannot be written without it. N16 last: a schedule pointing at
+a plan with no targets is thin.
+
+Each takes a migration as it lands (the quality bar's rule); none of them needs one
+before its code exists.
 
 ## Later (still self-contained)
 
@@ -88,14 +146,15 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P2.5** Progress photos, in encrypted local storage.
 
 **Programming** — turns a logger into a plan
-- **P3.1 + P3.2** shipped their v1 as **N3** (templates: a name, exercises, order).
-  The remaining routine scope — target sets × rep ranges, supersets, drop sets —
-  stays here and builds on it. Per-exercise rest shipped as **N5**, a library
-  attribute; a per-*routine* rest override would still belong here.
+- **P3.1 + P3.2** shipped their v1 as **N3** (templates: a name, exercises, order), and
+  their targets, per-plan rest and weekday schedule are **N14–N16** above. What remains
+  here is **P3.6** supersets and circuits; drop sets are a set role in N14, and giant-set
+  notation is deliberately not modelled.
 - **P3.4** Auto-progression suggestions — the strongest differentiator once there is
   enough history to base them on.
 - **P3.3** Programs / mesocycles with scheduled deloads.
-- **P3.5 + P3.6** Weekly scheduling; supersets and circuits.
+- **P3.5** The weekly schedule ships as **N16**; what remains here is planned-vs-completed
+  adherence over a longer window, and a calendar view.
 
 **Small and self-contained**
 - **P2.6** Plate calculator.
