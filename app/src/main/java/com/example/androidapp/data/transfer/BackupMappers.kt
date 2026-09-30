@@ -115,7 +115,7 @@ internal fun SetEntryEntity.toDto() = SetDto(
     weightGrams = weightGrams,
     assistanceGrams = assistanceGrams,
     setType = setType,
-    rpe = rpe,
+    rpeHalves = rpeHalves,
     note = note,
     completedAt = completedAt,
     createdAt = createdAt,
@@ -131,7 +131,9 @@ internal fun SetDto.toEntity() = SetEntryEntity(
     weightGrams = weightGrams,
     assistanceGrams = assistanceGrams,
     setType = setType,
-    rpe = rpe,
+    // `rpe` is the pre-half-step field: a file written then carries 8 where this app
+    // now means 8.0, which is 16 halves.
+    rpeHalves = rpeHalves ?: rpe?.times(HALVES_PER_POINT),
     note = note,
     completedAt = completedAt,
     createdAt = createdAt,
@@ -188,7 +190,7 @@ internal fun TemplateSetEntity.toDto() = TemplateSetDto(
     targetAssistanceGrams = targetAssistanceGrams,
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
-    targetRpe = targetRpe,
+    targetRpeHalves = targetRpeHalves,
     note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
@@ -204,9 +206,13 @@ internal fun TemplateSetDto.toEntity() = TemplateSetEntity(
     targetAssistanceGrams = targetAssistanceGrams,
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
-    targetRpe = targetRpe,
+    // A pre-half-step plan target carries whole numbers; 7 is 7.0, 14 halves.
+    targetRpeHalves = targetRpeHalves ?: targetRpe?.times(HALVES_PER_POINT),
     note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
 )
+
+/** Half steps per RPE point (ROADMAP N6). */
+private const val HALVES_PER_POINT = 2

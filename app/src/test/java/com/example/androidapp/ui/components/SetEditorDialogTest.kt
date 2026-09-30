@@ -85,7 +85,7 @@ class SetEditorDialogTest {
 
         composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsEnabled().performClick()
 
-        assertEquals(SetEdit(reps = 5, weightGrams = 0L, rpe = null, note = null), saved)
+        assertEquals(SetEdit(reps = 5, weightGrams = 0L, rpeHalves = null, note = null), saved)
     }
 
     @Test
@@ -144,7 +144,7 @@ class SetEditorDialogTest {
 
         composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
 
-        assertEquals(SetEdit(reps = 5, weightGrams = 100_000L, rpe = null, note = null), saved)
+        assertEquals(SetEdit(reps = 5, weightGrams = 100_000L, rpeHalves = null, note = null), saved)
     }
 
     @Test
@@ -155,7 +155,7 @@ class SetEditorDialogTest {
         composeTestRule.onNodeWithTag(TestTags.SET_NOTE_FIELD).performTextInput("Felt heavy")
         composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
 
-        assertEquals(8, saved?.rpe)
+        assertEquals("8 is 16 halves", 16, saved?.rpeHalves)
         assertEquals("Felt heavy", saved?.note)
     }
 
@@ -218,5 +218,40 @@ class SetEditorDialogTest {
 
         assertEquals(SetType.WARMUP, saved?.setType)
         composeTestRule.onNodeWithText("Role: Warm-up").assertIsDisplayed()
+    }
+
+    @Test
+    fun aHalfStepRpe_isAccepted_andAHalfIsNot() {
+        // ROADMAP N6 extended: 9.5 is a value, 9.3 is not a claim about the set.
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("9.5")
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).performClick()
+
+        assertEquals(19, saved?.rpeHalves)
+    }
+
+    @Test
+    fun anRpeFinerThanAHalf_isRefused_ratherThanRounded() {
+        show()
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).performTextInput("9.3")
+
+        composeTestRule.onNodeWithTag(TestTags.SET_SAVE).assertIsNotEnabled()
+    }
+
+    @Test
+    fun anExistingHalfStepRpe_opensAsATyped() {
+        composeTestRule.setContent {
+            SetEditorDialog(
+                initialReps = 5,
+                initialWeightGrams = 100_000L,
+                initialRpe = 19,
+                onDismiss = {},
+                onSave = { saved = it },
+            )
+        }
+
+        composeTestRule.onNodeWithTag(TestTags.SET_RPE_FIELD).assertTextContains("9.5")
     }
 }

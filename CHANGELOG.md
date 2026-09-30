@@ -65,6 +65,18 @@ Notable changes to Workout Log, newest first. Format follows
   about for these series. Reached from the home overflow. No migration.
 
 ### Changed
+- **RPE takes half steps.** `9.5` can be recorded, not just whole numbers. It is stored
+  as *halves in an integer* (`19` is 9.5) for the same reason weights are whole grams:
+  9.5 has no exact binary representation, and an RPE that compares as `9.499999` — or
+  drifts when a trend averages it — is worse than one unit of arithmetic. The field
+  accepts `9`, `9.5` and `9,5`, and refuses anything finer than a half (9.3 is not
+  rounded to 9.5; that would be a claim about the set nobody made). The muscle-feel and
+  joint-pain ratings are a different, whole-number scale and are unchanged.
+- Migration **13→14** carries RPE across: the columns are renamed to `rpeHalves` and
+  `targetRpeHalves` — re-using `rpe` for a different unit is how a silent corruption
+  starts — and existing values are doubled, so an 8 recorded before this is still 8.0.
+- The backup keeps reading the old whole-number field: renaming it would have dropped
+  the RPE out of every earlier export on restore, without a word.
 - **The 1–10 scales now say what their ends mean.** N8 shipped the muscle-feel and
   joint-pain ratings unlabelled on purpose — an anchor for what 3 or 7 means would be
   a claim the app has no basis for — and left labelling the ends as the obvious

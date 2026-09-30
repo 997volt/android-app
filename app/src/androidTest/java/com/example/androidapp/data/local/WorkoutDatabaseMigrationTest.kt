@@ -579,4 +579,102 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration13To14_carriesRpeIntoHalves() {
+        // The unit changed, so the column was renamed rather than re-used: an `rpe`
+        // holding 19 would read as nineteen points to anyone who did not know. Values
+        // are doubled on the way across, so an 8 recorded before this is still 8.0
+        // (ROADMAP N6, extended for 9.5).
+        helper.createDatabase(TEST_DB, 13).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id, name, primaryMuscle, secondaryMuscles, equipment,
+                     movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES
+                    ('back-squat', 'Back Squat', 'QUADS', '', 'BARBELL',
+                     'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions
+                    (id, startedAt, finishedAt, notes, restEndsAt, readinessNote,
+                     createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 1, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises
+                    (id, sessionId, exerciseId, position, finishedAt, muscleFeel,
+                     jointPain, jointPainNote, createdAt, updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'back-squat', 0, NULL, NULL, NULL, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO set_entries
+                    (id, sessionExerciseId, setIndex, reps, weightGrams, assistanceGrams,
+                     setType, rpe, note, completedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('set1', 'se1', 0, 5, 100000, 0, 'NORMAL', 8, 'heavy', 1, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO set_entries
+                    (id, sessionExerciseId, setIndex, reps, weightGrams, assistanceGrams,
+                     setType, rpe, note, completedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('set2', 'se1', 1, 5, 100000, 0, 'NORMAL', NULL, NULL, 1, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Legs', 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO template_exercises
+                    (id, templateId, exerciseId, position, createdAt, updatedAt, deletedAt)
+                VALUES ('te1', 't1', 'back-squat', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO template_sets
+                    (id, templateExerciseId, setIndex, role, targetWeightGrams,
+                     targetAssistanceGrams, targetRepsMin, targetRepsMax, targetRpe,
+                     note, createdAt, updatedAt, deletedAt)
+                VALUES ('ts1', 'te1', 0, 'NORMAL', 100000, NULL, 3, 3, 7, NULL, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 14, true, MIGRATION_13_14)
+
+        // 8 points is 16 halves; the rest of the row came across untouched.
+        migrated.query(
+            "SELECT rpeHalves, note, weightGrams FROM set_entries WHERE id = 'set1'",
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(16, cursor.getInt(0))
+            assertEquals("heavy", cursor.getString(1))
+            assertEquals(100_000L, cursor.getLong(2))
+        }
+        // A set with no RPE stays unrated rather than becoming 0 halves.
+        migrated.query("SELECT rpeHalves FROM set_entries WHERE id = 'set2'").use { cursor ->
+            cursor.moveToFirst()
+            assertTrue("no RPE stays no RPE", cursor.isNull(0))
+        }
+        migrated.query("SELECT targetRpeHalves FROM template_sets").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(14, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
 }

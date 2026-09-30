@@ -555,7 +555,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(DEFAULT_REPS, logged.reps)
         assertEquals(Weight.DEFAULT_GRAMS, logged.weightGrams)
         // N6: the one-tap path deliberately writes neither, so logging stays fast.
-        assertNull(logged.rpe)
+        assertNull(logged.rpeHalves)
         assertNull(logged.note)
         assertEquals("a rest must be armed on set completion", 1, notifier.scheduled.size)
     }
@@ -576,7 +576,7 @@ class ActiveWorkoutViewModelTest {
             logged.id,
             reps = 5,
             weightGrams = 100_000L,
-            rpe = 7,
+            rpeHalves = 7,
             note = "Tough",
             setType = SetType.WARMUP,
         )
@@ -584,11 +584,11 @@ class ActiveWorkoutViewModelTest {
 
         val stored = repository.sets.value.single()
         assertEquals(5, stored.reps)
-        assertEquals(7, stored.rpe)
+        assertEquals(7, stored.rpeHalves)
         assertEquals("Tough", stored.note)
         // And the row the screen renders carries them, for the marker.
         val row = viewModel.uiState.value.exercises.single().sets.single()
-        assertEquals(7, row.rpe)
+        assertEquals(7, row.rpeHalves)
         assertEquals("Tough", row.note)
     }
 
@@ -1061,7 +1061,7 @@ class ActiveWorkoutViewModelTest {
             setId: String,
             reps: Int,
             weightGrams: Long,
-            rpe: Int?,
+            rpeHalves: Int?,
             note: String?,
             setType: SetType,
         assistanceGrams: Long,
@@ -1069,7 +1069,7 @@ class ActiveWorkoutViewModelTest {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.map {
                 if (it.id == setId) {
-                    it.copy(reps = reps, weightGrams = weightGrams, rpe = rpe, note = note)
+                    it.copy(reps = reps, weightGrams = weightGrams, rpeHalves = rpeHalves, note = note)
                 } else {
                     it
                 }
@@ -1178,7 +1178,7 @@ class ActiveWorkoutViewModelTest {
             logged.id,
             reps = 5,
             weightGrams = 100_000L,
-            rpe = null,
+            rpeHalves = null,
             note = null,
             setType = SetType.NORMAL,
         )

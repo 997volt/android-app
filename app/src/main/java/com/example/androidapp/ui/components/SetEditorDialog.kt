@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.TenPointScale
 
@@ -67,7 +68,8 @@ fun SetEditorDialog(
                 repsText = initialReps.toString(),
                 // Shown as one signed number: -20 is 20 kg of assistance (N15).
                 weightText = Weight.display(initialWeightGrams, initialAssistanceGrams),
-                rpeText = initialRpe?.toString().orEmpty(),
+                // Shown as a lifter writes it, so an existing 9.5 comes back as 9.5.
+                rpeText = initialRpe?.let(Rpe::format).orEmpty(),
                 noteText = initialNote.orEmpty(),
                 setType = initialSetType,
             ),
@@ -135,9 +137,10 @@ private fun SetEditorDialogContent(
     val parsedReps = draft.repsText.toIntOrNull()?.takeIf { it > 0 }
     // One field, two columns: a leading minus is assistance (ROADMAP N15).
     val parsedLoad = Weight.parseLoad(draft.weightText)
-    val parsedRpe = draft.rpeText.trim().ifEmpty { null }?.toIntOrNull()
+    // Halves, so 9.5 is a value and 9.3 is not (ROADMAP N6).
+    val parsedRpe = draft.rpeText.trim().ifEmpty { null }?.let(Rpe::parse)
     // Blank is valid; anything typed has to parse *and* sit on the scale.
-    val rpeIsValid = draft.rpeText.isBlank() || (parsedRpe != null && TenPointScale.isValid(parsedRpe))
+    val rpeIsValid = draft.rpeText.isBlank() || parsedRpe != null
 
     AlertDialog(
         modifier = modifier,
@@ -169,7 +172,7 @@ private fun SetEditorDialogContent(
                             setType = draft.setType,
                             assistanceGrams = parsedLoad?.assistanceGrams ?: 0L,
                             // Out of range is already excluded by `enabled`.
-                            rpe = parsedRpe?.takeIf { TenPointScale.isValid(it) },
+                            rpeHalves = parsedRpe,
                             note = draft.noteText.trim().ifEmpty { null },
                         ),
                     )

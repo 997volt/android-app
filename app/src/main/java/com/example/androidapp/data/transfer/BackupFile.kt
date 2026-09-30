@@ -122,6 +122,14 @@ data class SetDto(
     val assistanceGrams: Long = 0,
     val setType: SetType,
     /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N6). */
+    val rpeHalves: Int? = null,
+    /**
+     * The pre-N6.5 whole-number RPE, read only (ROADMAP N6).
+     *
+     * Kept because renaming the field above would otherwise drop the RPE out of every
+     * backup written before RPE took halves: an unknown field decodes to nothing, so
+     * the value would vanish on restore without a word.
+     */
     val rpe: Int? = null,
     val note: String? = null,
     val completedAt: Long? = null,
@@ -163,6 +171,8 @@ data class TemplateSetDto(
     val targetAssistanceGrams: Long? = null,
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
+    val targetRpeHalves: Int? = null,
+    /** The plan target's pre-half-step whole-number RPE, read only (ROADMAP N6). */
     val targetRpe: Int? = null,
     val note: String? = null,
     val createdAt: Long,

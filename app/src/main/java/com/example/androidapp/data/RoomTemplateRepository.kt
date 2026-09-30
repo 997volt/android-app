@@ -1,5 +1,6 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.data.local.TemplateEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.TemplateSetEntity
@@ -130,7 +131,7 @@ class RoomTemplateRepository @Inject constructor(
                 targetAssistanceGrams = edit.targetAssistanceGrams,
                 targetRepsMin = edit.targetRepsMin,
                 targetRepsMax = edit.targetRepsMax,
-                targetRpe = edit.targetRpe,
+                targetRpeHalves = edit.targetRpeHalves,
                 note = edit.note?.trim()?.ifEmpty { null },
                 createdAt = now,
                 updatedAt = now,
@@ -151,7 +152,7 @@ class RoomTemplateRepository @Inject constructor(
                     targetAssistanceGrams = edit.targetAssistanceGrams,
                     targetRepsMin = edit.targetRepsMin,
                     targetRepsMax = edit.targetRepsMax,
-                    targetRpe = edit.targetRpe,
+                    targetRpeHalves = edit.targetRpeHalves,
                     note = edit.note?.trim()?.ifEmpty { null },
                     updatedAt = timeSource.nowEpochMillis(),
                 ),
@@ -270,8 +271,8 @@ class RoomTemplateRepository @Inject constructor(
                 edit.targetRepsMin > edit.targetRepsMax ->
                 "The low end of a rep range cannot exceed the high end."
 
-            !TenPointScale.isValid(edit.targetRpe) ->
-                "Target RPE must be between ${TenPointScale.MIN} and ${TenPointScale.MAX}."
+            !Rpe.isValid(edit.targetRpeHalves) ->
+                "Target RPE must be between 1 and 10, in half steps."
 
             else -> null
         }

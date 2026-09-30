@@ -133,14 +133,14 @@ interface WorkoutRepository {
     /**
      * Rewrites a logged set, including its RPE and comment (ROADMAP N6).
      *
-     * [rpe] and [note] are required rather than defaulted: an edit states what the
+     * [rpeHalves] and [note] are required rather than defaulted: an edit states what the
      * set now says, so a caller cannot clear them by forgetting to pass them.
      */
     suspend fun updateSet(
         setId: String,
         reps: Int,
         weightGrams: Long,
-        rpe: Int? = null,
+        rpeHalves: Int? = null,
         note: String? = null,
         /** The role the set was performed as (ROADMAP N14). */
         setType: SetType = SetType.NORMAL,

@@ -256,7 +256,7 @@ class TemplateDaoTest {
         targetAssistanceGrams = null,
         targetRepsMin = 3,
         targetRepsMax = 3,
-        targetRpe = 8,
+        targetRpeHalves = 8,
         note = null,
         createdAt = 1_000L,
         updatedAt = 1_000L,

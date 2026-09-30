@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -125,7 +126,7 @@ fun WorkoutDetailScreen(
         SetEditorDialog(
             initialReps = set.reps,
             initialWeightGrams = set.weightGrams,
-            initialRpe = set.rpe,
+            initialRpe = set.rpeHalves,
             initialNote = set.note,
             onDismiss = { editing = null },
             onSave = { edit ->
@@ -133,7 +134,7 @@ fun WorkoutDetailScreen(
                     set.id,
                     edit.reps,
                     edit.weightGrams,
-                    edit.rpe,
+                    edit.rpeHalves,
                     edit.note,
                     edit.setType,
                     edit.assistanceGrams,
@@ -378,9 +379,9 @@ private fun HistorySetRow(
                     )
                     // The detail is where the full text lives (N6); the workout
                     // row only carries a marker.
-                    set.rpe?.let { rpe ->
+                    set.rpeHalves?.let { rpeHalves ->
                         Text(
-                            text = stringResource(R.string.set_rpe_marker, rpe),
+                            text = stringResource(R.string.set_rpe_marker, Rpe.format(rpeHalves)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

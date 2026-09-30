@@ -21,7 +21,7 @@ interface TrendsDao {
     /**
      * Average RPE per finished workout, newest first.
      *
-     * The join filters `rpe IS NOT NULL`, so a workout with nothing rated does not
+     * The join filters `rpeHalves IS NOT NULL`, so a workout with nothing rated does not
      * appear at all rather than appearing as null: a gap in the chart should mean
      * "not recorded", and a row of nulls is harder to tell apart from a bug.
      */
@@ -29,12 +29,12 @@ interface TrendsDao {
         """
         SELECT ws.id AS sessionId,
                ws.startedAt AS startedAt,
-               AVG(s.rpe) AS averageRpe
+               AVG(s.rpeHalves) AS averageRpe
         FROM workout_sessions ws
         JOIN session_exercises se
           ON se.sessionId = ws.id AND se.deletedAt IS NULL
         JOIN set_entries s
-          ON s.sessionExerciseId = se.id AND s.deletedAt IS NULL AND s.rpe IS NOT NULL
+          ON s.sessionExerciseId = se.id AND s.deletedAt IS NULL AND s.rpeHalves IS NOT NULL
         WHERE ws.deletedAt IS NULL AND ws.finishedAt IS NOT NULL
         GROUP BY ws.id
         ORDER BY ws.startedAt DESC

@@ -46,7 +46,7 @@ data class SetRow(
     val reps: Int,
     val weightGrams: Long,
     /** 1–10, or null when none was recorded (ROADMAP N6). */
-    val rpe: Int? = null,
+    val rpeHalves: Int? = null,
     /** A short comment on the set, or null (ROADMAP N6). */
     val note: String? = null,
     /** The role it was performed as (ROADMAP N14). */
@@ -449,7 +449,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         setId: String,
         reps: Int,
         weightGrams: Long,
-        rpe: Int? = null,
+        rpeHalves: Int? = null,
         note: String? = null,
         setType: SetType = SetType.NORMAL,
         assistanceGrams: Long = 0,
@@ -460,7 +460,7 @@ class ActiveWorkoutViewModel @Inject constructor(
                     setId = setId,
                     reps = reps,
                     weightGrams = weightGrams,
-                    rpe = rpe,
+                    rpeHalves = rpeHalves,
                     note = note,
                     setType = setType,
                     assistanceGrams = assistanceGrams,
@@ -682,7 +682,7 @@ class ActiveWorkoutViewModel @Inject constructor(
                     number = index + 1,
                     reps = set.reps,
                     weightGrams = set.weightGrams,
-                    rpe = set.rpe,
+                    rpeHalves = set.rpeHalves,
                     note = set.note,
                     setType = set.setType,
                     assistanceGrams = set.assistanceGrams,

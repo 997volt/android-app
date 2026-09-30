@@ -54,6 +54,6 @@ data class TemplateSet(
     /** The target reps: both ends nullable, since a plan may write only an upper bound. */
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
-    val targetRpe: Int? = null,
+    val targetRpeHalves: Int? = null,
     val note: String? = null,
 )

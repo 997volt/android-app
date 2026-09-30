@@ -46,15 +46,15 @@ class TrendsDaoTest {
 
     @Test
     fun rpe_isAveragedPerWorkout_overItsRatedSets() = runTest {
-        seedWorkout(sessionId = "s1", startedAt = 1_000L, rpes = listOf(6, 8))
-        seedWorkout(sessionId = "s2", startedAt = 2_000L, rpes = listOf(9))
+        seedWorkout(sessionId = "s1", startedAt = 1_000L, rpes = listOf(12, 16))
+        seedWorkout(sessionId = "s2", startedAt = 2_000L, rpes = listOf(18))
 
         val rows = dao.observeRpeTrend(limit = 10).first()
 
         // Newest first: this is the order the LIMIT wants, not the chart's.
         assertEquals(listOf("s2", "s1"), rows.map { it.sessionId })
-        assertEquals(9.0, rows[0].averageRpe)
-        assertEquals(7.0, rows[1].averageRpe)
+        assertEquals(18.0, rows[0].averageRpe)
+        assertEquals(14.0, rows[1].averageRpe)
     }
 
     @Test
@@ -67,13 +67,13 @@ class TrendsDaoTest {
         database.workoutDao().insertSession(session(id = sessionId, startedAt = 1_000L))
         exercise(sessionId, "se1")
         exercise(sessionId, "se2")
-        database.workoutDao().insertSet(set("set1", "se1", rpe = 4))
-        database.workoutDao().insertSet(set("set2", "se1", rpe = 8))
-        database.workoutDao().insertSet(set("set3", "se2", rpe = 10))
+        database.workoutDao().insertSet(set("set1", "se1", rpeHalves = 8))
+        database.workoutDao().insertSet(set("set2", "se1", rpeHalves = 16))
+        database.workoutDao().insertSet(set("set3", "se2", rpeHalves = 20))
 
         val row = dao.observeRpeTrend(limit = 10).first().single()
 
-        assertEquals("(4 + 8 + 10) / 3", 7.333333333333333, row.averageRpe!!, 0.0001)
+        assertEquals("(8 + 16 + 20) halves / 3", 14.666666666666666, row.averageRpe!!, 0.0001)
     }
 
     @Test
@@ -149,8 +149,8 @@ class TrendsDaoTest {
         )
         if (rpes.isEmpty()) return
         exercise(sessionId, "${sessionId}-se")
-        rpes.forEachIndexed { index, rpe ->
-            database.workoutDao().insertSet(set("$sessionId-set$index", "${sessionId}-se", rpe = rpe))
+        rpes.forEachIndexed { index, rpeHalves ->
+            database.workoutDao().insertSet(set("$sessionId-set$index", "${sessionId}-se", rpeHalves = rpeHalves))
         }
     }
 
@@ -210,14 +210,14 @@ class TrendsDaoTest {
     }
 
     /** A set for the RPE average; the exercise it hangs off is created by the caller. */
-    private fun set(id: String, sessionExerciseId: String, rpe: Int?) = SetEntryEntity(
+    private fun set(id: String, sessionExerciseId: String, rpeHalves: Int?) = SetEntryEntity(
         id = id,
         sessionExerciseId = sessionExerciseId,
         setIndex = 0,
         reps = 5,
         weightGrams = 100_000L,
         setType = SetType.NORMAL,
-        rpe = rpe,
+        rpeHalves = rpeHalves,
         note = null,
         completedAt = 1_000L,
         createdAt = 1_000L,

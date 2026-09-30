@@ -14,6 +14,7 @@ import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.TenPointScale
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
@@ -267,7 +268,7 @@ class RoomWorkoutRepository @Inject constructor(
         setId: String,
         reps: Int,
         weightGrams: Long,
-        rpe: Int?,
+        rpeHalves: Int?,
         note: String?,
         setType: SetType,
         assistanceGrams: Long,
@@ -275,8 +276,9 @@ class RoomWorkoutRepository @Inject constructor(
         dataResultOf {
             // The editor's field is the real guard; this is the boundary that keeps
             // an out-of-range value from reaching the database (ROADMAP N6).
-            if (!TenPointScale.isValid(rpe)) {
-                throw InvalidInputException("RPE must be between ${TenPointScale.MIN} and ${TenPointScale.MAX}.")
+            // RPE takes halves; the feel and pain ratings above do not (ROADMAP N6).
+            if (!Rpe.isValid(rpeHalves)) {
+                throw InvalidInputException("RPE must be between 1 and 10, in half steps.")
             }
 
             // Read the stored row first, so the columns an edit does not touch
@@ -286,7 +288,7 @@ class RoomWorkoutRepository @Inject constructor(
             val updated = stored.copy(
                 reps = reps.coerceAtLeast(1),
                 weightGrams = weightGrams.coerceAtLeast(0L),
-                rpe = rpe,
+                rpeHalves = rpeHalves,
                 // The role is part of what the set was (ROADMAP N14), and so is
                 // what the machine took off (N15).
                 setType = setType,

@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertNull
 import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.model.Equipment
@@ -93,7 +94,7 @@ class BackupCodecTest {
                 reps = 5,
                 weightGrams = 100_000,
                 setType = SetType.WARMUP,
-                rpe = 8,
+                rpeHalves = 19,
                 note = "Felt heavy",
                 completedAt = 11L,
                 createdAt = 11L,
@@ -143,7 +144,7 @@ class BackupCodecTest {
                 targetWeightGrams = 140_000L,
                 targetRepsMin = 1,
                 targetRepsMax = 2,
-                targetRpe = 9,
+                targetRpeHalves = 9,
                 note = "grind",
                 createdAt = 30L,
                 updatedAt = 30L,
@@ -256,7 +257,7 @@ class BackupCodecTest {
             )
         }
         val olderSets = tree.getValue("sets").jsonArray.map { element ->
-            JsonObject(element.jsonObject.filterKeys { it != "rpe" && it != "note" })
+            JsonObject(element.jsonObject.filterKeys { it != "rpeHalves" && it != "note" })
         }
         val olderFile = JsonObject(
             tree + mapOf(
@@ -276,7 +277,7 @@ class BackupCodecTest {
         assertEquals(null, restored.sessionExercises.first().muscleFeel)
         assertEquals(null, restored.sessionExercises.first().jointPain)
         assertEquals(null, restored.sessionExercises.first().jointPainNote)
-        assertEquals(null, restored.sets.first().rpe)
+        assertEquals(null, restored.sets.first().rpeHalves)
         assertEquals(null, restored.sets.first().note)
     }
 
@@ -330,7 +331,7 @@ class BackupCodecTest {
         assertNull(set.targetWeightGrams)
         assertNull(set.targetRepsMin)
         assertNull(set.targetRepsMax)
-        assertNull(set.targetRpe)
+        assertNull(set.targetRpeHalves)
     }
 
     @Test
@@ -353,5 +354,37 @@ class BackupCodecTest {
 
         assertEquals(0L, restored.sets.first().assistanceGrams)
         assertNull(restored.templateSets.first().targetAssistanceGrams)
+    }
+
+    @Test
+    fun aFileWrittenWithWholeNumberRpe_restoresItAsHalves() {
+        // The field was renamed when RPE took halves (ROADMAP N6). Renaming alone would
+        // have dropped the RPE out of every earlier backup in silence — an unknown field
+        // decodes to nothing — so the old name is still read, and an 8 becomes 8.0.
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val sets = tree["sets"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject - "rpeHalves" + ("rpe" to JsonPrimitive(8)))
+        }
+        val planSets = tree["templateSets"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject - "targetRpeHalves" + ("targetRpe" to JsonPrimitive(7)))
+        }
+        val olderFile = JsonObject(
+            tree + ("sets" to JsonArray(sets)) + ("templateSets" to JsonArray(planSets)),
+        )
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertEquals("the legacy field is what the file carried", 8, restored.sets.first().rpe)
+        assertEquals(16, restored.sets.first().toEntity().rpeHalves)
+        assertEquals(14, restored.templateSets.first().toEntity().targetRpeHalves)
+    }
+
+    @Test
+    fun aFileWithBothRpeShapes_prefersTheHalves() {
+        // A file written by this version carries both fields (the legacy one is null).
+        val restored = BackupCodec.decode(BackupCodec.encode(sample))
+
+        assertEquals(sample.sets.first().rpeHalves, restored.sets.first().rpeHalves)
     }
 }

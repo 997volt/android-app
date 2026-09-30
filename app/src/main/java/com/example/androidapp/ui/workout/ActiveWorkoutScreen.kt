@@ -213,7 +213,7 @@ private fun SetEditorSection(
     SetEditorDialog(
         initialReps = set.reps,
         initialWeightGrams = set.weightGrams,
-        initialRpe = set.rpe,
+        initialRpe = set.rpeHalves,
         initialNote = set.note,
         onDismiss = onDismiss,
         onSave = { edit ->
@@ -221,7 +221,7 @@ private fun SetEditorSection(
                 set.id,
                 edit.reps,
                 edit.weightGrams,
-                edit.rpe,
+                edit.rpeHalves,
                 edit.note,
                 edit.setType,
                 edit.assistanceGrams,

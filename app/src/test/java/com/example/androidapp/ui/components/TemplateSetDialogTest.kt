@@ -53,7 +53,7 @@ class TemplateSetDialogTest {
         assertEquals(140_000L, saved?.targetWeightGrams)
         assertEquals(1, saved?.targetRepsMin)
         assertEquals(2, saved?.targetRepsMax)
-        assertEquals(9, saved?.targetRpe)
+        assertEquals("9 is 18 halves", 18, saved?.targetRpeHalves)
         assertEquals("grind", saved?.note)
     }
 

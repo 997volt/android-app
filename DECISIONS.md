@@ -50,6 +50,14 @@ into this file once the feature ships.
   steppers step *that* number, so pressing + on an assisted set reduces the help; the
   weight column itself still cannot go below zero.
 
+- **RPE is half-points in an `Int`, and the feel and pain ratings are not** (N6,
+  extended for 9.5). `19` is 9.5, exactly, for the reason weights are grams: no binary
+  drift, and a trend can average it without the last digit wandering. It refuses
+  anything finer than a half rather than rounding, because a rounded 9.3 would be a
+  claim about the set that was never made. The column is named `rpeHalves` so its unit
+  is visible at the schema, and an older backup's whole-number `rpe` is still read as
+  halves rather than dropped.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

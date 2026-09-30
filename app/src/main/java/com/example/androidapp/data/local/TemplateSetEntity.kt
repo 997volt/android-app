@@ -48,7 +48,7 @@ data class TemplateSetEntity(
      */
     val targetRepsMin: Int?,
     val targetRepsMax: Int?,
-    val targetRpe: Int?,
+    val targetRpeHalves: Int?,
     val note: String?,
     val createdAt: Long,
     val updatedAt: Long,

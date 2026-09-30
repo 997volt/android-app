@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
+private const val HALVES_PER_POINT = 2.0
+
 /**
  * Room-backed [TrendsRepository] (ROADMAP N13).
  *
@@ -42,12 +44,13 @@ class RoomTrendsRepository @Inject constructor(
 
             (rpeBySession.keys + feelBySession.keys)
                 .mapNotNull { sessionId ->
-                    val rpe = rpeBySession[sessionId]
+                    val rpeHalves = rpeBySession[sessionId]
                     val feel = feelBySession[sessionId]
-                    val startedAt = rpe?.startedAt ?: feel?.startedAt ?: return@mapNotNull null
+                    val startedAt = rpeHalves?.startedAt ?: feel?.startedAt ?: return@mapNotNull null
                     TrendPoint(
                         startedAt = Instant.ofEpochMilli(startedAt),
-                        averageRpe = rpe?.averageRpe,
+                        // SQL averaged halves; the series is in RPE units (N6, N13).
+                        averageRpe = rpeHalves?.averageRpe?.div(HALVES_PER_POINT),
                         averageMuscleFeel = feel?.averageMuscleFeel,
                         averageJointPain = feel?.averageJointPain,
                     )

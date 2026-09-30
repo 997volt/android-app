@@ -487,7 +487,7 @@ private fun TemplateSet.toEdit() = TemplateSetEdit(
     targetAssistanceGrams = targetAssistanceGrams,
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
-    targetRpe = targetRpe,
+    targetRpeHalves = targetRpeHalves,
     note = note,
 )
 

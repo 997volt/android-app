@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Load
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.TemplateSet
 import com.example.androidapp.domain.model.TenPointScale
@@ -245,7 +246,7 @@ data class TemplateSetDraft(
         },
         repsMinText = edit.targetRepsMin?.toString().orEmpty(),
         repsMaxText = edit.targetRepsMax?.toString().orEmpty(),
-        rpeText = edit.targetRpe?.toString().orEmpty(),
+        rpeText = edit.targetRpeHalves?.let(Rpe::format).orEmpty(),
         note = edit.note.orEmpty(),
     )
 
@@ -256,7 +257,7 @@ data class TemplateSetDraft(
     val assistanceGrams: Long? get() = load?.assistanceGrams
     val repsMin: Int? get() = repsMinText.trim().ifEmpty { null }?.toIntOrNull()
     val repsMax: Int? get() = repsMaxText.trim().ifEmpty { null }?.toIntOrNull()
-    val rpe: Int? get() = rpeText.trim().ifEmpty { null }?.toIntOrNull()
+    val rpeHalves: Int? get() = rpeText.trim().ifEmpty { null }?.let(Rpe::parse)
 
     // Blank is allowed everywhere; anything typed has to be a usable number, and a
     // range that runs backwards is refused rather than silently swapped.
@@ -271,7 +272,7 @@ data class TemplateSetDraft(
                 (repsMaxText.isBlank() || (max != null && max >= 1)) &&
                 !(min != null && max != null && min > max)
         }
-    val rpeIsValid: Boolean get() = rpeText.isBlank() || (rpe != null && TenPointScale.isValid(rpe))
+    val rpeIsValid: Boolean get() = rpeText.isBlank() || rpeHalves != null
     val isValid: Boolean get() = weightIsValid && repsAreValid && rpeIsValid
 
     fun toEdit() = TemplateSetEdit(
@@ -280,7 +281,7 @@ data class TemplateSetDraft(
         targetAssistanceGrams = assistanceGrams?.takeIf { it > 0L },
         targetRepsMin = repsMin,
         targetRepsMax = repsMax,
-        targetRpe = rpe,
+        targetRpeHalves = rpeHalves,
         note = note.trim().ifEmpty { null },
     )
 }
@@ -405,6 +406,6 @@ private fun TemplateSet.summary(): String {
         )
         else -> null
     }
-    val rpe = targetRpe?.let { stringResource(R.string.set_rpe_marker, it) }
-    return listOfNotNull(weight, reps, rpe, note).joinToString(" · ")
+    val rpeHalves = targetRpeHalves?.let { stringResource(R.string.set_rpe_marker, it) }
+    return listOfNotNull(weight, reps, rpeHalves, note).joinToString(" · ")
 }

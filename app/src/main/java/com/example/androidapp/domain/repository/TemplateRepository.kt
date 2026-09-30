@@ -100,6 +100,6 @@ data class TemplateSetEdit(
     val targetAssistanceGrams: Long? = null,
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
-    val targetRpe: Int? = null,
+    val targetRpeHalves: Int? = null,
     val note: String? = null,
 )

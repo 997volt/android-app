@@ -244,7 +244,7 @@ class TemplateRepositoryTest {
                 targetWeightGrams = 140_000L,
                 targetRepsMin = 1,
                 targetRepsMax = 2,
-                targetRpe = 9,
+                targetRpeHalves = 18,
                 note = "grind",
             ),
         )
@@ -255,7 +255,7 @@ class TemplateRepositoryTest {
         assertEquals(140_000L, stored.targetWeightGrams)
         assertEquals(1, stored.targetRepsMin)
         assertEquals(2, stored.targetRepsMax)
-        assertEquals(9, stored.targetRpe)
+        assertEquals(18, stored.targetRpeHalves)
         assertEquals("grind", stored.note)
     }
 
@@ -271,7 +271,7 @@ class TemplateRepositoryTest {
         val stored = repository.observeExercises(template).first().single().sets.single()
         assertNull(stored.targetWeightGrams)
         assertNull(stored.targetRepsMin)
-        assertNull(stored.targetRpe)
+        assertNull(stored.targetRpeHalves)
     }
 
     @Test
@@ -282,7 +282,7 @@ class TemplateRepositoryTest {
         val negative = repository.addSet(exercise, TemplateSetEdit(targetWeightGrams = -1))
         val zeroReps = repository.addSet(exercise, TemplateSetEdit(targetRepsMin = 0))
         val backwards = repository.addSet(exercise, TemplateSetEdit(targetRepsMin = 8, targetRepsMax = 3))
-        val offScaleRpe = repository.addSet(exercise, TemplateSetEdit(targetRpe = 11))
+        val offScaleRpe = repository.addSet(exercise, TemplateSetEdit(targetRpeHalves = 21))
 
         assertTrue("a negative weight", negative is DataResult.Failure)
         assertTrue("a zero-rep target", zeroReps is DataResult.Failure)

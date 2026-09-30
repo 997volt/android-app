@@ -171,7 +171,7 @@ class BackupRoundTripTest {
         val json = exportedJson()
         val setId = database.backupDao().allSets().single().id
 
-        workouts.updateSet(setId, reps = 20, weightGrams = 100_000L, rpe = null, note = null)
+        workouts.updateSet(setId, reps = 20, weightGrams = 100_000L, rpeHalves = null, note = null)
 
         repository.import(json)
 
@@ -276,7 +276,7 @@ class BackupRoundTripTest {
                 targetAssistanceGrams = 20_000L,
                 targetRepsMin = 1,
                 targetRepsMax = 2,
-                targetRpe = 9,
+                targetRpeHalves = 18,
                 note = "grind",
                 createdAt = 1_000L,
                 updatedAt = 1_000L,
@@ -339,7 +339,7 @@ class BackupRoundTripTest {
         assertEquals(20_000L, set.targetAssistanceGrams)
         assertEquals(1, set.targetRepsMin)
         assertEquals(2, set.targetRepsMax)
-        assertEquals(9, set.targetRpe)
+        assertEquals(18, set.targetRpeHalves)
         assertEquals("grind", set.note)
 
         val exercise = database.backupDao().allTemplateExercises().single()

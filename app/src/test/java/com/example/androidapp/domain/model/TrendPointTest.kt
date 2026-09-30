@@ -17,19 +17,19 @@ import org.junit.Test
 class TrendPointTest {
 
     private fun point(
-        rpe: Double? = null,
+        rpeHalves: Double? = null,
         feel: Double? = null,
         pain: Double? = null,
     ) = TrendPoint(
         startedAt = Instant.parse("2026-09-28T08:00:00Z"),
-        averageRpe = rpe,
+        averageRpe = rpeHalves,
         averageMuscleFeel = feel,
         averageJointPain = pain,
     )
 
     @Test
     fun aMetric_takesItsOwnValueFromAPoint() {
-        val only = point(rpe = 7.5, feel = 6.0, pain = 2.0)
+        val only = point(rpeHalves = 7.5, feel = 6.0, pain = 2.0)
 
         assertEquals(7.5, TrendMetric.RPE.valueOf(only))
         assertEquals(6.0, TrendMetric.MUSCLE_FEEL.valueOf(only))
@@ -38,7 +38,7 @@ class TrendPointTest {
 
     @Test
     fun notRecorded_isNull_ratherThanZero() {
-        val only = point(rpe = 7.5)
+        val only = point(rpeHalves = 7.5)
 
         // Zero would drag an average down and draw a line to the floor; null is a gap.
         assertNull(TrendMetric.MUSCLE_FEEL.valueOf(only))

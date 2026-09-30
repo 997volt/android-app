@@ -50,8 +50,8 @@ class TrendsViewModelTest {
     fun aSectionPerMetric_isBuiltFromTheWindow() = runTest(dispatcher) {
         val repository = FakeTrendsRepository(
             points = listOf(
-                point(rpe = 6.0, feel = 6.0, pain = 2.0),
-                point(rpe = 8.0, feel = 8.0, pain = 4.0),
+                point(rpeHalves = 6.0, feel = 6.0, pain = 2.0),
+                point(rpeHalves = 8.0, feel = 8.0, pain = 4.0),
             ),
         )
         val viewModel = TrendsViewModel(repository)
@@ -66,27 +66,27 @@ class TrendsViewModelTest {
             state.sections.map { it.metric },
         )
 
-        val rpe = state.sections.single { it.metric == TrendMetric.RPE }
-        assertEquals(8.0, rpe.latest)
-        assertEquals(7.0, rpe.average)
-        assertEquals(2, rpe.recorded)
-        assertTrue(rpe.hasLine)
+        val rpeHalves = state.sections.single { it.metric == TrendMetric.RPE }
+        assertEquals(8.0, rpeHalves.latest)
+        assertEquals(7.0, rpeHalves.average)
+        assertEquals(2, rpeHalves.recorded)
+        assertTrue(rpeHalves.hasLine)
     }
 
     @Test
     fun aMetricRecordedOnce_isANumber_ratherThanALine() = runTest(dispatcher) {
         // One point is not a trend, and drawing a line through it would suggest one.
         val repository = FakeTrendsRepository(
-            points = listOf(point(rpe = 7.0), point(rpe = null)),
+            points = listOf(point(rpeHalves = 7.0), point(rpeHalves = null)),
         )
         val viewModel = TrendsViewModel(repository)
         observe(viewModel)
         advanceUntilIdle()
 
-        val rpe = viewModel.uiState.value.sections.single { it.metric == TrendMetric.RPE }
-        assertEquals(1, rpe.recorded)
-        assertEquals(7.0, rpe.latest)
-        assertFalse(rpe.hasLine)
+        val rpeHalves = viewModel.uiState.value.sections.single { it.metric == TrendMetric.RPE }
+        assertEquals(1, rpeHalves.recorded)
+        assertEquals(7.0, rpeHalves.latest)
+        assertFalse(rpeHalves.hasLine)
     }
 
     @Test
@@ -118,7 +118,7 @@ class TrendsViewModelTest {
 
     @Test
     fun aWorkoutWindow_withOnlySomeMetrics_isNotNothing() = runTest(dispatcher) {
-        val viewModel = TrendsViewModel(FakeTrendsRepository(points = listOf(point(rpe = 7.0))))
+        val viewModel = TrendsViewModel(FakeTrendsRepository(points = listOf(point(rpeHalves = 7.0))))
         observe(viewModel)
         advanceUntilIdle()
 
@@ -140,12 +140,12 @@ class TrendsViewModelTest {
     }
 
     private fun point(
-        rpe: Double? = null,
+        rpeHalves: Double? = null,
         feel: Double? = null,
         pain: Double? = null,
     ) = TrendPoint(
         startedAt = Instant.parse("2026-09-28T08:00:00Z"),
-        averageRpe = rpe,
+        averageRpe = rpeHalves,
         averageMuscleFeel = feel,
         averageJointPain = pain,
     )

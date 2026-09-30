@@ -27,7 +27,7 @@ data class HistorySet(
     val reps: Int,
     val weightGrams: Long,
     /** 1–10, or null when none was recorded (ROADMAP N6). */
-    val rpe: Int? = null,
+    val rpeHalves: Int? = null,
     /** The set's comment, or null (ROADMAP N6). */
     val note: String? = null,
     /** The machine's assistance, 0 for none (ROADMAP N15). */
@@ -119,7 +119,7 @@ class WorkoutDetailViewModel @Inject constructor(
                                     id = it.id,
                                     reps = it.reps,
                                     weightGrams = it.weightGrams,
-                                    rpe = it.rpe,
+                                    rpeHalves = it.rpeHalves,
                                     note = it.note,
                                 )
                             },
@@ -137,7 +137,7 @@ class WorkoutDetailViewModel @Inject constructor(
         setId: String,
         reps: Int,
         weightGrams: Long,
-        rpe: Int? = null,
+        rpeHalves: Int? = null,
         note: String? = null,
         setType: SetType = SetType.NORMAL,
         assistanceGrams: Long = 0,
@@ -146,7 +146,7 @@ class WorkoutDetailViewModel @Inject constructor(
             setId = setId,
             reps = reps,
             weightGrams = weightGrams,
-            rpe = rpe,
+            rpeHalves = rpeHalves,
             note = note,
             setType = setType,
             assistanceGrams = assistanceGrams,

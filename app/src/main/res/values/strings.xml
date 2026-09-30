@@ -221,7 +221,8 @@
     <string name="set_rpe_hint">Optional</string>
     <string name="set_note_label">Comment</string>
     <!-- The marker on a logged set that carries either (ROADMAP N6). -->
-    <string name="set_rpe_marker">RPE %1$d</string>
+    <!-- Formatted from halves, so this can be 9.5 (ROADMAP N6). -->
+    <string name="set_rpe_marker">RPE %1$s</string>
     <string name="set_note_marker">Comment</string>
     <!-- Steppers (ROADMAP P1.3a); %1$s is the field label, e.g. "Weight". -->
     <string name="set_stepper_decrease">Decrease %1$s</string>

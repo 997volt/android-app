@@ -307,6 +307,83 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+/**
+ * v13 -> v14: RPE in half steps, so 9.5 can be recorded (ROADMAP N6, extended).
+ *
+ * The column is *renamed* to `rpeHalves` rather than re-used, because its unit changed:
+ * an `rpeHalves` holding 19 would read as nineteen points to anyone who did not know, which
+ * is how a silent corruption starts. Values are doubled on the way across, so an 8
+ * already recorded becomes 16 halves — still 8.0.
+ *
+ * This is the create-copy-drop-rename form rather than `ALTER TABLE … DROP COLUMN`
+ * because minSdk is 26, whose SQLite predates that statement. The column lists are
+ * copied from the exported v13 schema, so a mismatch would fail the migration test
+ * rather than reach a phone.
+ */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_SET_ENTRIES_V14)
+        db.execSQL(
+            """
+            INSERT INTO `set_entries_v14`
+                (id, sessionExerciseId, setIndex, reps, weightGrams, assistanceGrams,
+                 setType, rpeHalves, note, completedAt, createdAt, updatedAt, deletedAt)
+            SELECT id, sessionExerciseId, setIndex, reps, weightGrams, assistanceGrams,
+                   setType, rpe * 2, note, completedAt, createdAt, updatedAt, deletedAt
+            FROM `set_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `set_entries`")
+        db.execSQL("ALTER TABLE `set_entries_v14` RENAME TO `set_entries`")
+        db.execSQL(CREATE_SET_ENTRIES_SESSION_INDEX)
+
+        db.execSQL(CREATE_TEMPLATE_SETS_V14)
+        db.execSQL(
+            """
+            INSERT INTO `template_sets_v14`
+                (id, templateExerciseId, setIndex, role, targetWeightGrams,
+                 targetAssistanceGrams, targetRepsMin, targetRepsMax, targetRpeHalves,
+                 note, createdAt, updatedAt, deletedAt)
+            SELECT id, templateExerciseId, setIndex, role, targetWeightGrams,
+                   targetAssistanceGrams, targetRepsMin, targetRepsMax, targetRpe * 2,
+                   note, createdAt, updatedAt, deletedAt
+            FROM `template_sets`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `template_sets`")
+        db.execSQL("ALTER TABLE `template_sets_v14` RENAME TO `template_sets`")
+        db.execSQL(CREATE_TEMPLATE_SETS_EXERCISE_INDEX)
+    }
+}
+
+private const val CREATE_SET_ENTRIES_V14 =
+    "CREATE TABLE IF NOT EXISTS `set_entries_v14` (" +
+        "`id` TEXT NOT NULL, `sessionExerciseId` TEXT NOT NULL, `setIndex` INTEGER NOT NULL, " +
+        "`reps` INTEGER NOT NULL, `weightGrams` INTEGER NOT NULL, " +
+        "`assistanceGrams` INTEGER NOT NULL, `setType` TEXT NOT NULL, `rpeHalves` INTEGER, " +
+        "`note` TEXT, `completedAt` INTEGER, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`sessionExerciseId`) REFERENCES `session_exercises`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_SET_ENTRIES_SESSION_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_set_entries_sessionExerciseId` " +
+        "ON `set_entries` (`sessionExerciseId`)"
+
+private const val CREATE_TEMPLATE_SETS_V14 =
+    "CREATE TABLE IF NOT EXISTS `template_sets_v14` (" +
+        "`id` TEXT NOT NULL, `templateExerciseId` TEXT NOT NULL, `setIndex` INTEGER NOT NULL, " +
+        "`role` TEXT NOT NULL, `targetWeightGrams` INTEGER, " +
+        "`targetAssistanceGrams` INTEGER, `targetRepsMin` INTEGER, `targetRepsMax` INTEGER, " +
+        "`targetRpeHalves` INTEGER, `note` TEXT, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`templateExerciseId`) REFERENCES `template_exercises`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_TEMPLATE_SETS_EXERCISE_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_template_sets_templateExerciseId` " +
+        "ON `template_sets` (`templateExerciseId`)"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -321,4 +398,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_10_11,
     MIGRATION_11_12,
     MIGRATION_12_13,
+    MIGRATION_13_14,
 )

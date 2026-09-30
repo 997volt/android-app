@@ -370,7 +370,7 @@ class ExercisePickerViewModelTest {
             setId: String,
             reps: Int,
             weightGrams: Long,
-            rpe: Int?,
+            rpeHalves: Int?,
             note: String?,
             setType: SetType,
         assistanceGrams: Long,

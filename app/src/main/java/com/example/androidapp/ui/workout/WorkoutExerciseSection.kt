@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.ExerciseRatingSection
@@ -431,7 +432,9 @@ private fun SetExtrasMarker(set: SetRow, modifier: Modifier = Modifier) {
     val roleMarker = set.setType
         .takeIf { it != SetType.NORMAL }
         ?.let { stringResource(R.string.set_role_marker, it.label) }
-    val rpeMarker = set.rpe?.let { stringResource(R.string.set_rpe_marker, it) }
+    val rpeMarker = set.rpeHalves?.let {
+        stringResource(R.string.set_rpe_marker, Rpe.format(it))
+    }
     val noteMarker = if (set.note != null) stringResource(R.string.set_note_marker) else null
     val marker = listOfNotNull(roleMarker, rpeMarker, noteMarker).joinToString(" · ")
 

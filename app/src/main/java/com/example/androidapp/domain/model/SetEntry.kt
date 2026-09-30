@@ -25,7 +25,7 @@ data class SetEntry(
     val assistanceGrams: Long = 0,
     val setType: SetType = SetType.NORMAL,
     /** Perceived effort, 1–10, or null when none was recorded (ROADMAP N6). */
-    val rpe: Int? = null,
+    val rpeHalves: Int? = null,
     /**
      * A short comment on the set, or null (ROADMAP N6).
      *

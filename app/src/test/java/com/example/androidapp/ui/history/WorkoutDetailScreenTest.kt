@@ -124,7 +124,7 @@ class WorkoutDetailScreenTest {
                                 id = "set1",
                                 reps = 5,
                                 weightGrams = 100_000,
-                                rpe = 8,
+                                rpeHalves = 16,
                                 note = "Felt heavy",
                             ),
                         ),

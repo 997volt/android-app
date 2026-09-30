@@ -48,7 +48,7 @@ data class SetEntryEntity(
      * (ROADMAP N6). Nullable so the one-tap **Log set** path can keep writing
      * neither this nor [note].
      */
-    val rpe: Int? = null,
+    val rpeHalves: Int? = null,
     /** A short comment on the set, or null (ROADMAP N6). */
     val note: String? = null,
     val completedAt: Long?,

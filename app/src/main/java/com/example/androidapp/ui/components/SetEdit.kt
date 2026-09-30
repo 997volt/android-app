@@ -12,7 +12,7 @@ import com.example.androidapp.domain.model.SetType
 data class SetEdit(
     val reps: Int,
     val weightGrams: Long,
-    val rpe: Int?,
+    val rpeHalves: Int?,
     val note: String?,
     /** What kind of set it was (ROADMAP N14): warm-up, working, top set, drop, failure. */
     val setType: SetType = SetType.NORMAL,
