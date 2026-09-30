@@ -59,7 +59,7 @@ alone without being forgotten. Settled choices are the other document — see
 
 Assigned by the review of 2026-09-30. Nothing here is shipped. The review found three
 defects in what did ship, so those lead: the ordering below is what is wrong, then what
-is missing, then what is merely untidy. Shipped rows leave for
+is missing, then what is merely untidy, then the next feature. Shipped rows leave for
 [CHANGELOG.md](CHANGELOG.md) per the rules at the bottom; the choices this batch depends
 on are in [Decisions waiting](#decisions-waiting), and a row that cannot start until one
 is answered says so.
@@ -163,6 +163,34 @@ is answered says so.
   see **D2**, which decides where the line falls for the test-only APIs in the same
   family.
 
+### Then — the next feature
+
+- **N17 — Trends for one exercise.** N13 reads the app's signals back over time, but only
+  across the whole app: RPE, muscle feel and joint pain over the last ten rated workouts.
+  The question a lifter actually asks is narrower — *how is my bench press going?* — and
+  nothing answers it.
+
+  **Entry:** the exercise detail screen, and a lift tapped from a past workout.
+
+  **Series**, over finished sessions, oldest first: heaviest working set, estimated 1RM
+  (Epley/Brzycki), volume, and total reps — plus this exercise's own average RPE, muscle
+  feel and joint pain, which the app has been recording since N6 and N8 without ever
+  showing them per lift.
+
+  **Reuse, not new machinery:** N13's hand-drawn chart and the `TrendsRepository` shape,
+  narrowed by exercise. The charts stay dependency-free, and nothing new is stored —
+  every series comes out of rows already written.
+
+  **Warm-up sets are excluded from the load series.** That is only expressible now that
+  N14's roles exist, and it matters: a warm-up must not become the "heaviest set" on the
+  chart. Drop and failure sets are working sets, and count.
+
+  **Assisted exercises need a direction, not just a line.** For a movement logged with
+  assistance, more help is not progress, so the screen must say which way is forward
+  rather than drawing a climb that reads as improvement. Decide with the screen in front
+  of you: plot the assistance magnitude and label it "less is more", or keep assisted
+  sets out of the load series and show reps and volume alone.
+
 ### Decisions waiting
 
 Four choices the work above depends on. Each is a real trade, so each is recorded with
@@ -234,6 +262,9 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P1.11** Onboarding: goal, experience level, weekly target.
 - **P1.18** Post-workout summary on Finish — duration, volume, sets, best set, and the
   readiness note and ratings the workout collected.
+- **P1.20** Choose a set's role as it is logged. The one-tap **Log set** writes a working
+  set, so a warm-up is currently log-then-edit; the role picker exists, but only behind
+  the editor.
 
 **Insight** — why the app gets opened between workouts
 - **P2.1** Per-exercise history.
