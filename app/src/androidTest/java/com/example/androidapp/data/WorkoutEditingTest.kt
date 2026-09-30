@@ -359,4 +359,25 @@ class WorkoutEditingTest {
         // 20 kg × 8 is 160 kg; the 20 kg of help is not subtracted from it.
         assertEquals(160_000L, historyVolume())
     }
+
+    @Test
+    fun theUiVolumeFormula_agreesWithTheSql() = runTest {
+        // `WorkoutDetailViewModel.volumeGrams` says it is "one formula in two places" and
+        // that "the instrumented history test asserts they agree" — which no test did
+        // (ROADMAP B9). This is that assertion: the sum the detail screen computes over
+        // its own rows, against the figure the history query returns for the same rows.
+        seedFinishedWorkout()
+        repository.logSet(
+            sessionExerciseId = "se1",
+            reps = 8,
+            weightGrams = 0L,
+            assistanceGrams = 20_000L,
+        )
+
+        val sets = database.workoutDao().observeSetsForSession("s1").first()
+        val uiFormula = sets.sumOf { it.reps.toLong() * it.weightGrams }
+
+        assertEquals("the assisted set contributes nothing, not a negative", 500_000L, uiFormula)
+        assertEquals(uiFormula, historyVolume())
+    }
 }

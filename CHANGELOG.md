@@ -8,6 +8,16 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.4] — 2026-09-30 (versionCode 5)
 
 ### Added
+- **Tests for the gaps the review found** (B9–B11). The history detail's ViewModel had no
+  test at all, which is how B5 shipped, and its `volumeGrams` KDoc claimed a cross-check
+  against the SQL figure that no test made — both are real now. The trends repository,
+  the only place RPE halves are divided back into the points a chart shows, had no test
+  in either source set: a wrong divisor would have mislabelled every RPE chart silently.
+  And `ALL_MIGRATIONS` was consumed only by the database builder, so a migration written,
+  tested, and forgotten in the array left the suite green while crashing every install
+  with data — the array is now asserted against the runtime schema version, and the whole
+  chain is run once from the first schema.
+
 - **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
   share a day — training twice on a Friday is a thing people do — and each is listed with
   a Start action that goes straight into that plan's workout. A plan with no day is a
