@@ -40,10 +40,11 @@ current numbers; dependencies are declared in
 [`gradle/libs.versions.toml`](gradle/libs.versions.toml). Neither is repeated here on
 purpose — see [Keeping this true](#keeping-this-true).
 
-## Open decisions
+## Open questions
 
-Not tasks: choices with a real cost either way. Each names a trigger, so it can be
-left alone without being forgotten.
+Not tasks: choices with a real cost either way. Each names a trigger, so it can be left
+alone without being forgotten. Settled choices are the other document — see
+[DECISIONS.md](DECISIONS.md).
 
 | Decision | What it would take | Revisit when |
 | --- | --- | --- |
@@ -69,6 +70,10 @@ of a single generic suggestion.
 - **Roles**: warm-up, working, **top set**, drop. `SetType` already carries warm-up, drop
   and failure; top set is the one new value, and the enum should serve planned and
   performed sets alike.
+- **The same roles apply to a performed set.** The set editor gains a role selector, so a
+  logged set can be marked a warm-up, a top set or a drop. That is the half of this that
+  is not about planning, and it is also what finally makes `SetType`'s warm-up, drop and
+  failure values reachable from the UI.
 - **Reps are a range whose upper bound is the one that matters.** In the plan that
   prompted this, `(max 2)` on a bench press means the target's upper bound is 2 while the
   lower bound is simply not written down — so both columns are nullable.

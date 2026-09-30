@@ -2,6 +2,13 @@
 
 An Android application written in Kotlin, using Jetpack Compose (Material 3).
 
+## Project docs
+
+- [ROADMAP.md](ROADMAP.md) — what is planned, in order
+- [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change
+- [CHANGELOG.md](CHANGELOG.md) — what shipped, per version
+- [RELEASING.md](RELEASING.md) — how a release is cut, and its traps
+
 ## Toolchain
 
 | Component | Version |

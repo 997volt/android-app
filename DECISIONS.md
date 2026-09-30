@@ -4,6 +4,10 @@ Settled choices for Workout Log, kept out of [ROADMAP.md](ROADMAP.md) so that fi
 stay a queue. Nothing here is a task: each entry is a decision already taken, written
 down so it is not relitigated by accident.
 
+A decision that constrains **unshipped** work stays with that work in the roadmap —
+N15's `assistanceGrams` and N16's living-template choice live there, not here — and moves
+into this file once the feature ships.
+
 ## Data model
 
 - **Weights are whole grams in a `Long`**
@@ -18,7 +22,7 @@ down so it is not relitigated by accident.
   already on disk.
 - **Rows are sync-shaped** — UUID ids and `createdAt`/`updatedAt`/`deletedAt` soft
   deletes — so a future sync stays a decision, not a migration. The zone offset is the
-  one missing piece, and it is an open decision in the roadmap.
+  one missing piece, and it is an open question in the roadmap.
 
 ## Rules that apply to every change
 
