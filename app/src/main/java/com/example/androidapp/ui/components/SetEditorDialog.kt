@@ -85,38 +85,6 @@ fun SetEditorDialog(
     )
 }
 
-/**
- * The role picker: the same values a planned set offers (ROADMAP N14).
- *
- * A dropdown rather than a row of chips because five options with words on them do not
- * fit a phone's dialog width, and the chosen one is the only one that needs to be read.
- */
-@Composable
-private fun SetRoleSelector(role: SetType, onSelect: (SetType) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-
-    Box {
-        TextButton(
-            onClick = { open = true },
-            modifier = Modifier.testTag(TestTags.SET_ROLE),
-        ) {
-            Text(stringResource(R.string.set_role, role.label))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            SetType.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = {
-                        open = false
-                        onSelect(option)
-                    },
-                    modifier = Modifier.testTag(TestTags.setRole(option.name)),
-                )
-            }
-        }
-    }
-}
-
 /** The editor's raw field text, kept together so the dialog body stays readable. */
 private data class SetDraft(
     val repsText: String,

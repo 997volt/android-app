@@ -292,7 +292,12 @@ private fun TargetFields(
     onChange: (TemplateSetDraft) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        RoleSelector(role = draft.role, onSelect = { onChange(draft.copy(role = it)) })
+        SetRoleSelector(
+            role = draft.role,
+            onSelect = { onChange(draft.copy(role = it)) },
+            testTag = TestTags.TEMPLATE_SET_ROLE,
+            optionTag = TestTags::templateSetRole,
+        )
         OutlinedTextField(
             value = draft.weightText,
             onValueChange = { onChange(draft.copy(weightText = it)) },
@@ -338,38 +343,6 @@ private fun TargetFields(
             label = { Text(stringResource(R.string.template_set_note)) },
             minLines = 2,
         )
-    }
-}
-
-/**
- * The role picker: the same `SetType` values a performed set offers (ROADMAP N14).
- *
- * One vocabulary for planned and performed sets — a plan that says "top set" and a log
- * that cannot is two names for one idea.
- */
-@Composable
-private fun RoleSelector(role: SetType, onSelect: (SetType) -> Unit) {
-    var open by rememberSaveable { mutableStateOf(false) }
-
-    Box {
-        TextButton(
-            onClick = { open = true },
-            modifier = Modifier.testTag(TestTags.TEMPLATE_SET_ROLE),
-        ) {
-            Text(stringResource(R.string.template_set_role, role.label))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            SetType.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = {
-                        open = false
-                        onSelect(option)
-                    },
-                    modifier = Modifier.testTag(TestTags.templateSetRole(option.name)),
-                )
-            }
-        }
     }
 }
 

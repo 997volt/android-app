@@ -252,8 +252,6 @@
     <!-- RPE and comment per set (ROADMAP N6). Both optional: the one-tap log path
          writes neither, so an empty field is the normal case. -->
     <string name="set_rpe_label">RPE (1–10)</string>
-    <!-- The role a performed set was (ROADMAP N14), the same vocabulary as a plan's. -->
-    <string name="set_role">Role: %1$s</string>
     <string name="set_role_marker">%1$s</string>
     <string name="set_rpe_hint">Optional</string>
     <string name="set_note_label">Comment</string>

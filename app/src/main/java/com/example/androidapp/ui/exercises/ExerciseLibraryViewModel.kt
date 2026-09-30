@@ -35,18 +35,6 @@ data class ExerciseListItem(
     val subtitle: String?,
 )
 
-/**
- * A workout already in progress (ROADMAP P1.16).
- *
- * Deliberately holds no elapsed time: that ticks, and folding a ticking value into
- * this state would rebuild the list below it once a second — the trap F16 fixed on
- * the workout screen. The clock is a separate flow that only the button reads.
- */
-data class ActiveWorkoutInfo(
-    val startedAt: Instant,
-    val exerciseCount: Int,
-)
-
 data class ExerciseLibraryUiState(
     val query: String = "",
     val items: List<ExerciseListItem> = emptyList(),
