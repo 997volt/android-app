@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.home
 
+import org.junit.Assert.assertEquals
+import com.example.androidapp.domain.model.WorkoutTemplate
+import java.time.DayOfWeek
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
@@ -40,6 +43,7 @@ class WorkoutsHomeScreenTest {
     private data class Actions(
         val onStartWorkout: () -> Unit = {},
         val onStartFromTemplate: () -> Unit = {},
+        val onStartTemplate: (String) -> Unit = {},
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
         val onOpenTemplates: () -> Unit = {},
@@ -61,6 +65,7 @@ class WorkoutsHomeScreenTest {
                     clock = remember { mutableStateOf(WorkoutClock()) },
                     onStartWorkout = actions.onStartWorkout,
                     onStartFromTemplate = actions.onStartFromTemplate,
+                    onStartTemplate = actions.onStartTemplate,
                     onOpenWorkout = actions.onOpenWorkout,
                     onOpenHistory = actions.onOpenHistory,
                     onOpenLibrary = {},
@@ -218,4 +223,51 @@ class WorkoutsHomeScreenTest {
         setCount = 12,
         volumeGrams = 1_000_000L,
     )
+
+    @Test
+    fun todaysPlan_isShownUnderToday_withAStartAction() {
+        // ROADMAP N16: home shows what is scheduled for today and offers to start it.
+        val started = mutableListOf<String>()
+        setScreen(
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                today = DayOfWeek.FRIDAY,
+                todaysPlans = listOf(
+                    WorkoutTemplate(id = "t1", name = "Heavy lower", exerciseCount = 4),
+                ),
+            ),
+            actions = Actions(onStartTemplate = { started += it }),
+        )
+
+        composeTestRule.onNodeWithText("Today · Friday").assertExists()
+        composeTestRule.onNodeWithText("Heavy lower").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.homeStartPlan("t1")).performClick()
+
+        assertEquals(listOf("t1"), started)
+    }
+
+    @Test
+    fun aDayWithNothingScheduled_showsNoTodaySection() {
+        // An empty "Today" heading would be a promise the app cannot keep.
+        setScreen(WorkoutsHomeUiState(isLoading = false, today = DayOfWeek.MONDAY))
+
+        composeTestRule.onNodeWithText("Today · Monday").assertDoesNotExist()
+    }
+
+    @Test
+    fun severalPlansOnADay_areAllListed() {
+        setScreen(
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                today = DayOfWeek.FRIDAY,
+                todaysPlans = listOf(
+                    WorkoutTemplate(id = "t1", name = "Heavy lower"),
+                    WorkoutTemplate(id = "t2", name = "Push"),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Heavy lower").assertExists()
+        composeTestRule.onNodeWithText("Push").assertExists()
+    }
 }

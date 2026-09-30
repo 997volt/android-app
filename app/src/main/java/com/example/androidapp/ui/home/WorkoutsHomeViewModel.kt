@@ -1,5 +1,9 @@
 package com.example.androidapp.ui.home
 
+import java.time.ZoneId
+import java.time.DayOfWeek
+import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.model.WorkoutTemplate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidapp.domain.TimeSource
@@ -49,6 +53,10 @@ data class WorkoutsHomeUiState(
     val isLoading: Boolean = true,
     val recent: List<WorkoutSummary> = emptyList(),
     val activeWorkout: ActiveWorkoutInfo? = null,
+    /** The device's weekday, for the "Today" heading (ROADMAP N16). */
+    val today: DayOfWeek = DayOfWeek.MONDAY,
+    /** Plans pinned to today, in the repository's order. */
+    val todaysPlans: List<WorkoutTemplate> = emptyList(),
 ) {
     /**
      * Nothing logged and nothing running — the first-run case, which should point at
@@ -68,6 +76,7 @@ data class WorkoutsHomeUiState(
 @HiltViewModel
 class WorkoutsHomeViewModel @Inject constructor(
     workoutRepository: WorkoutRepository,
+    templateRepository: TemplateRepository,
     private val timeSource: TimeSource,
 ) : ViewModel() {
 
@@ -84,14 +93,28 @@ class WorkoutsHomeViewModel @Inject constructor(
             }
         }
 
+    /**
+     * What today's plan is, by the device's own calendar (ROADMAP N16).
+     *
+     * The day is read once per composition of this flow rather than recomputed on every
+     * emission: a phone left open across midnight is a rounding error, and re-reading a
+     * clock inside a `combine` would make the state unstable for no gain.
+     */
+    private val today: DayOfWeek = timeSource.now()
+        .atZone(ZoneId.systemDefault())
+        .dayOfWeek
+
     val uiState: StateFlow<WorkoutsHomeUiState> = combine(
         workoutRepository.observeHistory(),
         activeWorkout,
-    ) { history, workout ->
+        templateRepository.observeTemplates(),
+    ) { history, workout, templates ->
         WorkoutsHomeUiState(
             isLoading = false,
             recent = history.take(RECENT_LIMIT),
             activeWorkout = workout,
+            today = today,
+            todaysPlans = templates.filter { it.weekday == today },
         )
     }.stateIn(
         scope = viewModelScope,

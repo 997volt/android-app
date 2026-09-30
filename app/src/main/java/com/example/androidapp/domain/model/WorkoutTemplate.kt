@@ -1,5 +1,7 @@
 package com.example.androidapp.domain.model
 
+import java.time.DayOfWeek
+
 /**
  * A named, reusable workout (ROADMAP N3): a name and an ordered list of exercises,
  * started in one tap.
@@ -11,6 +13,13 @@ data class WorkoutTemplate(
     val id: String,
     val name: String,
     val exerciseCount: Int = 0,
+    /**
+     * The weekday this plan belongs to, or null when it is not scheduled (ROADMAP N16).
+     *
+     * A *living* template rather than a dated instance: editing this plan changes every
+     * future occurrence of its day, and what was performed is the record.
+     */
+    val weekday: DayOfWeek? = null,
 )
 
 /**

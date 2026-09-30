@@ -1,5 +1,10 @@
 package com.example.androidapp.ui.templates
 
+import androidx.compose.material3.MaterialTheme
+import java.time.DayOfWeek
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -95,6 +100,7 @@ fun TemplateEditorRoute(
     TemplateEditorScreen(
         state = state,
         onRename = viewModel::onRename,
+        onSetWeekday = viewModel::onSetWeekday,
         onRemoveExercise = viewModel::onRemoveExercise,
         onMoveExercise = viewModel::onMoveExercise,
         onDeleteTemplate = viewModel::onDeleteTemplate,
@@ -115,6 +121,7 @@ fun TemplateEditorRoute(
 fun TemplateEditorScreen(
     state: TemplateEditorUiState,
     onRename: (String) -> Unit,
+    onSetWeekday: (DayOfWeek?) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onMoveExercise: (String, Int) -> Unit,
     onDeleteTemplate: () -> Unit,
@@ -162,6 +169,7 @@ fun TemplateEditorScreen(
         TemplateEditorBody(
             state = state,
             onRename = onRename,
+            onSetWeekday = onSetWeekday,
             onRemoveExercise = onRemoveExercise,
             onMoveExercise = onMoveExercise,
             onAddSet = onAddSet,
@@ -221,6 +229,7 @@ private fun TemplateEditorTopBar(
 private fun TemplateEditorBody(
     state: TemplateEditorUiState,
     onRename: (String) -> Unit,
+    onSetWeekday: (DayOfWeek?) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onMoveExercise: (String, Int) -> Unit,
     onAddSet: (String, TemplateSetEdit) -> Unit,
@@ -240,6 +249,10 @@ private fun TemplateEditorBody(
 
     Column(modifier = modifier.fillMaxSize()) {
         state.template?.let { template ->
+            WeekdayPicker(
+                weekday = state.template?.weekday,
+                onSelect = onSetWeekday,
+            )
             TemplateNameField(
                 template = template,
                 onRename = onRename,
@@ -256,7 +269,7 @@ private fun TemplateEditorBody(
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().testTag(TestTags.TEMPLATE_EXERCISE_LIST),
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
                 itemsIndexed(items = state.exercises, key = { _, exercise -> exercise.id }) { index, exercise ->
@@ -580,6 +593,7 @@ private fun DeleteTemplateDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 private fun TemplateEditorScreenPreview() {
     AndroidAppTheme {
         TemplateEditorScreen(
+            onSetWeekday = {},
             state = TemplateEditorUiState(
                 isLoading = false,
                 template = WorkoutTemplate(id = "a", name = "Push day", exerciseCount = 2),
@@ -613,3 +627,56 @@ private fun TemplateEditorScreenPreview() {
         )
     }
 }
+
+/**
+ * The weekday this plan belongs to (ROADMAP N16).
+ *
+ * A row of chips rather than a dropdown: there are seven values and the current one is
+ * what a person checks at a glance. "Not scheduled" is a value, not an empty state —
+ * a plan with no day is a plan you start by hand, which is the common case.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WeekdayPicker(
+    weekday: DayOfWeek?,
+    onSelect: (DayOfWeek?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Text(
+            text = stringResource(R.string.template_weekday),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = weekday == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.template_weekday_none)) },
+                modifier = Modifier.testTag(TestTags.templateWeekday("NONE")),
+            )
+            DayOfWeek.entries.forEach { day ->
+                FilterChip(
+                    selected = weekday == day,
+                    onClick = { onSelect(day) },
+                    label = { Text(day.shortLabel()) },
+                    modifier = Modifier.testTag(TestTags.templateWeekday(day.name)),
+                )
+            }
+        }
+    }
+}
+
+/** `Mon`, so seven chips fit a phone's width. */
+@Composable
+private fun DayOfWeek.shortLabel(): String = stringResource(
+    when (this) {
+        DayOfWeek.MONDAY -> R.string.weekday_mon
+        DayOfWeek.TUESDAY -> R.string.weekday_tue
+        DayOfWeek.WEDNESDAY -> R.string.weekday_wed
+        DayOfWeek.THURSDAY -> R.string.weekday_thu
+        DayOfWeek.FRIDAY -> R.string.weekday_fri
+        DayOfWeek.SATURDAY -> R.string.weekday_sat
+        DayOfWeek.SUNDAY -> R.string.weekday_sun
+    },
+)

@@ -8,6 +8,17 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
+  share a day — training twice on a Friday is a thing people do — and each is listed with
+  a Start action that goes straight into that plan's workout. A plan with no day is a
+  plan you start by hand, which is why "Not scheduled" is a value rather than an empty
+  state. **A living template, not a dated instance**: editing the Friday plan changes
+  every future Friday until it is edited again, and what you performed is already the
+  record. Dated instances would add a plan-per-date entity, generation and skipped-week
+  handling to support a comparison the logged sets already allow.
+- Migration **14→15** adds a nullable `templates.weekday`, stored by name like every
+  other enum: an existing plan is unscheduled until it is given a day, which is what it
+  already was, and reordering the enum could never reinterpret a row.
 - **Assisted load.** An assisted pull-up can be written down at last: the load field
   takes a leading minus, so `-20` means the machine took 20 kg off. What is stored is a
   separate `assistanceGrams` — a magnitude, never a signed weight — which is what keeps

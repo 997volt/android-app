@@ -54,28 +54,13 @@ alone without being forgotten. Settled choices are the other document — see
 | **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
 | **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
 
-## Next — a schedule over plans
+## Next
 
-N14 made a template a plan and N15 gave those plans a load. What remains is the day a
-plan belongs to.
+**Nothing.** Everything planned has shipped and lives in
+[CHANGELOG.md](CHANGELOG.md), because shipped work lives there rather than here.
 
-### N16 — Weekly schedule
-
-A template can be pinned to a weekday, and home shows today's plan.
-
-- `templates.weekday`, nullable. Several templates may share a day; home lists what is
-  scheduled and offers to start it.
-- **Decided: a living template, not dated instances.** There is one Friday plan. Editing
-  its sets changes every future Friday until it is edited again — exercises repeat weekly
-  while sets vary. What you *performed* is the record, and that is already kept. Dated
-  plan instances would add a plan-per-date entity, plan generation and skipped-week
-  handling, to support a comparison the logged sets already allow.
-
-**Order:** N16 is all that is left of this batch, and it can be built now: the plans it
-schedules have targets and a load.
-
-Each takes a migration as it lands (the rule in [DECISIONS.md](DECISIONS.md)); none of
-them needs one before its code exists.
+What comes next is chosen from *Later* below, which is where candidates live until one
+is picked up, given an id and spelled out here.
 
 ## Later (still self-contained)
 

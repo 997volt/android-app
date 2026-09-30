@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import java.time.DayOfWeek
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
@@ -142,6 +143,8 @@ data class SetDto(
 data class TemplateDto(
     val id: String,
     val name: String,
+    /** The weekday this plan is pinned to, or null (ROADMAP N16). */
+    val weekday: DayOfWeek? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

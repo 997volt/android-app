@@ -54,6 +54,9 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             // The start action's other half: home offers the choice, the template
             // list makes it (ROADMAP N3).
             onStartFromTemplate = { navController.navigate(WorkoutTemplates) },
+            // Today's plan starts directly, with the plan's id — the same destination
+            // the template list reaches (ROADMAP N16).
+            onStartTemplate = { templateId -> navController.navigate(ActiveWorkout(templateId)) },
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
             onOpenHistory = { navController.navigate(WorkoutHistory) },
             onOpenLibrary = { navController.navigate(ExerciseLibrary) },

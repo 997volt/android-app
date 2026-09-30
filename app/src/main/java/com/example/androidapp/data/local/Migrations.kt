@@ -384,6 +384,18 @@ private const val CREATE_TEMPLATE_SETS_EXERCISE_INDEX =
     "CREATE INDEX IF NOT EXISTS `index_template_sets_templateExerciseId` " +
         "ON `template_sets` (`templateExerciseId`)"
 
+/**
+ * v14 -> v15: a template can be pinned to a weekday (ROADMAP N16).
+ *
+ * Additive and nullable: an existing template is unscheduled until it is given a day,
+ * which is exactly what it was before.
+ */
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `templates` ADD COLUMN `weekday` TEXT")
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -399,4 +411,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_11_12,
     MIGRATION_12_13,
     MIGRATION_13_14,
+    MIGRATION_14_15,
 )

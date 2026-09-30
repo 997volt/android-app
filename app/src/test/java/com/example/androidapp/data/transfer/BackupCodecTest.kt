@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import java.time.DayOfWeek
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertNull
 import com.example.androidapp.domain.InvalidInputException
@@ -108,6 +109,7 @@ class BackupCodecTest {
             TemplateDto(
                 id = "t1",
                 name = "Push day",
+                weekday = DayOfWeek.FRIDAY,
                 createdAt = 30L,
                 updatedAt = 31L,
                 deletedAt = null,
@@ -386,5 +388,30 @@ class BackupCodecTest {
         val restored = BackupCodec.decode(BackupCodec.encode(sample))
 
         assertEquals(sample.sets.first().rpeHalves, restored.sets.first().rpeHalves)
+    }
+
+    @Test
+    fun aFileWrittenBeforeSchedulesExisted_stillDecodes_seeingNone() {
+        // N16 added the weekday to a template. A file from before it must decode with
+        // the plan unscheduled rather than fail — and, on export, must keep writing it,
+        // or a schedule would be dropped in silence.
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val templates = tree["templates"]!!.jsonArray.map { element ->
+            JsonObject(element.jsonObject - "weekday")
+        }
+        val olderFile = JsonObject(tree + ("templates" to JsonArray(templates)))
+
+        val restored = BackupCodec.decode(olderFile.toString())
+
+        assertNull(restored.templates.first().weekday)
+        assertEquals("everything else still decodes", "Push day", restored.templates.first().name)
+    }
+
+    @Test
+    fun aScheduledPlan_survivesTheRoundTrip() {
+        val restored = BackupCodec.decode(BackupCodec.encode(sample))
+
+        assertEquals(DayOfWeek.FRIDAY, restored.templates.first().weekday)
     }
 }

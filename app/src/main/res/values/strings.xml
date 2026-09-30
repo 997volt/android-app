@@ -143,6 +143,29 @@
     <string name="template_delete_confirm_text">The plan goes away. Workouts you already did with it stay in your history.</string>
     <string name="home_start_from_template">Start from template</string>
     <string name="home_templates">Workout templates</string>
+    <!-- Today's plan (ROADMAP N16). -->
+    <string name="home_today">Today · %1$s</string>
+    <string name="home_plan_start">Start</string>
+    <plurals name="home_plan_exercises">
+        <item quantity="one">%1$d exercise</item>
+        <item quantity="other">%1$d exercises</item>
+    </plurals>
+    <string name="weekday_mon">Mon</string>
+    <string name="weekday_tue">Tue</string>
+    <string name="weekday_wed">Wed</string>
+    <string name="weekday_thu">Thu</string>
+    <string name="weekday_fri">Fri</string>
+    <string name="weekday_sat">Sat</string>
+    <string name="weekday_sun">Sun</string>
+    <string name="weekday_monday">Monday</string>
+    <string name="weekday_tuesday">Tuesday</string>
+    <string name="weekday_wednesday">Wednesday</string>
+    <string name="weekday_thursday">Thursday</string>
+    <string name="weekday_friday">Friday</string>
+    <string name="weekday_saturday">Saturday</string>
+    <string name="weekday_sunday">Sunday</string>
+    <string name="template_weekday">Training day</string>
+    <string name="template_weekday_none">Not scheduled</string>
     <!-- The trends screen (ROADMAP N13): what the app collected, read back. -->
     <string name="home_trends">Trends</string>
     <!-- The workout's own comment, asked once on Finish (ROADMAP N11). -->

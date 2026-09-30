@@ -1,5 +1,6 @@
 package com.example.androidapp.data.local
 
+import java.time.DayOfWeek
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -22,6 +23,7 @@ interface TemplateDao {
         """
         SELECT t.id AS id,
                t.name AS name,
+               t.weekday AS weekday,
                (
                    SELECT COUNT(*) FROM template_exercises te
                    WHERE te.templateId = t.id AND te.deletedAt IS NULL
@@ -41,6 +43,7 @@ interface TemplateDao {
         """
         SELECT t.id AS id,
                t.name AS name,
+               t.weekday AS weekday,
                (
                    SELECT COUNT(*) FROM template_exercises te
                    WHERE te.templateId = t.id AND te.deletedAt IS NULL
@@ -204,6 +207,16 @@ interface TemplateDao {
         techniqueNote: String?,
         at: Long,
     ): Int
+
+    /** Pins a plan to a weekday, or unpins it (ROADMAP N16). */
+    @Query(
+        """
+        UPDATE templates
+        SET weekday = :weekday, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setWeekday(id: String, weekday: DayOfWeek?, at: Long): Int
 
     /** Next free position; -1 on an empty template, so callers add 1. */
     @Query("SELECT COALESCE(MAX(position), -1) FROM template_exercises WHERE templateId = :templateId")

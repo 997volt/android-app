@@ -13,4 +13,5 @@ internal fun TemplateSummaryRow.toDomain(): WorkoutTemplate = WorkoutTemplate(
     id = id,
     name = name,
     exerciseCount = exerciseCount,
+    weekday = weekday,
 )

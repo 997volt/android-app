@@ -677,4 +677,29 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration14To15_addsTheWeekday_leavingPlansUncheduled() {
+        // An existing plan has no day until it is given one, which is exactly what it
+        // was before this column existed (ROADMAP N16).
+        helper.createDatabase(TEST_DB, 14).apply {
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Legs', 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 15, true, MIGRATION_14_15)
+
+        migrated.query("SELECT name, weekday FROM templates").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Legs", cursor.getString(0))
+            assertTrue("a plan with no day stays unscheduled", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
 }

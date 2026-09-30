@@ -175,6 +175,9 @@ object TestTags {
 
     fun templateRemove(id: String) = "template_remove_$id"
 
+    /** Today's plan on home (ROADMAP N16). */
+    fun homeStartPlan(id: String) = "home_start_plan_$id"
+
     /** A plan's sets (ROADMAP N14): the list, one target, and its rest and cue. */
     const val TEMPLATE_PLAN_ROW = "template_plan_row"
     const val TEMPLATE_PLAN_TITLE = "template_plan_title"
@@ -199,4 +202,13 @@ object TestTags {
     fun templatePlanRemove(id: String) = "template_plan_remove_$id"
 
     fun templateSetRole(role: String) = "template_set_role_$role"
+
+    /** The editor's scrolling exercise list, so a test can scroll to a row. */
+    const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
+
+    /** Pinning a plan to a weekday (ROADMAP N16). */
+    const val TEMPLATE_WEEKDAY = "template_weekday"
+
+    fun templateWeekday(day: String) = "template_weekday_$day"
 }
+

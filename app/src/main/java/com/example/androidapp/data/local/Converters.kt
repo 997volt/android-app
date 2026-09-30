@@ -5,6 +5,7 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
+import java.time.DayOfWeek
 
 /**
  * Stores the domain enums as their **names**, never their ordinals.
@@ -15,6 +16,12 @@ import com.example.androidapp.domain.model.SetType
  * throws loudly if a name ever disappears — which is the failure we want.
  */
 class Converters {
+
+    @TypeConverter
+    fun fromDayOfWeek(value: DayOfWeek?): String? = value?.name
+
+    @TypeConverter
+    fun toDayOfWeek(value: String?): DayOfWeek? = value?.let(DayOfWeek::valueOf)
 
     @TypeConverter
     fun fromMuscleGroup(value: MuscleGroup): String = value.name

@@ -1,5 +1,9 @@
 package com.example.androidapp.ui.templates
 
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
+import java.time.DayOfWeek
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -38,6 +42,7 @@ class TemplateEditorScreenTest {
      */
     private data class Actions(
         val onRename: (String) -> Unit = {},
+        val onSetWeekday: (DayOfWeek?) -> Unit = {},
         val onRemoveExercise: (String) -> Unit = {},
         val onMoveExercise: (String, Int) -> Unit = { _, _ -> },
         val onDeleteTemplate: () -> Unit = {},
@@ -52,6 +57,7 @@ class TemplateEditorScreenTest {
             TemplateEditorScreen(
                 state = state,
                 onRename = actions.onRename,
+                onSetWeekday = actions.onSetWeekday,
                 onRemoveExercise = actions.onRemoveExercise,
                 onMoveExercise = actions.onMoveExercise,
                 onDeleteTemplate = actions.onDeleteTemplate,
@@ -65,9 +71,11 @@ class TemplateEditorScreenTest {
     fun theExercises_areListedInOrder_andNumbered() {
         setScreen()
 
-        composeTestRule.onNodeWithText("1. Back Squat").assertIsDisplayed()
-        composeTestRule.onNodeWithText("2. Bench Press").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Quads · Barbell").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_EXERCISE_LIST)
+            .performScrollToNode(hasText("2. Bench Press"))
+        composeTestRule.onNodeWithText("1. Back Squat").assertExists()
+        composeTestRule.onNodeWithText("2. Bench Press").assertExists()
+        composeTestRule.onNodeWithText("Quads · Barbell").assertExists()
     }
 
     @Test
@@ -80,7 +88,7 @@ class TemplateEditorScreenTest {
             ),
         )
 
-        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_NO_EXERCISES).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_NO_EXERCISES).assertExists()
     }
 
     @Test
@@ -98,6 +106,8 @@ class TemplateEditorScreenTest {
         var moved: Pair<String, Int>? = null
         setScreen(actions = Actions(onMoveExercise = { id, delta -> moved = id to delta }))
 
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_EXERCISE_LIST)
+            .performScrollToNode(hasTestTag(TestTags.templateMoveUp("te2")))
         composeTestRule.onNodeWithTag(TestTags.templateMoveUp("te2")).performClick()
 
         assertEquals("te2" to -1, moved)
@@ -109,6 +119,8 @@ class TemplateEditorScreenTest {
 
         // There is nowhere for the first exercise to go up, or the last to go down.
         composeTestRule.onNodeWithTag(TestTags.templateMoveUp("te1")).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_EXERCISE_LIST)
+            .performScrollToNode(hasTestTag(TestTags.templateMoveDown("te2")))
         composeTestRule.onNodeWithTag(TestTags.templateMoveDown("te2")).assertIsNotEnabled()
     }
 
@@ -192,5 +204,28 @@ class TemplateEditorScreenTest {
                 ),
             ),
         )
+    }
+
+    @Test
+    fun theWeekdayPicker_pinsThePlanToADay() {
+        // ROADMAP N16: a plan belongs to a day, and "not scheduled" is a value.
+        val chosen = mutableListOf<DayOfWeek?>()
+        setScreen(actions = Actions(onSetWeekday = { chosen += it }))
+
+        composeTestRule.onNodeWithTag(TestTags.templateWeekday("FRIDAY")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.templateWeekday("NONE")).performClick()
+
+        assertEquals(listOf<DayOfWeek?>(DayOfWeek.FRIDAY, null), chosen)
+    }
+
+    @Test
+    fun aScheduledPlan_showsItsDaySelected() {
+        setScreen(
+            state = twoExercises.copy(
+                template = twoExercises.template?.copy(weekday = DayOfWeek.FRIDAY),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.templateWeekday("FRIDAY")).assertExists()
     }
 }

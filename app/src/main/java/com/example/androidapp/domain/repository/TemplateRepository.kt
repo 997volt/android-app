@@ -5,6 +5,7 @@ import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.TemplateSet
 import com.example.androidapp.domain.model.WorkoutTemplate
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -45,6 +46,14 @@ interface TemplateRepository {
 
     /** Soft-deletes the template; its rows stay for an export to carry. */
     suspend fun deleteTemplate(templateId: String): DataResult<Unit>
+
+    /**
+     * Pins a plan to a weekday, or unpins it with null (ROADMAP N16).
+     *
+     * Several plans may share a day: training twice on a Friday is a thing people do,
+     * and the home screen lists what is scheduled rather than assuming one.
+     */
+    suspend fun setWeekday(templateId: String, weekday: DayOfWeek?): DataResult<Unit>
 
     /** Appends [exerciseId] to the end of the template. */
     suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit>

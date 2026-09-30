@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.templates
 
+import java.time.DayOfWeek
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -102,6 +103,11 @@ class TemplateEditorViewModel @Inject constructor(
         techniqueNote: String?,
     ) = write {
         repository.setExercisePlan(templateExerciseId, restSeconds, techniqueNote)
+    }
+
+    /** Pins this plan to a weekday, or unpins it (ROADMAP N16). */
+    fun onSetWeekday(weekday: DayOfWeek?) = write {
+        repository.setWeekday(templateId, weekday)
     }
 
     fun onDeleteTemplate() {

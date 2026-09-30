@@ -58,6 +58,13 @@ into this file once the feature ships.
   is visible at the schema, and an older backup's whole-number `rpe` is still read as
   halves rather than dropped.
 
+- **A scheduled plan is a living template, not a dated instance** (N16). There is one
+  Friday plan: editing its sets changes every future Friday until it is edited again.
+  What was *performed* is the record and is already kept, so dated instances would add a
+  plan-per-date entity, plan generation and skipped-week handling to support a
+  comparison the logged sets already allow. Several plans may share a day, and a plan
+  with no day is simply one you start by hand.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

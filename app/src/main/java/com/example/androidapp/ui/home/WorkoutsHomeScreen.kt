@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.home
 
+import java.time.DayOfWeek
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -60,6 +62,7 @@ import java.time.Instant
 fun WorkoutsHomeRoute(
     onStartWorkout: () -> Unit,
     onStartFromTemplate: () -> Unit,
+    onStartTemplate: (String) -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onOpenLibrary: () -> Unit,
@@ -84,6 +87,7 @@ fun WorkoutsHomeRoute(
         clock = clock,
         onStartWorkout = onStartWorkout,
         onStartFromTemplate = onStartFromTemplate,
+        onStartTemplate = onStartTemplate,
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
         onOpenLibrary = onOpenLibrary,
@@ -110,6 +114,7 @@ fun WorkoutsHomeScreen(
     modifier: Modifier = Modifier,
     onOpenTrends: () -> Unit = {},
     onStartFromTemplate: () -> Unit = {},
+    onStartTemplate: (String) -> Unit = {},
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
     message: String? = null,
@@ -144,10 +149,80 @@ fun WorkoutsHomeScreen(
             state = state,
             onOpenWorkout = onOpenWorkout,
             onOpenHistory = onOpenHistory,
+            onStartTemplate = onStartTemplate,
             modifier = Modifier.padding(innerPadding),
         )
     }
 }
+
+
+/**
+ * Today's plans and the recent workouts, in one list (ROADMAP N16).
+ *
+ * Split out of the body because the two lists together are long enough to be their own
+ * composable — and because "today" and "recent" are different questions that happen to
+ * share a scroll.
+ */
+@Composable
+private fun TodayAndRecent(
+    state: WorkoutsHomeUiState,
+    onOpenWorkout: (String) -> Unit,
+    onStartTemplate: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 88.dp), // clear the FAB
+        ) {
+            item(key = "today") {
+                Text(
+                    text = stringResource(R.string.home_today, state.today.label()),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
+            items(state.todaysPlans.size, key = { state.todaysPlans[it].id }) { index ->
+                val plan = state.todaysPlans[index]
+                ListItem(
+                    headlineContent = { Text(plan.name) },
+                    supportingContent = {
+                        Text(
+                            pluralStringResource(
+                                R.plurals.home_plan_exercises,
+                                plan.exerciseCount,
+                                plan.exerciseCount,
+                            ),
+                        )
+                    },
+                    trailingContent = {
+                        TextButton(
+                            onClick = { onStartTemplate(plan.id) },
+                            modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
+                        ) {
+                            Text(stringResource(R.string.home_plan_start))
+                        }
+                    },
+                )
+                HorizontalDivider()
+            }
+            if (state.recent.isNotEmpty()) {
+                item(key = "recent") {
+                    Text(
+                        text = stringResource(R.string.home_recent),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
+                items(state.recent.size, key = { state.recent[it].id }) { index ->
+                    RecentWorkoutRow(
+                        workout = state.recent[index],
+                        onClick = { onOpenWorkout(state.recent[index].id) },
+                    )
+                }
+            }
+        }}
 
 /** The list body, split out so the screen itself stays a scaffold and a state. */
 @Composable
@@ -155,6 +230,7 @@ private fun HomeContent(
     state: WorkoutsHomeUiState,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
+    onStartTemplate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
         when {
@@ -164,6 +240,13 @@ private fun HomeContent(
             )
 
             // First run: an empty list with no explanation tells the user nothing.
+            state.todaysPlans.isNotEmpty() -> TodayAndRecent(
+                state = state,
+                onOpenWorkout = onOpenWorkout,
+                onStartTemplate = onStartTemplate,
+                modifier = modifier,
+            )
+
             state.isFirstRun -> CenteredMessage(
                 text = stringResource(R.string.home_first_run),
                 hint = stringResource(R.string.home_first_run_hint),
@@ -464,3 +547,17 @@ private fun HomeMenuItems(
         }
     }
 }
+
+/** `MONDAY` is a storage name; this is what a person reads. */
+@Composable
+private fun DayOfWeek.label(): String = stringResource(
+    when (this) {
+        DayOfWeek.MONDAY -> R.string.weekday_monday
+        DayOfWeek.TUESDAY -> R.string.weekday_tuesday
+        DayOfWeek.WEDNESDAY -> R.string.weekday_wednesday
+        DayOfWeek.THURSDAY -> R.string.weekday_thursday
+        DayOfWeek.FRIDAY -> R.string.weekday_friday
+        DayOfWeek.SATURDAY -> R.string.weekday_saturday
+        DayOfWeek.SUNDAY -> R.string.weekday_sunday
+    },
+)

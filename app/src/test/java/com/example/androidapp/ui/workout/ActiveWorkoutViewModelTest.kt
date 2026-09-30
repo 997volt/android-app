@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import java.time.DayOfWeek
 import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -1223,6 +1224,11 @@ class ActiveWorkoutViewModelTest {
         override suspend fun createTemplate(name: String): DataResult<String> = notUsed()
         override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> =
             notUsed()
+
+        override suspend fun setWeekday(
+            templateId: String,
+            weekday: DayOfWeek?,
+        ): DataResult<Unit> = error("these tests do not schedule a plan")
 
         override suspend fun deleteTemplate(templateId: String): DataResult<Unit> = notUsed()
         override suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit> =
