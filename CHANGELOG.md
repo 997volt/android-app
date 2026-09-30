@@ -5,7 +5,7 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [Unreleased]
+## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
 - **Trends for one exercise.** N13 reads the app's signals across everything; this
