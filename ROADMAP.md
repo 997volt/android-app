@@ -57,42 +57,22 @@ alone without being forgotten. Settled choices are the other document — see
 
 ## Next
 
-Assigned by the review of 2026-09-30. Nothing here is shipped. The review found three
-defects in what did ship, so those lead: the ordering below is what is wrong, then what
-is missing, then what is merely untidy, then the next feature. Shipped rows leave for
-[CHANGELOG.md](CHANGELOG.md) per the rules at the bottom; the choices this batch depends
-on are in [Decisions waiting](#decisions-waiting), and a row that cannot start until one
-is answered says so.
-
-### What the app gets wrong today
-
-*(Nothing outstanding — B5 through B7 shipped.)*
+Assigned by the review of 2026-09-30. Its defects, gaps and the feature have shipped —
+B5–B13 and N17 — and live in [CHANGELOG.md](CHANGELOG.md) per the rules at the bottom, as
+have the four decisions the batch depended on ([DECISIONS.md](DECISIONS.md)). What is
+left is the list of rule violations below, each belonging to the change that next touches
+those files.
 
 ### Decisions waiting
 
-Two choices are still open. D2 and D3 were settled by the work that needed them and
-moved into [DECISIONS.md](DECISIONS.md), which is where a taken decision lives.
-
-- **D1 — Should the JVM tests run in parallel?** The obvious CI speed-up is to fork
-  them across JVMs, and it is **not** obviously right: measured on this checkout,
-  `maxParallelForks = 4` was *slower* wall-clock (65 s vs 63 s) while summing six times
-  the CPU, because only ~20 s of the task is test execution and the rest is compilation
-  and Robolectric's resource merging.
-  *Take it* if a 4-core runner measures faster; *leave it* otherwise. Either way the
-  choice is made from a measurement on the runner, not from this file — the project's
-  own rule is that a performance claim comes with one.
-- **D4 — The test tags applied in production that no test asserts on.** Each is
-  referenced by nothing — either the tests they were added for were never written, or the
-  tag was added ahead of its test.
-  *Keep and write the tests* (they mark real controls: plan dialogs, set steppers, the
-  exercise editor). *Delete them* if those tests are not coming. A tag that exists only
-  to be ignored is drift in the one namespace meant to stop tests asserting on English.
+**None.** D1 through D4 were settled by the work that needed them and moved into
+[DECISIONS.md](DECISIONS.md), which is where a taken decision lives.
 
 ### Rule violations found, not new work
 
-Presented as findings rather than rows, because each is an existing rule not being
-followed. They belong to the change that next touches those files, and F8 — *extract a
-component at its second caller, not its first* — is the rule most of them break: three
+Findings rather than rows: each is an existing rule not being followed, and each
+belongs to the change that next touches those files. F8 — *extract a component at its
+second caller, not its first* — is what most of them break: three
 `CenteredMessage` composables exist while the shared one documents that it exists to
 prevent them; two near-identical `SetType` pickers; two identical `ActiveWorkoutInfo`
 types; two `DayOfWeek` formatters; `HALVES_PER_POINT` defined twice. Name-content

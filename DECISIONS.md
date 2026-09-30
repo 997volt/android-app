@@ -90,6 +90,20 @@ into this file once the feature ships.
   extrapolates rather than calculates) and rounded to the nearest half-kilo, because an
   estimate is not precise to the gram.
 
+- **The JVM tests are not forked across JVMs** (D1). Measured on the 4-core CI runner,
+  same branch, same tasks, only `maxParallelForks` differing: **424 s without forking,
+  467 s with four forks** — slower, and summing roughly six times the CPU. Measured
+  locally the same way: 63 s vs 65 s. Most of the task is compilation and Robolectric's
+  resource merging, which forking cannot overlap; there is no wall-clock win to buy. The
+  trigger to revisit is a runner that measures faster, not a feeling that it should.
+
+- **A test tag arrives with the test that asserts on it** (D4). Twenty-five tags are
+  applied in production today and asserted by nothing, which is drift in the one namespace
+  that exists to stop tests reading English. They are kept rather than deleted in a sweep,
+  because each marks a real control and the change that next touches it pays it off by
+  writing the test; the rule that stops the list growing is one-way, so a new tag without
+  its test is a finding. Tags that map to no control at all are still deleted on sight.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
