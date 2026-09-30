@@ -50,6 +50,7 @@ import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.MessageSnackbar
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.longLabel
 import com.example.androidapp.ui.history.HistoryFormat
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
@@ -176,7 +177,7 @@ LazyColumn(
         ) {
             item(key = "today") {
                 Text(
-                    text = stringResource(R.string.home_today, state.today.label()),
+                    text = stringResource(R.string.home_today, state.today.longLabel()),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -548,16 +549,3 @@ private fun HomeMenuItems(
     }
 }
 
-/** `MONDAY` is a storage name; this is what a person reads. */
-@Composable
-private fun DayOfWeek.label(): String = stringResource(
-    when (this) {
-        DayOfWeek.MONDAY -> R.string.weekday_monday
-        DayOfWeek.TUESDAY -> R.string.weekday_tuesday
-        DayOfWeek.WEDNESDAY -> R.string.weekday_wednesday
-        DayOfWeek.THURSDAY -> R.string.weekday_thursday
-        DayOfWeek.FRIDAY -> R.string.weekday_friday
-        DayOfWeek.SATURDAY -> R.string.weekday_saturday
-        DayOfWeek.SUNDAY -> R.string.weekday_sunday
-    },
-)

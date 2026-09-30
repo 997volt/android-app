@@ -14,6 +14,15 @@ package com.example.androidapp.domain.model
  * [TenPointScale]); only RPE takes halves, which is why they do not share this.
  */
 object Rpe {
+    /**
+     * Half steps per point: the divisor that turns stored halves back into an RPE.
+     *
+     * One definition, because it was three — the trends repository, the backup mapper and
+     * the per-exercise series each carried their own, and a wrong divisor in any one of
+     * them mislabels every RPE it touches.
+     */
+    const val HALVES_PER_POINT = 2
+
     /** 1.0, the easiest effort there is. */
     const val MIN_HALVES = 2
 

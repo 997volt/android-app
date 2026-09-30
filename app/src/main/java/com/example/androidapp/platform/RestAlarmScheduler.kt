@@ -67,10 +67,3 @@ class RestAlarmScheduler @Inject constructor(
     }
 }
 
-/** Receives the rest-over alarm and posts the notification. */
-class RestAlarmReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        RestNotifications.notifyRestOver(context)
-    }
-}

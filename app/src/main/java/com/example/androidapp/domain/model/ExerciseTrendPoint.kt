@@ -178,8 +178,5 @@ private fun List<ExerciseTrendRow>.toPoint(startedAt: Instant): ExerciseTrendPoi
 /** The session's RPE average, in points, over the sets that recorded one (N6's halves). */
 private fun averageRpeOf(rows: List<ExerciseTrendRow>): Double? {
     val halves = rows.mapNotNull { it.rpeHalves }
-    return if (halves.isEmpty()) null else halves.average() / HALVES_PER_POINT
+    return if (halves.isEmpty()) null else halves.average() / Rpe.HALVES_PER_POINT
 }
-
-/** Half steps per RPE point (ROADMAP N6). */
-private const val HALVES_PER_POINT = 2.0

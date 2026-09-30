@@ -67,6 +67,7 @@ import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.shortLabel
 import com.example.androidapp.ui.components.TemplatePlanDialog
 import com.example.androidapp.ui.components.TemplateSetDialog
 import com.example.androidapp.ui.components.dataErrorMessage
@@ -667,16 +668,3 @@ private fun WeekdayPicker(
     }
 }
 
-/** `Mon`, so seven chips fit a phone's width. */
-@Composable
-private fun DayOfWeek.shortLabel(): String = stringResource(
-    when (this) {
-        DayOfWeek.MONDAY -> R.string.weekday_mon
-        DayOfWeek.TUESDAY -> R.string.weekday_tue
-        DayOfWeek.WEDNESDAY -> R.string.weekday_wed
-        DayOfWeek.THURSDAY -> R.string.weekday_thu
-        DayOfWeek.FRIDAY -> R.string.weekday_fri
-        DayOfWeek.SATURDAY -> R.string.weekday_sat
-        DayOfWeek.SUNDAY -> R.string.weekday_sun
-    },
-)

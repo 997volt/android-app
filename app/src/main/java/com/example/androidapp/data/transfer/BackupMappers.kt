@@ -5,6 +5,7 @@ import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.TemplateEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.data.local.TemplateSetEntity
 import com.example.androidapp.data.local.WorkoutSessionEntity
 
@@ -133,7 +134,7 @@ internal fun SetDto.toEntity() = SetEntryEntity(
     setType = setType,
     // `rpe` is the pre-half-step field: a file written then carries 8 where this app
     // now means 8.0, which is 16 halves.
-    rpeHalves = rpeHalves ?: rpe?.times(HALVES_PER_POINT),
+    rpeHalves = rpeHalves ?: rpe?.times(Rpe.HALVES_PER_POINT),
     note = note,
     completedAt = completedAt,
     createdAt = createdAt,
@@ -209,7 +210,7 @@ internal fun TemplateSetDto.toEntity() = TemplateSetEntity(
     targetRepsMin = targetRepsMin,
     targetRepsMax = targetRepsMax,
     // A pre-half-step plan target carries whole numbers; 7 is 7.0, 14 halves.
-    targetRpeHalves = targetRpeHalves ?: targetRpe?.times(HALVES_PER_POINT),
+    targetRpeHalves = targetRpeHalves ?: targetRpe?.times(Rpe.HALVES_PER_POINT),
     note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
@@ -217,4 +218,3 @@ internal fun TemplateSetDto.toEntity() = TemplateSetEntity(
 )
 
 /** Half steps per RPE point (ROADMAP N6). */
-private const val HALVES_PER_POINT = 2

@@ -4,6 +4,7 @@ import com.example.androidapp.data.local.ExerciseTrendRowEntity
 import com.example.androidapp.domain.model.toExerciseTrendPoints
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.ExerciseTrendRow
+import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.domain.DataResult
@@ -19,7 +20,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
-private const val HALVES_PER_POINT = 2.0
 
 /**
  * Room-backed [TrendsRepository] (ROADMAP N13).
@@ -81,7 +81,7 @@ class RoomTrendsRepository @Inject constructor(
                     TrendPoint(
                         startedAt = Instant.ofEpochMilli(startedAt),
                         // SQL averaged halves; the series is in RPE units (N6, N13).
-                        averageRpe = rpeHalves?.averageRpe?.div(HALVES_PER_POINT),
+                        averageRpe = rpeHalves?.averageRpe?.div(Rpe.HALVES_PER_POINT),
                         averageMuscleFeel = feel?.averageMuscleFeel,
                         averageJointPain = feel?.averageJointPain,
                     )

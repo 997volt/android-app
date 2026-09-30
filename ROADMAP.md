@@ -72,13 +72,14 @@ those files.
 
 Findings rather than rows: each is an existing rule not being followed, and each
 belongs to the change that next touches those files. F8 — *extract a component at its
-second caller, not its first* — is what most of them break: three
-`CenteredMessage` composables exist while the shared one documents that it exists to
-prevent them; two near-identical `SetType` pickers; two identical `ActiveWorkoutInfo`
-types; two `DayOfWeek` formatters; `HALVES_PER_POINT` defined twice. Name-content
-mismatches sit with them: `ErrorText.kt` declares no `ErrorText`, `ExercisePickerScreen.kt`
-declares only a route, `NoteDialog.kt` holds three dialogs, and `RestAlarmReceiver` lives
-in `RestAlarmScheduler.kt`.
+second caller, not its first* — is what most of them break: three `CenteredMessage`
+composables exist while the shared one documents that it exists to prevent them; two
+near-identical `SetType` pickers; two identical `ActiveWorkoutInfo` types.
+
+Settled: `HALVES_PER_POINT` is one constant on `Rpe`; the two `DayOfWeek` formatters are
+one shared pair of composables; and the name-content mismatches are named for what they
+hold (`DataErrorMessage.kt`, `NoteDialogs.kt`, `ExercisePickerRoute.kt`, and
+`RestAlarmReceiver` in its own file, since Android instantiates it by name).
 
 Two stale statements are worth correcting rather than queueing, being one line each:
 the comment on `Rpe.HALF_STEP` describes it as a whole 1–10 rating when it is RPE's own
