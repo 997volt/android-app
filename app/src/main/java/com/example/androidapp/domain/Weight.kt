@@ -86,8 +86,6 @@ object Weight {
     }
 
     /** Never negative: a weight below zero is meaningless and would corrupt totals. */
-    fun step(grams: Long, deltaGrams: Long): Long = (grams + deltaGrams).coerceAtLeast(0L)
-
     /**
      * Steps a *signed* load (ROADMAP N15).
      *

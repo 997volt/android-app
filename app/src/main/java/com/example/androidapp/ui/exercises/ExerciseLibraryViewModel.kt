@@ -6,27 +6,17 @@ import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.ExerciseSearch
 import com.example.androidapp.domain.getOrNull
-import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.Exercise
-import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.ExerciseRepository
-import com.example.androidapp.domain.repository.WorkoutRepository
-import com.example.androidapp.ui.workout.WorkoutClock
-import com.example.androidapp.ui.workout.WorkoutFormat
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -61,7 +51,6 @@ data class ExerciseLibraryUiState(
     val query: String = "",
     val items: List<ExerciseListItem> = emptyList(),
     val isLoading: Boolean = true,
-    val activeWorkout: ActiveWorkoutInfo? = null,
     /**
      * No exercises exist at all, as opposed to none matching the query.
      *
@@ -92,34 +81,17 @@ data class ExerciseLibraryUiState(
  * which quietly undid P1.8's crash recovery on the ordinary path — the one users
  * actually take.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ExerciseLibraryViewModel @Inject constructor(
     exerciseRepository: ExerciseRepository,
-    workoutRepository: WorkoutRepository,
-    private val timeSource: TimeSource,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
-    private val activeSession = workoutRepository.observeActiveSession()
-
-    private val workoutInfo: Flow<ActiveWorkoutInfo?> = activeSession
-        .flatMapLatest { session ->
-            if (session == null) {
-                flowOf(null)
-            } else {
-                workoutRepository.observeSessionExercises(session.id).map { exercises ->
-                    ActiveWorkoutInfo(startedAt = session.startedAt, exerciseCount = exercises.size)
-                }
-            }
-        }
-
     val uiState: StateFlow<ExerciseLibraryUiState> = combine(
         exerciseRepository.observeExercises(),
         query,
-        workoutInfo,
-    ) { result, currentQuery, workout ->
+    ) { result, currentQuery ->
         // A read failure is rendered where the list would have been (ROADMAP B4),
         // instead of escaping the flow and taking the screen down.
         val exercises = result.getOrNull().orEmpty()
@@ -127,7 +99,6 @@ class ExerciseLibraryViewModel @Inject constructor(
             query = currentQuery,
             items = ExerciseSearch.filter(exercises, currentQuery).map { it.toListItem() },
             isLoading = false,
-            activeWorkout = workout,
             libraryIsEmpty = exercises.isEmpty(),
             error = (result as? DataResult.Failure)?.error,
         )
@@ -137,37 +108,8 @@ class ExerciseLibraryViewModel @Inject constructor(
         initialValue = ExerciseLibraryUiState(),
     )
 
-    /**
-     * Ticks once a second, and **only while a workout is running**: an idle library
-     * screen should not hold a one-second timer open for a button that says
-     * "Start workout".
-     */
-    val clock: StateFlow<WorkoutClock> = activeSession
-        .flatMapLatest { session ->
-            if (session == null) {
-                flowOf(WorkoutClock())
-            } else {
-                ticker.map { WorkoutClock(elapsed = elapsedSince(session)) }
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = WorkoutClock(),
-        )
-
     fun onQueryChange(value: String) {
         query.value = value
-    }
-
-    private fun elapsedSince(session: WorkoutSession): String =
-        WorkoutFormat.elapsed(Duration.between(session.startedAt, timeSource.now()))
-
-    private val ticker: Flow<Unit> = flow {
-        while (true) {
-            emit(Unit)
-            delay(TICK_MILLIS)
-        }
     }
 
     private companion object {

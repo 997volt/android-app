@@ -68,24 +68,6 @@ is answered says so.
 
 *(Nothing outstanding — B5 through B7 shipped.)*
 
-### What is merely untidy
-
-- **B13 — Delete what moved and left its shape behind.**
-  [`ExerciseLibraryViewModel`](app/src/main/java/com/example/androidapp/ui/exercises/ExerciseLibraryViewModel.kt)
-  still carries the whole "workout in progress / resume clock" apparatus — a state
-  field, two flows, a ticker, and the `TimeSource` and `WorkoutRepository` dependencies
-  that exist only to feed it — but the screen stopped reading it when the resume button
-  moved to [`WorkoutsHomeScreen`](app/src/main/java/com/example/androidapp/ui/home/WorkoutsHomeScreen.kt).
-  The only reader left is a test asserting the dead state is null. Alongside it:
-  [`@ApplicationScope` and `CoroutineModule`](app/src/main/java/com/example/androidapp/di/CoroutineModule.kt)
-  bind a scope nothing injects; [`TemplateDao.findTemplateSets`](app/src/main/java/com/example/androidapp/data/local/TemplateDao.kt),
-  `WorkoutSession.isActive`, `WorkoutSummary.hasVolume` and `PreviousPerformance.isEmpty`
-  have no caller at all. **Do:** delete the cluster and the test that keeps it alive,
-  then the loose declarations. This is the rule the project already states — *delete an
-  API the moment nothing calls it* — being enforced on its own code. **Decide first:**
-  see **D2**, which decides where the line falls for the test-only APIs in the same
-  family.
-
 ### Then — the next feature
 
 - **N17 — Trends for one exercise.** N13 reads the app's signals back over time, but only

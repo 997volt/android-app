@@ -145,19 +145,6 @@ interface TemplateDao {
     )
     fun observeTemplateSets(templateId: String): Flow<List<TemplateSetEntity>>
 
-    /** The same list one-shot, for starting a workout from a plan. */
-    @Query(
-        """
-        SELECT ts.* FROM template_sets ts
-        JOIN template_exercises te ON te.id = ts.templateExerciseId
-        WHERE te.templateId = :templateId
-          AND ts.deletedAt IS NULL
-          AND te.deletedAt IS NULL
-        ORDER BY te.position ASC, ts.setIndex ASC
-        """,
-    )
-    suspend fun findTemplateSets(templateId: String): List<TemplateSetEntity>
-
     @Query("SELECT * FROM template_sets WHERE id = :id AND deletedAt IS NULL")
     suspend fun findTemplateSet(id: String): TemplateSetEntity?
 

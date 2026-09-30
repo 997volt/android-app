@@ -50,7 +50,6 @@ class NotFoundException(message: String) : Exception(message)
 class InvalidInputException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** `Success(Unit)`, for writes that have nothing to return. */
-fun successUnit(): DataResult<Unit> = DataResult.Success(Unit)
 
 /**
  * Runs [block], turning a thrown exception into [DataResult.Failure].
@@ -89,11 +88,6 @@ fun Throwable.toDataError(): DataError = when (this) {
     else -> DataError.Storage(this)
 }
 
-/** Maps the success value, leaving a failure untouched. */
-inline fun <T, R> DataResult<T>.map(transform: (T) -> R): DataResult<R> = when (this) {
-    is DataResult.Success -> DataResult.Success(transform(data))
-    is DataResult.Failure -> this
-}
 
 /** The success value, or null when this is a failure. */
 fun <T> DataResult<T>.getOrNull(): T? = (this as? DataResult.Success)?.data

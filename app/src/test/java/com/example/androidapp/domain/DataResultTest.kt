@@ -50,14 +50,6 @@ class DataResultTest {
         }
     }
 
-    @Test
-    fun mapTransformsSuccessAndPassesFailureThrough() {
-        val mapped = DataResult.Success(2).map { it * 21 }
-        assertEquals(42, mapped.getOrNull())
-
-        val failure: DataResult<Int> = DataResult.Failure(DataError.NotFound)
-        assertEquals(DataError.NotFound, (failure.map { it * 2 } as DataResult.Failure).error)
-    }
 
     @Test
     fun getOrNullIsNullOnFailure() {

@@ -22,7 +22,6 @@ import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.repository.WorkoutRepository
-import com.example.androidapp.domain.successUnit
 import androidx.lifecycle.SavedStateHandle
 import java.io.IOException
 import java.time.Instant
@@ -952,7 +951,7 @@ class ActiveWorkoutViewModelTest {
             // Mirrors the repository: blank is stored as null, not as "".
             lastReadinessNote = note?.trim()?.ifEmpty { null }
             sessions.value = sessions.value?.copy(readinessNote = lastReadinessNote)
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> {
@@ -968,12 +967,12 @@ class ActiveWorkoutViewModelTest {
                 restSeconds = restSecondsForNextExercise,
                 techniqueNote = techniqueNoteForNextExercise,
             )
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> {
             exercises.value = exercises.value.filterNot { it.id == sessionExerciseId }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun finishExercise(sessionExerciseId: String): DataResult<Unit> {
@@ -981,7 +980,7 @@ class ActiveWorkoutViewModelTest {
             exercises.value = exercises.value.map {
                 if (it.id == sessionExerciseId) it.copy(finishedAt = FIXED_INSTANT) else it
             }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun reopenExercise(sessionExerciseId: String): DataResult<Unit> {
@@ -989,7 +988,7 @@ class ActiveWorkoutViewModelTest {
             exercises.value = exercises.value.map {
                 if (it.id == sessionExerciseId) it.copy(finishedAt = null) else it
             }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun rateExercise(
@@ -1010,25 +1009,25 @@ class ActiveWorkoutViewModelTest {
                     it
                 }
             }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun setWorkoutNotes(sessionId: String, note: String?): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             lastWorkoutNotes = note
             sessions.value = sessions.value?.copy(notes = note)
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun finishSession(sessionId: String): DataResult<Unit> {
             sessions.value = null
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun deleteSession(sessionId: String): DataResult<Unit> {
             sessions.value = null
             exercises.value = emptyList()
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = sets
@@ -1058,7 +1057,7 @@ class ActiveWorkoutViewModelTest {
                 // fix could have gone unnoticed by its own test.
                 assistanceGrams = assistanceGrams,
             )
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun updateSet(
@@ -1084,13 +1083,13 @@ class ActiveWorkoutViewModelTest {
                     it
                 }
             }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun deleteSet(setId: String): DataResult<Unit> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             sets.value = sets.value.filterNot { it.id == setId }
-            return successUnit()
+            return DataResult.Success(Unit)
         }
 
         override suspend fun previousPerformance(
@@ -1106,7 +1105,7 @@ class ActiveWorkoutViewModelTest {
         override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> =
             DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))
 
-        override suspend fun clearRest(): DataResult<Unit> = successUnit()
+        override suspend fun clearRest(): DataResult<Unit> = DataResult.Success(Unit)
     }
 
     /** A clock the test can move, so elapsed time can be asserted exactly. */

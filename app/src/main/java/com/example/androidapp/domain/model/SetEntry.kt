@@ -63,7 +63,6 @@ enum class SetType(val label: String) {
 data class PreviousPerformance(
     val sets: List<SetEntry>,
 ) {
-    val isEmpty: Boolean get() = sets.isEmpty()
 
     /** The value to prefill set [index] with, falling back to the final set. */
     fun at(index: Int): SetEntry? = sets.getOrNull(index) ?: sets.lastOrNull()

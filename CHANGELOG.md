@@ -86,6 +86,17 @@ Notable changes to Workout Log, newest first. Format follows
   about for these series. Reached from the home overflow. No migration.
 
 ### Changed
+- **Deleted what moved and left its shape behind** (B13). The exercise library's
+  ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
+  state field, two flows, a per-second ticker, and the `TimeSource` and
+  `WorkoutRepository` dependencies that existed only to feed it — months after the resume
+  button moved to home, kept alive by a test asserting the dead state was null. With it:
+  `@ApplicationScope` and the module binding a scope nothing injects, and four
+  declarations nothing called (`TemplateDao.findTemplateSets`, `WorkoutSession.isActive`,
+  `WorkoutSummary.hasVolume`, `PreviousPerformance.isEmpty`). Per D2, `Weight.step`,
+  `DataResult.map` and `successUnit` went too — APIs whose only caller was the test that
+  tested them.
+
 - **CI: one Gradle invocation where there were five, and a guard against a run that
   skips tests.** The build job now names all five tasks in one `./gradlew` call with the
   configuration cache on, because each separate call paid its own configuration. And the

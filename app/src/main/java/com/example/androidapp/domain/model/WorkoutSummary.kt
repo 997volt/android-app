@@ -25,6 +25,4 @@ data class WorkoutSummary(
     /** Null while the workout is still open; history only holds finished ones. */
     val duration: Duration? get() = finishedAt?.let { Duration.between(startedAt, it) }
 
-    /** Warm-up-only workouts have no weight to speak of, but they did happen. */
-    val hasVolume: Boolean get() = volumeGrams > 0
-}
+    /** Warm-up-only workouts have no weight to speak of, but they did happen. */}

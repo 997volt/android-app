@@ -33,9 +33,7 @@ data class WorkoutSession(
      * (N6), which is about one set.
      */
     val notes: String? = null,
-) {
-    val isActive: Boolean get() = finishedAt == null
-}
+)
 
 /**
  * An exercise as it appears *within* a session, at an explicit [position].

@@ -49,6 +49,11 @@ object Rpe {
     fun format(halves: Int): String =
         if (halves % 2 == 0) (halves / 2).toString() else "${halves / 2}.5"
 
-    /** A whole 1–10 rating — muscle feel, joint pain — not an RPE. */
+    /**
+     * Matches what an RPE may be typed as: one or two digits, optionally `.5`.
+     *
+     * (It is RPE's own parser, not the whole-number 1–10 scale the ratings use — see
+     * [TenPointScale] for those.)
+     */
     private val HALF_STEP = Regex("""\d{1,2}(\.5)?""")
 }

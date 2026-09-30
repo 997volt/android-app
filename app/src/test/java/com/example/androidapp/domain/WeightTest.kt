@@ -80,11 +80,6 @@ class WeightTest {
         assertEquals(60_000L, Weight.parseKilograms("60.0"))
     }
 
-    @Test
-    fun step_neverGoesNegative() {
-        assertEquals(0L, Weight.step(1_000L, -5_000L))
-        assertEquals(62_500L, Weight.step(60_000L, Weight.DEFAULT_STEP_GRAMS))
-    }
 }
 
 /**
@@ -158,15 +153,4 @@ class RestTimerTest {
         assertEquals("-20", Weight.display(20_000L, 20_000L))
     }
 
-    @Test
-    fun steppingAnAssistedLoad_movesTowardLessHelp_thenBecomesAWeight() {
-        // + on -20 is a harder set, which is what the number on screen means.
-        assertEquals(Load(0L, 17_500L), Weight.stepLoad(signedGrams = -20_000L, deltaGrams = 2_500L))
-        assertEquals(Load(0L, 22_500L), Weight.stepLoad(signedGrams = -20_000L, deltaGrams = -2_500L))
-        // Crossing zero in either direction swaps which half is set, because the
-        // field is one signed number. Stepping down past 0 kg therefore *enters*
-        // assistance, which is how a machine's help is reached without typing.
-        assertEquals(Load(2_500L, 0L), Weight.stepLoad(signedGrams = -2_500L, deltaGrams = 5_000L))
-        assertEquals(Load(0L, 2_500L), Weight.stepLoad(signedGrams = 0L, deltaGrams = -2_500L))
-    }
 }

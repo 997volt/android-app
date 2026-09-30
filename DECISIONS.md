@@ -65,6 +65,20 @@ into this file once the feature ships.
   comparison the logged sets already allow. Several plans may share a day, and a plan
   with no day is simply one you start by hand.
 
+- **One-tap "Log set" writes the set its button describes** (D3, B7). The button may
+  display a planned assistance, so the set it records carries it; the alternative —
+  showing less so that display and storage agree — makes the app withhold something it
+  knows. A logged set is still expected to differ from the plan, and the user adjusts it
+  afterwards; what it must never be is *different from what the button said*.
+- **"No dead weight" is strict about APIs that exist to be tested, and lenient about
+  tests' instruments** (D2). `Weight.step`, `DataResult.map` and `successUnit` had no
+  production caller and no test that used them as anything but their own subject: they
+  are gone, and the tests that existed only to exercise them went with them. A DAO or
+  store method that a test calls to *arrange or read* the subject under test is a
+  caller — `ExerciseDao.insertAll`, `softDelete`, `CrashLogStore.latest` stay, because
+  deleting them would mean testing through a different door than the app uses. The line
+  is what the API is for, not where it is called from.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
