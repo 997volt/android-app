@@ -8,6 +8,13 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **The settings feature has tests.** It shipped with none in either source set, so three things it
+  promises were unverified: that the screen shows what is *stored* rather than what was tapped,
+  that a refused choice leaves the old value in force and says why, and that a preference survives
+  the object that wrote it. The store's round trip is covered on the JVM, including that an invalid
+  rest is refused *without* being written — the difference between reporting a failure and quietly
+  keeping it.
+
 - **A plan that names reps and no load now says why it proposes what it does.** The suggestion for
   that case passed the rule's reason away, so a step heavier than last time arrived with no
   explanation. It explains a *load* only: the plan already decides the reps, and "one more rep than

@@ -69,12 +69,9 @@ Two reviews of v1.5 — one structural, one defect-focused — turned up more th
 admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
 that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. What remains is coverage: the settings feature's tests (B23) and two SQLite cases in B24.
+arithmetic. What remains is one coverage gap: `personalRecords` and `setSupersetGroup` meet only hand-written
+fakes.
 
-- **B23 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
-  `SettingsViewModel` and `PreferencesSettingsRepository`, and no test in either source set
-  references any of them — so the stored-vs-tapped rule its own KDoc states, the
-  `onSetDefaultRest` failure branch, and the `SharedPreferences` round trip are all unverified.
 - **B24 — Three new entry points never meet SQLite, and the migration has no seeded test.**
   **The migration half is done**: `migration15To16_groupsSessionsAndPlans_withoutTouchingTheirRows`
   seeds a session exercise and a planned exercise at v15 and asserts both survive the upgrade with
