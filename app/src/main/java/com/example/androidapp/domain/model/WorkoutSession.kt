@@ -1,6 +1,8 @@
 package com.example.androidapp.domain.model
 
 import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 /**
  * A training session (ROADMAP P1.2).
@@ -13,6 +15,19 @@ import java.time.Instant
  * basis of crash recovery (P1.8): the row is written the moment a workout starts,
  * so a process death leaves it open rather than losing it.
  */
+/**
+ * The zone this session was performed in, or null when it predates the column (ROADMAP N25).
+ *
+ * Null is answered by the caller, and the only honest answer is the current zone — which is what
+ * every screen showed before this existed. Two readers want slightly different things from it, so it
+ * is a function rather than a property: a row's own time, and the month or day it belongs to.
+ */
+fun WorkoutSession.zoneIdOrNull(): ZoneId? =
+    zoneOffsetMinutes?.let { ZoneOffset.ofTotalSeconds(it * SECONDS_PER_MINUTE) }
+
+/** Minutes to seconds, the unit [ZoneOffset] wants. */
+private const val SECONDS_PER_MINUTE = 60
+
 data class WorkoutSession(
     val id: String,
     val startedAt: Instant,
@@ -24,6 +39,14 @@ data class WorkoutSession(
      * session opens and editable afterwards from the workout header.
      */
     val readinessNote: String? = null,
+    /**
+     * The zone the session was performed in, in minutes from UTC, or null when it is not known
+     * (ROADMAP N25).
+     *
+     * Null is not a missing value to be filled in later: it means the session predates this column,
+     * and the honest answer for those is the current zone — which is what every screen showed before.
+     */
+    val zoneOffsetMinutes: Int? = null,
     /**
      * The workout's own comment (ROADMAP N11), or null.
      *

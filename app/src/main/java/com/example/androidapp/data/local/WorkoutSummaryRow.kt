@@ -16,6 +16,8 @@ data class WorkoutSummaryRow(
     val exerciseCount: Int,
     val setCount: Int,
     val volumeGrams: Long,
+    /** The zone the session was performed in, or null when it predates the column (ROADMAP N25). */
+    val zoneOffsetMinutes: Int?,
 )
 
 internal fun WorkoutSummaryRow.toDomain(): WorkoutSummary = WorkoutSummary(
@@ -25,4 +27,5 @@ internal fun WorkoutSummaryRow.toDomain(): WorkoutSummary = WorkoutSummary(
     exerciseCount = exerciseCount,
     setCount = setCount,
     volumeGrams = volumeGrams,
+    zoneOffsetMinutes = zoneOffsetMinutes,
 )

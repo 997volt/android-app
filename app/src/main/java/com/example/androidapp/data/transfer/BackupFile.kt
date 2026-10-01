@@ -87,6 +87,13 @@ data class SessionDto(
     val restEndsAt: Long? = null,
     /** Defaulted for the same reason as [ExerciseDto.restSeconds] (ROADMAP N4). */
     val readinessNote: String? = null,
+    /**
+     * The zone the session was performed in, in minutes from UTC (ROADMAP N25).
+     *
+     * Null for sessions recorded before the column existed; a restored one keeps that null rather
+     * than acquiring an offset it never had.
+     */
+    val zoneOffsetMinutes: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

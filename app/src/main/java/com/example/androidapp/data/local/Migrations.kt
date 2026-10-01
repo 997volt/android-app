@@ -414,6 +414,22 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
+/**
+ * A session remembers the zone it was performed in (ROADMAP N25).
+ *
+ * **The backfill is deliberately left null.** A workout done in Tokyo before this column existed
+ * cannot be given an offset after the fact — the data to say where it happened was never captured,
+ * and inventing one would be a lie the rows cannot support. Null means "not known", and every screen
+ * falls back to the current zone for those, which is exactly what they already showed. The
+ * alternative — stamping every old row with today's offset — would look tidier and be wrong for the
+ * one case this feature exists for.
+ */
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `workout_sessions` ADD COLUMN `zoneOffsetMinutes` INTEGER")
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -431,4 +447,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_13_14,
     MIGRATION_14_15,
     MIGRATION_15_16,
+    MIGRATION_16_17,
 )

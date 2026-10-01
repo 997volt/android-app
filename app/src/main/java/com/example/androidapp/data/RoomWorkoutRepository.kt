@@ -13,6 +13,7 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.NotFoundException
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.ZoneOffsetSource
 import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.TenPointScale
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.map
 class RoomWorkoutRepository @Inject constructor(
     private val database: WorkoutDatabase,
     private val timeSource: TimeSource,
+    private val zoneOffsetSource: ZoneOffsetSource,
 ) : WorkoutRepository {
 
     private val dao = database.workoutDao()
@@ -75,6 +77,8 @@ class RoomWorkoutRepository @Inject constructor(
                 val start = dao.findOrCreateActiveSession(
                     id = UUID.randomUUID().toString(),
                     now = timeSource.nowEpochMillis(),
+                    // Where this workout is happening, captured once (ROADMAP N25).
+                    zoneOffsetMinutes = zoneOffsetSource.offsetMinutes(),
                 )
                 if (start.created && templateId != null) {
                     templateDao.findPlannedExercises(templateId).forEach { planned ->

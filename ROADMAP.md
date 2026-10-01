@@ -59,22 +59,14 @@ library again.
 
 ### N25 — A session remembers the timezone it was performed in
 
-**Not scheduled.** Decided, and waiting on a reason to use it — it only bites if you train across
-timezones.
+**In progress.** The offset is stored on the session, captured once when it opens, and carried in the
+backup file. History already reads it: a workout is grouped under the month *it* was performed in.
+Still to do: the workout detail, the trends window and the finish review — each already takes the zone
+it formats with, so this is passing the session's own rather than the default — plus a seeded migration
+test for 16→17.
 
-**Decided: a displayed time is always the time the session was performed in.** Timestamps
-are UTC epoch millis today and every screen formats them in the *current* zone, so a
-workout done in Tokyo reads as the wrong hour — and the wrong day — once you are home.
-
-- **Store the offset on the session**, captured when it opens, and format with it wherever
-  a session's time is shown: history, the workout detail, the trends window and the review.
-- **A migration, and the backfill question it brings.** Rows written before this have no
-  offset; falling back to the current zone is the only honest answer, and it is what they
-  already get. Say so rather than inventing a timezone for the past.
-- **The offset is captured once, when the session starts.** A session that spans a DST
-  change keeps its start offset — a simplification worth stating rather than discovering.
-- **The other half of the zone question is "which day was this"**, and it follows from the
-  same column. Worth doing as one piece rather than two.
+**The backfill is deliberately null.** A session performed before the column existed cannot be given
+an offset after the fact, so those keep showing the current zone: the same thing they always showed.
 
 ## Later (still self-contained)
 

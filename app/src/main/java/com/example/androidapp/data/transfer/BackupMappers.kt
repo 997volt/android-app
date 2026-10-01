@@ -54,6 +54,9 @@ internal fun WorkoutSessionEntity.toDto() = SessionDto(
     notes = notes,
     restEndsAt = restEndsAt,
     readinessNote = readinessNote,
+    // Carried, unlike the rest countdown: where a session happened is a fact about the training,
+    // not about the device it was written on (ROADMAP N25).
+    zoneOffsetMinutes = zoneOffsetMinutes,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
@@ -73,6 +76,7 @@ internal fun SessionDto.toEntity() = WorkoutSessionEntity(
     // training history, so it is carried in the file but never restored — see the note above.
     restEndsAt = null,
     readinessNote = readinessNote,
+    zoneOffsetMinutes = zoneOffsetMinutes,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

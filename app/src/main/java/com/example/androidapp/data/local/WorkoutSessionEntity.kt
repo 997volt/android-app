@@ -39,6 +39,14 @@ data class WorkoutSessionEntity(
      * must not collide with it.
      */
     val readinessNote: String? = null,
+    /**
+     * The zone the session was performed in, in minutes from UTC (ROADMAP N25).
+     *
+     * Captured once when the session opens and never updated: a session that spans a DST change keeps
+     * its start offset, which is a simplification worth stating rather than discovering. Null on rows
+     * written before this column existed, which is the honest answer — see the migration.
+     */
+    val zoneOffsetMinutes: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

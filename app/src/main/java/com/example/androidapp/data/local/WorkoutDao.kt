@@ -78,7 +78,8 @@ interface WorkoutDao {
                    SELECT COALESCE(SUM(s.weightGrams * s.reps), 0) FROM set_entries s
                    JOIN session_exercises se ON se.id = s.sessionExerciseId
                    WHERE se.sessionId = ws.id AND se.deletedAt IS NULL AND s.deletedAt IS NULL
-               ) AS volumeGrams
+               ) AS volumeGrams,
+               ws.zoneOffsetMinutes AS zoneOffsetMinutes
         FROM workout_sessions ws
         WHERE ws.finishedAt IS NOT NULL AND ws.deletedAt IS NULL
         ORDER BY ws.finishedAt DESC
@@ -136,7 +137,11 @@ interface WorkoutDao {
      * sessions would make every downstream "the active session" ambiguous.
      */
     @Transaction
-    suspend fun findOrCreateActiveSession(id: String, now: Long): SessionStart {
+    suspend fun findOrCreateActiveSession(
+        id: String,
+        now: Long,
+        zoneOffsetMinutes: Int,
+    ): SessionStart {
         findActiveSession()?.let { return SessionStart(session = it, created = false) }
 
         val session = WorkoutSessionEntity(
@@ -146,6 +151,9 @@ interface WorkoutDao {
             notes = null,
             restEndsAt = null,
             readinessNote = null,
+            // Captured here, at the one moment a session opens, and never written again: resuming
+            // returns early above, so a session keeps the zone it started in (ROADMAP N25).
+            zoneOffsetMinutes = zoneOffsetMinutes,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,

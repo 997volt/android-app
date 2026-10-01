@@ -3,6 +3,7 @@ package com.example.androidapp.ui.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.model.zoneIdOrNull
 import com.example.androidapp.domain.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.YearMonth
@@ -64,7 +65,11 @@ internal fun groupByMonth(
     workouts: List<WorkoutSummary>,
     zone: ZoneId = ZoneId.systemDefault(),
 ): List<HistoryGroup> = workouts
-    .groupBy { YearMonth.from(it.startedAt.atZone(zone)) }
+    // Each session is grouped by the month **it** was performed in, not the month it is where you
+    // are reading this: a workout done in Tokyo on the 1st belongs to that month, and the app was
+    // showing it under the previous one the moment you landed (ROADMAP N25). [zone] is the fallback
+    // for the rows that predate the column, which is what they already got.
+    .groupBy { YearMonth.from(it.startedAt.atZone(it.zoneIdOrNull() ?: zone)) }
     .toSortedMap(compareByDescending { it })
     .map { (month, inMonth) ->
         HistoryGroup(
