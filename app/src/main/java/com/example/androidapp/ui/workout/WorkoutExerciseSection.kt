@@ -69,6 +69,7 @@ internal fun ExerciseList(
     onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (String) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -85,6 +86,7 @@ internal fun ExerciseList(
                 onFinishExercise = onFinishExercise,
                 onRateExercise = onRateExercise,
                 onReopenExercise = { onReopenExercise(row.id) },
+                onToggleSuperset = { onToggleSuperset(row.id) },
             )
             HorizontalDivider()
         }
@@ -111,6 +113,7 @@ private fun ExerciseSection(
     onRateExercise: (String, Int?, Int?, String?) -> Unit,
     onReopenExercise: () -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
@@ -119,6 +122,9 @@ private fun ExerciseSection(
             verticalAlignment = Alignment.Top,
         ) {
             ExerciseNames(row = row, modifier = Modifier.weight(1f))
+            if (onToggleSuperset != null && !row.isFinished) {
+                SupersetToggle(row = row, onToggle = onToggleSuperset)
+            }
             if (row.isFinished) {
                 TextButton(
                     onClick = onReopenExercise,
@@ -351,7 +357,10 @@ private fun ExerciseSets(
 @Composable
 private fun ExerciseNames(row: SessionExerciseRow, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        Text(text = row.name, style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = row.supersetLabel?.let { "$it · ${row.name}" } ?: row.name,
+            style = MaterialTheme.typography.titleMedium,
+        )
         row.subtitle?.let { subtitle ->
             Text(
                 text = subtitle,
@@ -492,4 +501,29 @@ private fun ProgressionReason.explanationRes(): Int = when (this) {
     // Nothing recorded yet: the plan (or nothing) is being echoed, not progressed, so there
     // is no step to explain — the line is only drawn for the three above.
     ProgressionReason.NO_HISTORY -> R.string.suggestion_more_reps
+}
+
+/**
+ * Joining or leaving the superset above (ROADMAP N24).
+ *
+ * Its own composable because the section around it is already at the length this project
+ * allows, and because the word changes with the state: "pair" when it is on its own, "leave"
+ * when it is not.
+ */
+@Composable
+private fun SupersetToggle(
+    row: SessionExerciseRow,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onToggle,
+        modifier = modifier.testTag(TestTags.supersetToggle(row.id)),
+    ) {
+        Text(
+            stringResource(
+                if (row.supersetGroup == null) R.string.superset_pair else R.string.superset_unpair,
+            ),
+        )
+    }
 }

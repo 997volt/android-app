@@ -18,6 +18,17 @@ Notable changes to Workout Log, newest first. Format follows
   is deliberately not restored, and the line that drops it now says so.
 
 ### Added
+- **Supersets and circuits.** Two or more exercises can be performed together: **Superset with
+  above** groups an exercise with the one before it, the pair is labelled **A1/A2**, and the
+  **rest belongs to the round rather than the set** — the app only starts a rest once nothing
+  else in the group is behind, because resting between the pair would defeat the pairing the
+  user just asked for. Marking a member done counts as caught up, so a group does not wait for
+  an exercise that is finished, and leaving a superset takes the whole group apart: a group of
+  one is not a group. A circuit is the same thing with three or more members. This is the first
+  structural change since N14 — the schema goes to v16, with the grouping carried in the backup
+  file so a restored workout keeps its pairs.
+
+### Added
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
   heaviest working set at each rep count, so 100 kg × 5 is beaten only by more weight at five
   reps — not by twelve reps at 90 kg. Log a set that beats your best and the app says so

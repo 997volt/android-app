@@ -331,6 +331,9 @@
     <string name="personal_record_title">Personal record: %2$s kg × %1$d</string>
     <string name="personal_record_beats">%1$s — your best before was %2$s kg</string>
     <string name="personal_record_first">%1$s — the first time at this rep count</string>
+    <!-- Supersets and circuits (ROADMAP N24). -->
+    <string name="superset_pair">Superset with above</string>
+    <string name="superset_unpair">Leave the superset</string>
     <string name="transfer_export">Export data</string>
     <string name="transfer_import">Import data</string>
     <string name="transfer_exported">Backup written.</string>

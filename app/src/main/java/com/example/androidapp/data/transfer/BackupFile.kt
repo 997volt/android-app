@@ -107,6 +107,13 @@ data class SessionExerciseDto(
     /** The rest and cue the plan prescribed for this exercise, if any (N14). */
     val restSeconds: Int? = null,
     val techniqueNote: String? = null,
+    /**
+     * Which superset or circuit this exercise belonged to (ROADMAP N24), or null.
+     *
+     * Defaulted like every field this file has gained, so a backup written before N24 still
+     * reads: an ungrouped exercise is what every exercise used to be.
+     */
+    val supersetGroup: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

@@ -396,6 +396,20 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+/**
+ * v15 -> v16: an exercise can belong to a superset or circuit (ROADMAP N24).
+ *
+ * Additive and nullable: an ungrouped exercise is exactly what every exercise was before, and
+ * the group is an ordinal rather than a foreign key — "these are done together" needs no more,
+ * and `position` already carries the order within the workout. A circuit is the same column
+ * with three or more members, which is why there is one concept and not two.
+ */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `supersetGroup` INTEGER")
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -412,4 +426,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_12_13,
     MIGRATION_13_14,
     MIGRATION_14_15,
+    MIGRATION_15_16,
 )

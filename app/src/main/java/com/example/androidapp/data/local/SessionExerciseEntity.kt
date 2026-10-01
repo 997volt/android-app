@@ -69,6 +69,13 @@ data class SessionExerciseEntity(
      * makes a past rating legible a month later.
      */
     val jointPainNote: String? = null,
+    /**
+     * Which superset or circuit this exercise belongs to, or null (ROADMAP N24).
+     *
+     * An ordinal within the session rather than a foreign key: the exercises sharing a number
+     * are performed in rounds, and nothing else needs to be known about the group.
+     */
+    val supersetGroup: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

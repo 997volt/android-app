@@ -367,8 +367,18 @@ class ExercisePickerViewModelTest {
             excludingSessionId: String?,
         ): DataResult<PersonalRecords> = DataResult.Success(records)
 
+        val supersetGroups = mutableMapOf<String, Int?>()
+
         /** What the record read answers with; empty means no records yet. */
         var records: PersonalRecords = PersonalRecords()
+
+        override suspend fun setSupersetGroup(
+            sessionExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> {
+            supersetGroups[sessionExerciseId] = group
+            return DataResult.Success(Unit)
+        }
 
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> = unused()

@@ -95,6 +95,7 @@ fun ActiveWorkoutRoute(
         clock = clock,
         onAddExercise = onAddExercise,
         onLogSet = viewModel::onLogSet,
+        onToggleSuperset = viewModel::onToggleSuperset,
         summary = summary,
         onDismissSummary = viewModel::onDismissSummary,
         personalRecord = personalRecord,
@@ -109,7 +110,11 @@ fun ActiveWorkoutRoute(
         onDismissReadinessPrompt = viewModel::onDismissReadinessPrompt,
         onFinishExercise = viewModel::onFinishExercise,
         onRateExercise = viewModel::onRateExercise,
-        onUndoFinishExercise = viewModel::onUndoFinishExercise,
+        // The undo is reopening, addressed by the id the state already carries — the
+        // wrapper that used to sit here was a second name for one operation (N24).
+        onUndoFinishExercise = {
+            state.pendingFinishedExerciseId?.let(viewModel::onReopenExercise)
+        },
         onDismissFinishUndo = viewModel::onDismissFinishUndo,
         onReopenExercise = viewModel::onReopenExercise,
         onFinish = viewModel::onFinish,
@@ -144,6 +149,7 @@ fun ActiveWorkoutScreen(
     onDiscard: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (String) -> Unit = {},
     summary: WorkoutSummary? = null,
     onDismissSummary: () -> Unit = {},
     personalRecord: PersonalRecordMoment? = null,
@@ -200,6 +206,7 @@ fun ActiveWorkoutScreen(
             onReopenExercise = onReopenExercise,
             onDiscard = onDiscard,
             personalRecord = personalRecord,
+            onToggleSuperset = onToggleSuperset,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -401,6 +408,7 @@ private fun WorkoutBody(
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
     personalRecord: PersonalRecordMoment? = null,
+    onToggleSuperset: (String) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         // The record sits above the work, not in a dialog: it happens *between* sets, and
@@ -444,6 +452,7 @@ private fun WorkoutBody(
                         onFinishExercise = onFinishExercise,
                         onRateExercise = onRateExercise,
                         onReopenExercise = onReopenExercise,
+                        onToggleSuperset = onToggleSuperset,
                     )
                 }
             }

@@ -314,7 +314,7 @@ class ActiveWorkoutViewModelTest {
         viewModel.onFinishExercise(id)
         settle()
 
-        viewModel.onUndoFinishExercise()
+        viewModel.uiState.value.pendingFinishedExerciseId?.let(viewModel::onReopenExercise)
         settle()
 
         val state = viewModel.uiState.value
@@ -862,7 +862,7 @@ class ActiveWorkoutViewModelTest {
             viewModel.uiState.value.undoableFinishedExerciseId,
         )
 
-        viewModel.onUndoFinishExercise()
+        viewModel.uiState.value.pendingFinishedExerciseId?.let(viewModel::onReopenExercise)
         settle()
 
         assertNotNull("a stale finish undo must report too", viewModel.uiState.value.error)
@@ -1091,6 +1091,19 @@ class ActiveWorkoutViewModelTest {
             exerciseId: String,
             excludingSessionId: String?,
         ): DataResult<PersonalRecords> = DataResult.Success(records)
+
+        val supersetGroups = mutableMapOf<String, Int?>()
+
+        override suspend fun setSupersetGroup(
+            sessionExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> {
+            supersetGroups[sessionExerciseId] = group
+            exercises.value = exercises.value.map {
+                if (it.id == sessionExerciseId) it.copy(supersetGroup = group) else it
+            }
+            return DataResult.Success(Unit)
+        }
 
         override suspend fun finishSession(sessionId: String): DataResult<Unit> {
             sessions.value = null
@@ -1553,6 +1566,92 @@ class ActiveWorkoutViewModelTest {
         assertNull("the second set repeats the first, and repeats are not records", viewModel.personalRecord.value)
     }
 
+
+    @Test
+    fun pairing_putsBothExercisesInOneGroup() = runTest(dispatcher) {
+        // "These two, together" is what the tap says, so one exercise in a group is not the
+        // outcome — and a group of one is a state nobody asked for (N24).
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onAddExercise("bench-press")
+        settle()
+        viewModel.onToggleSuperset(viewModel.uiState.value.exercises.last().id)
+        settle()
+        val groups = viewModel.uiState.value.exercises.map { it.supersetGroup }
+        assertNotNull("the tapped exercise is in a group", groups.last())
+        assertEquals("and so is the one above it", groups.first(), groups.last())
+    }
+    @Test
+    fun unpairing_takesTheWholeGroupApart() = runTest(dispatcher) {
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onAddExercise("bench-press")
+        settle()
+        val second = viewModel.uiState.value.exercises.last().id
+        viewModel.onToggleSuperset(second)
+        settle()
+        viewModel.onToggleSuperset(second)
+        settle()
+        assertTrue(
+            "a group of one is not a group",
+            viewModel.uiState.value.exercises.all { it.supersetGroup == null },
+        )
+    }
+    @Test
+    fun inASuperset_nothingRestsUntilTheRoundIsDone() = runTest(dispatcher) {
+        // ROADMAP N24: resting between the pair would defeat the pairing the user asked for.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onAddExercise("bench-press")
+        settle()
+        viewModel.onToggleSuperset(viewModel.uiState.value.exercises.last().id)
+        settle()
+        // Localising the failure: the state must actually carry the group, or the round
+        // check has nothing to work with.
+        val rows = viewModel.uiState.value.exercises
+        assertNotNull("the pair is grouped in the state", rows.first().supersetGroup)
+        assertEquals("and both share it", rows.first().supersetGroup, rows.last().supersetGroup)
+        assertEquals("with no sets logged on the second yet", 0, rows.last().sets.size)
+
+        // The fake seeds a rest value, so clearing it is what makes "no rest" observable.
+        repository.lastRestSeconds = null
+
+        // The first exercise of the pair: the second has not logged this round yet.
+        viewModel.onLogSet(viewModel.uiState.value.exercises.first().id)
+        settle()
+        assertNull("no rest until the round is finished", repository.lastRestSeconds)
+        // The second logs the same round, which is the round complete.
+        repository.lastRestSeconds = null
+        viewModel.onLogSet(viewModel.uiState.value.exercises.last().id)
+        settle()
+        assertNotNull("now the round is done, so it rests", repository.lastRestSeconds)
+    }
+    @Test
+    fun anUngroupedExercise_stillRestsAfterEverySet() = runTest(dispatcher) {
+        // The old behaviour, stated so N24 cannot quietly change it.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        assertNotNull(repository.lastRestSeconds)
+    }
+
 }
 
 /**
@@ -1576,6 +1675,7 @@ private class FakeSettingsRepository(
         rest.value = seconds
         return DataResult.Success(Unit)
     }
+
 
 
 }

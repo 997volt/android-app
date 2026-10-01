@@ -66,15 +66,7 @@ what already exists, then the differentiator, then polish.
 
 **Tier 1 — close the loop on what already shipped.** *Shipped: N19, N20, N21.*
 
-**Tier 2 — the differentiator the data now supports.** *Shipped: N22, N23.*
-
-- **N24 (was P3.6) — Supersets and circuits.** Deliberately deferred when N14 shipped —
-  giant-set notation was never modelled — so this is a real question about your programming
-  rather than an oversight. **The design is settled and recorded in DECISIONS.md**: a nullable
-  `supersetGroup` ordinal on session and template exercises, rests that belong to the round
-  rather than the set, and A1/A2 labels. What remains is the build: migration 15→16, the
-  grouping UI in the workout and the template editor, and the tests that hold the round
-  semantics.
+**Tier 2 — the differentiator the data now supports.** *Shipped: N22, N23, N24.*
 
 **Tier 3 — polish, in the order I would take it.** These stay in *Later*; naming the order
 here is the whole point of listing them.

@@ -173,6 +173,17 @@ interface WorkoutRepository {
     suspend fun startRest(seconds: Int = RestTimer.DEFAULT_SECONDS): DataResult<Instant>
 
     /**
+     * Puts this exercise in a superset with another, or takes it out (ROADMAP N24).
+     *
+     * The group is an ordinal shared with the exercises it is performed with; null means
+     * "on its own again", which is what every exercise was before N24.
+     */
+    suspend fun setSupersetGroup(
+        sessionExerciseId: String,
+        group: Int?,
+    ): DataResult<Unit>
+
+    /**
      * The heaviest working set at each rep count for this exercise (ROADMAP N23).
      *
      * [excludingSessionId] is the session in progress: a set must be compared against what

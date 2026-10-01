@@ -337,6 +337,16 @@ class RoomWorkoutRepository @Inject constructor(
         )
     }
 
+    override suspend fun setSupersetGroup(
+        sessionExerciseId: String,
+        group: Int?,
+    ): DataResult<Unit> = dataResultOf {
+        val now = timeSource.nowEpochMillis()
+        if (database.sessionExerciseDao().setSupersetGroup(sessionExerciseId, group, now) == 0) {
+            throw NotFoundException("session exercise $sessionExerciseId")
+        }
+    }
+
     override suspend fun startRest(seconds: Int): DataResult<Instant> = dataResultOf {
         val session = dao.findActiveSession() ?: throw NotFoundException("no active session")
         val now = timeSource.now()

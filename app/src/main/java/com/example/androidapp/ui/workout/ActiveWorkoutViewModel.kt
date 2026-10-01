@@ -75,6 +75,15 @@ data class SessionExerciseRow(
     val subtitle: String?,
     /** A cue to read while lifting, or null (ROADMAP N5). */
     val techniqueNote: String? = null,
+    /**
+     * The superset or circuit this exercise is performed in, or null (ROADMAP N24).
+     *
+     * Exercises sharing it are done in rounds, so the screen labels them A1/A2 and the rest
+     * waits for the round to finish.
+     */
+    val supersetGroup: Int? = null,
+    /** `A1`/`A2` for a grouped exercise — giant-set notation, or null (ROADMAP N24). */
+    val supersetLabel: String? = null,
     /** This exercise's own rest, or null for the app default (ROADMAP N5). */
     val restSeconds: Int? = null,
     /**
@@ -416,15 +425,6 @@ class ActiveWorkoutViewModel @Inject constructor(
      * it refers to, and a doomed write would report `NotFound` about a row the user
      * never asked about.
      */
-    fun onUndoFinishExercise() {
-        val id = pendingFinishedExercise.value ?: return
-        pendingFinishedExercise.value = null
-        if (!uiState.value.hasLiveExercise(id)) {
-            lastError.value = GONE_FROM_SESSION
-            return
-        }
-        onReopenExercise(id)
-    }
 
     fun onDismissFinishUndo() {
         pendingFinishedExercise.value = null
@@ -462,6 +462,17 @@ class ActiveWorkoutViewModel @Inject constructor(
      * paths that could drift apart.
      */
     fun onReopenExercise(sessionExerciseId: String) {
+        // Reopening *is* the undo, so the offer goes with it: the state already answers
+        // "is it still in the session?", which is why the separate wrapper for the banner
+        // was a second name for one operation.
+        pendingFinishedExercise.value = null
+        // Reopening something that is gone — undone twice, or removed meanwhile — is reported
+        // rather than silently ignored: the guard that used to sit in the undo wrapper is this
+        // question, asked where the action now is.
+        if (!uiState.value.hasLiveExercise(sessionExerciseId)) {
+            lastError.value = GONE_FROM_SESSION
+            return
+        }
         viewModelScope.launch {
             when (val result = workoutRepository.reopenExercise(sessionExerciseId)) {
                 is DataResult.Success -> lastError.value = null
@@ -530,11 +541,52 @@ class ActiveWorkoutViewModel @Inject constructor(
                     )
                 }
 
-                // The exercise's own rest when it has one, otherwise the app default
-                // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
-                // The exercise's own rest wins; otherwise the app-wide setting (N5, N21).
-                startRest(row.restSeconds ?: defaultRestSeconds.value)
+                // ROADMAP N24: in a superset the rest belongs to the round, not the set, so
+                // it waits until nothing else in the group is behind. Resting here would
+                // defeat the pairing the user just asked for.
+                if (uiState.value.roundIsCompleteFor(row)) {
+                    // The exercise's own rest when it has one, otherwise the app default
+                    // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
+                    // The exercise's own rest wins; otherwise the app-wide setting (N5, N21).
+                    startRest(row.restSeconds ?: defaultRestSeconds.value)
+                }
             }
+        }
+    }
+
+    /**
+     * Joins this exercise to the one above it in a superset, or leaves the group (N24).
+     *
+     * Pairing with the previous exercise is the only gesture that needs no new screen: the
+     * order is already on screen, and "these two, together" is what a tap on the second one
+     * means.
+     */
+    fun onToggleSuperset(sessionExerciseId: String) {
+        val ordered = uiState.value.exercises
+        val index = ordered.indexOfFirst { it.id == sessionExerciseId }
+        if (index < 0) return
+        val me = ordered[index]
+        val previous = ordered.getOrNull(index - 1)
+
+        val group = when {
+            // Already grouped: leaving takes the whole group apart, because a group of one is
+            // not a group and half a superset is a state nobody asked for.
+            me.supersetGroup != null -> null
+            previous?.supersetGroup != null -> previous.supersetGroup
+            previous != null -> (ordered.mapNotNull { it.supersetGroup }.maxOrNull() ?: 0) + 1
+            else -> null
+        }
+
+        viewModelScope.launch {
+            // Leaving takes the whole group apart, because a group of one is not a group and
+            // half a superset is a state nobody asked for; joining pulls the exercise above in,
+            // because a superset is at least two exercises.
+            val changed = if (group == null) {
+                ordered.filter { it.supersetGroup == me.supersetGroup }.map { it.id }
+            } else {
+                listOf(sessionExerciseId) + listOfNotNull(previous?.takeIf { it.supersetGroup == null }?.id)
+            }
+            changed.forEach { id -> handle(workoutRepository.setSupersetGroup(id, group)) }
         }
     }
 
@@ -767,7 +819,12 @@ class ActiveWorkoutViewModel @Inject constructor(
             sessionId = session?.id,
             startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
             exercises = exercises.map {
-                it.toRow(sets = sets, previous = previous[it.exerciseId], planned = planned)
+                it.toRow(
+                    sets = sets,
+                    previous = previous[it.exerciseId],
+                    planned = planned,
+                    supersetLabels = supersetLabelsFor(exercises),
+                )
             },
             pendingUndo = undo,
             pendingFinishedExerciseId = pendingFinishedExerciseId,
@@ -780,6 +837,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         sets: List<SetEntry>,
         previous: PreviousPerformance?,
         planned: List<TemplateExercise>,
+        supersetLabels: Map<String, String>,
     ): SessionExerciseRow {
         val loggedSets = sets
             .filter { it.sessionExerciseId == id }
@@ -805,6 +863,8 @@ class ActiveWorkoutViewModel @Inject constructor(
             name = exerciseName,
             subtitle = taxonomySubtitle(primaryMuscle, equipment),
             techniqueNote = techniqueNote,
+            supersetGroup = supersetGroup,
+            supersetLabel = supersetLabels[id],
             restSeconds = restSeconds,
             isFinished = isFinished,
             muscleFeel = muscleFeel,
@@ -930,3 +990,42 @@ private fun buildSummary(
  */
 private fun ActiveWorkoutUiState.hasLiveExercise(sessionExerciseId: String): Boolean =
     exercises.any { it.id == sessionExerciseId }
+
+/**
+ * True when the round this exercise is part of has nothing left behind it (ROADMAP N24).
+ *
+ * A grouped exercise only rests once every other member of its group has logged at least as
+ * many sets, or has been marked done — a member that is finished is not going to catch up, and
+ * waiting for it would leave the user resting between the two exercises the grouping exists to
+ * pair. An ungrouped exercise is always its own complete round, which is the old behaviour.
+ */
+private fun ActiveWorkoutUiState.roundIsCompleteFor(row: SessionExerciseRow): Boolean {
+    // `row` was captured before the write, and this state may not have caught up with the write
+    // either — so the count comes from what this action actually logged rather than from a read
+    // that can be one short. Both ways of trusting the read were live bugs: the round looked
+    // finished, so the app rested between the two exercises the user had just paired.
+    val logged = row.sets.size + 1
+
+    return row.supersetGroup == null || exercises
+        .filter { it.supersetGroup == row.supersetGroup && it.id != row.id }
+        .all { it.isFinished || it.sets.size >= logged }
+}
+
+/**
+ * `A1`, `A2` … for a grouped exercise, or null (ROADMAP N24).
+ *
+ * Giant-set notation, and the group letter follows the order the groups appear in the workout
+ * so the first pair the user makes is always A — a label that changed as exercises moved would
+ * be worse than no label.
+ */
+private fun supersetLabelsFor(exercises: List<SessionExercise>): Map<String, String> {
+    val groups = exercises.mapNotNull { it.supersetGroup }.distinct().sorted()
+    return exercises.mapNotNull { exercise ->
+        val group = exercise.supersetGroup ?: return@mapNotNull null
+        val letter = 'A' + groups.indexOf(group)
+        if (letter !in 'A'..'Z') return@mapNotNull null
+        // The member's place in its own group, in the order the workout shows them.
+        val member = exercises.filter { it.supersetGroup == group }.indexOfFirst { it.id == exercise.id } + 1
+        exercise.id to "$letter$member"
+    }.toMap()
+}

@@ -50,6 +50,13 @@ data class SessionExercise(
     val sessionId: String,
     val exerciseId: String,
     val position: Int,
+    /**
+     * Which superset or circuit this exercise is performed in, or null (ROADMAP N24).
+     *
+     * Exercises sharing a number are done in rounds: a set of each in turn, and the rest
+     * belongs to the round rather than to the set.
+     */
+    val supersetGroup: Int? = null,
     val exerciseName: String,
     val primaryMuscle: MuscleGroup,
     val equipment: Equipment,

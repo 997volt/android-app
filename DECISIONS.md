@@ -167,8 +167,7 @@ into this file once the feature ships.
   measured against, and letting one set the next target would ask for a step on a bar that
   was only ever being warmed up with.
 
-- **A superset is a group of exercises performed in rounds** (N24, design settled, not yet
-  built). The model is a nullable `supersetGroup: Int?` ordinal on `session_exercises` and
+- **A superset is a group of exercises performed in rounds** (N24). The model is a nullable `supersetGroup: Int?` ordinal on `session_exercises` and
   `template_exercises` — the same integer meaning "these are done together" in a session and
   in the plan that seeds it. A separate `superset_groups` table was rejected: it needs its own
   ordering, a join on every read, and it expresses nothing an ordinal on the rows does not,

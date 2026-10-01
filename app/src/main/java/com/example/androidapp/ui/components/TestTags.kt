@@ -91,8 +91,6 @@ object TestTags {
     const val LIBRARY_EMPTY_LIBRARY = "library_empty_library"
     const val LIBRARY_NO_MATCH = "library_no_match"
 
-    /** A library row, addressed by exercise id so tests need no display name. */
-    fun exerciseRow(id: String) = "library_row_$id"
 
     /** The trends screen (ROADMAP N13). A metric's series is tagged by its name. */
     const val TRENDS_TITLE = "trends_title"
@@ -221,6 +219,9 @@ object TestTags {
     const val HOME_SETTINGS = "home_settings"
 
     fun settingRest(seconds: Int) = "setting_rest_$seconds"
+
+    /** Joining or leaving the superset above (ROADMAP N24). */
+    fun supersetToggle(id: String) = "superset_toggle_$id"
 
     /** The review a finished workout gets (ROADMAP N20). */
     const val SUMMARY_DIALOG = "summary_dialog"

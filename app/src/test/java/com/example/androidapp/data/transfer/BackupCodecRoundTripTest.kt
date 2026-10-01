@@ -40,6 +40,8 @@ class BackupCodecRoundTripTest {
             sessionId = "s1",
             exerciseId = "back-squat",
             position = 3,
+            // The column N24 added: if the codec ever forgets it, this test says so.
+            supersetGroup = 7,
             restSeconds = 120,
             techniqueNote = "brace hard",
             finishedAt = 1_700_000_000_000L,

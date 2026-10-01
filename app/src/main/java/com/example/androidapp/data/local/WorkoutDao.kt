@@ -101,7 +101,8 @@ interface WorkoutDao {
                se.finishedAt AS finishedAt,
                se.muscleFeel AS muscleFeel,
                se.jointPain AS jointPain,
-               se.jointPainNote AS jointPainNote
+               se.jointPainNote AS jointPainNote,
+               se.supersetGroup AS supersetGroup
         FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = :sessionId
@@ -185,6 +186,7 @@ interface WorkoutDao {
     suspend fun softDeleteSessionExercises(sessionId: String, at: Long): Int
 
     /** Rows updated: 0 means the row does not exist or was already deleted. */
+
     @Query("UPDATE session_exercises SET deletedAt = :at, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun softDeleteSessionExercise(id: String, at: Long): Int
 

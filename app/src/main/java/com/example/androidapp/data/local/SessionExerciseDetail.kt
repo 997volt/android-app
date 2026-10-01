@@ -30,6 +30,7 @@ data class SessionExerciseDetail(
     val jointPain: Int?,
     /** Which joints, or null (ROADMAP N9). */
     val jointPainNote: String?,
+    val supersetGroup: Int?,
 )
 
 internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise(
@@ -46,4 +47,5 @@ internal fun SessionExerciseDetail.toDomain(): SessionExercise = SessionExercise
     muscleFeel = muscleFeel,
     jointPain = jointPain,
     jointPainNote = jointPainNote,
+    supersetGroup = supersetGroup,
 )
