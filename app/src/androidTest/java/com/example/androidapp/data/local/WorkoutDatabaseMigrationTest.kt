@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -758,6 +759,43 @@ class WorkoutDatabaseMigrationTest {
             cursor.moveToFirst()
             assertEquals("te1", cursor.getString(0))
             assertTrue("and so is an existing planned exercise", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
+
+    @Test
+    fun migration16To17_keepsTheRows_andLeavesTheirZoneUnknown() {
+        // ROADMAP N25. Two things need proving, and the second is the one worth a test: an upgrade
+        // keeps the sessions already in the table, and the new column arrives **null** rather than
+        // backfilled. A zone that was never captured cannot be reconstructed, and stamping today's
+        // onto old rows would look like knowledge the row does not have.
+        helper.createDatabase(TEST_DB, 16).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, finishedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 100, 200, 100, 200, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s2', 300, 300, 300, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 17, true, MIGRATION_16_17)
+
+        migrated.query("SELECT id, zoneOffsetMinutes FROM workout_sessions ORDER BY id").use { cursor ->
+            assertTrue("the finished session survived", cursor.moveToFirst())
+            assertEquals("s1", cursor.getString(0))
+            assertTrue("its zone is unknown, not invented", cursor.isNull(1))
+            assertTrue("and so did the open one", cursor.moveToNext())
+            assertEquals("s2", cursor.getString(0))
+            assertTrue("with no zone either", cursor.isNull(1))
+            assertFalse("exactly the two rows that were there", cursor.moveToNext())
         }
 
         migrated.close()

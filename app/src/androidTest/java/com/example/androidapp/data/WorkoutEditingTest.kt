@@ -12,6 +12,7 @@ import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.ZoneOffsetSource
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
@@ -50,7 +51,7 @@ class WorkoutEditingTest {
             ApplicationProvider.getApplicationContext(),
             WorkoutDatabase::class.java,
         ).build()
-        repository = RoomWorkoutRepository(database, clock)
+        repository = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 0 })
     }
 
     @After

@@ -63,7 +63,11 @@ library again.
 backup file. History already reads it: a workout is grouped under the month *it* was performed in.
 Read by history (grouping and the row date), the workout detail and the finish review. The trends
 window turned out to need nothing: it buckets by instant and never formats a session's own time.
-Still to do: a seeded migration test for 16→17.
+A seeded 16→17 migration test proves an upgrade keeps the rows already there and leaves their zone
+**null** rather than backfilled; run on a device: 17 tests in the class, no failures.
+
+Still to do: a device pass on the formatting itself — the emulator's clock is UTC, so seeing a Tokyo
+session read as Tokyo needs the device's zone moved first.
 
 **The backfill is deliberately null.** A session performed before the column existed cannot be given
 an offset after the fact, so those keep showing the current zone: the same thing they always showed.

@@ -140,7 +140,14 @@ interface WorkoutDao {
     suspend fun findOrCreateActiveSession(
         id: String,
         now: Long,
-        zoneOffsetMinutes: Int,
+        /**
+         * The zone the session is being performed in, or **null for "not known"** (ROADMAP N25).
+         *
+         * Null is the default rather than a zone chosen for the caller: a seeding test that does not
+         * care where its fixture happened should record that it does not know, not claim UTC. The one
+         * production caller always knows, and passes it.
+         */
+        zoneOffsetMinutes: Int? = null,
     ): SessionStart {
         findActiveSession()?.let { return SessionStart(session = it, created = false) }
 

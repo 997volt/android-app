@@ -13,6 +13,7 @@ import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.ZoneOffsetSource
 import com.example.androidapp.domain.repository.StartedSession
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -47,7 +48,7 @@ class RoomWorkoutSessionTest {
             ApplicationProvider.getApplicationContext(),
             WorkoutDatabase::class.java,
         ).build()
-        repository = RoomWorkoutRepository(database, clock)
+        repository = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 0 })
     }
 
     @After

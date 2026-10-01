@@ -11,6 +11,7 @@ import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.ZoneOffsetSource
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
@@ -65,7 +66,7 @@ class BackupRoundTripTest {
                 crashLogs = it
             },
         )
-        workouts = RoomWorkoutRepository(database, clock)
+        workouts = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 0 })
     }
 
     @After
@@ -221,7 +222,9 @@ class BackupRoundTripTest {
 
         exerciseDao.insertAll(listOf(seedExercise()))
 
-        val session = workoutDao.findOrCreateActiveSession(id = "session-1", now = 1_000L).session
+        val session = workoutDao
+            .findOrCreateActiveSession(id = "session-1", now = 1_000L, zoneOffsetMinutes = 0)
+            .session
         val sessionExerciseId = "se-1"
         workoutDao.insertSessionExercise(
             com.example.androidapp.data.local.SessionExerciseEntity(
