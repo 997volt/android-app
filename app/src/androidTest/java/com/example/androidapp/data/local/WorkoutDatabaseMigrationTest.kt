@@ -702,4 +702,64 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration15To16_groupsSessionsAndPlans_withoutTouchingTheirRows() {
+        // ROADMAP B16, and the reason this test exists at all: the migration was *amended* after
+        // it had already run on development devices — a second column joined the same version —
+        // so what needs proving is that an upgrade keeps the rows already in the tables AND
+        // arrives with both columns. The 1→16 chain in MigrationsTest cannot check the first half.
+        helper.createDatabase(TEST_DB, 15).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 100, 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO exercises (id, name, primaryMuscle, secondaryMuscles, equipment,
+                    movementPattern, isCustom, createdAt, updatedAt, deletedAt)
+                VALUES ('e1', 'Back Squat', 'QUADS', '', 'BARBELL', 'SQUAT', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO session_exercises (id, sessionId, exerciseId, position, createdAt,
+                    updatedAt, deletedAt)
+                VALUES ('se1', 's1', 'e1', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Legs', 1, 1, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO template_exercises (id, templateId, exerciseId, position, createdAt,
+                    updatedAt, deletedAt)
+                VALUES ('te1', 't1', 'e1', 0, 1, 1, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 16, true, MIGRATION_15_16)
+
+        // The rows are still there, and ungrouped — which is what every exercise was before N24.
+        migrated.query("SELECT id, supersetGroup FROM session_exercises").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("se1", cursor.getString(0))
+            assertTrue("an existing session exercise is ungrouped", cursor.isNull(1))
+        }
+        migrated.query("SELECT id, supersetGroup FROM template_exercises").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("te1", cursor.getString(0))
+            assertTrue("and so is an existing planned exercise", cursor.isNull(1))
+        }
+
+        migrated.close()
+    }
 }

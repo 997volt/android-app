@@ -76,13 +76,12 @@ arithmetic. What remains are three coverage gaps and one workflow decision.
   references any of them — so the stored-vs-tapped rule its own KDoc states, the
   `onSetDefaultRest` failure branch, and the `SharedPreferences` round trip are all unverified.
 - **B24 — Three new entry points never meet SQLite, and the migration has no seeded test.**
-  `personalRecords` and `setSupersetGroup` are exercised only through hand-written fakes, and
-  `app/src/androidTest` was not touched in this batch at all. `MIGRATION_15_16` is registered,
-  matches its exported schema, and is covered end-to-end by `MigrationsTest`'s 1→16 chain — but
-  it has no `MigrationTestHelper` test while its fourteen siblings each have one, and what those
-  add is the thing the chain cannot check: that an upgrade **keeps the rows already in the
-  table**. Smaller gaps in the same batch: the `SetSuggestion` branch for a plan that names reps
-  and no load, and N24's A1/A2 label and superset toggle.
+  **The migration half is done**: `migration15To16_groupsSessionsAndPlans_withoutTouchingTheirRows`
+  seeds a session exercise and a planned exercise at v15 and asserts both survive the upgrade with
+  their new columns empty — the half a 1→16 chain cannot check, and the half the amendment made
+  matter. What remains: `personalRecords` and `setSupersetGroup` are still exercised only through
+  hand-written fakes, and two smaller gaps stand — the `SetSuggestion` branch for a plan that names
+  reps and no load, and N24's A1/A2 label and superset toggle.
 - **B25 — The instrumented job rarely finishes during a busy stretch.** `cancel-in-progress`
   meets a fast push cadence: across the last 60 runs, **40 were cancelled** against 18 successes,
   and the emulator job needs 15–30 minutes while the build job needs about 8. The fast job

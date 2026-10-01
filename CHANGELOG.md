@@ -8,6 +8,13 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **The schema upgrade keeps the rows already in the tables, and now proves it.** `MIGRATION_15_16`
+  was amended after it had already run on development devices — a second column joined the same
+  version — so the question a chain test cannot answer is whether an upgrade preserves what is
+  there. A `MigrationTestHelper` case seeds a session exercise and a planned exercise at v15,
+  migrates, and asserts both survive with their new columns empty, which is what every exercise was
+  before supersets existed.
+
 - **A route that is declared but never registered now fails the test suite.** Two bugs shipped from
   that gap: a route missing `@Serializable`, and a route with no `composable<...>` registration —
   the second is what made the settings screen crash on its first run. The old test named twelve
