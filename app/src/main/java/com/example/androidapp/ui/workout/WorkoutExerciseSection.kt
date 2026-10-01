@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FilledTonalButton
@@ -76,7 +77,7 @@ internal fun ExerciseList(
         // Leaves room for the extended FAB so it cannot cover the last row.
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
-        items(items = rows, key = { it.id }) { row ->
+        itemsIndexed(items = rows, key = { _, row -> row.id }) { index, row ->
             ExerciseSection(
                 row = row,
                 onLogSet = { role -> onLogSet(row.id, role) },
@@ -86,7 +87,10 @@ internal fun ExerciseList(
                 onFinishExercise = onFinishExercise,
                 onRateExercise = onRateExercise,
                 onReopenExercise = { onReopenExercise(row.id) },
-                onToggleSuperset = { onToggleSuperset(row.id) },
+                // Row 0 has nothing above it to pair with: with no previous exercise the group
+                // comes out null and the write would rewrite every ungrouped row, churning
+                // `updatedAt` for no change (ROADMAP B28).
+                onToggleSuperset = if (index == 0) null else { { onToggleSuperset(row.id) } },
             )
             HorizontalDivider()
         }

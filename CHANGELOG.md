@@ -8,6 +8,10 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **The superset tap is no longer drawn on the first exercise.** With nothing above it to pair with,
+  the group came out null — and the write then matched every ungrouped row and rewrote each to null,
+  churning `updatedAt` for no change. It is offered from the second exercise on, in the workout and in
+  the plan editor alike.
 - **Assisted work adds a rep before it takes help off.** The progression rule tested its assisted
   branch before its rep ceiling, so an assisted lifter at the *bottom* of a 6–8 range was told to
   reduce the machine's help and keep the reps — "add a rep first" was unreachable for assisted work,

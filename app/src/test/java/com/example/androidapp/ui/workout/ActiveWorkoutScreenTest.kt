@@ -496,12 +496,14 @@ class ActiveWorkoutScreenTest {
     }
 
     @Test
-    fun everyEditableExercise_offersTheSupersetTap() {
-        // A control nothing asserts is a control nobody notices breaking, and this one is the only
-        // way to group two exercises inside a session.
+    fun theSupersetTap_isNotDrawnOnTheFirstExercise() {
+        // ROADMAP B28: the first exercise has nothing above it to pair with, and drawing the control
+        // there was a no-op whose write rewrote every ungrouped row. Its presence from the second row
+        // on is lazy-list territory — a node that is not composed cannot be asserted — and is covered
+        // by the template editor's own list and by the device.
         setScreen(state = state(isFinished = false))
 
-        composeTestRule.onNodeWithTag(TestTags.supersetToggle("se1")).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.supersetToggle("se1")).assertDoesNotExist()
     }
 
     @Test

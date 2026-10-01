@@ -286,7 +286,9 @@ private fun TemplateEditorBody(
                         onMoveUp = { onMoveExercise(exercise.id, -1) },
                         onMoveDown = { onMoveExercise(exercise.id, 1) },
                         onRemove = { onRemoveExercise(exercise.id) },
-                        onToggleSuperset = { onToggleSuperset(exercise.id) },
+                        // Same rule as the workout screen: the first planned exercise has no
+                        // exercise above it to pair with (ROADMAP B28).
+                        onToggleSuperset = if (index == 0) null else { { onToggleSuperset(exercise.id) } },
                         supersetLabels = state.supersetLabels,
                         onAddSet = { edit -> onAddSet(exercise.id, edit) },
                         onUpdateSet = onUpdateSet,
