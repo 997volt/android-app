@@ -1708,6 +1708,49 @@ class ActiveWorkoutViewModelTest {
         assertNull("a warm-up is not a personal best", viewModel.personalRecord.value)
     }
 
+
+    @Test
+    fun aRecord_namesTheBarThisSessionSet_notHistories() = runTest(dispatcher) {
+        // ROADMAP B18, and the assertion the batch had no way of making until now: `records` and
+        // the merged view agree until the session beats its own history at the same rep count, so
+        // reading the wrong one was invisible. A plan with a ramp is what makes them differ: the
+        // second set is prescribed at 22.5 against the 20 just lifted, while history holds 17.5.
+        val repository = FakeWorkoutRepository().apply {
+            records = PersonalRecords(mapOf(8 to 17_500L))
+        }
+        val templates = FakeTemplateRepository(
+            planned = listOf(
+                plannedExercise(
+                    position = 0,
+                    sets = listOf(
+                        plannedSet(index = 0, reps = 8, weightGrams = 20_000L),
+                        plannedSet(index = 1, reps = 8, weightGrams = 22_500L),
+                    ),
+                ),
+            ),
+        )
+        val viewModel = viewModelFor(repository, templateId = "t1", templates = templates)
+        observe(viewModel)
+        settle()
+        // The plan supplies the targets; the exercise itself is added the way the other tests do it.
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        // Set one: a record over history.
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id, SetType.NORMAL)
+        settle()
+        assertEquals(17_500L, viewModel.personalRecord.value?.previousBestGrams)
+
+        // Set two: the plan's 22.5 beats the 20 *this session* already logged, so that is what the
+        // banner must name — history's 17.5 is no longer the bar.
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id, SetType.NORMAL)
+        settle()
+
+        val moment = viewModel.personalRecord.value
+        assertNotNull(moment)
+        assertEquals(22_500L, moment!!.weightGrams)
+        assertEquals("the session's bar, not the older history", 20_000L, moment.previousBestGrams)
+    }
 }
 
 /**

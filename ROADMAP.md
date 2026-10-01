@@ -69,9 +69,11 @@ Two reviews of v1.5 — one structural, one defect-focused — turned up more th
 admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
 that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. **Every finding in this batch is done.** What is left is the device pass for the fixes that are
-user-visible and have not been seen running: B16's plan-side grouping, B21's note in the finish
-review, and the record behaviour B17 and B18 changed.
+arithmetic. **Every finding in this batch is done.** The device pass covered B14 (an edit keeps the role), B16
+(the plan editor's A1/A2 labels, with the seeding proved by an instrumented test), B17 (a warm-up
+raises nothing where a working set at the same rep count does) and B21 (the review says it excludes
+warm-ups). B18's own scenario needs a ramped plan to reach, so it is held by a test that tells the
+two readings apart instead.
 
 ### Settled by the review rather than queued
 
