@@ -167,6 +167,28 @@ into this file once the feature ships.
   measured against, and letting one set the next target would ask for a step on a bar that
   was only ever being warmed up with.
 
+- **A superset is a group of exercises performed in rounds** (N24, design settled, not yet
+  built). The model is a nullable `supersetGroup: Int?` ordinal on `session_exercises` and
+  `template_exercises` — the same integer meaning "these are done together" in a session and
+  in the plan that seeds it. A separate `superset_groups` table was rejected: it needs its own
+  ordering, a join on every read, and it expresses nothing an ordinal on the rows does not,
+  while the ordinal survives reordering because `position` already carries the workout order.
+  One concept covers circuits too — a circuit is a group with three or more members — and a
+  group with one member is not a group, so nothing is labelled.
+- **Round semantics: the rest belongs to the round, not the set** (N24). After a set in a
+  grouped exercise the app moves to the next member with no rest, and starts the rest only
+  after the **last** member — otherwise the point of pairing (no rest between the pair) is
+  defeated by the app that is supposed to support it. The rest is the group's longest member,
+  or the app default (N21) when none prescribes one. Labels are giant-set notation: A1, A2,
+  A3 by group letter and member index.
+- **N24 is a schema change, and is done by the book**: a migration 15→16 adding the two
+  nullable columns, an exported `16.json`, a `MigrationTestHelper` case that seeds a real
+  superset, and registration in `ALL_MIGRATIONS` — the columns land with the code that reads
+  them, never ahead of it. Worth stating because it is the first *structural* change since the
+  features that shipped after N14: N17's series, N20's plan-versus-actual and N22's progression
+  are all per exercise, so none of them has to be revisited when a workout stops being a flat
+  list.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
