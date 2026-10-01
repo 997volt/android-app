@@ -75,14 +75,19 @@ fun suggestProgression(
             reason = ProgressionReason.NO_HISTORY,
         )
 
-        // Assisted work inverts the direction: the machine doing less is the progress, so a
-        // reached ceiling comes off the assistance rather than going onto a bar.
-        target?.assistanceGrams != null || performed.assistanceGrams > 0L -> ProgressionSuggestion(
-            weightGrams = performed.weightGrams,
-            assistanceGrams = (performed.assistanceGrams - stepGrams).coerceAtLeast(0L),
-            reps = performed.reps,
-            reason = ProgressionReason.LESS_ASSISTANCE,
-        )
+        // The ceiling is tested *first*, which is what double progression means (ROADMAP B26).
+        // The assisted branch used to come before it, so an assisted lifter at the *bottom* of a
+        // range was told to take help off and keep the reps — "add a rep first" was unreachable
+        // for assisted work, contradicting the rule this file states.
+        ceiling != null && performed.reps >= ceiling && performed.assistanceGrams > 0L ->
+            ProgressionSuggestion(
+                weightGrams = performed.weightGrams,
+                // Assisted work inverts the load direction: the machine doing less is the
+                // progress, so a reached ceiling comes off the assistance, not onto a bar.
+                assistanceGrams = (performed.assistanceGrams - stepGrams).coerceAtLeast(0L),
+                reps = target?.minReps ?: performed.reps,
+                reason = ProgressionReason.LESS_ASSISTANCE,
+            )
 
         ceiling != null && performed.reps >= ceiling -> ProgressionSuggestion(
             weightGrams = performed.weightGrams + stepGrams,
@@ -95,7 +100,9 @@ fun suggestProgression(
 
         else -> ProgressionSuggestion(
             weightGrams = performed.weightGrams,
-            assistanceGrams = 0L,
+            // The assistance is carried, not dropped: below the ceiling this is a rep to add, and
+            // zeroing the help here would silently turn an assisted set into a bodyweight one.
+            assistanceGrams = performed.assistanceGrams,
             reps = performed.reps + 1,
             reason = ProgressionReason.MORE_REPS,
         )

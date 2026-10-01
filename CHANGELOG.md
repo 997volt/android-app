@@ -5,6 +5,16 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
+## [Unreleased]
+
+### Fixed
+- **Assisted work adds a rep before it takes help off.** The progression rule tested its assisted
+  branch before its rep ceiling, so an assisted lifter at the *bottom* of a 6–8 range was told to
+  reduce the machine's help and keep the reps — "add a rep first" was unreachable for assisted work,
+  contradicting the double-progression rule the file states in its own KDoc. The ceiling is tested
+  first now, and the rep to add carries the assistance rather than zeroing it, which would have
+  turned an assisted set into a bodyweight one.
+
 ## [1.6] — 2026-10-01 (versionCode 7)
 
 ### Changed

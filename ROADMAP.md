@@ -61,16 +61,9 @@ is decided but not scheduled — it only bites if you train across timezones.
 
 ### B26–B32 — the corrections the v1.5 review left
 
-Small, and three of them are this project's own rule not being the rule it runs. The first two
-were verified against the code rather than left as suspicions.
+The first two were verified against the code rather than left as suspicions. **B26 is fixed** and
+lives in [CHANGELOG.md](CHANGELOG.md).
 
-- **B26 — Assisted progression ignores the rep ceiling.**
-  [`suggestProgression`](app/src/main/java/com/example/androidapp/domain/model/ProgressionSuggestion.kt)
-  tests the assisted branch *before* the ceiling branch, so an assisted lifter at the **bottom**
-  of a 6–8 range is told to reduce assistance and keep the reps — "add a rep first" is
-  unreachable for assisted work, which contradicts the double-progression rule the file states in
-  its own KDoc. The one test sits at the ceiling, so it cannot tell the two rules apart.
-  **Fix:** order the branches by the rule, and add the test at the bottom of the range.
 - **B27 — Superset pairing is not atomic.** `onToggleSuperset` writes one row per id through
   `handle`, which records a failure and carries on, so a failure or a process death between
   writes leaves half a group — precisely the state the code's own comment says nobody asked for.

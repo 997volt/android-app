@@ -72,7 +72,10 @@ class ProgressionSuggestionTest {
 
         assertEquals("the machine does 2.5 kg less", 17_500L, suggestion.assistanceGrams)
         assertEquals(0L, suggestion.weightGrams)
-        assertEquals(8, suggestion.reps)
+        // Back to the bottom of the range, exactly as adding weight does: taking help off makes
+        // the set harder, and keeping the ceiling reps would be a jump rather than a step. This
+        // expectation used to read 8, which was the inconsistency B26 was about.
+        assertEquals(6, suggestion.reps)
         assertEquals(ProgressionReason.LESS_ASSISTANCE, suggestion.reason)
     }
 
@@ -134,5 +137,21 @@ class ProgressionSuggestionTest {
         assertEquals(80_000L, suggestion.weightGrams)
         assertEquals(7, suggestion.reps)
         assertTrue(suggestion.isUsable)
+    }
+
+    @Test
+    fun assistedWork_belowTheCeiling_addsARepBeforeTakingHelpOff() {
+        // ROADMAP B26: the assisted branch was tested before the ceiling, so an assisted lifter at
+        // the *bottom* of a 6–8 range was told to reduce assistance and keep the reps — "add a rep
+        // first" was unreachable for assisted work. The one test sat at the ceiling, so it could
+        // not tell the two rules apart; this one sits at the bottom.
+        val suggestion = suggestProgression(
+            lastTime = listOf(did(0L, 6, assistanceGrams = 20_000L)),
+            target = target(minReps = 6, maxReps = 8, assistanceGrams = 20_000L),
+        )
+
+        assertEquals("one more rep", 7, suggestion.reps)
+        assertEquals("with the same help", 20_000L, suggestion.assistanceGrams)
+        assertEquals(ProgressionReason.MORE_REPS, suggestion.reason)
     }
 }
