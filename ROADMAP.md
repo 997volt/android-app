@@ -1,4 +1,4 @@
-# Workout Tracker — Roadmap
+# Workout — Roadmap
 
 > **v1.6** is shipped and installed. Last reviewed against the code: 2026-10-01.
 >
@@ -7,8 +7,9 @@
 > [RELEASING.md](RELEASING.md); settled decisions and the rules that apply to every
 > change live in [DECISIONS.md](DECISIONS.md).
 
-**What this app is.** A local-only workout logger: start a workout, log sets, see
-your history, keep your data.
+**What this app is.** A local-only training notebook: write a plan, log what you actually
+did against it, and let the app show you the difference and what to do next. No account, no
+server, and nothing leaves the device unless you export it.
 
 **The scope rule.** If it does not help log a set faster or make the stored history
 more trustworthy, it does not belong here. Anything that ships data off the device,

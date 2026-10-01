@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "android-app"
+rootProject.name = "workout"
 include(":app")

@@ -73,7 +73,7 @@ history, because platform backup is off. If it differs, stop and work out why.
 ### 6. Tag the commit you built
 
 ```bash
-git tag -a v1.3 -m "Workout Log 1.3 (versionCode 4)
+git tag -a v1.3 -m "Workout 1.3 (versionCode 4)
 
 sha256  <from step 5>"
 git push origin main
@@ -87,18 +87,18 @@ valid.
 
 ### 7. Publish the release
 
-**Releases → Draft a new release** → pick the tag → title it `Workout Log 1.3` →
+**Releases → Draft a new release** → pick the tag → title it `Workout 1.3` →
 paste the notes → attach the APK → Publish.
 
 Make sure the attached file's name and `sha256` in the notes agree with step 5:
 
 ```
 **Version:** 1.3 (versionCode 4)
-**File:** workout-log-1.3.apk — <bytes> bytes
+**File:** workout-1.3.apk — <bytes> bytes
 **SHA-256:** <from step 5>
 **Requires:** Android 8.0+ (API 26)
 
-Install with `adb install -r workout-log-1.3.apk`, or copy it to the phone and tap
+Install with `adb install -r workout-1.3.apk`, or copy it to the phone and tap
 it. Signed with the same key as previous releases, so it upgrades in place — do not
 uninstall first, which would delete the history.
 ```

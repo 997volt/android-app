@@ -1,6 +1,7 @@
-# android-app
+# Workout
 
-An Android application written in Kotlin, using Jetpack Compose (Material 3).
+A local-only workout planner and logger for Android, written in Kotlin with Jetpack
+Compose (Material 3).
 
 ## Project docs
 

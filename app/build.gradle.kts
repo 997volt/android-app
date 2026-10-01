@@ -62,7 +62,7 @@ android {
         // The permanent install identity (ROADMAP F14).
         //
         // `io.github.997volt` was the natural choice — this project publishes from
-        // github.com/997volt — but a Java package segment may not begin with a
+        // github.com/997volt/workout — but a Java package segment may not begin with a
         // digit, so AAPT rejects it outright. Hence `volt997`: the same handle with
         // the digits moved so the segment is a legal identifier.
         //

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Workout Log</string>
+    <string name="app_name">Workout</string>
     <string name="nav_back">Back</string>
     <!-- Exercise library -->
     <string name="exercise_library_title">Exercise library</string>
