@@ -5,7 +5,7 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [Unreleased]
+## [1.6] — 2026-10-01 (versionCode 7)
 
 ### Changed
 - **The two reads and writes that only ever met fakes now meet a database.** `personalRecords` and
