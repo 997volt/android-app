@@ -161,6 +161,17 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+- **Editing a logged set no longer wipes its role or its assistance.** The set editor was never
+  told either, so it opened every set as a plain working set with no help — and saving wrote that
+  over the row. A one-rep correction on a `-20 kg` assisted warm-up silently destroyed both, and
+  in history the role was not even modelled, which made it unrecoverable. History now records the
+  role, both screens open the editor on what was stored, and a screen-level test holds it.
+- **A superset rests for the group's longest member.** The settled rule is that a round is paced
+  by its slowest member; the app instead rested from whichever exercise happened to log the
+  closing set, so a pair where one prescribed 180 s and the other 90 s rested 90 s whenever the
+  latter closed the round — the group's own rest was never consulted. The same pair rested
+  differently depending on the order it was logged in.
+
 - **Tapping a lift in a past workout showed no trends for it.** The history screen passed
   the session's own row id to the trends screen, where a series exists only under the
   *library* exercise's id — a query that silently matches nothing, so the screen said

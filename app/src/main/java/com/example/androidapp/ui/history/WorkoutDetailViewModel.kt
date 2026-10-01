@@ -32,6 +32,13 @@ data class HistorySet(
     val note: String? = null,
     /** The machine's assistance, 0 for none (ROADMAP N15). */
     val assistanceGrams: Long = 0,
+    /**
+     * The role it was performed as (ROADMAP N14).
+     *
+     * Modelled here since B14: the history editor could show a role and save it — it simply
+     * never knew one, so editing a warm-up turned it into a working set.
+     */
+    val setType: SetType = SetType.NORMAL,
 )
 
 /** An exercise within a past workout, with everything that was logged for it. */
@@ -134,6 +141,7 @@ class WorkoutDetailViewModel @Inject constructor(
                                     // Every column the row has, or the screen silently
                                     // renders a default (ROADMAP B5, N15).
                                     assistanceGrams = it.assistanceGrams,
+                                    setType = it.setType,
                                 )
                             },
                     )

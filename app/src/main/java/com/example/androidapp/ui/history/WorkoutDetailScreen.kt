@@ -128,25 +128,7 @@ fun WorkoutDetailScreen(
     }
 
     editing?.let { set ->
-        SetEditorDialog(
-            initialReps = set.reps,
-            initialWeightGrams = set.weightGrams,
-            initialRpe = set.rpeHalves,
-            initialNote = set.note,
-            onDismiss = { editing = null },
-            onSave = { edit ->
-                onUpdateSet(
-                    set.id,
-                    edit.reps,
-                    edit.weightGrams,
-                    edit.rpeHalves,
-                    edit.note,
-                    edit.setType,
-                    edit.assistanceGrams,
-                )
-                editing = null
-            },
-        )
+        EditSetDialog(set = set, onDismiss = { editing = null }, onUpdateSet = onUpdateSet)
     }
 
     if (confirmingDelete) {
@@ -457,4 +439,40 @@ private fun WorkoutDetailScreenPreview() {
             onBack = {},
         )
     }
+}
+
+/**
+ * The editor for one logged set (ROADMAP N6), and the reason it is its own composable: the
+ * screen around it is at the length this project allows, and the parameters it must be given
+ * are the ones B14 showed matter — the stored role and assistance among them.
+ */
+@Composable
+private fun EditSetDialog(
+    set: HistorySet,
+    onDismiss: () -> Unit,
+    onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SetEditorDialog(
+        modifier = modifier,
+        initialReps = set.reps,
+        initialWeightGrams = set.weightGrams,
+        initialRpe = set.rpeHalves,
+        initialNote = set.note,
+        initialSetType = set.setType,
+        initialAssistanceGrams = set.assistanceGrams,
+        onDismiss = onDismiss,
+        onSave = { edit ->
+            onUpdateSet(
+                set.id,
+                edit.reps,
+                edit.weightGrams,
+                edit.rpeHalves,
+                edit.note,
+                edit.setType,
+                edit.assistanceGrams,
+            )
+            onDismiss()
+        },
+    )
 }

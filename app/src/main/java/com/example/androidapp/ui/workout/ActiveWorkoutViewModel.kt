@@ -545,10 +545,16 @@ class ActiveWorkoutViewModel @Inject constructor(
                 // it waits until nothing else in the group is behind. Resting here would
                 // defeat the pairing the user just asked for.
                 if (uiState.value.roundIsCompleteFor(row)) {
-                    // The exercise's own rest when it has one, otherwise the app default
-                    // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
-                    // The exercise's own rest wins; otherwise the app-wide setting (N5, N21).
-                    startRest(row.restSeconds ?: defaultRestSeconds.value)
+                    // The group's own rest wins in a superset, then this exercise's, then the
+                    // app setting (ROADMAP N5, N21, B15). Taking the rest from whichever member
+                    // happened to close the round made the wait depend on the order the user
+                    // logged in — the same round resting differently every time round — and the
+                    // settled rule is the group's longest, so the pair is paced by its slowest
+                    // member.
+                    val rest = uiState.value.longestRestInRound(row)
+                        ?: row.restSeconds
+                        ?: defaultRestSeconds.value
+                    startRest(rest)
                 }
             }
         }
@@ -1028,4 +1034,18 @@ private fun supersetLabelsFor(exercises: List<SessionExercise>): Map<String, Str
         val member = exercises.filter { it.supersetGroup == group }.indexOfFirst { it.id == exercise.id } + 1
         exercise.id to "$letter$member"
     }.toMap()
+}
+
+/**
+ * The longest rest any member of this exercise's group prescribes, or null (ROADMAP B15).
+ *
+ * Null for an ungrouped exercise, and null for a group where nobody prescribes one, so the
+ * caller falls back to the exercise's own rest and then to the app-wide setting.
+ */
+private fun ActiveWorkoutUiState.longestRestInRound(row: SessionExerciseRow): Int? {
+    val group = row.supersetGroup ?: return null
+    return exercises
+        .filter { it.supersetGroup == group }
+        .mapNotNull { it.restSeconds }
+        .maxOrNull()
 }

@@ -66,27 +66,11 @@ what is left of Tier 3.
 ### The v1.5 review — B14–B25
 
 Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
-admits. Ordered by what it costs the user: two of these lose data or contradict a settled
-decision, several are a contract that is documented and not implemented, and the rest are gaps.
-**B14 and B15 are the ones I would fix before anything else in this file.**
+admits. Ordered by what it costs the user. **B14 and B15 are fixed** and live in
+[CHANGELOG.md](CHANGELOG.md): they were the two that lost data or contradicted a settled
+decision. Several of what remain are a contract that is documented and not implemented, and the
+rest are gaps.
 
-- **B14 — Editing a logged set silently wipes its role and its assistance.** `SetEditorDialog`
-  takes `initialSetType` and `initialAssistanceGrams`, both defaulted
-  (`SetEditorDialog.kt:62-63`), and **both call sites omit them** — the live workout
-  (`ActiveWorkoutScreen.kt:236`) and history detail (`WorkoutDetailScreen.kt:131`). So the draft
-  is built from `Weight.display(weightGrams, 0)`, a `-20 kg` assisted set opens reading `0`, and
-  saving writes `assistanceGrams = 0` and `setType = NORMAL` over the stored row. **A one-rep
-  correction silently destroys the assistance and the role**, and in history the role is not even
-  modelled, so it is unrecoverable. It also undercuts N19: the role picker was lifted to the
-  log button, and the editor — the other place a role is chosen — forgets the stored one. The
-  existing tests pass these parameters directly (`SetEditorDialogTest.kt:123,211`), so no test
-  sees it; the fix needs a screen-level assertion that a saved edit *preserves* both fields.
-- **B15 — A superset rests for the wrong member, against [DECISIONS.md](DECISIONS.md).** The
-  settled rule is "the rest is the group's longest member, or the app default when none
-  prescribes one". `ActiveWorkoutViewModel.kt:551` instead starts the rest from
-  `row.restSeconds` — the exercise that happened to log the closing set. A pair where A
-  prescribes 180 s and B 90 s rests 90 s whenever B closes the round, so the group's own rest is
-  never consulted; `roundIsCompleteFor` (`:1002`) does not aggregate it either.
 - **B16 — N24 shipped one column where its own decision says two, and the second is missing.**
   The decision reads "a migration 15→16 adding the two nullable columns… the model is a
   `supersetGroup` ordinal on `session_exercises` **and** `template_exercises` — in the plan that

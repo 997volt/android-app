@@ -447,4 +447,35 @@ class ActiveWorkoutScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.PERSONAL_RECORD).assertDoesNotExist()
     }
+
+    @Test
+    fun editingALoggedSet_opensOnWhatWasStored() {
+        // ROADMAP B14: the editor was never told the role or the assistance, so it opened on a
+        // plain working set with no help — and saving wrote that over the stored row. A one-rep
+        // correction silently destroyed both, which is what this assertion exists to prevent.
+        val base = state(isFinished = false)
+        setScreen(
+            state = base.copy(
+                exercises = base.exercises.map { row ->
+                    row.copy(
+                        sets = listOf(
+                            SetRow(
+                                id = "set1",
+                                number = 1,
+                                reps = 8,
+                                weightGrams = 0L,
+                                setType = SetType.WARMUP,
+                                assistanceGrams = 20_000L,
+                            ),
+                        ),
+                    )
+                },
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.SET_ROW).performClick()
+
+        composeTestRule.onNodeWithText("Role: Warm-up").assertExists()
+        composeTestRule.onNodeWithText("-20").assertExists()
+    }
 }

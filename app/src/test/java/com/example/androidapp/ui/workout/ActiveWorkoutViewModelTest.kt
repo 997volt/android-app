@@ -1652,6 +1652,34 @@ class ActiveWorkoutViewModelTest {
         assertNotNull(repository.lastRestSeconds)
     }
 
+
+    @Test
+    fun aSuperset_restsForItsLongestMember() = runTest(dispatcher) {
+        // ROADMAP B15, against DECISIONS.md: the rest is the group's, not the member that
+        // happened to close the round. Taking it from the closer meant the same pair rested 90
+        // or 180 depending on which exercise the user logged last.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        repository.restSecondsForNextExercise = 180
+        viewModel.onAddExercise("back-squat")
+        settle()
+        repository.restSecondsForNextExercise = 90
+        viewModel.onAddExercise("bench-press")
+        settle()
+        viewModel.onToggleSuperset(viewModel.uiState.value.exercises.last().id)
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.first().id)
+        settle()
+
+        // The 90-second member closes the round, and the group still rests for 180.
+        repository.lastRestSeconds = null
+        viewModel.onLogSet(viewModel.uiState.value.exercises.last().id)
+        settle()
+
+        assertEquals(180, repository.lastRestSeconds)
+    }
 }
 
 /**
