@@ -5,7 +5,7 @@ Notable changes to Workout Log, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [1.5] — 2026-09-30 (versionCode 6)
+## [Unreleased]
 
 ### Added
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
@@ -17,7 +17,6 @@ Notable changes to Workout Log, newest first. Format follows
 - **Records are only correct now.** Warm-up sets became excludable with N14's roles, so a
   120 kg warm-up can no longer be mistaken for the work — which is why this could not have
   been built honestly before.
-
 - **The app stops handing back the same number.** Until now a new session prefilled exactly
   what was lifted last time, which made a written plan and a year of history worth nothing at
   the moment they should count. The prefill now proposes the next step by **double
@@ -30,7 +29,6 @@ Notable changes to Workout Log, newest first. Format follows
   plan there is no ceiling**, so it proposes one more rep and stops rather than inventing a
   weight. On assisted work the direction inverts — the machine doing less is the progress —
   and warm-up sets are excluded, as they are everywhere a target is measured.
-
 - **A settings screen, and the default rest is finally editable.** There was no settings
   screen at all, and the app-wide rest between sets was a hardcoded 90 seconds that nothing
   could change: every workout that had no rest of its own was stuck with it. Settings now
@@ -38,7 +36,6 @@ Notable changes to Workout Log, newest first. Format follows
   from the library or the template still wins, and a change made in settings reaches a
   workout that is already open. The screen is deliberately small; it is the home that the
   units, screen-on and rest-sound rows have been waiting for.
-
 - **A review when a workout finishes, with plan versus actual.** Finish used to be a dead
   end: the ratings the user had just given, the readiness note and the totals went nowhere.
   The workout now ends with a summary — sets, reps and volume, the notes, and each
@@ -49,13 +46,11 @@ Notable changes to Workout Log, newest first. Format follows
 - **The review says what was not done.** A prescribed exercise that was skipped is a fact
   about the session, and an exercise added mid-workout is labelled as not in the plan — a
   review that lists only what was done is a compliment, not a record.
-
 - **Choosing a set's role where the set is logged.** The role picker existed but sat behind
   the editor, so three warm-ups cost three log-then-edit round trips. It is now beside
   **Log set**: pick the role, tap, done — one tap each way. The choice clears itself once
   the set is written, because a role is a decision about one set and leaving it armed would
   mark the next one a warm-up without anyone asking.
-
 - **Start over, with a way out first.** The app had no way to let go of its data: deletes
   are soft, an import can only add, and the only true wipe was `adb shell pm clear`, which
   is not a phone feature. **Delete everything** now lives with export and import in the
@@ -73,6 +68,9 @@ Notable changes to Workout Log, newest first. Format follows
   seeder runs when the database is *opened* — a clear that only emptied tables would have
   left an empty library until the process restarted, which looks broken rather than clean.
 
+## [1.5] — 2026-09-30 (versionCode 6)
+
+### Added
 - **Trends for one exercise.** N13 reads the app's signals across everything; this
   answers the narrower question a lifter actually asks — *how is my bench press going* —
   from rows the app already writes. Over the last ten finished sessions that recorded the
