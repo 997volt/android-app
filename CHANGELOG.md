@@ -8,6 +8,14 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **A settings screen, and the default rest is finally editable.** There was no settings
+  screen at all, and the app-wide rest between sets was a hardcoded 90 seconds that nothing
+  could change: every workout that had no rest of its own was stuck with it. Settings now
+  holds a **Default rest**, chosen from a bounded set of options — an exercise's own rest
+  from the library or the template still wins, and a change made in settings reaches a
+  workout that is already open. The screen is deliberately small; it is the home that the
+  units, screen-on and rest-sound rows have been waiting for.
+
 - **A review when a workout finishes, with plan versus actual.** Finish used to be a dead
   end: the ratings the user had just given, the readiness note and the totals went nowhere.
   The workout now ends with a summary — sets, reps and volume, the notes, and each

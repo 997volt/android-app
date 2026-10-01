@@ -316,6 +316,13 @@
     <string name="summary_over">%1$s kg over plan</string>
     <string name="summary_under">%1$s kg under plan</string>
     <string name="summary_done">Done</string>
+    <!-- The app's settings (ROADMAP N21). -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_rest_title">Default rest</string>
+    <string name="settings_rest_current">Now: %1$s</string>
+    <string name="settings_rest_explainer">Used when an exercise has no rest of its own. An exercise set in the template or the library always wins.</string>
+    <string name="settings_menu">Settings…</string>
     <string name="transfer_export">Export data</string>
     <string name="transfer_import">Import data</string>
     <string name="transfer_exported">Backup written.</string>

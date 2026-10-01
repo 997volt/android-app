@@ -64,14 +64,7 @@ what already exists, then the differentiator, then polish.
 
 ### The plan, in tiers
 
-**Tier 1 — close the loop on what already shipped.** Small, and every one of them is
-friction the app created by growing.
-
-- **N21 — A settings screen.** There is none: no route, no files. Meanwhile the app-wide
-  default rest is a hardcoded `RestTimer.DEFAULT_SECONDS = 90` with no way to change it,
-  and three *Later* rows — P1.9 units, P1.10 screen-on, P1.14 rest sound — have nowhere to
-  live. This is a prerequisite wearing a feature's clothes: it unblocks three rows and
-  makes the default rest editable.
+**Tier 1 — close the loop on what already shipped.** *Shipped: N19, N20, N21.*
 
 **Tier 2 — the differentiator the data now supports.**
 

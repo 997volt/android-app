@@ -21,6 +21,10 @@ object TestTags {
 
     fun setRole(role: String) = "set_role_$role"
 
+    /** The control that arms the next log, or — with a role — one of its options (N19). */
+    fun exercisePendingRole(id: String, role: String? = null) =
+        if (role == null) "exercise_pending_role_$id" else "exercise_pending_role_${id}_$role"
+
     const val SET_SAVE = "set_save"
     const val SET_CANCEL = "set_cancel"
     const val SET_INCREASE_WEIGHT = "set_increase_weight"
@@ -169,9 +173,8 @@ object TestTags {
 
     fun templateExerciseRow(id: String) = "template_exercise_$id"
 
-    fun templateMoveUp(id: String) = "template_move_up_$id"
-
-    fun templateMoveDown(id: String) = "template_move_down_$id"
+    /** Reordering a template's exercises: one helper, because up and down are one idea. */
+    fun templateMove(id: String, up: Boolean) = "template_move_${if (up) "up" else "down"}_$id"
 
     fun templateRemove(id: String) = "template_remove_$id"
 
@@ -206,6 +209,13 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
+    const val SETTINGS_SCREEN = "settings_screen"
+    const val SETTINGS_REST_CURRENT = "settings_rest_current"
+    const val HOME_SETTINGS = "home_settings"
+
+    fun settingRest(seconds: Int) = "setting_rest_$seconds"
+
     /** The review a finished workout gets (ROADMAP N20). */
     const val SUMMARY_DIALOG = "summary_dialog"
     const val SUMMARY_DONE = "summary_done"
@@ -214,10 +224,6 @@ object TestTags {
     const val SET_LOG = "set_log"
 
     /** The role armed for the next one-tap log (ROADMAP N19). */
-    /** The control that arms the next log, or — with a role — one of its options. */
-    fun exercisePendingRole(id: String, role: String? = null) =
-        if (role == null) "exercise_pending_role_$id" else "exercise_pending_role_${id}_$role"
-
     /** Starting over (ROADMAP N18): the menu entry, the field and the confirm button. */
     const val HOME_CLEAR_DATA = "home_clear_data"
     const val CLEAR_CONFIRM_FIELD = "clear_confirm_field"

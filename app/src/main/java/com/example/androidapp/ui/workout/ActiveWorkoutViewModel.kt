@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import com.example.androidapp.domain.model.comparePlanToActual
@@ -169,6 +170,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val restNotifier: RestNotifier,
     private val templateRepository: TemplateRepository,
     savedStateHandle: SavedStateHandle,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     /**
@@ -202,6 +204,15 @@ class ActiveWorkoutViewModel @Inject constructor(
      * built from state this screen already holds, so it costs no reads and needs no schema
      * — but it also means it is a *moment*, not something to come back to.
      */
+    /**
+     * The app-wide default rest, kept current while the screen is open (ROADMAP N21).
+     *
+     * Collected rather than read once: a change made in settings must reach a workout that
+     * is already running, which is the reason the store exposes a `Flow` at all.
+     */
+    private val defaultRestSeconds = settingsRepository.observeDefaultRestSeconds()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, RestTimer.DEFAULT_SECONDS)
+
     private val _summary = MutableStateFlow<WorkoutSummary?>(null)
     val summary: StateFlow<WorkoutSummary?> = _summary.asStateFlow()
 
@@ -472,7 +483,8 @@ class ActiveWorkoutViewModel @Inject constructor(
             if (result is DataResult.Success) {
                 // The exercise's own rest when it has one, otherwise the app default
                 // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
-                startRest(row.restSeconds ?: RestTimer.DEFAULT_SECONDS)
+                // The exercise's own rest wins; otherwise the app-wide setting (N5, N21).
+                startRest(row.restSeconds ?: defaultRestSeconds.value)
             }
         }
     }

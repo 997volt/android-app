@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.navigation
 
+import com.example.androidapp.ui.settings.SettingsRoute
 import com.example.androidapp.ui.trends.ExerciseTrendsRoute
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -63,6 +64,7 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             onOpenLibrary = { navController.navigate(ExerciseLibrary) },
             onOpenTemplates = { navController.navigate(WorkoutTemplates) },
             onOpenTrends = { navController.navigate(WorkoutTrends) },
+            onOpenSettings = { navController.navigate(Settings) },
         )
     }
 

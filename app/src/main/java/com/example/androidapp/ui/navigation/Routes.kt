@@ -27,6 +27,9 @@ data class ExerciseDetail(val exerciseId: String)
 @Serializable
 data class ExerciseTrends(val exerciseId: String)
 
+/** The app's settings (ROADMAP N21). */
+data object Settings
+
 /**
  * The in-progress workout (ROADMAP P1.2).
  *

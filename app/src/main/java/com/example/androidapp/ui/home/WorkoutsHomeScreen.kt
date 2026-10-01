@@ -80,6 +80,7 @@ fun WorkoutsHomeRoute(
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
+    onOpenSettings: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Not unwrapped with `by`: reading it here would rebuild the list every second.
@@ -117,6 +118,7 @@ fun WorkoutsHomeRoute(
         onOpenLibrary = onOpenLibrary,
         onOpenTemplates = onOpenTemplates,
         onOpenTrends = onOpenTrends,
+        onOpenSettings = onOpenSettings,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         onClearData = {
@@ -145,6 +147,7 @@ fun WorkoutsHomeScreen(
     onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenTrends: () -> Unit = {},
+    onOpenSettings: (() -> Unit)? = null,
     onStartFromTemplate: () -> Unit = {},
     onStartTemplate: (String) -> Unit = {},
     onExportData: (() -> Unit)? = null,
@@ -173,6 +176,7 @@ fun WorkoutsHomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeTopBar(
+                onOpenSettings = onOpenSettings,
                 onOpenLibrary = onOpenLibrary,
                 onOpenHistory = onOpenHistory,
                 onOpenTemplates = onOpenTemplates,
@@ -489,6 +493,7 @@ private fun HomeTopBar(
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -516,6 +521,7 @@ private fun HomeTopBar(
                     onOpenHistory = onOpenHistory,
                     onOpenTemplates = onOpenTemplates,
                     onOpenTrends = onOpenTrends,
+                    onOpenSettings = onOpenSettings,
                     onExport = onExport,
                     onImport = onImport,
                     onClear = onClear,
@@ -592,6 +598,7 @@ private fun HomeMenuItems(
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     onDismiss: () -> Unit,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     Column {
         DropdownMenuItem(
@@ -624,6 +631,16 @@ private fun HomeMenuItems(
             },
             modifier = Modifier.testTag(TestTags.HOME_TRENDS),
         )
+        if (onOpenSettings != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.settings_menu)) },
+                onClick = {
+                    onDismiss()
+                    onOpenSettings()
+                },
+                modifier = Modifier.testTag(TestTags.HOME_SETTINGS),
+            )
+        }
         // Export and import, moved down from the library (ROADMAP B1).
         if (onExport != null && onImport != null) {
             DataActions(

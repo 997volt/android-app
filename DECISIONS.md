@@ -133,6 +133,17 @@ into this file once the feature ships.
   The cost is real and accepted: the review is not revisitable from history. If that becomes
   wanted, the honest fix is to store the plan with the session, not to re-derive it.
 
+- **Settings live in `SharedPreferences`, not DataStore** (N21). What is stored is a handful
+  of integers and booleans owned by one process, which is the case `SharedPreferences` is
+  still the right tool for — and DataStore would be a new dependency for it. The move is
+  warranted the moment settings need a collection, a schema or a migration; until then this
+  is one file, one key and no ceremony. Writes are **committed**, not applied, because the
+  screen reports a real result: a fire-and-forget write would let it say "saved" about
+  something that never reached disk.
+- **The default rest is a bounded choice, not a number field** (N21). The value becomes an
+  alarm, so a typed zero would fire instantly and a typed negative would not be a setting at
+  all; the repository refuses anything outside 5–3600 seconds as `DataError.Invalid`.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

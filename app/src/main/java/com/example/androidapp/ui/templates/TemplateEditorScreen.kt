@@ -526,7 +526,7 @@ private fun TemplateExerciseRow(
                 IconButton(
                     onClick = onMoveUp,
                     enabled = !isFirst,
-                    modifier = Modifier.testTag(TestTags.templateMoveUp(exercise.id)),
+                    modifier = Modifier.testTag(TestTags.templateMove(exercise.id, up = true)),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowUp,
@@ -539,7 +539,7 @@ private fun TemplateExerciseRow(
                 IconButton(
                     onClick = onMoveDown,
                     enabled = !isLast,
-                    modifier = Modifier.testTag(TestTags.templateMoveDown(exercise.id)),
+                    modifier = Modifier.testTag(TestTags.templateMove(exercise.id, up = false)),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,

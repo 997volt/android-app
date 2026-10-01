@@ -96,7 +96,7 @@ class TemplateEditorScreenTest {
         var moved: Pair<String, Int>? = null
         setScreen(actions = Actions(onMoveExercise = { id, delta -> moved = id to delta }))
 
-        composeTestRule.onNodeWithTag(TestTags.templateMoveDown("te1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.templateMove("te1", up = false)).performClick()
 
         assertEquals("te1" to 1, moved)
     }
@@ -107,8 +107,8 @@ class TemplateEditorScreenTest {
         setScreen(actions = Actions(onMoveExercise = { id, delta -> moved = id to delta }))
 
         composeTestRule.onNodeWithTag(TestTags.TEMPLATE_EXERCISE_LIST)
-            .performScrollToNode(hasTestTag(TestTags.templateMoveUp("te2")))
-        composeTestRule.onNodeWithTag(TestTags.templateMoveUp("te2")).performClick()
+            .performScrollToNode(hasTestTag(TestTags.templateMove("te2", up = true)))
+        composeTestRule.onNodeWithTag(TestTags.templateMove("te2", up = true)).performClick()
 
         assertEquals("te2" to -1, moved)
     }
@@ -118,10 +118,10 @@ class TemplateEditorScreenTest {
         setScreen()
 
         // There is nowhere for the first exercise to go up, or the last to go down.
-        composeTestRule.onNodeWithTag(TestTags.templateMoveUp("te1")).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(TestTags.templateMove("te1", up = true)).assertIsNotEnabled()
         composeTestRule.onNodeWithTag(TestTags.TEMPLATE_EXERCISE_LIST)
-            .performScrollToNode(hasTestTag(TestTags.templateMoveDown("te2")))
-        composeTestRule.onNodeWithTag(TestTags.templateMoveDown("te2")).assertIsNotEnabled()
+            .performScrollToNode(hasTestTag(TestTags.templateMove("te2", up = false)))
+        composeTestRule.onNodeWithTag(TestTags.templateMove("te2", up = false)).assertIsNotEnabled()
     }
 
     @Test

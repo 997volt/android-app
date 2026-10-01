@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.workout
 
+import kotlinx.coroutines.flow.asStateFlow
+import com.example.androidapp.domain.repository.SettingsRepository
 import java.time.DayOfWeek
 import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.repository.TemplateRepository
@@ -106,12 +108,14 @@ class ActiveWorkoutViewModelTest {
         notifier: FakeRestNotifier = FakeRestNotifier(),
         templateId: String? = null,
         templates: FakeTemplateRepository = FakeTemplateRepository(),
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
     ) = ActiveWorkoutViewModel(
         repository,
         clock,
         notifier,
         templates,
         activeWorkoutRoute(templateId),
+        settings,
     )
 
     @Test
@@ -948,6 +952,7 @@ class ActiveWorkoutViewModelTest {
             FakeRestNotifier(),
             FakeTemplateRepository(),
             activeWorkoutRoute(),
+            FakeSettingsRepository(),
         )
 
         val states = mutableListOf<ActiveWorkoutUiState>()
@@ -1427,4 +1432,81 @@ class ActiveWorkoutViewModelTest {
             summary.comparisons.single().performedSets,
         )
     }
+    @Test
+    fun anExerciseWithoutARest_usesTheConfiguredDefault() = runTest(dispatcher) {
+        // ROADMAP N21: the default was a hardcoded 90 seconds with no way to change it, so
+        // the setting has to reach a workout that is already open.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository, settings = FakeSettingsRepository(initialRestSeconds = 45))
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        assertEquals("the configured default, not the constant", 45, repository.lastRestSeconds)
+    }
+
+    @Test
+    fun anExerciseWithItsOwnRest_stillWins() = runTest(dispatcher) {
+        // N5's rule is unchanged by N21: a rest the exercise prescribes is not overridden by
+        // the app-wide preference.
+        val repository = FakeWorkoutRepository().apply { restSecondsForNextExercise = 180 }
+        val viewModel = viewModelFor(repository, settings = FakeSettingsRepository(initialRestSeconds = 45))
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        assertEquals(180, repository.lastRestSeconds)
+    }
+
+    @Test
+    fun aDefaultChangedMidWorkout_isPickedUp() = runTest(dispatcher) {
+        // The store is a Flow for exactly this reason: the user can change it in settings and
+        // come back to a workout that is still open.
+        val repository = FakeWorkoutRepository()
+        val settings = FakeSettingsRepository(initialRestSeconds = 90)
+        val viewModel = viewModelFor(repository, settings = settings)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        settings.setDefaultRestSeconds(30)
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        assertEquals(30, repository.lastRestSeconds)
+    }
+}
+
+/**
+ * The settings store, hand-written like the others (there is no mocking framework here).
+ *
+ * It holds one value and hands it out as a `Flow`, which is what the ViewModel reads — so a
+ * test can change the default rest *while a workout is open* and see it take effect.
+ */
+private class FakeSettingsRepository(
+    initialRestSeconds: Int = RestTimer.DEFAULT_SECONDS,
+) : SettingsRepository {
+
+    private val rest = MutableStateFlow(initialRestSeconds)
+
+    override fun observeDefaultRestSeconds(): Flow<Int> = rest.asStateFlow()
+
+    override suspend fun setDefaultRestSeconds(seconds: Int): DataResult<Unit> {
+        if (seconds !in SettingsRepository.VALID_REST_SECONDS) {
+            return DataResult.Failure(DataError.Invalid("out of range"))
+        }
+        rest.value = seconds
+        return DataResult.Success(Unit)
+    }
+
 }
