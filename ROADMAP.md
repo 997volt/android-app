@@ -31,10 +31,31 @@ shipped and left the file.
   JVM under Robolectric rather than on a device.
 ## Next
 
-**Nothing is marked for work.** The v1.5 review's corrections (B26–B32) and the round that removed the
-background rest alert and replaced it with in-app cues (N26, N27) and the warm-up generator (N28) all
-shipped; what they did is in [CHANGELOG.md](CHANGELOG.md). The next round is a choice rather than a
-queue: everything remaining is in *Later*, below.
+**One thing is marked for work — N29, repeating the last workout in one tap.** Everything else from
+the v1.5 review and the round after it (B26–B32, N26, N27, N28) shipped, and what they did is in
+[CHANGELOG.md](CHANGELOG.md). Past N29 the next round is a choice rather than a queue: the rest is in
+*Later*, below.
+
+### N29 — Repeat the last workout in one tap
+
+Was **P1.15**. Templates cover the planned session; this covers the unplanned one — "same as last
+time" is the most common thing a lifter does, and today it costs picking six exercises out of the
+library again.
+
+- **Where:** home's start action, which already offers *Start workout* and *Start from template*.
+  *Repeat last workout* joins them, offered only when a finished session exists to repeat.
+- **What it copies: the exercises and their order, nothing else.** Not last session's weights as
+  targets — progression (N22) and the "last time" prefill already answer that, and freezing a
+  week's numbers as a plan would put the two in conflict. Recorded because copying the load is the
+  obvious wrong turn.
+- **It reuses the append path** the picker and templates use, so a repeated exercise is the same
+  row a manual add would have produced rather than a second kind of row.
+- **A resumed session wins.** When a workout is already open, home shows *Resume* and the repeat
+  action is not offered: the atomic find-or-create would protect it anyway, but the UI should not
+  present a choice that does nothing.
+- **Edge cases the tests should hold:** with no finished session the action is absent; an exercise
+  since soft-deleted is skipped while the rest repeat; and the same exercise twice in the old
+  workout repeats twice, because that is what was performed.
 
 ### N25 — A session remembers the timezone it was performed in
 
@@ -63,9 +84,6 @@ This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#
 a spelled-out decision — when it is picked up, and leaves for
 [CHANGELOG.md](CHANGELOG.md) when it ships.
 
-**Everyday logging**
-- **P1.15** Repeat last workout in one tap.
-
 **Insight** — why the app gets opened between workouts
 - **P2.4** Body measurements.
 
@@ -74,10 +92,6 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
   the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
   **N20**.
-
-**Small and self-contained**
-- **P2.6** Plate calculator — unparked, because its trigger has fired: plans carry target
-  weights now, and that is when the arithmetic stops being worth doing in your head.
 
 Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
 as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
@@ -116,6 +130,7 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | P1.17 | Accessibility audit | The per-screen rule stops being enough — a real complaint on a device, or a screen that grew past ad-hoc tagging. The rule itself still applies to every change; only the sweep is parked. |
 | P2.5 | Progress photos | A visual record is actually wanted, and an encrypted-storage design for it is acceptable. |
 | P2.8 | Muscle-group balance warnings | Enough history exists for a rolling window to say something true rather than something plausible. |
+| P2.6 | Plate calculator | Loading from a plan's target is frequent enough that the arithmetic gets in the way, and you would rather it were done for you. |
 | — | **Play Store listing** | You want distribution beyond `adb install`. Self-install works today, and Play App Signing would change who holds the signing key. |
 | — | **Encryption at rest / app lock** | You start carrying the phone somewhere you would not carry the data. |
 | F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
