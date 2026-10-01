@@ -33,6 +33,14 @@ Notable changes to Workout, newest first. Format follows
 
 ### Changed
 
+- **A workout remembers the timezone it was performed in.** Timestamps were always UTC, and every
+  screen formatted them in the zone you are reading in — so a session logged in Tokyo showed the wrong
+  hour, and after a late flight the wrong day, the moment you landed. The offset is now captured once,
+  when the session opens, and every screen that shows a session's time uses it: history groups a
+  workout under the month *it* was performed in, not the month it is where you are, and the workout
+  detail and the finish review read it too. Sessions recorded before this show what they always did —
+  the current zone — because the data to say where they happened was never captured, and inventing one
+  would be a lie the rows cannot support.
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
   which is also the name of the history row in the domain — two types, one name, and the reader left
   to guess which. The review payload is `WorkoutReview` now, and the dialog that draws it is named

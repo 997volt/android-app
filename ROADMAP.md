@@ -61,9 +61,9 @@ library again.
 
 **In progress.** The offset is stored on the session, captured once when it opens, and carried in the
 backup file. History already reads it: a workout is grouped under the month *it* was performed in.
-Still to do: the workout detail, the trends window and the finish review — each already takes the zone
-it formats with, so this is passing the session's own rather than the default — plus a seeded migration
-test for 16→17.
+Read by history (grouping and the row date), the workout detail and the finish review. The trends
+window turned out to need nothing: it buckets by instant and never formats a session's own time.
+Still to do: a seeded migration test for 16→17.
 
 **The backfill is deliberately null.** A session performed before the column existed cannot be given
 an offset after the fact, so those keep showing the current zone: the same thing they always showed.
