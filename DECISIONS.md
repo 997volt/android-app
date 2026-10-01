@@ -199,6 +199,17 @@ into this file once the feature ships.
   `restEndsAt`, because a rest countdown is device-and-moment state rather than training
   history — and that line now says so, since the guard could not tell it apart from a mistake.
 
+- **A migration is amended only while its version has never shipped — and the cost is real**
+  (B16). `MIGRATION_15_16` gained a second column for the plan side (`template_exercises.supersetGroup`)
+  after N24 had already run the first version on development devices. That is legal only because
+  nothing has ever been released with schema 16, and it is not free: **Room refuses to open a
+  database whose stored identity hash does not match**, so any device that ran the earlier 15→16
+  fails with *"Room cannot verify the data integrity… you have changed schema but forgot to update
+  the version number"* until its app data is cleared. Confirmed on the emulator rather than
+  assumed. The rule that follows: amending is for a version no user has, and a device that already
+  ran it must be wiped — the alternative, a 16→17 migration, is correct but adds a version step to
+  prove for data that only exists on developer machines.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
