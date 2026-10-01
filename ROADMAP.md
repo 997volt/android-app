@@ -66,11 +66,8 @@ what already exists, then the differentiator, then polish.
 
 **Tier 1 — close the loop on what already shipped.** *Shipped: N19, N20, N21.*
 
-**Tier 2 — the differentiator the data now supports.**
+**Tier 2 — the differentiator the data now supports.** *Shipped: N22.*
 
-- **N22 (was P3.4) — Auto-progression suggestions.** Plans, targets, roles and enough
-  history all exist now; this is the one feature that makes the app actively smarter rather
-  than a better notepad. The largest item here, and the first genuinely large one.
 - **N23 (was P2.2, reduced) — Rep-max personal records, and noticing one as it happens.**
   N17 already computes estimated 1RM (Epley, refusing to guess above a rep ceiling), so
   what remains is records across rep ranges and a "that's a PR" moment mid-set. Warm-up

@@ -209,6 +209,9 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** Why the next set is what it is (ROADMAP N22). */
+    const val SUGGESTION_REASON = "suggestion_reason"
+
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
     const val SETTINGS_REST_CURRENT = "settings_rest_current"

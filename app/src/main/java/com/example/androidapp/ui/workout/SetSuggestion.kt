@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.suggestProgression
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.PlannedSetSpec
@@ -15,6 +16,14 @@ data class SetSuggestion(
     val weightGrams: Long,
     /** The assistance to prefill, or 0 for none (ROADMAP N15). */
     val assistanceGrams: Long = 0,
+    /**
+     * Why this number, when it came from progression (ROADMAP N22), or null when it is
+     * simply the plan or a repeat of the set just logged.
+     *
+     * Null is not "no reason" — it is "nothing to explain", which is the common case and
+     * must not put a line on the screen.
+     */
+    val reason: ProgressionReason? = null,
 )
 
 /**
@@ -133,7 +142,12 @@ private fun progressionFrom(
         },
         target = target,
     )
-    return SetSuggestion(proposed.reps, proposed.weightGrams, proposed.assistanceGrams)
+    return SetSuggestion(
+        reps = proposed.reps,
+        weightGrams = proposed.weightGrams,
+        assistanceGrams = proposed.assistanceGrams,
+        reason = proposed.reason,
+    )
 }
 
 /** What to prefill when the plan has nothing to say (or there is none). */

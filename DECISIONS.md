@@ -153,6 +153,12 @@ into this file once the feature ships.
   so the step comes off the assistance — and with **no plan there is no ceiling**, so the app
   proposes one more rep and stops there, because adding weight without a target would be the
   app programming rather than the lifter.
+- **A suggestion carries its reason, and null means "nothing to explain"** (N22). The number
+  reaches the screen as a value *with* the rule that produced it, because a number the app
+  chose is an instruction unless it says why — but only the three progression reasons draw a
+  line. A prefilled set that is just the plan, or just a repeat of the set logged moments ago,
+  has nothing to explain, and a line there would train the user to ignore the line that
+  matters.
 - **The app suggests; it never writes.** Nothing here changes a plan or a stored set. A
   suggestion the app applied silently would be a programme decision taken without the person
   training, and this app is a log, not a coach.

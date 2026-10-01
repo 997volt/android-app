@@ -8,6 +8,19 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **The app stops handing back the same number.** Until now a new session prefilled exactly
+  what was lifted last time, which made a written plan and a year of history worth nothing at
+  the moment they should count. The prefill now proposes the next step by **double
+  progression**: keep the load and add a rep until the plan's rep ceiling is reached, then
+  add 2.5 kg and start the range again. It says *why* — "One more rep than last time", "A step
+  heavier", "Less help than last time" — because a number the app chose is an instruction
+  unless it explains itself.
+- **It suggests; it never writes.** No plan and no stored set is changed: a suggestion the app
+  applied silently would be a programme decision taken without the person training. **With no
+  plan there is no ceiling**, so it proposes one more rep and stops rather than inventing a
+  weight. On assisted work the direction inverts — the machine doing less is the progress —
+  and warm-up sets are excluded, as they are everywhere a target is measured.
+
 - **A settings screen, and the default rest is finally editable.** There was no settings
   screen at all, and the app-wide rest between sets was a hardcoded 90 seconds that nothing
   could change: every workout that had no rest of its own was stuck with it. Settings now

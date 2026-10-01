@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -371,5 +372,36 @@ class ActiveWorkoutScreenTest {
         composeTestRule.onNodeWithTag(TestTags.exercisePendingRole("se1", "WARMUP")).performClick()
 
         composeTestRule.onNodeWithText("Role: Warm-up").assertExists()
+    }
+
+    @Test
+    fun aProgressedSuggestion_saysWhy() {
+        // ROADMAP N22: a number the app chose is an instruction unless it explains itself,
+        // and this sentence is the difference between a smart app and a surprising one.
+        val base = state(isFinished = false)
+        setScreen(
+            state = base.copy(
+                exercises = base.exercises.map {
+                    it.copy(
+                        suggestion = SetSuggestion(
+                            reps = 9,
+                            weightGrams = 20_000L,
+                            reason = ProgressionReason.MORE_REPS,
+                        ),
+                    )
+                },
+            ),
+        )
+
+        composeTestRule.onNodeWithText("One more rep than last time").assertExists()
+    }
+
+    @Test
+    fun aSuggestionThatIsJustThePlan_hasNothingToExplain() {
+        // Null is not "no reason" — it is "nothing to explain", and a line here would train
+        // the user to ignore the line that matters.
+        setScreen(state = state(isFinished = false))
+
+        composeTestRule.onNodeWithTag(TestTags.SUGGESTION_REASON).assertDoesNotExist()
     }
 }

@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.ProgressionReason
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -299,6 +300,13 @@ private fun ExerciseSets(
         // exists to prevent. The role picker beside it is what makes a warm-up one tap
         // instead of log-then-edit three times (ROADMAP N19).
         if (!row.isFinished) {
+            row.suggestion.reason?.let { reason ->
+                Text(
+                    text = stringResource(reason.explanationRes()),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag(TestTags.SUGGESTION_REASON),
+                )
+            }
             Row(
                 modifier = Modifier.padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -469,4 +477,19 @@ private fun SetExtrasMarker(set: SetRow, modifier: Modifier = Modifier) {
             modifier = modifier,
         )
     }
+}
+
+/**
+ * How the rule explains itself (ROADMAP N22).
+ *
+ * A number the app chose is an instruction unless it says why, and every one of these is a
+ * sentence a lifter would say to themselves between sets.
+ */
+private fun ProgressionReason.explanationRes(): Int = when (this) {
+    ProgressionReason.MORE_REPS -> R.string.suggestion_more_reps
+    ProgressionReason.MORE_WEIGHT -> R.string.suggestion_more_weight
+    ProgressionReason.LESS_ASSISTANCE -> R.string.suggestion_less_assistance
+    // Nothing recorded yet: the plan (or nothing) is being echoed, not progressed, so there
+    // is no step to explain — the line is only drawn for the three above.
+    ProgressionReason.NO_HISTORY -> R.string.suggestion_more_reps
 }

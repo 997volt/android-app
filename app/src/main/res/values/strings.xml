@@ -323,6 +323,10 @@
     <string name="settings_rest_current">Now: %1$s</string>
     <string name="settings_rest_explainer">Used when an exercise has no rest of its own. An exercise set in the template or the library always wins.</string>
     <string name="settings_menu">Settings…</string>
+    <!-- Why the prefilled set says what it says (ROADMAP N22). -->
+    <string name="suggestion_more_reps">One more rep than last time</string>
+    <string name="suggestion_more_weight">A step heavier than last time</string>
+    <string name="suggestion_less_assistance">Less help than last time</string>
     <string name="transfer_export">Export data</string>
     <string name="transfer_import">Import data</string>
     <string name="transfer_exported">Backup written.</string>
