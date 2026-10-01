@@ -14,7 +14,7 @@ server, and nothing leaves the device unless you export it.
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N28` have
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N29` have
 shipped and left the file.
 
 ## Current state
@@ -31,42 +31,10 @@ shipped and left the file.
   JVM under Robolectric rather than on a device.
 ## Next
 
-**Two things are marked for work.** N29 is the feature row; N30 is the short tail of the rename,
-which is the only thing left from it. Everything else from the v1.5 review and the round after it
-(B26–B32, N26, N27, N28) shipped, and what they did is in [CHANGELOG.md](CHANGELOG.md). Past these
-the next round is a choice rather than a queue: the rest is in *Later*, below.
-
-### N29 — Repeat the last workout in one tap — **built, all three edge cases held**
-
-Was **P1.15**. Templates cover the planned session; this covers the unplanned one — "same as last
-time" is the most common thing a lifter does, and today it costs picking six exercises out of the
-library again.
-
-- **Where:** home's start action, which already offers *Start workout* and *Start from template*.
-  *Repeat last workout* joins them, offered only when a finished session exists to repeat.
-- **What it copies: the exercises and their order, nothing else.** Not last session's weights as
-  targets — progression (N22) and the "last time" prefill already answer that, and freezing a
-  week's numbers as a plan would put the two in conflict. Recorded because copying the load is the
-  obvious wrong turn.
-- **It reuses the append path** the picker and templates use, so a repeated exercise is the same
-  row a manual add would have produced rather than a second kind of row.
-- **A resumed session wins.** When a workout is already open, home shows *Resume* and the repeat
-  action is not offered: the atomic find-or-create would protect it anyway, but the UI should not
-  present a choice that does nothing.
-- **Edge cases the tests should hold:** with no finished session the action is absent; an exercise
-  since soft-deleted is skipped while the rest repeat; and the same exercise twice in the old
-  workout repeats twice, because that is what was performed.
-
-The action, the route flag, the ViewModel branch and the repository path are in, and the two SQL edge
-cases are held by instrumented tests against a real database — **four cases, no failures on a device**:
-the order is kept, an exercise deleted from the library is skipped while the rest repeat, an exercise
-performed twice repeats twice, and with nothing to repeat the session simply opens empty.
-
-The third edge case is a UI rule and has its own test: with nothing finished the action is **absent**
-rather than disabled, because a button that does nothing invites a tap and teaches the wrong thing —
-and with something finished it appears and taps through.
-
-Still to do: a device pass on the action itself.
+**One thing is marked for work — N30**, the short tail of the rename. Everything else has shipped and
+left this file: the v1.5 review's corrections (B26–B32), the round after it (N26–N28), repeating the
+last workout (N29) and the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md).
+Past N30 the next round is a choice rather than a queue: the rest is in *Later*, below.
 
 ### N30 — Finish the rename: the repository has no description, and nothing has validated it
 
@@ -86,24 +54,6 @@ change.
   evidence and it is not the same as the pipeline having passed, which is worth knowing before a
   release is cut from it. Nothing needs deciding here — it is the same cancellation already accepted
   and recorded in [DECISIONS.md](DECISIONS.md), and the next quiet stretch closes it on its own.
-
-### N25 — A session remembers the timezone it was performed in
-
-**In progress.** The offset is stored on the session, captured once when it opens, and carried in the
-backup file. History already reads it: a workout is grouped under the month *it* was performed in.
-Read by history (grouping and the row date), the workout detail and the finish review. The trends
-window turned out to need nothing: it buckets by instant and never formats a session's own time.
-A seeded 16→17 migration test proves an upgrade keeps the rows already there and leaves their zone
-**null** rather than backfilled, and two instrumented tests prove the capture on a device: a session
-opened while the source says Tokyo is stored as Tokyo (+540), and **resuming it from a device that has
-since moved keeps the original** — the "captured once" rule a DST-spanning session depends on.
-
-Device runs: 17 migration tests, 6 session-zone and repeat tests, no failures. The formatting itself is
-held by the month-boundary tests above; the *visible* walk (moving a device's zone and reading a row)
-was not performed, and nothing in it exercises a path those tests do not.
-
-**The backfill is deliberately null.** A session performed before the column existed cannot be given
-an offset after the fact, so those keep showing the current zone: the same thing they always showed.
 
 ## Later (still self-contained)
 
