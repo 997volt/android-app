@@ -49,35 +49,60 @@ alone without being forgotten. Settled choices are the other document — see
 
 | Decision | What it would take | Revisit when |
 | --- | --- | --- |
-| **Play Store listing** | A feature graphic (1024×500) and phone screenshots — the 512 px icon already exists and is generated from the app's own vector by [`tools/MakeStoreIcon.java`](tools/MakeStoreIcon.java). Then the console: Data safety, content rating, privacy-policy URL. Plus a real call on **Play App Signing**, which changes who holds the app signing key, while this project's release process assumes a permanent local one. | You want distribution beyond `adb install`. Self-install works today. |
 | **A crash-logs screen** | A small screen over [`CrashLogStore`](app/src/main/java/com/example/androidapp/platform/CrashLogStore.kt). | Reading a crash through an export actually annoys you. |
-| **Zone offset on sessions** | A `zoneOffset` column captured at session start, plus a migration. Timestamps are UTC epoch millis today, so "which day was this" is answered in the *current* zone and drifts when you travel. | You train in a second timezone, or a feature needs local-day truth. |
-| **Encryption at rest / app lock** | A key-management story, not just a library: where the key lives, and what happens when the phone is lost. | You start carrying the phone somewhere you would not carry the data. |
-| **The rest alert: keep or remove** | Removing the alarm and notification path deletes both manifest permissions and the whole `platform/` alert code. The in-app timer, plus sound/haptics and keep-screen-on, cover the same need. | You never use the background alert, or you want the permission surface to be zero. |
+
+Four of this table's former rows are settled rather than open. Two became work — **N25**,
+a session remembering its timezone, and **N26**, removing the background rest alert. Two
+are parked with their triggers: the **Play Store listing**, and **Encryption at rest / app
+lock**. What is left above is the one thing genuinely still undecided.
 
 ## Next
 
-The review of 2026-09-30 is closed: its defects, gaps and feature (B5–B13, N17) shipped
-and live in [CHANGELOG.md](CHANGELOG.md), as do the decisions it needed
-([DECISIONS.md](DECISIONS.md)). What remains is a three-tier plan — payoff for
-what already exists, then the differentiator, then polish.
+Tier 1 (N19–N21) and Tier 2 (N22–N24) shipped in v1.5 and live in
+[CHANGELOG.md](CHANGELOG.md). Two questions that were open are now decided, so they lead as
+work; behind them is what is left of Tier 3.
 
-### The plan, in tiers
+### N25 — A session remembers the timezone it was performed in
 
-**Tier 1 — close the loop on what already shipped.** *Shipped: N19, N20, N21.*
+**Decided: a displayed time is always the time the session was performed in.** Timestamps
+are UTC epoch millis today and every screen formats them in the *current* zone, so a
+workout done in Tokyo reads as the wrong hour — and the wrong day — once you are home.
 
-**Tier 2 — the differentiator the data now supports.** *Shipped: N22, N23, N24.*
+- **Store the offset on the session**, captured when it opens, and format with it wherever
+  a session's time is shown: history, the workout detail, the trends window and the review.
+- **A migration, and the backfill question it brings.** Rows written before this have no
+  offset; falling back to the current zone is the only honest answer, and it is what they
+  already get. Say so rather than inventing a timezone for the past.
+- **The offset is captured once, when the session starts.** A session that spans a DST
+  change keeps its start offset — a simplification worth stating rather than discovering.
+- **The other half of the zone question is "which day was this"**, and it follows from the
+  same column. Worth doing as one piece rather than two.
 
-**Tier 3 — polish, in the order I would take it.** These stay in *Later*; naming the order
-here is the whole point of listing them.
+### N26 — Remove the background rest alert
 
-- **P2.7** Warm-up set generator — a much better feature than it was before N14, because it
-  can *write* warm-up sets into a plan using the `WARMUP` role instead of only suggesting
-  numbers.
-- **P1.10** Keep the screen on, **P1.14** rest sound and haptics, **P1.15** repeat last in
-  one tap, **P2.6** plate calculator.
+**Decided: the alarm and notification path goes.** It exists to buzz you when rest ends
+with the screen off, and it is the only reason this app requests *any* permission.
+
+- **What goes:** the scheduler and its receiver, the notification builder, the
+  ask-on-first-set permission flow, the `RestNotifier` port and its binding, the receiver
+  declaration, and both manifest permissions — `POST_NOTIFICATIONS` and
+  `SCHEDULE_EXACT_ALARM`.
+- **What stays:** the rest timer. The end instant lives on the session row and survives
+  process death; only the way it *reaches* you changes.
+- **The property worth stating:** the app then declares **no permissions at all**, which is
+  a stronger privacy statement than any wording, and belongs in the README.
+- **Why this is not pure deletion:** with no background alert the timer has to be noticed
+  in-app, so **P1.14** (sound and haptics) and **P1.10** (keep the screen on) stop being
+  polish and become its replacement. They lead what follows.
+
+### Then — what is left of Tier 3
+
+- **P1.14** Rest sound and haptics, and **P1.10** keep the screen on — the two that carry
+  the timer once N26 removes the alert.
+- **P2.7** Warm-up set generator — it can *write* warm-up sets into a plan using the
+  `WARMUP` role, which is what makes it better than it was.
+- **P1.15** Repeat last workout in one tap.
 - **P1.9** kg/lb units — only if you ever lift in pounds.
-- **P1.17** Accessibility audit.
 
 ### Decisions waiting
 
@@ -116,9 +141,7 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P2.3** A fuller chart screen over months — N13 settled the drawing approach (a `Canvas`,
   no dependency) and N17 used it for one lift; this is the longer horizon. Personal records
   are **N23** and are not this row.
-- **P2.8** Muscle-group balance warnings.
 - **P2.4** Body measurements.
-- **P2.5** Progress photos, in encrypted local storage.
 
 **Programming** — turns a logger into a plan
 - **P3.3** Programs / mesocycles with scheduled deloads.
@@ -130,13 +153,11 @@ Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekd
 as **N14–N16**. Auto-progression is **N22** and supersets are **N24**, both queued above.
 
 **Small and self-contained**
-- **P2.6** Plate calculator.
 - **P2.7** Warm-up set generator.
 
-**Quality follow-through**
-- **P1.17** Accessibility audit — a TalkBack pass over every screen, dynamic type at
-  200%, and a contrast check. The per-screen rule is in [DECISIONS.md](DECISIONS.md);
-  this is the sweep that finds what the rule missed.
+The **accessibility rule still applies to every screen as it is written**
+([DECISIONS.md](DECISIONS.md)); the audit sweep that used to sit here is parked, so this
+section is empty until it returns or something replaces it.
 
 Design-system work (**F8**) is a rule rather than a row now: extract a component when
 a second screen needs it, not before. *Next*'s "rule violations found" is that rule
@@ -165,6 +186,12 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | P5.3 | Monetization / Play Billing | There is a concrete reason to charge, and a willingness to take the Play-services dependency. |
 | P5.4 | Localization | A non-English user appears. |
 | P1.11 | Onboarding: goal, experience level, weekly target | This stops being a single-user local tool with one obvious user. It personalises defaults, and there are no defaults to personalise. |
+| P1.17 | Accessibility audit | The per-screen rule stops being enough — a real complaint on a device, or a screen that grew past ad-hoc tagging. The rule itself still applies to every change; only the sweep is parked. |
+| P2.5 | Progress photos | A visual record is actually wanted, and an encrypted-storage design for it is acceptable. |
+| P2.6 | Plate calculator | You start loading plates from a plan and want the arithmetic done rather than done in your head. |
+| P2.8 | Muscle-group balance warnings | Enough history exists for a rolling window to say something true rather than something plausible. |
+| — | **Play Store listing** | You want distribution beyond `adb install`. Self-install works today, and Play App Signing would change who holds the signing key. |
+| — | **Encryption at rest / app lock** | You start carrying the phone somewhere you would not carry the data. |
 | F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
 | F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
 
