@@ -1092,15 +1092,16 @@ class ActiveWorkoutViewModelTest {
             excludingSessionId: String?,
         ): DataResult<PersonalRecords> = DataResult.Success(records)
 
-        val supersetGroups = mutableMapOf<String, Int?>()
+        /** Every group write, as the ids it covered — one entry per call, which is the point. */
+        val supersetGroups = mutableListOf<List<String>>()
 
         override suspend fun setSupersetGroup(
-            sessionExerciseId: String,
+            sessionExerciseIds: List<String>,
             group: Int?,
         ): DataResult<Unit> {
-            supersetGroups[sessionExerciseId] = group
+            supersetGroups += sessionExerciseIds
             exercises.value = exercises.value.map {
-                if (it.id == sessionExerciseId) it.copy(supersetGroup = group) else it
+                if (it.id in sessionExerciseIds) it.copy(supersetGroup = group) else it
             }
             return DataResult.Success(Unit)
         }
@@ -1310,7 +1311,7 @@ class ActiveWorkoutViewModelTest {
         private val planned: List<TemplateExercise> = emptyList(),
     ) : TemplateRepository {
         override suspend fun setSupersetGroup(
-            templateExerciseId: String,
+            templateExerciseIds: List<String>,
             group: Int?,
         ): DataResult<Unit> = DataResult.Success(Unit)
         override fun observeTemplates(): Flow<List<WorkoutTemplate>> = flowOf(emptyList())
@@ -1588,6 +1589,16 @@ class ActiveWorkoutViewModelTest {
         val groups = viewModel.uiState.value.exercises.map { it.supersetGroup }
         assertNotNull("the tapped exercise is in a group", groups.last())
         assertEquals("and so is the one above it", groups.first(), groups.last())
+        assertEquals(
+            "ROADMAP B27: one write covering the whole group, so a failure cannot leave half of it",
+            1,
+            repository.supersetGroups.size,
+        )
+        assertEquals(
+            "and that one write named both rows",
+            viewModel.uiState.value.exercises.map { it.id }.toSet(),
+            repository.supersetGroups.single().toSet(),
+        )
     }
     @Test
     fun unpairing_takesTheWholeGroupApart() = runTest(dispatcher) {

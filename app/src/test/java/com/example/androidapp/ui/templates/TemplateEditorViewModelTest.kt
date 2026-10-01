@@ -198,6 +198,11 @@ class TemplateEditorViewModelTest {
         val groups = viewModel.uiState.value.exercises.map { it.supersetGroup }
         assertNotNull("the tapped exercise is planned in a group", groups.last())
         assertEquals("and the one above it comes with it", groups.first(), groups.last())
+        assertEquals(
+            "ROADMAP B27: the plan is paired in one write, so it cannot end up half-paired",
+            2,
+            repository.supersetGroups.size,
+        )
         assertEquals("which is A1/A2", listOf("A1", "A2"), viewModel.uiState.value.supersetLabels.values.toList())
     }
 
@@ -245,7 +250,8 @@ class TemplateEditorViewModelTest {
         val duplicated = mutableListOf<String>()
         val savedPlans = mutableListOf<Triple<String, Int?, String?>>()
         var failWrites = false
-        val supersetGroups = mutableMapOf<String, Int?>()
+        /** Every group write, as the ids it covered — one entry per call, which is the point. */
+        val supersetGroups = mutableListOf<List<String>>()
 
         override fun observeTemplates(): Flow<List<WorkoutTemplate>> = templates
 
@@ -292,12 +298,12 @@ class TemplateEditorViewModelTest {
         }
 
         override suspend fun setSupersetGroup(
-            templateExerciseId: String,
+            templateExerciseIds: List<String>,
             group: Int?,
         ): DataResult<Unit> {
-            supersetGroups[templateExerciseId] = group
+            supersetGroups += templateExerciseIds
             exercises.value = exercises.value.map {
-                if (it.id == templateExerciseId) it.copy(supersetGroup = group) else it
+                if (it.id in templateExerciseIds) it.copy(supersetGroup = group) else it
             }
             return DataResult.Success(Unit)
         }

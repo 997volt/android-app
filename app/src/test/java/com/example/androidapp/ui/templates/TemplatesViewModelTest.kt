@@ -195,7 +195,7 @@ class TemplatesViewModelTest {
             writeFailureOrSuccess()
 
         override suspend fun setSupersetGroup(
-            templateExerciseId: String,
+            templateExerciseIds: List<String>,
             group: Int?,
         ): DataResult<Unit> = DataResult.Success(Unit)
 

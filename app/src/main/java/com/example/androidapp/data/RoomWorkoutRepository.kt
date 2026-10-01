@@ -343,12 +343,20 @@ class RoomWorkoutRepository @Inject constructor(
     }
 
     override suspend fun setSupersetGroup(
-        sessionExerciseId: String,
+        sessionExerciseIds: List<String>,
         group: Int?,
     ): DataResult<Unit> = dataResultOf {
-        val now = timeSource.nowEpochMillis()
-        if (database.sessionExerciseDao().setSupersetGroup(sessionExerciseId, group, now) == 0) {
-            throw NotFoundException("session exercise $sessionExerciseId")
+        if (sessionExerciseIds.isEmpty()) return@dataResultOf
+
+        // One statement, so the group moves together or not at all (ROADMAP B27). A row-per-call
+        // loop could fail or be killed between writes and leave half a superset — the state the
+        // screen's own comment says nobody asked for.
+        val updated = database.sessionExerciseDao()
+            .setSupersetGroup(sessionExerciseIds, group, timeSource.nowEpochMillis())
+        if (updated != sessionExerciseIds.size) {
+            // Reported rather than skipped: the caller asked for all of them, and a partial write
+            // that looks successful is worse than a failure it can show.
+            throw NotFoundException("$updated of ${sessionExerciseIds.size} session exercises were written")
         }
     }
 

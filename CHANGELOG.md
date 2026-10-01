@@ -8,6 +8,10 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure, so a
+  failure — or the process dying — between writes could leave half a group: the exact state the
+  action exists to prevent, and one the screen would then show as a superset of one. The whole group
+  moves in a single statement now, and a partial result is reported instead of assumed.
 - **The superset tap is no longer drawn on the first exercise.** With nothing above it to pair with,
   the group came out null — and the write then matched every ungrouped row and rewrote each to null,
   churning `updatedAt` for no change. It is offered from the second exercise on, in the workout and in

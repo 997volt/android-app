@@ -21,11 +21,18 @@ interface TemplateDao {
     /**
      * Plans an exercise into a superset, or leaves one (ROADMAP B16).
      *
-     * A nullable group, so grouping and ungrouping are the same write; rows updated: 0 means
-     * the exercise is gone.
+     * A nullable group, so grouping and ungrouping are the same write. One statement for the whole
+     * group, so a plan cannot end up half-paired (ROADMAP B27). Rows updated: how many of [ids] still
+     * exist and are live.
      */
-    @Query("UPDATE template_exercises SET supersetGroup = :group, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
-    suspend fun setSupersetGroup(id: String, group: Int?, at: Long): Int
+    @Query(
+        """
+        UPDATE template_exercises
+        SET supersetGroup = :group, updatedAt = :at
+        WHERE id IN (:ids) AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setSupersetGroup(ids: List<String>, group: Int?, at: Long): Int
 
     /** Every live template with its exercise count, name-ordered. */
     @Query(

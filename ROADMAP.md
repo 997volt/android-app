@@ -61,13 +61,9 @@ is decided but not scheduled — it only bites if you train across timezones.
 
 ### B26–B32 — the corrections the v1.5 review left
 
-The first two were verified against the code rather than left as suspicions. **B26 and B28 are fixed** and
+The first two were verified against the code rather than left as suspicions. **B26, B27 and B28 are fixed** and
 live in [CHANGELOG.md](CHANGELOG.md).
 
-- **B27 — Superset pairing is not atomic.** `onToggleSuperset` writes one row per id through
-  `handle`, which records a failure and carries on, so a failure or a process death between
-  writes leaves half a group — precisely the state the code's own comment says nobody asked for.
-  **Fix:** one transactional write, and stop rather than continue on failure.
 - **B29 — A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that
   the chip exists, and `WeekdayPicker` composes every chip unconditionally — so it passes even if
   the plan's `weekday` is ignored. It wants `assertIsSelected()`. Worth watching for in any test

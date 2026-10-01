@@ -149,8 +149,8 @@ class TemplateEditorViewModel @Inject constructor(
                 listOf(templateExerciseId) +
                     listOfNotNull(previous?.takeIf { it.supersetGroup == null }?.id)
             }
-            changed.forEach { id -> repository.setSupersetGroup(id, group) }
-            DataResult.Success(Unit)
+            // One write for the whole group (ROADMAP B27), and its failure is the caller's.
+            repository.setSupersetGroup(changed, group)
         }
     }
 

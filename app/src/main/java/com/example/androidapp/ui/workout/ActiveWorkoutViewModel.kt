@@ -599,7 +599,9 @@ class ActiveWorkoutViewModel @Inject constructor(
             } else {
                 listOf(sessionExerciseId) + listOfNotNull(previous?.takeIf { it.supersetGroup == null }?.id)
             }
-            changed.forEach { id -> handle(workoutRepository.setSupersetGroup(id, group)) }
+            // One write for the whole group: a partial one would leave half a superset, which is
+            // the state this action exists to avoid (ROADMAP B27).
+            handle(workoutRepository.setSupersetGroup(changed, group))
         }
     }
 

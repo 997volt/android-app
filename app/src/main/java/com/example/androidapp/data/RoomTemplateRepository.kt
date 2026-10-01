@@ -103,12 +103,18 @@ class RoomTemplateRepository @Inject constructor(
     }
 
     override suspend fun setSupersetGroup(
-        templateExerciseId: String,
+        templateExerciseIds: List<String>,
         group: Int?,
     ): DataResult<Unit> = dataResultOf {
-        val now = timeSource.nowEpochMillis()
-        if (dao.setSupersetGroup(templateExerciseId, group, now) == 0) {
-            throw NotFoundException("template exercise $templateExerciseId")
+        if (templateExerciseIds.isEmpty()) return@dataResultOf
+
+        val updated = dao.setSupersetGroup(
+            templateExerciseIds,
+            group,
+            timeSource.nowEpochMillis(),
+        )
+        if (updated != templateExerciseIds.size) {
+            throw NotFoundException("$updated of ${templateExerciseIds.size} planned exercises were written")
         }
     }
 

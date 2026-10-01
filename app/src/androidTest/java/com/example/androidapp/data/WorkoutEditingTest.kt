@@ -420,7 +420,7 @@ class WorkoutEditingTest {
         // never builds a projection from a query string (ROADMAP B24).
         seedOpenWorkoutWithASet()
 
-        val written = repository.setSupersetGroup("se1", group = 3)
+        val written = repository.setSupersetGroup(listOf("se1"), group = 3)
         assertTrue(written is DataResult.Success)
 
         val row = repository.observeSessionExercises("s1").first().single()
@@ -430,9 +430,9 @@ class WorkoutEditingTest {
     @Test
     fun leavingASuperset_isWrittenToo() = runTest {
         seedOpenWorkoutWithASet()
-        repository.setSupersetGroup("se1", group = 3)
+        repository.setSupersetGroup(listOf("se1"), group = 3)
 
-        repository.setSupersetGroup("se1", group = null)
+        repository.setSupersetGroup(listOf("se1"), group = null)
 
         val row = repository.observeSessionExercises("s1").first().single()
         assertNull("a nullable group is how leaving is expressed", row.supersetGroup)

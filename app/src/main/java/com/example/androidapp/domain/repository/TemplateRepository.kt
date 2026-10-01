@@ -58,10 +58,11 @@ interface TemplateRepository {
     /**
      * Plans this exercise into a superset with another, or leaves one (ROADMAP B16).
      *
-     * The same ordinal a session carries, so a workout started from this plan arrives grouped.
+     * The same ordinal a session carries, so a workout started from this plan arrives grouped. All of
+     * [templateExerciseIds] move together, so a plan cannot end up half-paired (ROADMAP B27).
      */
     suspend fun setSupersetGroup(
-        templateExerciseId: String,
+        templateExerciseIds: List<String>,
         group: Int?,
     ): DataResult<Unit>
 

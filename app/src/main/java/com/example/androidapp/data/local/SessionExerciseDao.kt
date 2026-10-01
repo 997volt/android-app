@@ -18,9 +18,17 @@ interface SessionExerciseDao {
     /**
      * Joins or leaves a superset (ROADMAP N24).
      *
-     * A nullable group, so grouping and ungrouping are the same write; the caller decides
-     * which of them the tap meant. Rows updated: 0 means the exercise is gone.
+     * A nullable group, so grouping and ungrouping are the same write; the caller decides which of
+     * them the tap meant. **One statement for the whole group**, which is what makes pairing atomic
+     * (ROADMAP B27): a failure cannot leave half a superset behind. Rows updated: how many of [ids]
+     * still exist and are live.
      */
-    @Query("UPDATE session_exercises SET supersetGroup = :group, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
-    suspend fun setSupersetGroup(id: String, group: Int?, at: Long): Int
+    @Query(
+        """
+        UPDATE session_exercises
+        SET supersetGroup = :group, updatedAt = :at
+        WHERE id IN (:ids) AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setSupersetGroup(ids: List<String>, group: Int?, at: Long): Int
 }

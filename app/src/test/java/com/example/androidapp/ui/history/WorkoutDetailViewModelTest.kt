@@ -195,16 +195,17 @@ class WorkoutDetailViewModelTest {
             excludingSessionId: String?,
         ): DataResult<PersonalRecords> = DataResult.Success(records)
 
-        val supersetGroups = mutableMapOf<String, Int?>()
+        /** Every group write, as the ids it covered — one entry per call, which is the point. */
+        val supersetGroups = mutableListOf<List<String>>()
 
         /** What the record read answers with; empty means no records yet. */
         var records: PersonalRecords = PersonalRecords()
 
         override suspend fun setSupersetGroup(
-            sessionExerciseId: String,
+            sessionExerciseIds: List<String>,
             group: Int?,
         ): DataResult<Unit> {
-            supersetGroups[sessionExerciseId] = group
+            supersetGroups += sessionExerciseIds
             return DataResult.Success(Unit)
         }
 
