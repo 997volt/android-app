@@ -66,23 +66,11 @@ what is left of Tier 3.
 ### The v1.5 review — B14–B25
 
 Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
-admits. Ordered by what it costs the user. **B14, B15 and B16 are fixed** and live in
-[CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, and the
-one that left a feature half-built. Several of what remain are a contract that is documented and
-not implemented, and the rest are gaps.
+admits. Ordered by what it costs the user. **B14 through B18 are fixed** and live in
+[CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
+that left a feature half-built, and two the record rule got wrong. Several of what remain are a
+contract that is documented and not implemented, and the rest are gaps.
 
-- **B17 — A warm-up can still raise a personal record.** `isRecord` takes no role
-  (`PersonalRecords.kt:26`), and the record decision at `ActiveWorkoutViewModel.kt:535` uses
-  `against`, which excludes warm-ups already in the session and history but never the set being
-  logged. Arm `WARMUP`, log above the best at that rep count, and the banner fires — exactly what
-  `PersonalRecords.kt:48-50` and the changelog say can no longer happen. Every test on this path
-  uses the default `NORMAL` role, so none can see it.
-- **B18 — "The first time at this rep count" is false when the bar was set this session.**
-  The record test uses `against` (`records.mergedWith(PersonalRecords.from(row.sets))`) but the
-  banner's `previousBestGrams` reads `records?.bestAt(...)` — history only
-  (`ActiveWorkoutViewModel.kt:540`). Lift 20 kg then 22.5 kg at 8 reps and the second banner
-  says "the first time at this rep count" while claiming a record over that very 20 kg. The
-  documented meaning is "what it beat", so it should read from `against`.
 - **B19 — A plan with no rep ceiling renders "prescribed 2×0".** `prescribedReps` applies
   `takeIf` to the wrong expression (`PlanComparison.kt:105`):
   `plannedWork.mapNotNull { it.maxReps }.sum().takeIf { plannedWork.isNotEmpty() }` — the guard

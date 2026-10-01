@@ -22,9 +22,17 @@ data class PersonalRecords(
      * Strictly heavier: matching the best is not beating it, and an app that celebrates a
      * repeat devalues the word. A bodyweight or assisted set has no weight to compare, and
      * says nothing either way rather than claiming a record on its assistance.
+     *
+     * **[role] is a parameter rather than an assumption**, because a warm-up is not a record
+     * however heavy it is (ROADMAP B17). Every caller used to leave it out, so the one set
+     * path that mattered — the set being logged — was never checked, and a 120 kg warm-up could
+     * raise a personal best that the file's own doc said could no longer happen.
      */
-    fun isRecord(reps: Int, weightGrams: Long): Boolean =
-        reps > 0 && weightGrams > 0L && (bestAt(reps)?.let { weightGrams > it } ?: true)
+    fun isRecord(reps: Int, weightGrams: Long, role: SetType): Boolean =
+        role != SetType.WARMUP &&
+            reps > 0 &&
+            weightGrams > 0L &&
+            (bestAt(reps)?.let { weightGrams > it } ?: true)
 
     val isEmpty: Boolean get() = bestByReps.isEmpty()
 

@@ -162,6 +162,16 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+- **A warm-up can no longer raise a personal best.** The record rule never saw the set's role, so
+  a heavy warm-up at a rep count with no record — or above the existing one — raised the banner,
+  which the app's own documentation said could no longer happen. The rule takes the role now, so
+  it cannot be forgotten by a caller.
+- **A record says what it actually beat.** The banner read history alone, so a bar set earlier in
+  the same session was invisible to it: lifting 20 kg and then 22.5 kg at eight reps announced
+  "the first time at this rep count" while claiming a record over that very 20 kg. It reads the
+  merged view now — history plus what this session has already logged — which is what "what it
+  beat" was always supposed to mean.
+
 - **Editing a logged set no longer wipes its role or its assistance.** The set editor was never
   told either, so it opened every set as a plain working set with no help — and saving wrote that
   over the row. A one-rep correction on a `-20 kg` assisted warm-up silently destroyed both, and

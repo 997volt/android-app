@@ -1684,6 +1684,30 @@ class ActiveWorkoutViewModelTest {
 
         assertEquals(180, repository.lastRestSeconds)
     }
+
+    @Test
+    fun aWarmUp_raisesNoRecord() = runTest(dispatcher) {
+        // ROADMAP B17: arm WARMUP, log above the best at that rep count, and the banner used to
+        // fire — exactly what the file's own doc said could no longer happen.
+        val repository = FakeWorkoutRepository().apply {
+            records = PersonalRecords(mapOf(8 to 17_500L))
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        // The prefill is 20 kg × 8, above the recorded 17.5 — but as a warm-up.
+        viewModel.onLogSet(
+            sessionExerciseId = viewModel.uiState.value.exercises.single().id,
+            setType = SetType.WARMUP,
+        )
+        settle()
+
+        assertNull("a warm-up is not a personal best", viewModel.personalRecord.value)
+    }
+
 }
 
 /**

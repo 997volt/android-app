@@ -532,12 +532,19 @@ class ActiveWorkoutViewModel @Inject constructor(
             handle(result)
             if (result is DataResult.Success) {
                 // A record noticed a week later in a list is a record nobody feels (N23).
-                if (against != null && against.isRecord(row.suggestion.reps, row.suggestion.weightGrams)) {
+                // The role goes in, or a heavy warm-up raises a best (B17); and what it beat is
+                // read from the *merged* view, because the bar may have been set earlier in this
+                // same session — saying "the first time at this rep count" then would be false
+                // while claiming a record over that very set (B18).
+                if (
+                    against != null &&
+                    against.isRecord(row.suggestion.reps, row.suggestion.weightGrams, setType)
+                ) {
                     _personalRecord.value = PersonalRecordMoment(
                         exerciseName = row.name,
                         reps = row.suggestion.reps,
                         weightGrams = row.suggestion.weightGrams,
-                        previousBestGrams = records?.bestAt(row.suggestion.reps),
+                        previousBestGrams = against.bestAt(row.suggestion.reps),
                     )
                 }
 
