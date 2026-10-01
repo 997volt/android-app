@@ -40,6 +40,13 @@ data class TemplateExercise(
     val restSeconds: Int? = null,
     /** A cue this exercise prescribes, or null to use the library's (N14). */
     val techniqueNote: String? = null,
+    /**
+     * The superset or circuit this exercise is planned in, or null (ROADMAP N24, B16).
+     *
+     * The same ordinal a session carries, so starting a workout from this plan groups the
+     * exercises without the user pairing them again.
+     */
+    val supersetGroup: Int? = null,
     /** The planned sets, in order (ROADMAP N14). Empty for a template with none. */
     val sets: List<TemplateSet> = emptyList(),
 )

@@ -178,7 +178,49 @@ class TemplateEditorViewModelTest {
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.error)
+    
+    @Test
+    fun pairing_plansBothExercisesTogether() = runTest(dispatcher) {
+        // ROADMAP B16: a plan could not express a superset at all, so the grouping only ever
+        // existed for a session done by hand. This is the plan side of that gap.
+        val repository = FakeTemplateRepository()
+        repository.exercises.value = listOf(
+            exercise("te1", 0, "Back Squat"),
+            exercise("te2", 1, "Bench Press"),
+        )
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onToggleSuperset("te2")
+        advanceUntilIdle()
+
+        val groups = viewModel.uiState.value.exercises.map { it.supersetGroup }
+        assertNotNull("the tapped exercise is planned in a group", groups.last())
+        assertEquals("and the one above it comes with it", groups.first(), groups.last())
+        assertEquals("which is A1/A2", listOf("A1", "A2"), viewModel.uiState.value.supersetLabels.values.toList())
     }
+
+    @Test
+    fun unpairing_aPlannedSuperset_takesTheWholeGroupApart() = runTest(dispatcher) {
+        val repository = FakeTemplateRepository()
+        repository.exercises.value = listOf(
+            exercise("te1", 0, "Back Squat").copy(supersetGroup = 1),
+            exercise("te2", 1, "Bench Press").copy(supersetGroup = 1),
+        )
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onToggleSuperset("te2")
+        advanceUntilIdle()
+
+        assertTrue(
+            "a group of one is not a group",
+            viewModel.uiState.value.exercises.all { it.supersetGroup == null },
+        )
+    }
+}
 
     private fun exercise(id: String, position: Int, name: String) = TemplateExercise(
         id = id,
@@ -189,6 +231,8 @@ class TemplateEditorViewModelTest {
         primaryMuscle = MuscleGroup.QUADS,
         equipment = Equipment.BARBELL,
     )
+
+    /** One planned exercise, which is all these tests need to know about it. */
 
     private class FakeTemplateRepository : TemplateRepository {
         val templates = MutableStateFlow<List<WorkoutTemplate>>(emptyList())
@@ -201,6 +245,7 @@ class TemplateEditorViewModelTest {
         val duplicated = mutableListOf<String>()
         val savedPlans = mutableListOf<Triple<String, Int?, String?>>()
         var failWrites = false
+        val supersetGroups = mutableMapOf<String, Int?>()
 
         override fun observeTemplates(): Flow<List<WorkoutTemplate>> = templates
 
@@ -246,6 +291,17 @@ class TemplateEditorViewModelTest {
             return DataResult.Success(Unit)
         }
 
+        override suspend fun setSupersetGroup(
+            templateExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> {
+            supersetGroups[templateExerciseId] = group
+            exercises.value = exercises.value.map {
+                if (it.id == templateExerciseId) it.copy(supersetGroup = group) else it
+            }
+            return DataResult.Success(Unit)
+        }
+
         override suspend fun setWeekday(
             templateId: String,
             weekday: DayOfWeek?,
@@ -282,6 +338,7 @@ class TemplateEditorViewModelTest {
         // (ROADMAP N14).
         val repository = FakeTemplateRepository()
         val viewModel = viewModelFor(repository)
+        observe(viewModel)
         advanceUntilIdle()
 
         viewModel.onAddSet(
@@ -309,6 +366,7 @@ class TemplateEditorViewModelTest {
     fun duplicatingAPlan_asksTheRepositoryForTheExercise() = runTest(dispatcher) {
         val repository = FakeTemplateRepository()
         val viewModel = viewModelFor(repository)
+        observe(viewModel)
         advanceUntilIdle()
 
         viewModel.onDuplicateSets("te1")
@@ -321,6 +379,7 @@ class TemplateEditorViewModelTest {
     fun savingARestAndCue_passesBothThrough() = runTest(dispatcher) {
         val repository = FakeTemplateRepository()
         val viewModel = viewModelFor(repository)
+        observe(viewModel)
         advanceUntilIdle()
 
         viewModel.onSaveExercisePlan("te1", restSeconds = 180, techniqueNote = "Slow descent")

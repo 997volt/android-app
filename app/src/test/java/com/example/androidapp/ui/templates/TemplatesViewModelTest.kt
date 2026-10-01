@@ -194,6 +194,11 @@ class TemplatesViewModelTest {
         override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> =
             writeFailureOrSuccess()
 
+        override suspend fun setSupersetGroup(
+            templateExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> = DataResult.Success(Unit)
+
         override suspend fun setWeekday(
             templateId: String,
             weekday: DayOfWeek?,

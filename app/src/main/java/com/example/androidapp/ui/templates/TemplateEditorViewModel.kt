@@ -25,6 +25,8 @@ data class TemplateEditorUiState(
     val isLoading: Boolean = true,
     val template: WorkoutTemplate? = null,
     val exercises: List<TemplateExercise> = emptyList(),
+    /** `A1`/`A2` per planned exercise, or empty when nothing is grouped (ROADMAP B16). */
+    val supersetLabels: Map<String, String> = emptyMap(),
     val error: DataError? = null,
 ) {
     /** The template was deleted, or never existed — either way there is no editor. */
@@ -61,6 +63,15 @@ class TemplateEditorViewModel @Inject constructor(
             isLoading = false,
             template = template,
             exercises = exercises,
+            // Giant-set notation, computed where the order is known (ROADMAP B16).
+            supersetLabels = exercises.mapNotNull { exercise ->
+                val group = exercise.supersetGroup ?: return@mapNotNull null
+                val groups = exercises.mapNotNull { it.supersetGroup }.distinct().sorted()
+                val letter = 'A' + groups.indexOf(group)
+                val member = exercises.filter { it.supersetGroup == group }
+                    .indexOfFirst { it.id == exercise.id } + 1
+                exercise.id to "$letter$member"
+            }.toMap(),
             error = currentError,
         )
     }.stateIn(
@@ -108,6 +119,39 @@ class TemplateEditorViewModel @Inject constructor(
     /** Pins this plan to a weekday, or unpins it (ROADMAP N16). */
     fun onSetWeekday(weekday: DayOfWeek?) = write {
         repository.setWeekday(templateId, weekday)
+    }
+
+    /**
+     * Pairs this planned exercise with the one above it, or leaves the group (ROADMAP B16).
+     *
+     * The same gesture as the workout screen, for the same reason: the order is already on
+     * screen, and "these two, together" is what a tap on the second one means.
+     */
+    fun onToggleSuperset(templateExerciseId: String) {
+        val ordered = uiState.value.exercises
+        val index = ordered.indexOfFirst { it.id == templateExerciseId }
+        if (index < 0) return
+        val me = ordered[index]
+        val previous = ordered.getOrNull(index - 1)
+
+        val group = when {
+            me.supersetGroup != null -> null
+            previous?.supersetGroup != null -> previous.supersetGroup
+            previous != null -> (ordered.mapNotNull { it.supersetGroup }.maxOrNull() ?: 0) + 1
+            else -> null
+        }
+
+        write {
+            // Leaving takes the whole group apart; joining pulls the exercise above in.
+            val changed = if (group == null) {
+                ordered.filter { it.supersetGroup == me.supersetGroup }.map { it.id }
+            } else {
+                listOf(templateExerciseId) +
+                    listOfNotNull(previous?.takeIf { it.supersetGroup == null }?.id)
+            }
+            changed.forEach { id -> repository.setSupersetGroup(id, group) }
+            DataResult.Success(Unit)
+        }
     }
 
     fun onDeleteTemplate() {

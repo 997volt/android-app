@@ -407,6 +407,10 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
 val MIGRATION_15_16 = object : Migration(15, 16) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `supersetGroup` INTEGER")
+        // A plan can prescribe a superset too, and that is the end of the feature the app most
+        // wants it at: plans are what a workout is started from, so a grouping that only exists
+        // inside a session cannot be written down (ROADMAP B16).
+        db.execSQL("ALTER TABLE `template_exercises` ADD COLUMN `supersetGroup` INTEGER")
     }
 }
 

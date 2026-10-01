@@ -273,6 +273,10 @@ class ExercisePickerViewModelTest {
 
     /** Records which template an exercise landed in (ROADMAP N3). */
     private class FakeTemplateRepository : TemplateRepository {
+        override suspend fun setSupersetGroup(
+            templateExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> = DataResult.Success(Unit)
         val added = mutableListOf<Pair<String, String>>()
         var failAdds = false
 

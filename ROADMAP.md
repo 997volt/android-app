@@ -66,20 +66,11 @@ what is left of Tier 3.
 ### The v1.5 review — B14–B25
 
 Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
-admits. Ordered by what it costs the user. **B14 and B15 are fixed** and live in
-[CHANGELOG.md](CHANGELOG.md): they were the two that lost data or contradicted a settled
-decision. Several of what remain are a contract that is documented and not implemented, and the
-rest are gaps.
+admits. Ordered by what it costs the user. **B14, B15 and B16 are fixed** and live in
+[CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, and the
+one that left a feature half-built. Several of what remain are a contract that is documented and
+not implemented, and the rest are gaps.
 
-- **B16 — N24 shipped one column where its own decision says two, and the second is missing.**
-  The decision reads "a migration 15→16 adding the two nullable columns… the model is a
-  `supersetGroup` ordinal on `session_exercises` **and** `template_exercises` — in the plan that
-  seeds it". Only `session_exercises` got it: `template_exercises` has no such column in
-  `16.json` and no field on the entity, and nothing in the template DAOs references it. So **a
-  plan cannot express a superset**, and a workout started from a plan cannot carry one — the
-  feature works only when grouping is done by hand inside a session. This is the largest of the
-  three N24 divergences, and the one that makes the feature unavailable at the point the app
-  most wants it (plans are the thing you start from).
 - **B17 — A warm-up can still raise a personal record.** `isRecord` takes no role
   (`PersonalRecords.kt:26`), and the record decision at `ActiveWorkoutViewModel.kt:535` uses
   `against`, which excludes warm-ups already in the session and history but never the set being

@@ -103,6 +103,7 @@ fun TemplateEditorRoute(
         onRename = viewModel::onRename,
         onSetWeekday = viewModel::onSetWeekday,
         onRemoveExercise = viewModel::onRemoveExercise,
+        onToggleSuperset = viewModel::onToggleSuperset,
         onMoveExercise = viewModel::onMoveExercise,
         onDeleteTemplate = viewModel::onDeleteTemplate,
         onAddExercise = { templateId?.let(onAddExercise) },
@@ -134,6 +135,7 @@ fun TemplateEditorScreen(
     onUpdateSet: (String, TemplateSetEdit) -> Unit = { _, _ -> },
     onRemoveSet: (String) -> Unit = {},
     onDuplicateSets: (String) -> Unit = {},
+    onToggleSuperset: (String) -> Unit = {},
     onSaveExercisePlan: (String, Int?, String?) -> Unit = { _, _, _ -> },
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -172,6 +174,7 @@ fun TemplateEditorScreen(
             onRename = onRename,
             onSetWeekday = onSetWeekday,
             onRemoveExercise = onRemoveExercise,
+            onToggleSuperset = onToggleSuperset,
             onMoveExercise = onMoveExercise,
             onAddSet = onAddSet,
             onUpdateSet = onUpdateSet,
@@ -239,6 +242,7 @@ private fun TemplateEditorBody(
     onDuplicateSets: (String) -> Unit,
     onSaveExercisePlan: (String, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (String) -> Unit = {},
 ) {
     if (state.isLoading) {
         CenteredMessage(
@@ -282,6 +286,8 @@ private fun TemplateEditorBody(
                         onMoveUp = { onMoveExercise(exercise.id, -1) },
                         onMoveDown = { onMoveExercise(exercise.id, 1) },
                         onRemove = { onRemoveExercise(exercise.id) },
+                        onToggleSuperset = { onToggleSuperset(exercise.id) },
+                        supersetLabels = state.supersetLabels,
                         onAddSet = { edit -> onAddSet(exercise.id, edit) },
                         onUpdateSet = onUpdateSet,
                         onRemoveSet = onRemoveSet,
@@ -361,6 +367,8 @@ private fun TemplateExerciseBlock(
     onDuplicateSets: () -> Unit,
     onSavePlan: (Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (() -> Unit)? = null,
+    supersetLabels: Map<String, String> = emptyMap(),
 ) {
     var planOpen by rememberSaveable { mutableStateOf(false) }
     var editing by rememberSaveable { mutableStateOf<String?>(null) }
@@ -375,6 +383,8 @@ private fun TemplateExerciseBlock(
             onMoveUp = onMoveUp,
             onMoveDown = onMoveDown,
             onRemove = onRemove,
+            onToggleSuperset = onToggleSuperset,
+            supersetLabels = supersetLabels,
         )
         PlanRow(exercise = exercise, onClick = { planOpen = true })
         RestAndCue(
@@ -515,14 +525,21 @@ private fun TemplateExerciseRow(
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    onToggleSuperset: (() -> Unit)? = null,
+    supersetLabels: Map<String, String> = emptyMap(),
 ) {
     ListItem(
-        headlineContent = { Text("$position. ${exercise.exerciseName}") },
+        headlineContent = {
+            Text("$position. ${superscriptLabel(exercise, supersetLabels)}${exercise.exerciseName}")
+        },
         supportingContent = {
             Text("${exercise.primaryMuscle.label} · ${exercise.equipment.label}")
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onToggleSuperset != null) {
+                    PlanSupersetToggle(exercise = exercise, onToggle = onToggleSuperset)
+                }
                 IconButton(
                     onClick = onMoveUp,
                     enabled = !isFirst,
@@ -668,3 +685,34 @@ private fun WeekdayPicker(
     }
 }
 
+/** `A1 · ` for a grouped planned exercise, or nothing (ROADMAP B16). */
+private fun superscriptLabel(exercise: TemplateExercise, labels: Map<String, String>): String =
+    labels[exercise.id]?.let { "$it · " }.orEmpty()
+
+/**
+ * Planning an exercise into the superset above, or out of it (ROADMAP B16).
+ *
+ * Its own composable because the row around it is at the length this project allows, and
+ * because the word changes with the state: "pair" when it stands alone, "leave" when it does not.
+ */
+@Composable
+private fun PlanSupersetToggle(
+    exercise: TemplateExercise,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onToggle,
+        modifier = modifier.testTag(TestTags.supersetToggle(exercise.id)),
+    ) {
+        Text(
+            stringResource(
+                if (exercise.supersetGroup == null) {
+                    R.string.superset_pair
+                } else {
+                    R.string.superset_unpair
+                },
+            ),
+        )
+    }
+}

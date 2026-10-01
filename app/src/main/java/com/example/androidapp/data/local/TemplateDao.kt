@@ -18,6 +18,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TemplateDao {
 
+    /**
+     * Plans an exercise into a superset, or leaves one (ROADMAP B16).
+     *
+     * A nullable group, so grouping and ungrouping are the same write; rows updated: 0 means
+     * the exercise is gone.
+     */
+    @Query("UPDATE template_exercises SET supersetGroup = :group, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
+    suspend fun setSupersetGroup(id: String, group: Int?, at: Long): Int
+
     /** Every live template with its exercise count, name-ordered. */
     @Query(
         """
@@ -78,7 +87,8 @@ interface TemplateDao {
                e.primaryMuscle AS primaryMuscle,
                e.equipment AS equipment,
                te.restSeconds AS restSeconds,
-               te.techniqueNote AS techniqueNote
+               te.techniqueNote AS techniqueNote,
+               te.supersetGroup AS supersetGroup
         FROM template_exercises te
         JOIN exercises e ON e.id = te.exerciseId
         WHERE te.templateId = :templateId
@@ -110,6 +120,7 @@ interface TemplateDao {
     @Query(
         """
         SELECT te.exerciseId AS exerciseId, te.restSeconds AS restSeconds,
+               te.supersetGroup AS supersetGroup,
                te.techniqueNote AS techniqueNote
         FROM template_exercises te
         WHERE te.templateId = :templateId AND te.deletedAt IS NULL
@@ -124,6 +135,8 @@ interface TemplateDao {
         val exerciseId: String,
         val restSeconds: Int?,
         val techniqueNote: String?,
+        /** The superset this exercise is planned in, or null (ROADMAP N24, B16). */
+        val supersetGroup: Int?,
     )
 
     /**

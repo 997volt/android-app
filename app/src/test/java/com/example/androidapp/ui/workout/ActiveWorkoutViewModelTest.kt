@@ -1309,6 +1309,10 @@ class ActiveWorkoutViewModelTest {
     private class FakeTemplateRepository(
         private val planned: List<TemplateExercise> = emptyList(),
     ) : TemplateRepository {
+        override suspend fun setSupersetGroup(
+            templateExerciseId: String,
+            group: Int?,
+        ): DataResult<Unit> = DataResult.Success(Unit)
         override fun observeTemplates(): Flow<List<WorkoutTemplate>> = flowOf(emptyList())
         override fun observeTemplate(templateId: String): Flow<WorkoutTemplate?> = flowOf(null)
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> =

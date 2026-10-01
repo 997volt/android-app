@@ -47,6 +47,8 @@ data class TemplateExerciseEntity(
     val restSeconds: Int? = null,
     /** A cue this exercise prescribes, or null to fall back to the library's (N5). */
     val techniqueNote: String? = null,
+    /** The superset or circuit this exercise is planned in, or null (ROADMAP N24, B16). */
+    val supersetGroup: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

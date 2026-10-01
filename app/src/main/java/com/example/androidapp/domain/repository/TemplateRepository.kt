@@ -55,6 +55,16 @@ interface TemplateRepository {
      */
     suspend fun setWeekday(templateId: String, weekday: DayOfWeek?): DataResult<Unit>
 
+    /**
+     * Plans this exercise into a superset with another, or leaves one (ROADMAP B16).
+     *
+     * The same ordinal a session carries, so a workout started from this plan arrives grouped.
+     */
+    suspend fun setSupersetGroup(
+        templateExerciseId: String,
+        group: Int?,
+    ): DataResult<Unit>
+
     /** Appends [exerciseId] to the end of the template. */
     suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit>
 

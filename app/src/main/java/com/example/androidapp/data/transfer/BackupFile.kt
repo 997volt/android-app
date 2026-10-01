@@ -166,6 +166,8 @@ data class TemplateExerciseDto(
     /** The rest and cue the plan prescribes, or null to use the library's (N14). */
     val restSeconds: Int? = null,
     val techniqueNote: String? = null,
+    /** The superset this exercise is planned in, or null (ROADMAP N24, B16). */
+    val supersetGroup: Int? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

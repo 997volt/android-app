@@ -87,6 +87,9 @@ class RoomWorkoutRepository @Inject constructor(
                             exerciseId = planned.exerciseId,
                             restSeconds = planned.restSeconds,
                             techniqueNote = planned.techniqueNote,
+                            // A plan that prescribes a superset must arrive as one, or the
+                            // grouping can only ever be made by hand (ROADMAP B16).
+                            supersetGroup = planned.supersetGroup,
                         )
                     }
                 }
@@ -112,6 +115,7 @@ class RoomWorkoutRepository @Inject constructor(
         exerciseId: String,
         restSeconds: Int? = null,
         techniqueNote: String? = null,
+        supersetGroup: Int? = null,
     ) {
         val now = timeSource.nowEpochMillis()
         dao.insertSessionExercise(
@@ -122,6 +126,7 @@ class RoomWorkoutRepository @Inject constructor(
                 position = dao.maxPosition(sessionId) + 1,
                 restSeconds = restSeconds,
                 techniqueNote = techniqueNote,
+                supersetGroup = supersetGroup,
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,

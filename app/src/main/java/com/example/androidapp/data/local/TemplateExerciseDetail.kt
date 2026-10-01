@@ -23,6 +23,7 @@ data class TemplateExerciseDetail(
     val equipment: Equipment,
     val restSeconds: Int?,
     val techniqueNote: String?,
+    val supersetGroup: Int?,
 )
 
 internal fun TemplateExerciseDetail.toDomain(
@@ -37,6 +38,7 @@ internal fun TemplateExerciseDetail.toDomain(
     equipment = equipment,
     restSeconds = restSeconds,
     techniqueNote = techniqueNote,
+    supersetGroup = supersetGroup,
     sets = sets,
 )
 

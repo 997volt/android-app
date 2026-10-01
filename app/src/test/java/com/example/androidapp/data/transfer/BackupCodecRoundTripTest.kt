@@ -63,6 +63,8 @@ class BackupCodecRoundTripTest {
             templateId = "t1",
             exerciseId = "back-squat",
             position = 2,
+            // The column B16 added: a plan's grouping must survive a restore like any other.
+            supersetGroup = 4,
             restSeconds = 90,
             techniqueNote = "pause at the bottom",
             createdAt = 1_600_000_000_000L,

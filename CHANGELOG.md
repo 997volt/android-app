@@ -24,9 +24,10 @@ Notable changes to Workout Log, newest first. Format follows
   else in the group is behind, because resting between the pair would defeat the pairing the
   user just asked for. Marking a member done counts as caught up, so a group does not wait for
   an exercise that is finished, and leaving a superset takes the whole group apart: a group of
-  one is not a group. A circuit is the same thing with three or more members. This is the first
-  structural change since N14 — the schema goes to v16, with the grouping carried in the backup
-  file so a restored workout keeps its pairs.
+  one is not a group. A circuit is the same thing with three or more members. **A plan can
+  prescribe one too**, so a workout started from a plan arrives already paired rather than being
+  grouped by hand every time. This is the first structural change since N14 — the schema goes to
+  v16, with the grouping carried in the backup file so a restored workout keeps its pairs.
 
 ### Added
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
