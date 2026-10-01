@@ -59,88 +59,154 @@ lock**. What is left above is the one thing genuinely still undecided.
 ## Next
 
 Tier 1 (N19–N21) and Tier 2 (N22–N24) shipped in v1.5 and live in
-[CHANGELOG.md](CHANGELOG.md). The review of that release leads as a short batch of five, because
-one of them is wrong on screen today; behind it are the two decided questions, and then what is
-left of Tier 3.
+[CHANGELOG.md](CHANGELOG.md). Two reviews of that release lead as a batch of twelve, because two of
+them lose data or contradict a settled decision; behind it are the two decided questions, and then
+what is left of Tier 3.
 
-### The v1.5 review — B14–B18
+### The v1.5 review — B14–B25
 
-The review that followed v1.5 found one defect shipped with N21, two guards that do not yet
-cover what they were built for, one feature shipped without tests, and a CI signal that stops
-meaning anything during a busy stretch. They lead because B14 is wrong on screen today; the rest
-are small and each is a rule the project already enforces elsewhere.
+Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
+admits. Ordered by what it costs the user: two of these lose data or contradict a settled
+decision, several are a contract that is documented and not implemented, and the rest are gaps.
+**B14 and B15 are the ones I would fix before anything else in this file.**
 
-- **B14 — The library states the wrong default rest.** N21 made the app-wide default rest
-  editable and the workout honours it — `ActiveWorkoutViewModel` starts a rest from
-  `row.restSeconds ?: defaultRestSeconds.value`. But `ExerciseDetailScreen` still formats the
-  **hardcoded** `RestTimer.DEFAULT_SECONDS`, so with 120 s configured the library reads
-  "Default (1:30)" while the workout actually waits 2:00. The screen's own comment says the point
-  is that "the user needs to know what will actually happen (N5)", and it is the first place
-  anyone looks after changing the setting. **The test is part of the fix:** it asserts
-  `"Default (1:30)"` and its comment still reasons that 90 s "will actually run", so it currently
-  locks the stale value in rather than catching it. Read the setting on this screen, and assert
-  the shown default against a *changed* one.
-- **B15 — The route-registration invariant is still unguarded.** A route with no
-  `composable<...>` compiles and crashes at navigation. That is exactly how the Settings bug
-  shipped, and it was *both* a missing `@Serializable` **and** a missing registration — only the
-  first got a test. `RoutesTest` checks the annotation over a hand-written list of route names, so
-  a new route added to `Routes.kt` without touching the test cannot fail it, and nothing anywhere
-  builds the graph. All twelve are registered today (checked), which is precisely why this is
-  cheap to pin now rather than after the next one. **Do:** fail on a route type that has no
-  registration, with no hand-maintained list — a `TestNavHost` that navigates each destination
-  catches the crash the bug produced, which no serializer assertion can. While there:
-  `composable<Settings>` sits in `historyDestinations`, whose KDoc reads "finished workouts and
-  one workout's detail".
-- **B16 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
+- **B14 — Editing a logged set silently wipes its role and its assistance.** `SetEditorDialog`
+  takes `initialSetType` and `initialAssistanceGrams`, both defaulted
+  (`SetEditorDialog.kt:62-63`), and **both call sites omit them** — the live workout
+  (`ActiveWorkoutScreen.kt:236`) and history detail (`WorkoutDetailScreen.kt:131`). So the draft
+  is built from `Weight.display(weightGrams, 0)`, a `-20 kg` assisted set opens reading `0`, and
+  saving writes `assistanceGrams = 0` and `setType = NORMAL` over the stored row. **A one-rep
+  correction silently destroys the assistance and the role**, and in history the role is not even
+  modelled, so it is unrecoverable. It also undercuts N19: the role picker was lifted to the
+  log button, and the editor — the other place a role is chosen — forgets the stored one. The
+  existing tests pass these parameters directly (`SetEditorDialogTest.kt:123,211`), so no test
+  sees it; the fix needs a screen-level assertion that a saved edit *preserves* both fields.
+- **B15 — A superset rests for the wrong member, against [DECISIONS.md](DECISIONS.md).** The
+  settled rule is "the rest is the group's longest member, or the app default when none
+  prescribes one". `ActiveWorkoutViewModel.kt:551` instead starts the rest from
+  `row.restSeconds` — the exercise that happened to log the closing set. A pair where A
+  prescribes 180 s and B 90 s rests 90 s whenever B closes the round, so the group's own rest is
+  never consulted; `roundIsCompleteFor` (`:1002`) does not aggregate it either.
+- **B16 — N24 shipped one column where its own decision says two, and the second is missing.**
+  The decision reads "a migration 15→16 adding the two nullable columns… the model is a
+  `supersetGroup` ordinal on `session_exercises` **and** `template_exercises` — in the plan that
+  seeds it". Only `session_exercises` got it: `template_exercises` has no such column in
+  `16.json` and no field on the entity, and nothing in the template DAOs references it. So **a
+  plan cannot express a superset**, and a workout started from a plan cannot carry one — the
+  feature works only when grouping is done by hand inside a session. This is the largest of the
+  three N24 divergences, and the one that makes the feature unavailable at the point the app
+  most wants it (plans are the thing you start from).
+- **B17 — A warm-up can still raise a personal record.** `isRecord` takes no role
+  (`PersonalRecords.kt:26`), and the record decision at `ActiveWorkoutViewModel.kt:535` uses
+  `against`, which excludes warm-ups already in the session and history but never the set being
+  logged. Arm `WARMUP`, log above the best at that rep count, and the banner fires — exactly what
+  `PersonalRecords.kt:48-50` and the changelog say can no longer happen. Every test on this path
+  uses the default `NORMAL` role, so none can see it.
+- **B18 — "The first time at this rep count" is false when the bar was set this session.**
+  The record test uses `against` (`records.mergedWith(PersonalRecords.from(row.sets))`) but the
+  banner's `previousBestGrams` reads `records?.bestAt(...)` — history only
+  (`ActiveWorkoutViewModel.kt:540`). Lift 20 kg then 22.5 kg at 8 reps and the second banner
+  says "the first time at this rep count" while claiming a record over that very 20 kg. The
+  documented meaning is "what it beat", so it should read from `against`.
+- **B19 — A plan with no rep ceiling renders "prescribed 2×0".** `prescribedReps` applies
+  `takeIf` to the wrong expression (`PlanComparison.kt:105`):
+  `plannedWork.mapNotNull { it.maxReps }.sum().takeIf { plannedWork.isNotEmpty() }` — the guard
+  tests the *input* list, so working sets with no `maxReps` yield an empty map, a sum of 0, and a
+  truthy guard. It violates the file's own "every nullable field is honestly nullable" contract
+  and puts a zero on screen. Fix the guard to test the mapped list.
+- **B20 — The review keys exercises by display name, so a repeated exercise collapses.** Both
+  the performed map (`PlanComparison.kt:74`, `associateBy { it.name }`, last wins) and the
+  improvised filter (`:80`) use the name, while nothing prevents the same exercise twice in a
+  session. So two rows sharing a name lose the earlier one's sets from the review — while the
+  totals at `ActiveWorkoutViewModel.kt:963` still count them, making the summary contradict
+  itself. Matching should use `exerciseId`; the comparison types carry only `name` today.
+- **B21 — The review's counts include warm-ups where its reps exclude them.** `prescribedSets`
+  and `performedSets` are the unfiltered lists while the rep sums drop warm-ups
+  (`PlanComparison.kt:92-104`), so "prescribed 2×3" means two sets, one of them a warm-up, with
+  three total reps. Either both should exclude warm-ups or both should include them, and the
+  dialog should say which.
+- **B22 — The route-registration invariant is still unguarded.** A route with no
+  `composable<...>` compiles and crashes at navigation. That is how the Settings bug shipped, and
+  it was *both* a missing `@Serializable` **and** a missing registration — only the first got a
+  test. `RoutesTest` checks the annotation over a hand-written list of names, so a new route
+  added without touching the test cannot fail it, and nothing anywhere builds the graph. All
+  twelve are registered today (checked), which is why this is cheap to pin now. **Do:** fail on a
+  route type that has no registration, with no hand-maintained list — a `TestNavHost` navigating
+  each destination catches the crash the bug produced, which no serializer assertion can. While
+  there: `composable<Settings>` sits in `historyDestinations`, whose KDoc reads "finished
+  workouts and one workout's detail".
+
+### Also from the same review — gaps rather than wrong behaviour
+
+- **B23 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
   `SettingsViewModel` and `PreferencesSettingsRepository`, and no test in either source set
-  references any of them. That leaves the `SharedPreferences` commit/read-back path, the "render
-  what is stored rather than what was tapped" rule the ViewModel's own KDoc states, and
-  `onSetDefaultRest`'s failure branch unverified — and B14 is a bug in how the rest of the app
-  reads that very setting, so the gap is not hypothetical. **Do:** a ViewModel test for the
-  stored-vs-tapped rule and the failure branch, plus the preferences round trip.
-- **B17 — Three new entry points never meet SQLite, and the migration has no test.**
-  `RoomWorkoutRepository.personalRecords` and `setSupersetGroup` (with
-  `SessionExerciseDao.setSupersetGroup`) are exercised only through hand-written fakes;
-  `app/src/androidTest` was not touched in this batch at all. And `MIGRATION_15_16` — registered,
-  matching its exported schema, covered end-to-end by `MigrationsTest`'s 1→16 chain — has no
-  `MigrationTestHelper` test while the other fourteen each have one, which is what
-  [DECISIONS.md](DECISIONS.md) asks for. What the chain cannot check is the one thing those tests
-  add: that an upgrade **keeps the rows already in the table**. Smaller gaps in the same batch:
-  the `SetSuggestion` branch for a plan that names reps and no load, and N24's A1/A2 label and
-  superset toggle.
-- **B18 — The instrumented job rarely finishes during a busy stretch.** `concurrency:
-  cancel-in-progress` meets a fast push cadence: across the last 60 runs, **40 were cancelled**
-  against 18 successes, and the emulator job needs 15–30 minutes while the build job needs about
-  8. So the fast job validates every commit and the suite covering DAOs, migrations and the backup
-  round trip completes only when pushes are spaced out — the newest commits at the time of writing
-  had only cancelled or in-flight runs. **Not a code defect, and the fix is a workflow decision
-  rather than a patch:** either accept it — the guard reports a truncated run rather than passing
-  it, which is why the one genuine failure in the window was that guard firing — or stop
-  cancelling the run whose job is the slow one, for instance by letting the instrumented job run
-  only on `main`, so a feature branch cannot cancel the validation of the commit before it.
+  references any of them — so the stored-vs-tapped rule its own KDoc states, the
+  `onSetDefaultRest` failure branch, and the `SharedPreferences` round trip are all unverified.
+- **B24 — Three new entry points never meet SQLite, and the migration has no seeded test.**
+  `personalRecords` and `setSupersetGroup` are exercised only through hand-written fakes, and
+  `app/src/androidTest` was not touched in this batch at all. `MIGRATION_15_16` is registered,
+  matches its exported schema, and is covered end-to-end by `MigrationsTest`'s 1→16 chain — but
+  it has no `MigrationTestHelper` test while its fourteen siblings each have one, and what those
+  add is the thing the chain cannot check: that an upgrade **keeps the rows already in the
+  table**. Smaller gaps in the same batch: the `SetSuggestion` branch for a plan that names reps
+  and no load, and N24's A1/A2 label and superset toggle.
+- **B25 — The instrumented job rarely finishes during a busy stretch.** `cancel-in-progress`
+  meets a fast push cadence: across the last 60 runs, **40 were cancelled** against 18 successes,
+  and the emulator job needs 15–30 minutes while the build job needs about 8. The fast job
+  validates every commit and the suite covering DAOs, migrations and the backup round trip
+  completes only when pushes are spaced out. **Not a code defect, and the fix is a workflow
+  decision rather than a patch:** either accept it — the guard reports a truncated run rather
+  than passing it, which is why the one genuine failure in the window was that guard firing — or
+  stop cancelling the run whose job is the slow one, for instance by letting the instrumented job
+  run only on `main`.
 
-### Rule violations found, not new work, in the same batch
+### Settled by the review rather than queued
 
-Smaller things the same review turned up, each an existing rule not being followed. They ride with
-whichever change next touches the file.
+- **Every backed-up column is carried, and the one exception is deliberate.** A machine
+  comparison of `16.json` against the DTOs found no column missing from its DTO, and the mappers
+  assign every column both ways. The single non-round-tripped column is
+  `workout_sessions.restEndsAt`, forced to null on import because a rest countdown is
+  device-and-moment state rather than training history — documented in the mapper and asserted
+  explicitly by the round-trip test. Worth recording because it is the only one, and because it
+  looks exactly like the three accidental drops that guard exists to catch.
+- **The N21 default rest is not in the backup file.** It lives in `SharedPreferences`, so a
+  restore onto a fresh install returns it to 90 s. Probably right — it is a device preference,
+  not training history — but it is now a decision rather than an omission.
 
-- **Two declarations nothing calls, one orphaned by this batch.** `PreviousPerformance.at()` lost
-  its last caller when `SetSuggestion` stopped being indexed; `SettingsUiState.isLoading` is
-  written and never read, and the screen renders no loading state. The rule is to delete an API
-  the moment nothing calls it.
-- **Five unused imports survived the gate, which is the more interesting half.**
+### Suspicions and smaller findings
+
+Not rows, because none is proven or is a task on its own. The first is a rule that may be
+implemented against its own statement; the rest are existing rules not being followed. They ride
+with whichever change next touches the file.
+
+- **The assisted-progression branch ignores the rep ceiling.** The rule everywhere it is written
+  is rep-first, then the smallest loadable step; as implemented
+  (`ProgressionSuggestion.kt:80-85`) an assisted lifter at the bottom of a 6–8 range is told to
+  repeat the same reps with less help, which never adds the rep the rule asks for first. The one
+  test sits exactly at the ceiling, so it cannot tell the two rules apart. Either the branch
+  needs the ceiling test or the decision needs to say the direction inverts for assistance.
+- **Declarations nothing calls.** `PreviousPerformance.at()` lost its last caller when
+  `SetSuggestion` stopped being indexed; `SettingsUiState.isLoading` is written and never read,
+  and the screen renders no loading state.
+- **Unused imports survive the gate, which is the more interesting half.**
   `RoomTrendsRepository.kt` and `TrendsRepository.kt` carry imports added for an implementation
-  that landed in a different file, and `./gradlew detekt` passes on them: detekt's `UnusedImports`
-  is not active and the compiler is not run with `-Werror`, so neither gate this project treats as
-  authoritative can see an unused import. Worth knowing before the next "the gates are clean"
-  claim — either turn the rule on deliberately or record that imports are not gated.
+  that landed in a different file, and `./gradlew detekt` passes on them: detekt's
+  `UnusedImports` is `active: false` in 1.23.8 and the compiler is not run with `-Werror`, so
+  neither gate this project treats as authoritative can see an unused import. Either turn the
+  rule on deliberately or record that imports are not gated.
 - **A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that the
   chip exists, while `WeekdayPicker` composes every chip unconditionally — so it passes even if
   the plan's `weekday` is ignored. It wants `assertIsSelected()`. Worth watching for in any test
   written against a control that is always rendered.
+- **Superset pairing is not transactional** (`ActiveWorkoutViewModel.kt:584`): one write per id,
+  so a failure or process death between them leaves the half-a-group state the code's own comment
+  says nobody asked for — and `handle` continues the loop after a failure rather than stopping.
+- **The toggle on the first exercise is a no-op that rewrites every ungrouped row**
+  (`:571-585`): with no previous exercise the group is null, and the filter then selects every
+  ungrouped row and rewrites it, churning `updatedAt` for no change. The control is still drawn
+  on row 0.
 - **Two types share the name `WorkoutSummary`** — the history row in `domain/model`, and the N20
-  review payload at the bottom of `ActiveWorkoutViewModel`. Different shapes, same simple name;
-  the review payload would sit better beside `WorkoutSummaryDialog`.
+  review payload at the bottom of `ActiveWorkoutViewModel`.
 - **`SettingsModule` lives in `DatabaseModule.kt`**, whose name says database while the module
   binds a `SharedPreferences` repository.
 
