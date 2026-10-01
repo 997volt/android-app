@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.zoneIdOrNull
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import com.example.androidapp.ui.components.rpeMarker
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutFormat
+import java.time.ZoneId
 import java.time.Instant
 
 @Composable
@@ -151,7 +153,9 @@ private fun DetailTopBar(
     TopAppBar(
         title = {
             Text(
-                text = session?.let { HistoryFormat.date(it.startedAt) }
+                text = session?.let {
+                    HistoryFormat.date(it.startedAt, zone = it.zoneIdOrNull() ?: ZoneId.systemDefault())
+                }
                     ?: stringResource(R.string.history_detail_title),
             )
         },

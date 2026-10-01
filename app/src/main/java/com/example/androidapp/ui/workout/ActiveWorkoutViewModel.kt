@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.workout
 
+import java.time.ZoneId
+import com.example.androidapp.domain.model.zoneIdOrNull
 import com.example.androidapp.domain.model.PersonalRecords
 import com.example.androidapp.domain.model.PersonalRecordMoment
 import com.example.androidapp.domain.repository.SettingsRepository
@@ -837,7 +839,9 @@ class ActiveWorkoutViewModel @Inject constructor(
         ActiveWorkoutUiState(
             isLoading = false,
             sessionId = session?.id,
-            startedAt = session?.let { WorkoutFormat.clockTime(it.startedAt) }.orEmpty(),
+            startedAt = session?.let {
+                WorkoutFormat.clockTime(it.startedAt, zone = it.zoneIdOrNull() ?: ZoneId.systemDefault())
+            }.orEmpty(),
             exercises = exercises.map {
                 it.toRow(
                     sets = sets,

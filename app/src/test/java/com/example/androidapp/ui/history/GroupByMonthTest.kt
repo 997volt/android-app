@@ -92,7 +92,13 @@ class GroupByMonthTest {
 
     /** Distinct name, not an overload: two `workout` overloads differing only in
      *  parameter type made the two-argument call ambiguous. */
-    private fun workoutAt(id: String, startedAt: Instant, finishedAt: Instant = startedAt) =
+    private fun workoutAt(
+        id: String,
+        startedAt: Instant,
+        finishedAt: Instant = startedAt,
+        /** Null is a session recorded before the column existed (ROADMAP N25). */
+        zoneOffsetMinutes: Int? = null,
+    ) =
         WorkoutSummary(
             id = id,
             startedAt = startedAt,
@@ -100,5 +106,42 @@ class GroupByMonthTest {
             exerciseCount = 1,
             setCount = 1,
             volumeGrams = 1_000L,
+            zoneOffsetMinutes = zoneOffsetMinutes,
         )
+
+    @Test
+    fun aWorkoutsMonth_isTheMonthItWasPerformedIn() {
+        // ROADMAP N25, and the point of the whole feature: 20:00 UTC on 30 September is still
+        // September in London and already 1 October in Tokyo (+540). Grouping by where it is being
+        // read put a Tokyo workout in the wrong month the moment the phone came home.
+        val groups = groupByMonth(
+            listOf(
+                workoutAt("tokyo", Instant.parse("2026-09-30T20:00:00Z"), zoneOffsetMinutes = 540),
+                workoutAt("london", Instant.parse("2026-09-30T20:00:00Z"), zoneOffsetMinutes = 0),
+            ),
+            zone,
+        )
+
+        assertEquals(
+            listOf(YearMonth.of(2026, 10), YearMonth.of(2026, 9)),
+            groups.map { it.month },
+        )
+        assertEquals(
+            "the Tokyo session is the October one",
+            "tokyo",
+            groups.first().workouts.single().id,
+        )
+    }
+
+    @Test
+    fun aSessionFromBeforeTheColumn_fallsBackToTheReadingZone() {
+        // Null means "we never knew where it happened", and the honest answer is what those rows
+        // always showed: the zone being read in. The migration backfills nothing for this reason.
+        val groups = groupByMonth(
+            listOf(workoutAt("old", Instant.parse("2026-09-30T20:00:00Z"), zoneOffsetMinutes = null)),
+            zone,
+        )
+
+        assertEquals(listOf(YearMonth.of(2026, 9)), groups.map { it.month })
+    }
 }

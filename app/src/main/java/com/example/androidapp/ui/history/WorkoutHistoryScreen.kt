@@ -30,9 +30,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.zoneIdOrNull
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutFormat
+import java.time.ZoneId
 import java.time.Instant
 import java.time.YearMonth
 
@@ -128,7 +130,10 @@ private fun WorkoutRow(
     val setCount = pluralStringResource(R.plurals.history_sets, workout.setCount, workout.setCount)
 
     ListItem(
-        headlineContent = { Text(HistoryFormat.date(workout.startedAt)) },
+        // The zone it was performed in, not the one it is being read in (ROADMAP N25).
+        headlineContent = {
+            Text(HistoryFormat.date(workout.startedAt, zone = workout.zoneIdOrNull() ?: ZoneId.systemDefault()))
+        },
         supportingContent = {
             val duration = workout.duration?.let { WorkoutFormat.elapsed(it) }.orEmpty()
             val volume = stringResource(
