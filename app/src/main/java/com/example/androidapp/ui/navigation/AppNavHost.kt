@@ -140,6 +140,10 @@ private fun NavGraphBuilder.templateDestinations(navController: NavHostControlle
 
 /** Finished workouts and one workout's detail. */
 private fun NavGraphBuilder.historyDestinations(navController: NavHostController) {
+    composable<Settings> {
+        SettingsRoute(onBack = { navController.popBackStack() })
+    }
+
     composable<WorkoutHistory> {
         WorkoutHistoryRoute(
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },

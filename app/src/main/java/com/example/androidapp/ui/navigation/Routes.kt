@@ -27,7 +27,15 @@ data class ExerciseDetail(val exerciseId: String)
 @Serializable
 data class ExerciseTrends(val exerciseId: String)
 
-/** The app's settings (ROADMAP N21). */
+/**
+ * The app's settings (ROADMAP N21).
+ *
+ * `@Serializable` is what makes this navigable at all: every destination's route is
+ * serialised by the type-safe navigation API, and a missing annotation is a crash the first
+ * time the destination is reached — not a compile error, which is how it got as far as a
+ * device.
+ */
+@Serializable
 data object Settings
 
 /**
