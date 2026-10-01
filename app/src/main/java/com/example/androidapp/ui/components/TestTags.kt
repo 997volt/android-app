@@ -206,6 +206,13 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** Starting over (ROADMAP N18): the menu entry, the field and the confirm button. */
+    const val HOME_CLEAR_DATA = "home_clear_data"
+    const val CLEAR_CONFIRM_FIELD = "clear_confirm_field"
+    const val CLEAR_CONFIRM_ACTION = "clear_confirm_action"
+    const val CLEAR_EXPORT_FIRST = "clear_export_first"
+    const val CLEAR_CANCEL = "clear_cancel"
+
     /** One exercise's own trends (ROADMAP N17). */
     const val EXERCISE_TRENDS = "exercise_trends"
     const val EXERCISE_TRENDS_EMPTY = "exercise_trends_empty"

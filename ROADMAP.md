@@ -59,45 +59,10 @@ alone without being forgotten. Settled choices are the other document — see
 
 The review of 2026-09-30 is closed: its defects, gaps and feature (B5–B13, N17) shipped
 and live in [CHANGELOG.md](CHANGELOG.md), as do the decisions it needed
-([DECISIONS.md](DECISIONS.md)). One feature is queued below, and behind it a three-tier
-plan — payoff for what already exists, then the differentiator, then polish.
+([DECISIONS.md](DECISIONS.md)). What remains is a three-tier plan — payoff for
+what already exists, then the differentiator, then polish.
 
-### N18 — Clean everything, after offering a way out
-
-The app has no way to start over. Deletes are soft, an import can only add, and the only
-true wipe is `adb shell pm clear`, which is not a phone feature. This is the counterpart to
-the backup opt-out: if the app is the only holder of this data, it should also be able to
-let it go.
-
-- **Scope: everything the user made.** Sessions and their sets, templates and their planned
-  sets, custom exercises, readiness notes, ratings and set comments — and the crash logs,
-  which are diagnostics about that same data.
-- **The seeded library stays.** It is app content rather than user data, and the seeder
-  restores it on every open regardless.
-- **Irreversible means hard.** Every other delete in this app is soft, so this one must not
-  be: a `deletedAt` row lingers, and an export taken afterwards would still carry it. Room's
-  `clearAllTables`, or deleting the database file and letting it be recreated — decide when
-  implementing, because the two differ in the trap below.
-- **The trap: clearing does not re-seed.** Seeding runs in `RoomDatabase.Callback.onOpen`,
-  which fires when the database is *opened*, not after its tables are emptied. A clear that
-  only wipes tables leaves the library empty until the process restarts — a clean start that
-  looks broken. Re-seed as part of the clear, and test exactly that.
-- **Export first, then a typed confirmation, then clear.** The order is fixed. Platform
-  backup is off (F1), so the exported file is the only thing that can survive this action;
-  offering it is part of the action, not a courtesy beside it.
-- **A typed confirmation, not a dialog.** "Delete everything" is a button someone presses by
-  accident exactly once.
-- **Say what cannot be undone before the button is enabled** — no undo, no soft-deleted
-  copy, no server copy. The screen says so, rather than the aftermath.
-- **Lives with export and import** in the home overflow's data area, where the app's data
-  actions already are.
-- **Tests:** after a clear, home is back to its first-run state, the library is populated
-  without a restart, and a file exported before the clear still imports afterwards.
-
-It must not touch the exported file itself: that belongs to the user, lives outside the
-database, and deleting it would make "export first" worthless.
-
-### After it — the plan, in tiers
+### The plan, in tiers
 
 **Tier 1 — close the loop on what already shipped.** Small, and every one of them is
 friction the app created by growing.

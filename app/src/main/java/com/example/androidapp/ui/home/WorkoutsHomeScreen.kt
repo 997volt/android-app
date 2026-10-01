@@ -1,5 +1,11 @@
 package com.example.androidapp.ui.home
 
+import com.example.androidapp.domain.DataError
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
+import com.example.androidapp.ui.components.dataErrorMessage
+import com.example.androidapp.ui.transfer.ClearOutcome
+import androidx.compose.runtime.rememberCoroutineScope
 import java.time.DayOfWeek
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,6 +40,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +55,7 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.ClearEverythingDialog
 import com.example.androidapp.ui.components.MessageSnackbar
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.longLabel
@@ -82,6 +90,21 @@ fun WorkoutsHomeRoute(
     // home for them — two overflows deep from where the user starts.
     var message by remember { mutableStateOf<String?>(null) }
     val transferActions = rememberDataTransferActions(transferViewModel) { message = it }
+    // The clear is a suspending call whose result is a sentence, so it needs both.
+    val scope = rememberCoroutineScope()
+    // Resolved at composition, not read from a captured Context: a resource looked up
+    // through LocalContext is not configuration-aware (lint's point, and it is right).
+    val clearedText = stringResource(R.string.clear_done)
+    // `dataErrorMessage` is a composable, so the failure is held as a value and turned
+    // into a sentence during composition rather than inside the coroutine.
+    var clearFailure by remember { mutableStateOf<DataError?>(null) }
+    val clearFailureText = clearFailure?.let { dataErrorMessage(it) }
+    LaunchedEffect(clearFailureText) {
+        if (clearFailureText != null) {
+            message = clearFailureText
+            clearFailure = null
+        }
+    }
 
     WorkoutsHomeScreen(
         state = state,
@@ -96,6 +119,14 @@ fun WorkoutsHomeRoute(
         onOpenTrends = onOpenTrends,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
+        onClearData = {
+            scope.launch {
+                when (val outcome = transferViewModel.clearEverything()) {
+                    is ClearOutcome.Cleared -> message = clearedText
+                    is ClearOutcome.Failed -> clearFailure = outcome.error
+                }
+            }
+        },
         message = message,
         onDismissMessage = { message = null },
         modifier = modifier,
@@ -118,11 +149,24 @@ fun WorkoutsHomeScreen(
     onStartTemplate: (String) -> Unit = {},
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
+    onClearData: (() -> Unit)? = null,
     message: String? = null,
     onDismissMessage: () -> Unit = {},
 ) {
+    var confirmingClear by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     MessageSnackbar(message, snackbarHostState, onDismissMessage)
+
+    if (confirmingClear) {
+        ClearEverythingDialog(
+            onExport = onExportData,
+            onConfirm = {
+                confirmingClear = false
+                onClearData?.invoke()
+            },
+            onDismiss = { confirmingClear = false },
+        )
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -135,6 +179,7 @@ fun WorkoutsHomeScreen(
                 onOpenTrends = onOpenTrends,
                 onExport = onExportData,
                 onImport = onImportData,
+                onClear = onClearData?.let { { confirmingClear = true } },
             )
         },
         floatingActionButton = {
@@ -442,6 +487,7 @@ private fun HomeTopBar(
     onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
+    onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -472,6 +518,7 @@ private fun HomeTopBar(
                     onOpenTrends = onOpenTrends,
                     onExport = onExport,
                     onImport = onImport,
+                    onClear = onClear,
                     onDismiss = { menuOpen = false },
                 )
             }
@@ -480,11 +527,60 @@ private fun HomeTopBar(
 }
 
 /**
+ * The app's data actions, together and in the order that matters (ROADMAP B1, N18).
+ *
+ * Export first, then import, then the one that cannot be undone — and that one is last
+ * and coloured, because it is the only entry here that can cost the user something.
+ */
+@Composable
+private fun DataActions(
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    onClear: (() -> Unit)?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.transfer_export)) },
+                    onClick = {
+                        onDismiss()
+                        onExport()
+                    },
+                    modifier = Modifier.testTag(TestTags.DATA_EXPORT),
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.transfer_import)) },
+                    onClick = {
+                        onDismiss()
+                        onImport()
+                    },
+                    modifier = Modifier.testTag(TestTags.DATA_IMPORT),
+                )
+                if (onClear != null) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.clear_menu),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        onClick = {
+                            onDismiss()
+                            onClear()
+                        },
+                        modifier = Modifier.testTag(TestTags.HOME_CLEAR_DATA),
+                    )
+                }
+    }
+}
+
+/**
  * The menu's entries, split out so the app bar stays a title and a button.
  *
- * Export and import are the newest members (ROADMAP B1), and are null on a preview
- * or a screen test that does not exercise them — so the menu is exactly as long as
- * it has something to offer.
+ * The data actions are the newest members (ROADMAP B1, N18) and are null on a preview or
+ * a screen test that does not exercise them — so the menu is exactly as long as it has
+ * something to offer.
  */
 @Composable
 private fun HomeMenuItems(
@@ -494,6 +590,7 @@ private fun HomeMenuItems(
     onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
+    onClear: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     Column {
@@ -529,21 +626,11 @@ private fun HomeMenuItems(
         )
         // Export and import, moved down from the library (ROADMAP B1).
         if (onExport != null && onImport != null) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transfer_export)) },
-                onClick = {
-                    onDismiss()
-                    onExport()
-                },
-                modifier = Modifier.testTag(TestTags.DATA_EXPORT),
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.transfer_import)) },
-                onClick = {
-                    onDismiss()
-                    onImport()
-                },
-                modifier = Modifier.testTag(TestTags.DATA_IMPORT),
+            DataActions(
+                onExport = onExport,
+                onImport = onImport,
+                onClear = onClear,
+                onDismiss = onDismiss,
             )
         }
     }

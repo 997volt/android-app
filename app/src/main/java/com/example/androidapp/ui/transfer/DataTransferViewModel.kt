@@ -36,6 +36,18 @@ class DataTransferViewModel @Inject constructor(
         is DataResult.Failure -> ExportOutcome.Failed(result.error)
     }
 
+    /**
+     * Deletes everything the user made (ROADMAP N18).
+     *
+     * Irreversible, which is why the screen asks for a typed confirmation before calling
+     * it: "Delete everything" is a button someone presses by accident exactly once.
+     */
+    suspend fun clearEverything(): ClearOutcome =
+        when (val result = backupRepository.clearAllUserData()) {
+            is DataResult.Success -> ClearOutcome.Cleared
+            is DataResult.Failure -> ClearOutcome.Failed(result.error)
+        }
+
     /** Merges an imported file. Additive, so it can never cost the user data. */
     suspend fun import(text: String): ImportOutcome = when (val result = backupRepository.import(text)) {
         is DataResult.Success -> ImportOutcome.Imported(result.data)
@@ -47,4 +59,11 @@ class DataTransferViewModel @Inject constructor(
 sealed interface ExportOutcome {
     data class Ready(val json: String) : ExportOutcome
     data class Failed(val error: DataError) : ExportOutcome
+}
+
+/** What came of the one irreversible action. */
+sealed interface ClearOutcome {
+    data object Cleared : ClearOutcome
+
+    data class Failed(val error: DataError) : ClearOutcome
 }

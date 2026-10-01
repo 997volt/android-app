@@ -1,5 +1,9 @@
 package com.example.androidapp.data
 
+import java.io.IOException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import com.example.androidapp.data.local.seedMissingExercises
 import androidx.room.withTransaction
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.transfer.BackupCodec
@@ -51,6 +55,29 @@ class RoomBackupRepository @Inject constructor(
                 crashLogs = crashLogStore.all(),
             ),
         )
+    }
+
+    override suspend fun clearAllUserData(): DataResult<Unit> = dataResultOf {
+        // Off the main thread: `clearAllTables` is a blocking call and Room asserts where
+        // it runs. The DAO's own suspending methods dispatch themselves; this one does not.
+        withContext(Dispatchers.IO) {
+            database.clearAllTables()
+
+            // The seeder runs in `RoomDatabase.Callback.onOpen`, which fires when the
+            // database is *opened*, not after its tables are emptied — so without this the
+            // library would stay empty until the process restarted, and a clean start would
+            // look broken (N18's trap).
+            seedMissingExercises(
+                db = database.openHelper.writableDatabase,
+                seededAt = timeSource.nowEpochMillis(),
+            )
+
+            // Crash logs are diagnostics *about* the data that just went, and they live
+            // outside the database, so nothing above touches them.
+            if (!crashLogStore.clear()) {
+                throw IOException("the crash logs could not be removed")
+            }
+        }
     }
 
     override suspend fun import(text: String): DataResult<ImportSummary> = dataResultOf {

@@ -32,6 +32,20 @@ interface BackupRepository {
      * that motivated this shape.
      */
     suspend fun import(text: String): DataResult<ImportSummary>
+
+    /**
+     * Deletes everything the user made and puts the seeded library back (ROADMAP N18).
+     *
+     * **Hard, not soft.** Every other delete in this app sets `deletedAt`, which is right
+     * for a mistaken tap and wrong for "start over": a soft-deleted row survives, and an
+     * export taken afterwards would still carry it. This is the one action that removes
+     * rows.
+     *
+     * It leaves the library the app ships (those are app content, not the user's), the
+     * database file itself, and any file the user has exported — that one belongs to them
+     * and lives outside the app, which is exactly why the screen offers an export first.
+     */
+    suspend fun clearAllUserData(): DataResult<Unit>
 }
 
 /**

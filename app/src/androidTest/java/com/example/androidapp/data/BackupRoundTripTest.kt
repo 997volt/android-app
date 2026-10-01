@@ -1,5 +1,6 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.platform.CrashLog
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,6 +45,9 @@ class BackupRoundTripTest {
     /** The real delete path, so the test exercises what the UI does. */
     private lateinit var workouts: RoomWorkoutRepository
 
+    /** Kept so a clear can be asserted against the diagnostics as well as the rows. */
+    private lateinit var crashLogs: CrashLogStore
+
     private val clock = TimeSource { Instant.parse("2026-09-28T08:00:00Z") }
 
     @Before
@@ -57,7 +61,9 @@ class BackupRoundTripTest {
             timeSource = clock,
             // Nothing is recorded here, but the export path has to be built the
             // same way the app builds it.
-            crashLogStore = CrashLogStore(Files.createTempDirectory("crash-logs").toFile()),
+            crashLogStore = CrashLogStore(Files.createTempDirectory("crash-logs").toFile()).also {
+                crashLogs = it
+            },
         )
         workouts = RoomWorkoutRepository(database, clock)
     }
@@ -345,5 +351,71 @@ class BackupRoundTripTest {
         val exercise = database.backupDao().allTemplateExercises().single()
         assertEquals(180, exercise.restSeconds)
         assertEquals("Slow descent", exercise.techniqueNote)
+    }
+
+    @Test
+    fun clearingEverything_leavesNoUserRows_andPutsTheLibraryBack() = runTest {
+        // ROADMAP N18's trap, in the form the roadmap asks for it: the seeder runs on
+        // *open*, so a clear that only emptied tables would leave the library empty until
+        // the process restarted — a clean start that looks broken.
+        seedAWorkout()
+        crashLogs.record(
+            CrashLog(
+                timestamp = 1_000L,
+                exceptionClass = "java.lang.IllegalStateException",
+                stackTrace = "at example",
+                appVersion = "1.5",
+                versionCode = 6,
+                androidVersion = "36",
+                deviceModel = "test",
+            ),
+        )
+        val before = counts()
+        assertTrue("the fixture must have something to clear", before.total > 0)
+
+        val cleared = repository.clearAllUserData()
+
+        assertTrue("clearing is a value, not a throw", cleared is DataResult.Success)
+        val after = counts()
+        assertEquals("sessions", 0, after.sessions)
+        assertEquals("session exercises", 0, after.sessionExercises)
+        assertEquals("sets", 0, after.sets)
+        assertEquals("templates", 0, after.templates)
+        assertEquals("template exercises", 0, after.templateExercises)
+        assertEquals("planned sets", 0, after.templateSets)
+        assertTrue(
+            "the exercise library is app content and must come back, not stay empty",
+            after.exercises >= SEEDED_LIBRARY_MINIMUM,
+        )
+        assertEquals("and the crash logs are diagnostics about what just went", 0, crashLogs.all().size)
+    }
+
+    @Test
+    fun anExportTakenBeforeAClear_stillImports() = runTest {
+        // The whole point of exporting first: platform backup is off, so the file is the
+        // only thing that outlives the action — and it has to still work afterwards.
+        seedAWorkout()
+        val json = exportedJson()
+        val before = counts()
+
+        repository.clearAllUserData()
+        val summary = (repository.import(json) as DataResult.Success).data
+
+        val after = counts()
+        assertEquals("the workouts come back", before.sessions, after.sessions)
+        assertEquals(before.sessionExercises, after.sessionExercises)
+        assertEquals(before.sets, after.sets)
+        assertEquals(before.templates, after.templates)
+        assertEquals(before.templateExercises, after.templateExercises)
+        assertEquals(before.templateSets, after.templateSets)
+        assertTrue("and the summary accounts for them", summary.total > 0)
+    }
+
+    private companion object {
+        /**
+         * The shipped library's size, as a floor rather than an exact count: the seeder
+         * tops up, so a later release adding an exercise must not break this.
+         */
+        const val SEEDED_LIBRARY_MINIMUM = 30
     }
 }

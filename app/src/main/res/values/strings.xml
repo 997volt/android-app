@@ -283,6 +283,17 @@
 
     <!-- Backup and restore (ROADMAP P1.12) -->
     <string name="transfer_more">More options</string>
+    <!-- Starting over (ROADMAP N18). The order is fixed: export, then type, then go. -->
+    <string name="clear_title">Delete everything?</string>
+    <string name="clear_body">This removes every workout, set, template, rating and comment, and the crash logs. The seeded exercise library stays.</string>
+    <string name="clear_cannot_undo">There is no undo, no soft-deleted copy and no server copy. Platform backup is off, so an export is the only thing that can survive this.</string>
+    <string name="clear_export_first">Export first</string>
+    <string name="clear_confirm_label">Type %1$s to confirm</string>
+    <string name="clear_confirm_word">DELETE</string>
+    <string name="clear_confirm_action">Delete everything</string>
+    <string name="clear_cancel">Cancel</string>
+    <string name="clear_menu">Delete everything…</string>
+    <string name="clear_done">Everything deleted</string>
     <string name="transfer_export">Export data</string>
     <string name="transfer_import">Import data</string>
     <string name="transfer_exported">Backup written.</string>

@@ -8,6 +8,23 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **Start over, with a way out first.** The app had no way to let go of its data: deletes
+  are soft, an import can only add, and the only true wipe was `adb shell pm clear`, which
+  is not a phone feature. **Delete everything** now lives with export and import in the
+  home menu and removes every workout, set, template, planned set, custom exercise, rating
+  and comment — plus the crash logs, which are diagnostics about that same data. The seeded
+  exercise library stays: it is app content, and the seeder restores it.
+- **The order is the point: export, then type, then go.** Platform backup is off, so an
+  exported file is the only thing that can outlive the action — offering it is part of the
+  dialog, not a courtesy beside it. The confirmation is **typed** (`DELETE`), because
+  "delete everything" is a button someone presses by accident exactly once, and what cannot
+  be undone is said before the button is enabled rather than in the aftermath.
+- **Hard, not soft.** Every other delete here sets `deletedAt`, which is right for a
+  mistaken tap and wrong for starting over: a soft-deleted row survives, and an export
+  taken afterwards would still carry it. And clearing re-seeds explicitly, because the
+  seeder runs when the database is *opened* — a clear that only emptied tables would have
+  left an empty library until the process restarted, which looks broken rather than clean.
+
 - **Trends for one exercise.** N13 reads the app's signals across everything; this
   answers the narrower question a lifter actually asks — *how is my bench press going* —
   from rows the app already writes. Over the last ten finished sessions that recorded the
