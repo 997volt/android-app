@@ -224,6 +224,15 @@ into this file once the feature ships.
   that a cancellation hid — that is, a red run noticed later than it should have been — at which
   point the jobs split by branch rather than by trust.
 
+- **The rest cue stays inside the permission-free envelope** (N27). Removing the background alert left
+  the app declaring nothing, and the obvious way to make a rest audible and felt would spend that:
+  `Vibrator` needs `android.permission.VIBRATE`. So the cue is **view-level haptics**
+  (`performHapticFeedback`, no permission) plus a tone played in-process, and keep-screen-on is a
+  window flag rather than a wake lock. Stated here because the constraint is invisible from the
+  feature's description: "sound and haptics" reads like a platform call, and the platform call that
+  does it costs the property N26 was for. If a stronger cue is ever wanted, the trade is a permission
+  and it should be taken deliberately rather than as a side effect.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

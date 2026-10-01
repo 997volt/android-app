@@ -37,7 +37,7 @@ N27: the in-app timer is the whole mechanism until it can be heard and seen.
 
 ### N27 — Make the rest timer audible and visible
 
-The replacement for what N26 removes, and the reason the two are one round rather than two. With no
+The replacement for what N26 removed, and the reason the two are one round rather than two. With no
 background alert, the timer can only be noticed while the app is on screen.
 
 - **P1.14** — sound and haptics when a rest ends.
@@ -45,6 +45,10 @@ background alert, the timer can only be noticed while the app is on screen.
   (N21), so this has somewhere to live instead of needing a surface of its own.
 - Both were Tier 3 polish; removing the alert is what makes them load-bearing, which is why they
   are marked here rather than left in *Later*.
+- **Constrained by N26's property, and recorded in [DECISIONS.md](DECISIONS.md):** the cue is
+  view-level haptics plus an in-process tone, and keep-screen-on is a window flag — none of which
+  needs a permission. `Vibrator` would, and "sound and haptics" reads like a platform call until you
+  look at what it costs.
 
 ### N28 — Warm-up set generator
 
