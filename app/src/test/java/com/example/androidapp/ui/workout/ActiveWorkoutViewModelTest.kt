@@ -1396,4 +1396,35 @@ class ActiveWorkoutViewModelTest {
             repository.sets.value.single().assistanceGrams,
         )
     }
+
+    @Test
+    fun theReview_countsTheWorkThatWasJustDone() = runTest(dispatcher) {
+        // A device found this, and only a device could: the review was built *after*
+        // finishing, and a stored session is no longer the live one — so the totals read
+        // "Sets 0 · reps 0 · 0 kg" and the set that had just been logged was reported as
+        // not performed. The fake clears the active session exactly as the real repository
+        // does, so this test holds the fix.
+        val repository = FakeWorkoutRepository()
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+
+        viewModel.onFinish()
+        settle()
+
+        val summary = viewModel.summary.value
+        assertNotNull(summary)
+        assertEquals("the set that was logged", 1, summary!!.totalSets)
+        assertEquals(8, summary.totalReps)
+        assertEquals("20 kg × 8", 160_000L, summary.totalVolumeGrams)
+        assertEquals(
+            "and it is not reported as never performed",
+            1,
+            summary.comparisons.single().performedSets,
+        )
+    }
 }

@@ -612,12 +612,21 @@ class ActiveWorkoutViewModel @Inject constructor(
                     return@launch
                 }
             }
+            // Captured *before* finishing, and this is the bug a device found: the state
+            // describes the *live* session, so the moment the workout is stored its
+            // exercises and sets leave the flow — a review built afterwards read
+            // "Sets 0 · reps 0 · 0 kg" and called a set that was just logged "not
+            // performed". The review is about work that exists only until this call
+            // returns, so it is taken here.
+            val finishedState = uiState.value
+            val plan = plannedExercises.first()
+
             when (val result = workoutRepository.finishSession(sessionId)) {
                 is DataResult.Success -> {
                     lastError.value = null
                     // The workout is over and stored; the review is what the user sees
                     // next, and dismissing it is what closes the screen (N20).
-                    _summary.value = buildSummary(uiState.value, plannedExercises.first(), note)
+                    _summary.value = buildSummary(finishedState, plan, note)
                 }
 
                 is DataResult.Failure -> lastError.value = result.error
