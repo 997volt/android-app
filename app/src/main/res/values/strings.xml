@@ -303,6 +303,7 @@
     <string name="summary_rating_feel">felt %1$d/10</string>
     <string name="summary_rating_pain">joints %1$d/10</string>
     <string name="summary_plan_title">Plan vs actual</string>
+    <string name="summary_warmup_note">Warm-up sets are not counted.</string>
     <string name="summary_prescribed">prescribed %1$s</string>
     <string name="summary_performed">performed %1$s</string>
     <string name="summary_shape">%1$d×%2$d</string>

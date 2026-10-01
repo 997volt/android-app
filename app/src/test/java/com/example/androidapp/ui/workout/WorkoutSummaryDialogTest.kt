@@ -73,6 +73,7 @@ class WorkoutSummaryDialogTest {
             ),
         )
 
+        composeTestRule.onNodeWithText("Warm-up sets are not counted.").assertExists()
         composeTestRule.onNodeWithText("prescribed 1×1 at 90 kg").assertExists()
         composeTestRule.onNodeWithText("performed 1×1 at 92.5 kg").assertExists()
         composeTestRule.onNodeWithText("2.5 kg over plan").assertExists()

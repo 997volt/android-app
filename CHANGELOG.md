@@ -162,6 +162,17 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+- **The finish review's counts now agree with its reps.** "Prescribed 2×3" meant two sets, one of
+  them a warm-up, totalling three reps — the counts included warm-ups while the rep sums dropped
+  them. Both exclude warm-ups now, as the record and progression rules do, and the dialog says so.
+- **A plan that names no reps no longer reads "prescribed 2×0".** A guard tested the wrong list, so
+  a prescription with no rep ceiling produced a sum of zero and put it on screen, against the rule
+  that a field with nothing to say stays empty.
+- **The review tells two rows of the same exercise apart.** It matched exercises by display name,
+  so a movement performed twice collapsed to one row — the earlier one's sets vanished from the
+  review while the totals still counted them, which made the summary contradict itself. Matching is
+  by exercise id now.
+
 - **A warm-up can no longer raise a personal best.** The record rule never saw the set's role, so
   a heavy warm-up at a rep count with no record — or above the existing one — raised the banner,
   which the app's own documentation said could no longer happen. The rule takes the role now, so

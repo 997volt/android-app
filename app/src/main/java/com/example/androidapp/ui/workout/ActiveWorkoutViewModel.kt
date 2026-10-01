@@ -948,6 +948,7 @@ private fun buildSummary(
 ): WorkoutSummary {
     val actual = state.exercises.map { row ->
         ExerciseActual(
+            exerciseId = row.exerciseId,
             name = row.name,
             sets = row.sets.map {
                 PerformedSetSpec(
@@ -961,6 +962,7 @@ private fun buildSummary(
     }
     val planned = plan.map { plannedExercise ->
         ExercisePlan(
+            exerciseId = plannedExercise.exerciseId,
             name = plannedExercise.exerciseName,
             sets = plannedExercise.sets.map {
                 PlannedSetSpec(

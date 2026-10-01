@@ -30,11 +30,25 @@ data class PerformedSetSpec(
     val reps: Int,
 )
 
-/** An exercise as the plan prescribed it. */
-data class ExercisePlan(val name: String, val sets: List<PlannedSetSpec>)
+/**
+ * An exercise as the plan prescribed it.
+ *
+ * [exerciseId] is what matches the two sides (ROADMAP B20). Keying by [name] collapsed two rows
+ * of the same movement — nothing prevents the same exercise appearing twice in a session — and
+ * silently dropped the earlier one's sets from the review while the totals still counted them.
+ */
+data class ExercisePlan(
+    val exerciseId: String,
+    val name: String,
+    val sets: List<PlannedSetSpec>,
+)
 
 /** An exercise as it was performed. */
-data class ExerciseActual(val name: String, val sets: List<PerformedSetSpec>)
+data class ExerciseActual(
+    val exerciseId: String,
+    val name: String,
+    val sets: List<PerformedSetSpec>,
+)
 
 /**
  * One exercise's plan next to its performance.
@@ -71,14 +85,14 @@ fun comparePlanToActual(
     planned: List<ExercisePlan>,
     performed: List<ExerciseActual>,
 ): List<PlanComparison> {
-    val actualByName = performed.associateBy { it.name }
-    val plannedNames = planned.map { it.name }.toSet()
+    val actualById = performed.associateBy { it.exerciseId }
+    val plannedIds = planned.map { it.exerciseId }.toSet()
 
     val answered = planned.map { plan ->
-        comparisonOf(plan.name, plan.sets, actualByName[plan.name]?.sets.orEmpty())
+        comparisonOf(plan.name, plan.sets, actualById[plan.exerciseId]?.sets.orEmpty())
     }
     val improvised = performed
-        .filterNot { it.name in plannedNames }
+        .filterNot { it.exerciseId in plannedIds }
         .map { comparisonOf(it.name, emptyList(), it.sets) }
 
     return answered + improvised
@@ -98,11 +112,18 @@ private fun comparisonOf(
     val prescribedTop = plannedWork.mapNotNull { it.weightGrams }.maxOrNull()
     val performedTop = performedWork.maxOfOrNull { it.weightGrams }
 
+    // B19: the guard belonged to the mapped list. Testing the *input* meant a plan whose working
+    // sets name no reps produced an empty sum — a truthy guard and a zero on screen, against the
+    // file's own promise that every nullable field is honestly nullable.
+    val plannedReps = plannedWork.mapNotNull { it.maxReps }
+
     return PlanComparison(
         name = name,
-        prescribedSets = plannedSets.size,
-        performedSets = performedSets.size,
-        prescribedReps = plannedWork.mapNotNull { it.maxReps }.sum().takeIf { plannedWork.isNotEmpty() },
+        // B21: the counts exclude warm-ups, exactly as the rep sums do — otherwise "prescribed
+        // 2×3" meant two sets, one of them a warm-up, totalling three reps. The dialog says so.
+        prescribedSets = plannedWork.size,
+        performedSets = performedWork.size,
+        prescribedReps = plannedReps.sum().takeIf { plannedReps.isNotEmpty() },
         performedReps = performedWork.sumOf { it.reps },
         prescribedTopWeightGrams = prescribedTop,
         performedTopWeightGrams = performedTop,

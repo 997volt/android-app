@@ -66,28 +66,11 @@ what is left of Tier 3.
 ### The v1.5 review — B14–B25
 
 Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
-admits. Ordered by what it costs the user. **B14 through B18 are fixed** and live in
+admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
-that left a feature half-built, and two the record rule got wrong. Several of what remain are a
-contract that is documented and not implemented, and the rest are gaps.
+that left a feature half-built, two the record rule got wrong, and three in the finish review's own
+arithmetic. What remains is a missing test of the navigation invariant and three coverage gaps.
 
-- **B19 — A plan with no rep ceiling renders "prescribed 2×0".** `prescribedReps` applies
-  `takeIf` to the wrong expression (`PlanComparison.kt:105`):
-  `plannedWork.mapNotNull { it.maxReps }.sum().takeIf { plannedWork.isNotEmpty() }` — the guard
-  tests the *input* list, so working sets with no `maxReps` yield an empty map, a sum of 0, and a
-  truthy guard. It violates the file's own "every nullable field is honestly nullable" contract
-  and puts a zero on screen. Fix the guard to test the mapped list.
-- **B20 — The review keys exercises by display name, so a repeated exercise collapses.** Both
-  the performed map (`PlanComparison.kt:74`, `associateBy { it.name }`, last wins) and the
-  improvised filter (`:80`) use the name, while nothing prevents the same exercise twice in a
-  session. So two rows sharing a name lose the earlier one's sets from the review — while the
-  totals at `ActiveWorkoutViewModel.kt:963` still count them, making the summary contradict
-  itself. Matching should use `exerciseId`; the comparison types carry only `name` today.
-- **B21 — The review's counts include warm-ups where its reps exclude them.** `prescribedSets`
-  and `performedSets` are the unfiltered lists while the rep sums drop warm-ups
-  (`PlanComparison.kt:92-104`), so "prescribed 2×3" means two sets, one of them a warm-up, with
-  three total reps. Either both should exclude warm-ups or both should include them, and the
-  dialog should say which.
 - **B22 — The route-registration invariant is still unguarded.** A route with no
   `composable<...>` compiles and crashes at navigation. That is how the Settings bug shipped, and
   it was *both* a missing `@Serializable` **and** a missing registration — only the first got a

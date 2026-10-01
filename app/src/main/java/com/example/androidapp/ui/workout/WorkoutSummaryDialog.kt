@@ -76,14 +76,7 @@ fun WorkoutSummaryDialog(
                         Text("${rating.name} — ${parts.joinToString(", ")}")
                     }
                 }
-                if (summary.comparisons.isNotEmpty()) {
-                    HorizontalDivider()
-                    Text(
-                        text = stringResource(R.string.summary_plan_title),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    summary.comparisons.forEach { PlanComparisonRow(it) }
-                }
+                PlanVersusActual(summary.comparisons)
             }
         },
         confirmButton = {
@@ -167,4 +160,27 @@ private fun verdictText(comparison: PlanComparison): String = when {
         stringResource(R.string.summary_over, Weight.display(comparison.topSetDeltaGrams, 0))
     else ->
         stringResource(R.string.summary_under, Weight.display(-comparison.topSetDeltaGrams, 0))
+}
+
+/** The section the screen exists for: the plan, the performance, and the difference (N20, B21). */
+@Composable
+private fun PlanVersusActual(
+    comparisons: List<PlanComparison>,
+    modifier: Modifier = Modifier,
+) {
+    if (comparisons.isEmpty()) return
+    Column(modifier = modifier) {
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.summary_plan_title),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        // The counts and the rep sums both leave warm-ups out, so the dialog says so rather than
+        // leaving the reader to infer it (ROADMAP B21).
+        Text(
+            text = stringResource(R.string.summary_warmup_note),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        comparisons.forEach { PlanComparisonRow(it) }
+    }
 }

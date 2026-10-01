@@ -14,11 +14,13 @@ import org.junit.Test
  */
 class PlanComparisonTest {
 
+    // The id is what matches the two sides (B20), so these fixtures give each name an id and
+    // the collapse tests below give two rows the *same* name with different ids.
     private fun planned(name: String, vararg sets: PlannedSetSpec) =
-        ExercisePlan(name = name, sets = sets.toList())
+        ExercisePlan(exerciseId = name.lowercase().replace(" ", "-"), name = name, sets = sets.toList())
 
     private fun performed(name: String, vararg sets: PerformedSetSpec) =
-        ExerciseActual(name = name, sets = sets.toList())
+        ExerciseActual(exerciseId = name.lowercase().replace(" ", "-"), name = name, sets = sets.toList())
 
     private fun working(weightGrams: Long?, reps: Int) =
         PlannedSetSpec(role = SetType.NORMAL, weightGrams = weightGrams, maxReps = reps)
@@ -73,8 +75,11 @@ class PlanComparisonTest {
         assertEquals(122_500L, comparison.performedTopWeightGrams)
         assertEquals(120_000L, comparison.prescribedTopWeightGrams)
         assertEquals(2_500L, comparison.topSetDeltaGrams)
-        assertEquals("warm-ups still count as sets performed", 2, comparison.performedSets)
-        assertEquals("and as the plan's own statement", 2, comparison.prescribedSets)
+        // B21 changed this: the counts exclude warm-ups, as the rep sums always did. Counting
+        // them here while dropping them there is what made "prescribed 2×3" mean two sets, one a
+        // warm-up, totalling three reps.
+        assertEquals("only the working set counts", 1, comparison.performedSets)
+        assertEquals("on both sides", 1, comparison.prescribedSets)
     }
 
     @Test
@@ -123,5 +128,64 @@ class PlanComparisonTest {
         assertEquals(1, comparisons.prescribedSets)
         assertEquals(0, comparisons.performedSets)
         assertNull(comparisons.performedTopWeightGrams)
+    }
+
+    @Test
+    fun aPlanWithNoRepCeiling_leavesTheRepsUnknown_ratherThanZero() {
+        // ROADMAP B19: the guard tested the input list, so working sets naming no reps produced
+        // an empty sum with a truthy guard — "prescribed 2×0" on screen, against this file's own
+        // promise that a field with nothing to say is null.
+        val comparison = comparePlanToActual(
+            planned = listOf(
+                planned(
+                    "Back Squat",
+                    PlannedSetSpec(role = SetType.NORMAL, weightGrams = 100_000L),
+                    PlannedSetSpec(role = SetType.NORMAL, weightGrams = 100_000L),
+                ),
+            ),
+            performed = listOf(performed("Back Squat", did(100_000L, 5))),
+        ).single()
+
+        assertNull("nothing was prescribed to count", comparison.prescribedReps)
+    }
+
+    @Test
+    fun theSameExerciseTwice_keepsBothRowsApart() {
+        // ROADMAP B20: keying by display name collapsed two rows of one movement — last one won —
+        // so the earlier row's sets vanished from the review while the totals still counted them,
+        // making the summary contradict itself.
+        val comparisons = comparePlanToActual(
+            planned = emptyList(),
+            performed = listOf(
+                ExerciseActual("back-squat", "Back Squat", listOf(did(100_000L, 5))),
+                ExerciseActual("back-squat-top", "Back Squat", listOf(did(110_000L, 1))),
+            ),
+        )
+
+        assertEquals("both are reported", 2, comparisons.size)
+        assertEquals("with their own sets", 1, comparisons[1].performedSets)
+        assertEquals(110_000L, comparisons[1].performedTopWeightGrams)
+    }
+
+    @Test
+    fun theCounts_excludeWarmUps_asTheRepsDo() {
+        // ROADMAP B21: "prescribed 2×3" meant two sets, one a warm-up, totalling three reps.
+        val comparison = comparePlanToActual(
+            planned = listOf(
+                planned(
+                    "Bench Press",
+                    PlannedSetSpec(role = SetType.WARMUP, weightGrams = 40_000L, maxReps = 10),
+                    PlannedSetSpec(role = SetType.NORMAL, weightGrams = 80_000L, maxReps = 3),
+                ),
+            ),
+            performed = listOf(
+                performed("Bench Press", did(40_000L, 10, SetType.WARMUP), did(80_000L, 3)),
+            ),
+        ).single()
+
+        assertEquals("one working set each side", 1, comparison.prescribedSets)
+        assertEquals(1, comparison.performedSets)
+        assertEquals("and three reps, which now agrees", 3, comparison.prescribedReps)
+        assertEquals(3, comparison.performedReps)
     }
 }
