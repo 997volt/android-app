@@ -1,7 +1,11 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.SetEntry
+import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.Weight
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -117,5 +121,60 @@ class SetSuggestionTest {
         )
 
         assertEquals(20_000L, suggestion.assistanceGrams)
+    }
+
+    @Test
+    fun aPlanThatNamesRepsAndNoLoad_isProgressedFromHistory() {
+        // ROADMAP B24's gap, and the N22 branch it names: a plan that says "2 reps" and no bar,
+        // with nothing logged yet this session — so the rule, not the fallback, has to decide
+        // whether that means one more rep or one more step. History says 100 kg × 2, which is the
+        // ceiling, so it is a step.
+        val suggestion = suggestionForNextSet(
+            loggedSets = emptyList(),
+            previous = PreviousPerformance(
+                listOf(
+                    SetEntry(
+                        id = "old",
+                        sessionExerciseId = "se-old",
+                        setIndex = 0,
+                        reps = 2,
+                        weightGrams = 100_000,
+                    ),
+                ),
+            ),
+            planned = PlannedTarget(reps = 2, weightGrams = null),
+        )
+
+        assertEquals("a step heavier", 102_500L, suggestion.weightGrams)
+        assertEquals("at the reps the plan asked for", 2, suggestion.reps)
+        // The plan sized the reps, so the reason explains the load — and a step is worth saying.
+        assertEquals(ProgressionReason.MORE_WEIGHT, suggestion.reason)
+    }
+
+    @Test
+    fun aPlanThatNamesRepsAndNoLoad_belowTheCeiling_addsARep() {
+        // The same branch, on the other side of the ceiling: 90 kg for 2 against a plan of 5.
+        val suggestion = suggestionForNextSet(
+            loggedSets = emptyList(),
+            previous = PreviousPerformance(
+                listOf(
+                    SetEntry(
+                        id = "old",
+                        sessionExerciseId = "se-old",
+                        setIndex = 0,
+                        reps = 2,
+                        weightGrams = 90_000,
+                    ),
+                ),
+            ),
+            planned = PlannedTarget(reps = 5, weightGrams = null),
+        )
+
+        assertEquals("the same bar as last time", 90_000L, suggestion.weightGrams)
+        assertEquals("the reps are the plan's to decide", 5, suggestion.reps)
+        assertNull(
+            "and there is nothing to explain: the plan already sized the set",
+            suggestion.reason,
+        )
     }
 }

@@ -69,7 +69,7 @@ Two reviews of v1.5 — one structural, one defect-focused — turned up more th
 admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
 that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. What remains are three coverage gaps and one workflow decision.
+arithmetic. What remains is coverage: the settings feature's tests (B23) and two SQLite cases in B24.
 
 - **B23 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
   `SettingsViewModel` and `PreferencesSettingsRepository`, and no test in either source set
@@ -82,15 +82,10 @@ arithmetic. What remains are three coverage gaps and one workflow decision.
   matter. What remains: `personalRecords` and `setSupersetGroup` are still exercised only through
   hand-written fakes, and two smaller gaps stand — the `SetSuggestion` branch for a plan that names
   reps and no load, and N24's A1/A2 label and superset toggle.
-- **B25 — The instrumented job rarely finishes during a busy stretch.** `cancel-in-progress`
-  meets a fast push cadence: across the last 60 runs, **40 were cancelled** against 18 successes,
-  and the emulator job needs 15–30 minutes while the build job needs about 8. The fast job
-  validates every commit and the suite covering DAOs, migrations and the backup round trip
-  completes only when pushes are spaced out. **Not a code defect, and the fix is a workflow
-  decision rather than a patch:** either accept it — the guard reports a truncated run rather
-  than passing it, which is why the one genuine failure in the window was that guard firing — or
-  stop cancelling the run whose job is the slow one, for instance by letting the instrumented job
-  run only on `main`.
+- **B25 — The instrumented job rarely finishes during a busy stretch.** *Settled*: the
+  cancellation is accepted, and the reasoning and the trigger to revisit are in
+  [DECISIONS.md](DECISIONS.md). What makes it safe is B8's guard, which fails a truncated run
+  rather than passing it — so the cost is a job that does not run, never a green that lies.
 
 ### Settled by the review rather than queued
 

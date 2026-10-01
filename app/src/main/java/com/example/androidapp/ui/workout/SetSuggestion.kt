@@ -88,6 +88,14 @@ fun suggestionForNextSet(
         assistanceGrams = plannedLoad?.assistanceGrams
             ?: proposedForPlan?.assistanceGrams
             ?: withoutPlan.assistanceGrams,
+        // The reason explains the *load* here, and only when it is about the load: the plan
+        // already decides the reps, so "one more rep than last time" beside a set the plan sized
+        // would be a sentence about the wrong number. Null is the established "nothing to
+        // explain" — found by B24's test, which is how the plan branch came to be passing the
+        // rule's value away.
+        reason = proposedForPlan?.reason?.takeIf { it != ProgressionReason.MORE_REPS }
+            ?: plannedLoad?.let { null }
+            ?: withoutPlan.reason?.takeIf { planned.reps == null },
     )
 }
 

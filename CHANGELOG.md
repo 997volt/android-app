@@ -8,6 +8,14 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **A plan that names reps and no load now says why it proposes what it does.** The suggestion for
+  that case passed the rule's reason away, so a step heavier than last time arrived with no
+  explanation. It explains a *load* only: the plan already decides the reps, and "one more rep than
+  last time" beside a set the plan sized would be a sentence about the wrong number.
+- **The superset label and its tap have tests**, which they did not: giant-set notation is the only
+  thing on the workout screen that says two exercises are performed together, and the tap is the
+  only way to group them inside a session.
+
 - **The schema upgrade keeps the rows already in the tables, and now proves it.** `MIGRATION_15_16`
   was amended after it had already run on development devices — a second column joined the same
   version — so the question a chain test cannot answer is whether an upgrade preserves what is

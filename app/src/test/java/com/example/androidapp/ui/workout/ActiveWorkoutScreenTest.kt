@@ -478,4 +478,37 @@ class ActiveWorkoutScreenTest {
         composeTestRule.onNodeWithText("Role: Warm-up").assertExists()
         composeTestRule.onNodeWithText("-20").assertExists()
     }
+
+    @Test
+    fun aGroupedExercise_isLabelledWithItsPlaceInTheSuperset() {
+        // ROADMAP B24's gap: N24's label and toggle had no test. Giant-set notation is the only
+        // way the screen says two exercises are performed together.
+        val base = state(isFinished = false)
+        setScreen(
+            state = base.copy(
+                exercises = base.exercises.map {
+                    it.copy(supersetGroup = 1, supersetLabel = "A1")
+                },
+            ),
+        )
+
+        composeTestRule.onNodeWithText("A1 · Back Squat").assertExists()
+    }
+
+    @Test
+    fun everyEditableExercise_offersTheSupersetTap() {
+        // A control nothing asserts is a control nobody notices breaking, and this one is the only
+        // way to group two exercises inside a session.
+        setScreen(state = state(isFinished = false))
+
+        composeTestRule.onNodeWithTag(TestTags.supersetToggle("se1")).assertExists()
+    }
+
+    @Test
+    fun aFinishedExercise_isNotOfferedTheSupersetTap() {
+        // Same rule as its Log set button: a done exercise is out of the round (N7).
+        setScreen(state = state(isFinished = true))
+
+        composeTestRule.onNodeWithTag(TestTags.supersetToggle("se1")).assertDoesNotExist()
+    }
 }

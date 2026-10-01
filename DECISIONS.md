@@ -210,6 +210,17 @@ into this file once the feature ships.
   ran it must be wiped — the alternative, a 16→17 migration, is correct but adds a version step to
   prove for data that only exists on developer machines.
 
+- **The instrumented job keeps getting cancelled, and that is accepted** (B25). Across the last
+  sixty runs, forty were cancelled against eighteen successes: `cancel-in-progress` meets a fast
+  push cadence, and the emulator job needs 15–30 minutes while the build job needs about eight. The
+  tempting fix — running the instrumented job only on `main` — was rejected because it trades a
+  *visible* gap for an invisible one: cancelled runs are obviously missing, whereas a job that never
+  starts on a branch reads like coverage that was never needed. What makes accepting safe is the
+  guard from B8: a truncated run fails the job rather than passing quietly, which is why the one
+  genuine failure in that window was the guard firing. **The trigger to revisit**: a real failure
+  that a cancellation hid — that is, a red run noticed later than it should have been — at which
+  point the jobs split by branch rather than by trust.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
