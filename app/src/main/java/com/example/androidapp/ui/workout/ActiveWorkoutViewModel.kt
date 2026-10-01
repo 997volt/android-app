@@ -184,6 +184,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         templateId?.let { templateRepository.observeExercises(it) } ?: flowOf(emptyList())
 
     private val lastError = MutableStateFlow<DataError?>(null)
+
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
     private val previousByExercise = MutableStateFlow<Map<String, PreviousPerformance>>(emptyMap())
 
@@ -427,22 +428,30 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
-    /** Logs a set using the prefilled values, then starts the rest (P1.4). */
-    fun onLogSet(sessionExerciseId: String) {
+
+    /**
+     * Logs a set using the prefilled values, then starts the rest (P1.4).
+     *
+     * The role comes from the caller (ROADMAP N19): it is a choice about *this* set, made
+     * at the button, so it lives with the button rather than in this screen's state — and
+     * nothing here has to remember to clear it afterwards.
+     */
+    fun onLogSet(sessionExerciseId: String, setType: SetType = SetType.NORMAL) {
         val row = uiState.value.exercises.firstOrNull { it.id == sessionExerciseId } ?: return
         viewModelScope.launch {
             val result = workoutRepository.logSet(
                 sessionExerciseId = sessionExerciseId,
                 reps = row.suggestion.reps,
                 weightGrams = row.suggestion.weightGrams,
+                setType = setType,
                 // The button reads "-20 kg × 8"; a set written without the help would
                 // be a different set from the one it just described (ROADMAP B7, D3).
                 assistanceGrams = row.suggestion.assistanceGrams,
             )
             handle(result)
-            // The exercise's own rest when it has one, otherwise the app default
-            // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
             if (result is DataResult.Success) {
+                // The exercise's own rest when it has one, otherwise the app default
+                // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
                 startRest(row.restSeconds ?: RestTimer.DEFAULT_SECONDS)
             }
         }

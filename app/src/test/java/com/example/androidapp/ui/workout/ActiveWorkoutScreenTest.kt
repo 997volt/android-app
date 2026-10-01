@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.SetType
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertHasClickAction
@@ -42,6 +43,7 @@ class ActiveWorkoutScreenTest {
         val onRemoveExercise: (String) -> Unit = {},
         val onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         val onFinish: (String?) -> Unit = {},
+        val onLogSet: (String, SetType) -> Unit = { _, _ -> },
     )
 
     private fun setScreen(
@@ -53,7 +55,7 @@ class ActiveWorkoutScreenTest {
                 state = state,
                 clock = remember { mutableStateOf(WorkoutClock()) },
                 onAddExercise = {},
-                onLogSet = {},
+                onLogSet = actions.onLogSet,
                 onUpdateSet = { _, _, _, _, _, _, _ -> },
                 onRemoveExercise = actions.onRemoveExercise,
                 onRateExercise = actions.onRateExercise,
@@ -341,4 +343,33 @@ class ActiveWorkoutScreenTest {
             ),
         ),
     )
+
+    @Test
+    fun choosingARole_thenLogging_writesThatRole() {
+        // ROADMAP N19: the picker used to be behind the editor, so three warm-ups cost
+        // three log-then-edit round trips. One tap each way now.
+        val logged = mutableListOf<Pair<String, SetType>>()
+        setScreen(
+            state = state(isFinished = false),
+            actions = Actions(onLogSet = { id, role -> logged += id to role }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.exercisePendingRole("se1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.exercisePendingRole("se1", "WARMUP")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SET_LOG).performClick()
+
+        assertEquals(listOf("se1" to SetType.WARMUP), logged)
+    }
+
+    @Test
+    fun theChosenRole_isShownOnTheControl() {
+        // The control has to say what the next tap will write, or arming it is a guess.
+        setScreen(state = state(isFinished = false))
+
+        composeTestRule.onNodeWithText("Role: Working").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.exercisePendingRole("se1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.exercisePendingRole("se1", "WARMUP")).performClick()
+
+        composeTestRule.onNodeWithText("Role: Warm-up").assertExists()
+    }
 }

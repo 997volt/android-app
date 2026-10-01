@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **Choosing a set's role where the set is logged.** The role picker existed but sat behind
+  the editor, so three warm-ups cost three log-then-edit round trips. It is now beside
+  **Log set**: pick the role, tap, done — one tap each way. The choice clears itself once
+  the set is written, because a role is a decision about one set and leaving it armed would
+  mark the next one a warm-up without anyone asking.
+
 - **Start over, with a way out first.** The app had no way to let go of its data: deletes
   are soft, an import can only add, and the only true wipe was `adb shell pm clear`, which
   is not a phone feature. **Delete everything** now lives with export and import in the

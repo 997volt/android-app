@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.ExerciseRatingSection
+import com.example.androidapp.ui.components.SetRoleSelector
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.rpeMarker
 
@@ -58,7 +60,7 @@ private const val DIMMED = 0.45f
 @Composable
 internal fun ExerciseList(
     rows: List<SessionExerciseRow>,
-    onLogSet: (String) -> Unit,
+    onLogSet: (String, SetType) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
@@ -75,7 +77,7 @@ internal fun ExerciseList(
         items(items = rows, key = { it.id }) { row ->
             ExerciseSection(
                 row = row,
-                onLogSet = { onLogSet(row.id) },
+                onLogSet = { role -> onLogSet(row.id, role) },
                 onRemoveExercise = { onRemoveExercise(row.id) },
                 onEditSet = onEditSet,
                 onDeleteSet = onDeleteSet,
@@ -100,7 +102,7 @@ internal fun ExerciseList(
 @Composable
 private fun ExerciseSection(
     row: SessionExerciseRow,
-    onLogSet: () -> Unit,
+    onLogSet: (SetType) -> Unit,
     onRemoveExercise: () -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
@@ -268,11 +270,17 @@ private fun RemoveExerciseAction(
 @Composable
 private fun ExerciseSets(
     row: SessionExerciseRow,
-    onLogSet: () -> Unit,
+    onLogSet: (SetType) -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The armed role belongs here rather than in the screen's state: it is a choice about
+    // the set the button below is about to write, and it clears itself afterwards
+    // (ROADMAP N19). A role is a decision about one set — leaving it armed would mark the
+    // next one without the user asking.
+    var armedRole by rememberSaveable(row.id) { mutableStateOf(SetType.NORMAL) }
+
     Column(modifier = modifier) {
         // Dimmed rather than hidden: the sets stay visible as a record of what was
         // done, and `editable` is what actually stops the taps.
@@ -288,11 +296,26 @@ private fun ExerciseSets(
         }
 
         // No Log set button once the exercise is done: that is the accident N7
-        // exists to prevent.
+        // exists to prevent. The role picker beside it is what makes a warm-up one tap
+        // instead of log-then-edit three times (ROADMAP N19).
         if (!row.isFinished) {
-            FilledTonalButton(
-                onClick = onLogSet,
+            Row(
                 modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+            SetRoleSelector(
+                role = armedRole,
+                onSelect = { armedRole = it },
+                testTag = TestTags.exercisePendingRole(row.id),
+                optionTag = { role -> TestTags.exercisePendingRole(row.id, role) },
+            )
+            FilledTonalButton(
+                onClick = {
+                    onLogSet(armedRole)
+                    armedRole = SetType.NORMAL
+                },
+                modifier = Modifier.testTag(TestTags.SET_LOG),
             ) {
                 Text(
                     text = stringResource(
@@ -304,6 +327,7 @@ private fun ExerciseSets(
                         ),
                     ),
                 )
+            }
             }
         }
     }

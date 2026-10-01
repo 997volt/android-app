@@ -67,9 +67,6 @@ what already exists, then the differentiator, then polish.
 **Tier 1 — close the loop on what already shipped.** Small, and every one of them is
 friction the app created by growing.
 
-- **N19 (was P1.20) — Choose a set's role as it is logged.** The one-tap **Log set** writes
-  a working set, so three warm-ups cost three log-then-edit round trips. The role picker
-  exists; it is simply behind the editor. Best value-to-effort ratio on the board.
 - **N20 (was P1.18) — A post-workout summary on Finish, with plan versus actual.** Finish
   is a dead end today: the ratings, the readiness note and the totals go nowhere. And the
   app now writes plans and logs performed sets while **never comparing them** — targets

@@ -112,6 +112,16 @@ into this file once the feature ships.
   writing the test; the rule that stops the list growing is one-way, so a new tag without
   its test is a finding. Tags that map to no control at all are still deleted on sight.
 
+- **The role for the next set is armed at the button, and clears itself** (N19). The
+  alternative — a pending role per exercise in the screen's state — was built first and
+  then removed: it made transient UI state part of a database-driven flow, needed a
+  `combine` input and a field on every row, and pushed `ActiveWorkoutViewModel` past the
+  function ceiling detekt enforces (which the config says means a split, not another +1).
+  Holding it in the composable that draws the button is smaller, survives the state
+  rebuilds, and puts the "one set per role choice" rule where the choice is made. The
+  ViewModel takes the role as an argument to `onLogSet`, so nothing there has to remember
+  to clear it.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

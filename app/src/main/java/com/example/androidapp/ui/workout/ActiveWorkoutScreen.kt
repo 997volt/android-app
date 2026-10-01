@@ -118,7 +118,7 @@ fun ActiveWorkoutScreen(
     state: ActiveWorkoutUiState,
     clock: State<WorkoutClock>,
     onAddExercise: () -> Unit,
-    onLogSet: (String) -> Unit,
+    onLogSet: (String, SetType) -> Unit,
     onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onDeleteSet: (String) -> Unit,
@@ -372,7 +372,7 @@ private fun WorkoutTopBar(canFinish: Boolean, onFinish: (String?) -> Unit, onBac
 private fun WorkoutBody(
     state: ActiveWorkoutUiState,
     clock: State<WorkoutClock>,
-    onLogSet: (String) -> Unit,
+    onLogSet: (String, SetType) -> Unit,
     onRemoveExercise: (String) -> Unit,
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
@@ -614,7 +614,7 @@ private fun ActiveWorkoutScreenPreview() {
                 mutableStateOf(WorkoutClock(elapsed = "12:05", restSecondsRemaining = 83))
             },
             onAddExercise = {},
-            onLogSet = {},
+            onLogSet = { _, _ -> },
             onUpdateSet = { _, _, _, _, _, _, _ -> },
             onRemoveExercise = {},
             onDeleteSet = {},

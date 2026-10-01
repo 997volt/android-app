@@ -206,6 +206,14 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** The one-tap log itself (ROADMAP N19 gave it a companion, and it needed a name). */
+    const val SET_LOG = "set_log"
+
+    /** The role armed for the next one-tap log (ROADMAP N19). */
+    /** The control that arms the next log, or — with a role — one of its options. */
+    fun exercisePendingRole(id: String, role: String? = null) =
+        if (role == null) "exercise_pending_role_$id" else "exercise_pending_role_${id}_$role"
+
     /** Starting over (ROADMAP N18): the menu entry, the field and the confirm button. */
     const val HOME_CLEAR_DATA = "home_clear_data"
     const val CLEAR_CONFIRM_FIELD = "clear_confirm_field"
