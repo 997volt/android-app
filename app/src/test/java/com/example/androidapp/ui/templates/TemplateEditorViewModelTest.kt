@@ -396,4 +396,60 @@ class TemplateEditorViewModelTest {
             repository.savedPlans,
         )
     }
+
+    @Test
+    fun addingWarmUps_writesARampFromThePlansOwnWeight() = runTest(dispatcher) {
+        // ROADMAP N28: the ramp comes from the heaviest weight the plan names for the exercise,
+        // rather than a number typed a second time.
+        val repository = FakeTemplateRepository().apply {
+            exercises.value = listOf(
+                exercise("te1", 0, "Back Squat").copy(
+                    sets = listOf(planSet(weightGrams = 100_000L)),
+                ),
+            )
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAddWarmUpSets("te1")
+        advanceUntilIdle()
+
+        val written = repository.addedSets.filter { it.first == "te1" }.map { it.second }
+        assertEquals("a four-step ramp", 4, written.size)
+        assertEquals(
+            "climbing towards the work, each one a warm-up",
+            listOf(40_000L, 60_000L, 75_000L, 85_000L),
+            written.map { it.targetWeightGrams },
+        )
+        assertTrue("all of them warm-ups", written.all { it.role == SetType.WARMUP })
+    }
+
+    @Test
+    fun addingWarmUps_writesNothing_whenThereIsNoWeightToRampFrom() = runTest(dispatcher) {
+        // A bodyweight exercise gets no ramp rather than a row of empty bars (ROADMAP N28, N15).
+        val repository = FakeTemplateRepository().apply {
+            exercises.value = listOf(
+                exercise("te1", 0, "Pull-up").copy(sets = listOf(planSet(weightGrams = null))),
+            )
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAddWarmUpSets("te1")
+        advanceUntilIdle()
+
+        assertTrue("nothing written", repository.addedSets.none { it.first == "te1" })
+    }
+
+    /** One planned working set, at [weightGrams] or bodyweight. */
+    private fun planSet(weightGrams: Long?) = TemplateSet(
+        id = "ts1",
+        templateExerciseId = "te1",
+        setIndex = 0,
+        targetWeightGrams = weightGrams,
+        targetRepsMin = 5,
+        targetRepsMax = 5,
+    )
 }

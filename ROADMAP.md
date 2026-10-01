@@ -50,12 +50,19 @@ actually *audible* is unverified, and a view-level haptic is invisible headlessl
 sensory half of the feature resting on the code and the API-level check lint made
 (`HapticFeedbackConstants.CONFIRM` is API 30 and would have crashed on the phones this app supports).
 
-### N28 — Warm-up set generator
+### N28 — Warm-up set generator — **done**
 
-Was **P2.7**, and a better feature than it was before plans had roles: it can *write* warm-up sets
-into a plan using the `WARMUP` role rather than only suggesting numbers. A ramp computed from the
-plan's working weight and added in one action is the difference between a plan that is pleasant to
-author and one that is not.
+Was **P2.7**, and a better feature than it was before plans had roles: it *writes* warm-up sets into a
+plan using the `WARMUP` role rather than only suggesting numbers. A ramp computed from the plan's own
+working weight and added in one action (40/60/75/85% for 5/3/2/1 reps, rounded to 2.5 kg) is the
+difference between a plan that is pleasant to author and one that is not.
+
+Two rules the generator states rather than inherits: identical consecutive warm-ups are dropped, since
+a bar loaded twice is one warm-up; and a bodyweight or assisted exercise gets **no** ramp, which is
+N15's rule about what a bodyweight set carries applied to generating one.
+
+**Device pass outstanding**: the button appears where a weight is planned, and its absence where none
+is, are things a phone can confirm.
 
 ### N25 — A session remembers the timezone it was performed in
 

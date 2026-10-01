@@ -184,6 +184,7 @@ object TestTags {
     const val TEMPLATE_PLAN_TITLE = "template_plan_title"
     const val TEMPLATE_PLAN_EMPTY = "template_plan_empty"
     const val TEMPLATE_PLAN_ADD = "template_plan_add"
+    const val TEMPLATE_ADD_WARMUPS = "template_add_warmups"
     const val TEMPLATE_PLAN_DUPLICATE = "template_plan_duplicate"
     const val TEMPLATE_PLAN_CLOSE = "template_plan_close"
     const val TEMPLATE_SET_ROLE = "template_set_role"

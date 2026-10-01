@@ -101,6 +101,7 @@
     <string name="template_plan_none">No planned sets</string>
     <string name="template_plan_title">%1$s — the plan</string>
     <string name="template_plan_empty">No planned sets yet. Add one, or duplicate once the first is written.</string>
+    <string name="template_add_warmups">Add warm-ups</string>
     <string name="template_plan_add">Add set</string>
     <string name="template_plan_duplicate">Duplicate</string>
     <string name="template_plan_set">%1$d · %2$s</string>

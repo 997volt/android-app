@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.TemplateExercise
@@ -136,6 +137,7 @@ fun TemplateEditorScreen(
     onRemoveSet: (String) -> Unit = {},
     onDuplicateSets: (String) -> Unit = {},
     onToggleSuperset: (String) -> Unit = {},
+    onAddWarmUpSets: (String) -> Unit = {},
     onSaveExercisePlan: (String, Int?, String?) -> Unit = { _, _, _ -> },
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -180,6 +182,7 @@ fun TemplateEditorScreen(
             onUpdateSet = onUpdateSet,
             onRemoveSet = onRemoveSet,
             onDuplicateSets = onDuplicateSets,
+            onAddWarmUpSets = onAddWarmUpSets,
             onSaveExercisePlan = onSaveExercisePlan,
             modifier = Modifier.padding(innerPadding),
         )
@@ -243,6 +246,7 @@ private fun TemplateEditorBody(
     onSaveExercisePlan: (String, Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
     onToggleSuperset: (String) -> Unit = {},
+    onAddWarmUpSets: (String) -> Unit = {},
 ) {
     if (state.isLoading) {
         CenteredMessage(
@@ -294,6 +298,7 @@ private fun TemplateEditorBody(
                         onUpdateSet = onUpdateSet,
                         onRemoveSet = onRemoveSet,
                         onDuplicateSets = { onDuplicateSets(exercise.id) },
+                        onAddWarmUpSets = { onAddWarmUpSets(exercise.id) },
                         onSavePlan = { rest, cue -> onSaveExercisePlan(exercise.id, rest, cue) },
                     )
                     HorizontalDivider()
@@ -370,6 +375,7 @@ private fun TemplateExerciseBlock(
     onSavePlan: (Int?, String?) -> Unit,
     modifier: Modifier = Modifier,
     onToggleSuperset: (() -> Unit)? = null,
+    onAddWarmUpSets: (() -> Unit)? = null,
     supersetLabels: Map<String, String> = emptyMap(),
 ) {
     var planOpen by rememberSaveable { mutableStateOf(false) }
@@ -404,6 +410,15 @@ private fun TemplateExerciseBlock(
             onDeleteSet = onRemoveSet,
             onDuplicate = onDuplicateSets,
             onDismiss = { planOpen = false },
+            // Offered only where there is a weight to ramp from: the action computes the ramp from
+            // the plan's own working weight (ROADMAP N28).
+            onAddWarmUpSets = if (
+                exercise.sets.any { it.role != SetType.WARMUP && it.targetWeightGrams != null }
+            ) {
+                onAddWarmUpSets
+            } else {
+                null
+            },
         )
     }
 

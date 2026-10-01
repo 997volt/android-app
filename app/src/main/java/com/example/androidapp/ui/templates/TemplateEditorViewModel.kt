@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.androidapp.domain.DataError
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.warmUpRamp
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -94,6 +96,38 @@ class TemplateEditorViewModel @Inject constructor(
     /** Appends a planned set to an exercise (ROADMAP N14). */
     fun onAddSet(templateExerciseId: String, edit: TemplateSetEdit) = write {
         repository.addSet(templateExerciseId, edit)
+    }
+
+    /**
+     * Writes a warm-up ramp in front of what the plan already prescribes (ROADMAP N28).
+     *
+     * The working weight is the heaviest the plan names for this exercise, so the ramp is derived from
+     * the plan rather than from a number typed twice. Nothing is written when there is no weight to
+     * take a fraction of — a bodyweight exercise gets no ramp, and the app does not invent one
+     * (N15's rule about what a bodyweight set carries, applied to generating one).
+     */
+    fun onAddWarmUpSets(templateExerciseId: String) = write {
+        val exercise = uiState.value.exercises.firstOrNull { it.id == templateExerciseId }
+            ?: return@write DataError.NotFound.let { DataResult.Failure(it) }
+
+        val workingWeight = exercise.sets
+            .filter { it.role != SetType.WARMUP }
+            .mapNotNull { it.targetWeightGrams }
+            .maxOrNull() ?: 0L
+
+        warmUpRamp(workingWeight).forEach { target ->
+            val written = repository.addSet(
+                templateExerciseId,
+                TemplateSetEdit(
+                    role = SetType.WARMUP,
+                    targetWeightGrams = target.weightGrams,
+                    targetRepsMin = target.reps,
+                    targetRepsMax = target.reps,
+                ),
+            )
+            if (written is DataResult.Failure) return@write written
+        }
+        DataResult.Success(Unit)
     }
 
     fun onUpdateSet(templateSetId: String, edit: TemplateSetEdit) = write {

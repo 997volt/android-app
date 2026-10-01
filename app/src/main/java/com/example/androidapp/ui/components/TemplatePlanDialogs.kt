@@ -56,6 +56,12 @@ fun TemplatePlanDialog(
     onDuplicate: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Adds a warm-up ramp computed from the plan's own working weight (ROADMAP N28), or null when
+     * there is no weight to take a fraction of: a bodyweight exercise gets no ramp, and a control
+     * that would do nothing is worse than no control.
+     */
+    onAddWarmUpSets: (() -> Unit)? = null,
 ) {
     AlertDialog(
         modifier = modifier,
@@ -97,20 +103,11 @@ fun TemplatePlanDialog(
             }
         },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(
-                    onClick = onDuplicate,
-                    modifier = Modifier.testTag(TestTags.TEMPLATE_PLAN_DUPLICATE),
-                ) {
-                    Text(stringResource(R.string.template_plan_duplicate))
-                }
-                TextButton(
-                    onClick = onAddSet,
-                    modifier = Modifier.testTag(TestTags.TEMPLATE_PLAN_ADD),
-                ) {
-                    Text(stringResource(R.string.template_plan_add))
-                }
-            }
+            PlanDialogButtons(
+                onAddWarmUpSets = onAddWarmUpSets,
+                onDuplicate = onDuplicate,
+                onAddSet = onAddSet,
+            )
         },
     )
 }
@@ -375,4 +372,36 @@ private fun TemplateSet.summary(): String {
     }
     val rpeHalves = targetRpeHalves?.let { rpeMarker(it) }
     return listOfNotNull(weight, reps, rpeHalves, note).joinToString(" · ")
+}
+
+/** The dialog's three optional actions, together so the dialog itself stays readable. */
+@Composable
+private fun PlanDialogButtons(
+    onAddWarmUpSets: (() -> Unit)?,
+    onDuplicate: () -> Unit,
+    onAddSet: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        onAddWarmUpSets?.let { addWarmUps ->
+            TextButton(
+                onClick = addWarmUps,
+                modifier = Modifier.testTag(TestTags.TEMPLATE_ADD_WARMUPS),
+            ) {
+                Text(stringResource(R.string.template_add_warmups))
+            }
+        }
+        TextButton(
+            onClick = onDuplicate,
+            modifier = Modifier.testTag(TestTags.TEMPLATE_PLAN_DUPLICATE),
+        ) {
+            Text(stringResource(R.string.template_plan_duplicate))
+        }
+        TextButton(
+            onClick = onAddSet,
+            modifier = Modifier.testTag(TestTags.TEMPLATE_PLAN_ADD),
+        ) {
+            Text(stringResource(R.string.template_plan_add))
+        }
+    }
 }

@@ -26,6 +26,14 @@ Notable changes to Workout Log, newest first. Format follows
   and it costs `android.permission.VIBRATE` — the one thing the app just stopped declaring, so the
   constraint is recorded in [DECISIONS.md](DECISIONS.md) rather than left to be rediscovered.
 
+### Added
+- **A warm-up ramp, in one tap.** A plan's exercise can now generate its warm-ups from the weight the
+  plan already names: four sets — 40%, 60%, 75% and 85% for five, three, two and one rep — written
+  into the plan as role-carrying warm-ups. N14 made a warm-up expressible and the plan editor let you
+  type one; this is what makes writing four of them a single action instead of four. It is offered
+  only where there is a weight to take a fraction of: a bodyweight or assisted exercise gets no ramp,
+  because a list of zeroes to load is worse than no control at all.
+
 ### Changed
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
   which is also the name of the history row in the domain — two types, one name, and the reader left
