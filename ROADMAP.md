@@ -31,10 +31,10 @@ shipped and left the file.
   JVM under Robolectric rather than on a device.
 ## Next
 
-**One thing is marked for work — N29, repeating the last workout in one tap.** Everything else from
-the v1.5 review and the round after it (B26–B32, N26, N27, N28) shipped, and what they did is in
-[CHANGELOG.md](CHANGELOG.md). Past N29 the next round is a choice rather than a queue: the rest is in
-*Later*, below.
+**Two things are marked for work.** N29 is the feature row; N30 is the short tail of the rename,
+which is the only thing left from it. Everything else from the v1.5 review and the round after it
+(B26–B32, N26, N27, N28) shipped, and what they did is in [CHANGELOG.md](CHANGELOG.md). Past these
+the next round is a choice rather than a queue: the rest is in *Later*, below.
 
 ### N29 — Repeat the last workout in one tap — **built, all three edge cases held**
 
@@ -67,6 +67,25 @@ rather than disabled, because a button that does nothing invites a tap and teach
 and with something finished it appears and taps through.
 
 Still to do: a device pass on the action itself.
+
+### N30 — Finish the rename: the repository has no description, and nothing has validated it
+
+The rename itself shipped — the app is **Workout**, the repository is `997volt/workout`, the old URL
+redirects, and the local remote points at the new one. Two loose ends, both small and neither a code
+change.
+
+- **Fill in the repository's description and topics.** Both are empty, and a one-word name carries no
+  context of its own. The description is where the specific part goes, since it can change whenever
+  the app does: *"Plan a workout, log what you actually did, and see the difference. Local-only: no
+  account, no server, no internet permission."* Topics: `android`, `kotlin`, `jetpack-compose`,
+  `room`, `offline-first`, `workout-tracker`. This is the only place the app's genuinely distinctive
+  property — that it declares no permissions at all — is visible to someone deciding whether to look.
+- **Get one green CI run over the rename.** Every run on that commit was cancelled by the next push,
+  so the label change rests on a local build: `aapt2 dump badging` reports
+  `application-label:'Workout'` with the `applicationId` unchanged, and 427 tests pass. That is good
+  evidence and it is not the same as the pipeline having passed, which is worth knowing before a
+  release is cut from it. Nothing needs deciding here — it is the same cancellation already accepted
+  and recorded in [DECISIONS.md](DECISIONS.md), and the next quiet stretch closes it on its own.
 
 ### N25 — A session remembers the timezone it was performed in
 

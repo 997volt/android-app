@@ -41,6 +41,15 @@ Notable changes to Workout, newest first. Format follows
 
 ### Changed
 
+- **The app is called Workout, and so is the repository.** It had drifted into four names: the
+  launcher said *Workout Log*, the roadmap heading said *Workout Tracker*, the release assets said
+  `workout-log`, and the repository said `android-app` — which named the platform rather than the
+  app. Everything forward-looking now says **Workout**, which matches the `applicationId` it has
+  always had and, unlike "Log", will not go stale as the app does more than log. **This is a label,
+  not an identity change:** `applicationId` and the signing key are untouched, so the app updates in
+  place with no uninstall and no lost history. What deliberately still reads *Workout Log* is the
+  record — past release titles, the `workout-log-1.x.apk` assets and the changelog's own preamble —
+  because that is what the app was called when those shipped.
 - **A workout remembers the timezone it was performed in.** Timestamps were always UTC, and every
   screen formatted them in the zone you are reading in — so a session logged in Tokyo showed the wrong
   hour, and after a late flight the wrong day, the moment you landed. The offset is now captured once,
