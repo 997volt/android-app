@@ -8,6 +8,13 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **A route that is declared but never registered now fails the test suite.** Two bugs shipped from
+  that gap: a route missing `@Serializable`, and a route with no `composable<...>` registration —
+  the second is what made the settings screen crash on its first run. The old test named twelve
+  routes by hand, so a thirteenth was invisible to it; the list is now read out of `Routes.kt` and
+  compared against what `AppNavHost.kt` registers, with no hand-maintained list to forget. Verified
+  by adding a route and watching it fail, then removing it.
+
 - **A guard against the backup codec quietly losing a column.** The codec is hand-written,
   listing each field by name, and it has silently dropped an unnamed column three times — a
   set's location, a set's assistance, a template's weekday — each found by hand, on a device,

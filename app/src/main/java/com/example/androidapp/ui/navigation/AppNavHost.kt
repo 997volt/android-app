@@ -48,8 +48,12 @@ fun AppNavHost(
     }
 }
 
-/** Home, the exercise library, and one exercise's detail. */
+/** Home, the exercise library, one exercise's detail, and the app's settings. */
 private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
+    composable<Settings> {
+        SettingsRoute(onBack = { navController.popBackStack() })
+    }
+
     composable<WorkoutsHome> {
         WorkoutsHomeRoute(
             onStartWorkout = { navController.navigate(ActiveWorkout()) },
@@ -140,10 +144,6 @@ private fun NavGraphBuilder.templateDestinations(navController: NavHostControlle
 
 /** Finished workouts and one workout's detail. */
 private fun NavGraphBuilder.historyDestinations(navController: NavHostController) {
-    composable<Settings> {
-        SettingsRoute(onBack = { navController.popBackStack() })
-    }
-
     composable<WorkoutHistory> {
         WorkoutHistoryRoute(
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },

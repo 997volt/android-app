@@ -69,20 +69,7 @@ Two reviews of v1.5 — one structural, one defect-focused — turned up more th
 admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
 that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. What remains is a missing test of the navigation invariant and three coverage gaps.
-
-- **B22 — The route-registration invariant is still unguarded.** A route with no
-  `composable<...>` compiles and crashes at navigation. That is how the Settings bug shipped, and
-  it was *both* a missing `@Serializable` **and** a missing registration — only the first got a
-  test. `RoutesTest` checks the annotation over a hand-written list of names, so a new route
-  added without touching the test cannot fail it, and nothing anywhere builds the graph. All
-  twelve are registered today (checked), which is why this is cheap to pin now. **Do:** fail on a
-  route type that has no registration, with no hand-maintained list — a `TestNavHost` navigating
-  each destination catches the crash the bug produced, which no serializer assertion can. While
-  there: `composable<Settings>` sits in `historyDestinations`, whose KDoc reads "finished
-  workouts and one workout's detail".
-
-### Also from the same review — gaps rather than wrong behaviour
+arithmetic. What remains are three coverage gaps and one workflow decision.
 
 - **B23 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
   `SettingsViewModel` and `PreferencesSettingsRepository`, and no test in either source set
