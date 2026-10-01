@@ -3,6 +3,12 @@
 A local-only workout planner and logger for Android, written in Kotlin with Jetpack
 Compose (Material 3).
 
+## What it asks for
+
+**No permissions at all.** The app declares none: no storage, no network, no notifications. The
+background rest alert was the only one it ever had, and removing it (ROADMAP N26) left the manifest
+empty — which says more about where your training data lives than any wording could.
+
 ## Project docs
 
 - [ROADMAP.md](ROADMAP.md) — what is planned, in order
