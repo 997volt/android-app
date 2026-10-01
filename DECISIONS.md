@@ -122,6 +122,17 @@ into this file once the feature ships.
   ViewModel takes the role as an argument to `onLogSet`, so nothing there has to remember
   to clear it.
 
+- **A plan is compared against the work, not the warm-ups** (N20). Warm-up sets are
+  excluded from both sides of a comparison, for the reason N17 excluded them from a load
+  series: a warm-up is not what the plan prescribes, and letting one stand in for the top
+  set would flatter every review. A plan that names no weight leaves the delta *null* rather
+  than zero, because zero claims the lifter matched a plan that never said.
+- **The review is a moment, not a screen** (N20). It is built from state the workout screen
+  already holds, so it costs no database reads and needs no schema — the session does not
+  record which template it came from, and adding that would be a migration for a sentence.
+  The cost is real and accepted: the review is not revisitable from history. If that becomes
+  wanted, the honest fix is to store the plan with the session, not to re-derive it.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

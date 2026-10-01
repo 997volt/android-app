@@ -518,7 +518,13 @@ class ActiveWorkoutViewModelTest {
         viewModel.onFinish()
         settle()
 
-        assertTrue("the screen should leave after finishing", viewModel.closed.value)
+        assertTrue("finishing publishes the review (N20)", viewModel.summary.value != null)
+        assertFalse("and does not leave yet — the review is what the user reads", viewModel.closed.value)
+
+        viewModel.onDismissSummary()
+        settle()
+
+        assertTrue("the screen should leave after the review is dismissed", viewModel.closed.value)
         assertEquals(null, viewModel.uiState.value.sessionId)
         // Asserted here because the code path that does it was rewritten once and the
         // cancel was lost: a finished workout must not leave a rest alarm armed.
@@ -539,6 +545,8 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         viewModel.onFinish(note = "Good session")
+        settle()
+        viewModel.onDismissSummary()
         settle()
 
         assertEquals(1, notifier.cancelCount)
@@ -871,6 +879,15 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         assertEquals("Slept badly, but the squats moved", repository.lastWorkoutNotes)
+        assertEquals(
+            "the comment is the review's, so it is readable there (N20)",
+            "Slept badly, but the squats moved",
+            viewModel.summary.value?.note,
+        )
+
+        viewModel.onDismissSummary()
+        settle()
+
         assertTrue("finishing still finishes", viewModel.closed.value)
     }
 
@@ -889,6 +906,11 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         assertNull("skipping must not invent a comment", repository.lastWorkoutNotes)
+        assertNotNull(viewModel.summary.value)
+
+        viewModel.onDismissSummary()
+        settle()
+
         assertTrue(viewModel.closed.value)
     }
 

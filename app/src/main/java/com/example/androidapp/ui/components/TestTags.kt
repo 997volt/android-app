@@ -206,6 +206,10 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** The review a finished workout gets (ROADMAP N20). */
+    const val SUMMARY_DIALOG = "summary_dialog"
+    const val SUMMARY_DONE = "summary_done"
+
     /** The one-tap log itself (ROADMAP N19 gave it a companion, and it needed a name). */
     const val SET_LOG = "set_log"
 

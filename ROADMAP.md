@@ -67,12 +67,6 @@ what already exists, then the differentiator, then polish.
 **Tier 1 — close the loop on what already shipped.** Small, and every one of them is
 friction the app created by growing.
 
-- **N20 (was P1.18) — A post-workout summary on Finish, with plan versus actual.** Finish
-  is a dead end today: the ratings, the readiness note and the totals go nowhere. And the
-  app now writes plans and logs performed sets while **never comparing them** — targets
-  only was right *during* a workout, but the payoff for planning is the review:
-  prescribed 6×2 at 92.2, performed 6×2 at 92.2, top single 2.5 over plan. Without that,
-  plans are write-only.
 - **N21 — A settings screen.** There is none: no route, no files. Meanwhile the app-wide
   default rest is a hardcoded `RestTimer.DEFAULT_SECONDS = 90` with no way to change it,
   and three *Later* rows — P1.9 units, P1.10 screen-on, P1.14 rest sound — have nowhere to

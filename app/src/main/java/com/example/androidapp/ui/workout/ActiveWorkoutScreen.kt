@@ -72,6 +72,7 @@ fun ActiveWorkoutRoute(
     // recompose this composable — and everything below it — once a second, which is
     // the whole point of F16. Only the header and the rest bar read it.
     val clock = viewModel.clock.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
 
     // The rest alert needs two permissions that were declared but never requested
     // (ROADMAP F13). Asked for on the first logged set, where the reason is obvious.
@@ -91,6 +92,8 @@ fun ActiveWorkoutRoute(
         clock = clock,
         onAddExercise = onAddExercise,
         onLogSet = viewModel::onLogSet,
+        summary = summary,
+        onDismissSummary = viewModel::onDismissSummary,
         onUpdateSet = viewModel::onUpdateSet,
         onRemoveExercise = viewModel::onRemoveExercise,
         onDeleteSet = viewModel::onDeleteSet,
@@ -137,6 +140,8 @@ fun ActiveWorkoutScreen(
     onDiscard: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    summary: WorkoutSummary? = null,
+    onDismissSummary: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     WorkoutSnackbars(
@@ -151,6 +156,10 @@ fun ActiveWorkoutScreen(
     // The set being edited, held here so the caller does not have to track it.
     var editing by remember { mutableStateOf<SetRow?>(null) }
 
+
+    if (summary != null) {
+        WorkoutSummaryDialog(summary = summary, onDismiss = onDismissSummary)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

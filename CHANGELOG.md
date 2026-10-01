@@ -8,6 +8,17 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **A review when a workout finishes, with plan versus actual.** Finish used to be a dead
+  end: the ratings the user had just given, the readiness note and the totals went nowhere.
+  The workout now ends with a summary — sets, reps and volume, the notes, and each
+  exercise's feel and joint pain read back — and, when the workout came from a plan, **the
+  plan next to what was actually lifted**: prescribed 6×2 at 92.5, performed 6×2 at 92.5,
+  top single 2.5 kg over plan. That comparison is the entire payoff for planning, and the
+  app had never made it: a plan was write-only.
+- **The review says what was not done.** A prescribed exercise that was skipped is a fact
+  about the session, and an exercise added mid-workout is labelled as not in the plan — a
+  review that lists only what was done is a compliment, not a record.
+
 - **Choosing a set's role where the set is logged.** The role picker existed but sat behind
   the editor, so three warm-ups cost three log-then-edit round trips. It is now beside
   **Log set**: pick the role, tap, done — one tap each way. The choice clears itself once

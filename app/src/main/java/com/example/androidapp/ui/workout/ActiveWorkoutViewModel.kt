@@ -1,5 +1,13 @@
 package com.example.androidapp.ui.workout
 
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import com.example.androidapp.domain.model.comparePlanToActual
+import com.example.androidapp.domain.model.PlannedSetSpec
+import com.example.androidapp.domain.model.PlanComparison
+import com.example.androidapp.domain.model.PerformedSetSpec
+import com.example.androidapp.domain.model.ExercisePlan
+import com.example.androidapp.domain.model.ExerciseActual
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -184,6 +192,18 @@ class ActiveWorkoutViewModel @Inject constructor(
         templateId?.let { templateRepository.observeExercises(it) } ?: flowOf(emptyList())
 
     private val lastError = MutableStateFlow<DataError?>(null)
+
+    /**
+     * The review of the workout that just finished, published instead of closing the
+     * screen outright (ROADMAP N20).
+     *
+     * Finish used to be a dead end: the ratings, the readiness note and the totals went
+     * nowhere, and a plan was never compared with what was actually lifted. The summary is
+     * built from state this screen already holds, so it costs no reads and needs no schema
+     * — but it also means it is a *moment*, not something to come back to.
+     */
+    private val _summary = MutableStateFlow<WorkoutSummary?>(null)
+    val summary: StateFlow<WorkoutSummary?> = _summary.asStateFlow()
 
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
     private val previousByExercise = MutableStateFlow<Map<String, PreviousPerformance>>(emptyMap())
@@ -377,7 +397,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     fun onUndoFinishExercise() {
         val id = pendingFinishedExercise.value ?: return
         pendingFinishedExercise.value = null
-        if (!hasLiveExercise(id)) {
+        if (!uiState.value.hasLiveExercise(id)) {
             lastError.value = GONE_FROM_SESSION
             return
         }
@@ -505,7 +525,7 @@ class ActiveWorkoutViewModel @Inject constructor(
         // come back onto a live exercise, and the repository's loggable guard would
         // otherwise refuse the write and leave the user with nothing on screen —
         // the reported bug was exactly this, with the Undo still visible.
-        if (!hasLiveExercise(set.sessionExerciseId)) {
+        if (!uiState.value.hasLiveExercise(set.sessionExerciseId)) {
             lastError.value = GONE_FROM_SESSION
             return
         }
@@ -595,13 +615,22 @@ class ActiveWorkoutViewModel @Inject constructor(
             when (val result = workoutRepository.finishSession(sessionId)) {
                 is DataResult.Success -> {
                     lastError.value = null
-                    closeSession()
+                    // The workout is over and stored; the review is what the user sees
+                    // next, and dismissing it is what closes the screen (N20).
+                    _summary.value = buildSummary(uiState.value, plannedExercises.first(), note)
                 }
 
                 is DataResult.Failure -> lastError.value = result.error
             }
         }
     }
+
+    /** Dismisses the review, which is what actually closes the screen (ROADMAP N20). */
+    fun onDismissSummary() {
+        _summary.value = null
+        closeSession()
+    }
+
 
     /**
      * What "this workout is over" means, in one place.
@@ -627,9 +656,6 @@ class ActiveWorkoutViewModel @Inject constructor(
     }
 
     /** True while the exercise is still part of the open session's list. */
-    private fun hasLiveExercise(sessionExerciseId: String): Boolean =
-        uiState.value.exercises.any { it.id == sessionExerciseId }
-
     private fun handle(result: DataResult<*>) {
         when (result) {
             is DataResult.Success -> lastError.value = null
@@ -745,3 +771,93 @@ class ActiveWorkoutViewModel @Inject constructor(
         const val TICK_MILLIS = 1_000L
     }
 }
+
+/** What the screen shows once a workout is finished (ROADMAP N20). */
+data class WorkoutSummary(
+    val note: String?,
+    val readinessNote: String?,
+    val totalSets: Int,
+    val totalReps: Int,
+    val totalVolumeGrams: Long,
+    /** Only the exercises that were rated — an unrated one is not a zero. */
+    val ratings: List<ExerciseRating>,
+    /** The plan next to the performance; empty when the workout came from no plan. */
+    val comparisons: List<PlanComparison>,
+)
+
+/** How one exercise felt, as the summary reads it back. */
+data class ExerciseRating(
+    val name: String,
+    val muscleFeel: Int?,
+    val jointPain: Int?,
+)
+
+/**
+ * The review, assembled from what is already in memory (ROADMAP N20).
+ *
+ * A file-level function rather than a member: the class is at the function ceiling detekt
+ * enforces, and this only translates the state it is given into a value — it reads nothing
+ * from the ViewModel and writes nothing back, so it does not belong to it.
+ */
+private fun buildSummary(
+    state: ActiveWorkoutUiState,
+    plan: List<TemplateExercise>,
+    note: String?,
+): WorkoutSummary {
+    val actual = state.exercises.map { row ->
+        ExerciseActual(
+            name = row.name,
+            sets = row.sets.map {
+                PerformedSetSpec(
+                    role = it.setType,
+                    weightGrams = it.weightGrams,
+                    assistanceGrams = it.assistanceGrams,
+                    reps = it.reps,
+                )
+            },
+        )
+    }
+    val planned = plan.map { plannedExercise ->
+        ExercisePlan(
+            name = plannedExercise.exerciseName,
+            sets = plannedExercise.sets.map {
+                PlannedSetSpec(
+                    role = it.role,
+                    weightGrams = it.targetWeightGrams,
+                    assistanceGrams = it.targetAssistanceGrams,
+                    minReps = it.targetRepsMin,
+                    maxReps = it.targetRepsMax,
+                )
+            },
+        )
+    }
+    val allSets = state.exercises.flatMap { it.sets }
+    return WorkoutSummary(
+        note = note?.takeIf { it.isNotBlank() },
+        readinessNote = state.readinessNote,
+        totalSets = allSets.size,
+        totalReps = allSets.sumOf { it.reps },
+        // The same definition the history and the database use (ROADMAP B10): added
+        // weight times reps, with assistance and bodyweight contributing zero.
+        totalVolumeGrams = allSets.sumOf { it.weightGrams * it.reps },
+        ratings = state.exercises.mapNotNull { row ->
+            val feel = row.muscleFeel
+            val pain = row.jointPain
+            if (feel == null && pain == null) {
+                null
+            } else {
+                ExerciseRating(name = row.name, muscleFeel = feel, jointPain = pain)
+            }
+        },
+        comparisons = comparePlanToActual(planned = planned, performed = actual),
+    )
+}
+
+/**
+ * True while this exercise is still part of the session (ROADMAP N7's undo).
+ *
+ * A file-level extension rather than a member: the class sits at the function ceiling
+ * detekt enforces, and this is a question about the state, not about the ViewModel.
+ */
+private fun ActiveWorkoutUiState.hasLiveExercise(sessionExerciseId: String): Boolean =
+    exercises.any { it.id == sessionExerciseId }
