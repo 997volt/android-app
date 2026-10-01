@@ -69,6 +69,8 @@ internal fun SessionDto.toEntity() = WorkoutSessionEntity(
     startedAt = startedAt,
     finishedAt = finishedAt,
     notes = notes,
+    // Deliberate, not an oversight: a rest countdown is device-and-moment state rather than
+    // training history, so it is carried in the file but never restored — see the note above.
     restEndsAt = null,
     readinessNote = readinessNote,
     createdAt = createdAt,

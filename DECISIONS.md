@@ -189,6 +189,17 @@ into this file once the feature ships.
   are all per exercise, so none of them has to be revisited when a workout stops being a flat
   list.
 
+- **A new column is added to the backup codec in the same change, and the codec is guarded by
+  a round trip** (N24's preparation). The codec is hand-written and lists every field by name,
+  so a column it does not know about is not an error — the export simply does not contain it,
+  and the loss is invisible until someone restores a backup that is quietly missing data. It
+  has happened three times (a set's location N9, a set's assistance N15, a template's weekday
+  N16), which makes it a trap rather than bad luck: `BackupCodecRoundTripTest` now asserts that
+  every field of every backed-up entity survives entity → DTO → entity, so the next column
+  fails the suite where it is introduced. The one field deliberately excluded is a session's
+  `restEndsAt`, because a rest countdown is device-and-moment state rather than training
+  history — and that line now says so, since the guard could not tell it apart from a mistake.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

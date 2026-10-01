@@ -7,6 +7,16 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **A guard against the backup codec quietly losing a column.** The codec is hand-written,
+  listing each field by name, and it has silently dropped an unnamed column three times — a
+  set's location, a set's assistance, a template's weekday — each found by hand, on a device,
+  after shipping. A round trip with every field set to something distinctive now fails in the
+  ordinary test suite when a field stops surviving, so the next column this app adds fails
+  where it is added rather than turning up missing in someone's backup. The guard immediately
+  earned its place by surfacing one drop nobody had written down: a session's rest countdown
+  is deliberately not restored, and the line that drops it now says so.
+
 ### Added
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
   heaviest working set at each rep count, so 100 kg × 5 is beaten only by more weight at five
