@@ -327,6 +327,10 @@
     <string name="suggestion_more_reps">One more rep than last time</string>
     <string name="suggestion_more_weight">A step heavier than last time</string>
     <string name="suggestion_less_assistance">Less help than last time</string>
+    <!-- The record just set (ROADMAP N23). -->
+    <string name="personal_record_title">Personal record: %2$s kg × %1$d</string>
+    <string name="personal_record_beats">%1$s — your best before was %2$s kg</string>
+    <string name="personal_record_first">%1$s — the first time at this rep count</string>
     <string name="transfer_export">Export data</string>
     <string name="transfer_import">Import data</string>
     <string name="transfer_exported">Backup written.</string>

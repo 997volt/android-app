@@ -1,5 +1,9 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.domain.dataResultOf
+import kotlinx.coroutines.flow.first
+import com.example.androidapp.domain.model.PersonalRecords
+import com.example.androidapp.domain.model.PerformedSetSpec
 import com.example.androidapp.data.local.ExerciseTrendRowEntity
 import com.example.androidapp.domain.model.toExerciseTrendPoints
 import com.example.androidapp.domain.model.SetType
@@ -96,3 +100,4 @@ class RoomTrendsRepository @Inject constructor(
                 emit(DataResult.Failure(throwable.toDataError()))
             }
 }
+

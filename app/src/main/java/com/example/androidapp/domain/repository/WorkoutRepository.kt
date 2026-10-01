@@ -1,5 +1,6 @@
 package com.example.androidapp.domain.repository
 
+import com.example.androidapp.domain.model.PersonalRecords
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.model.PreviousPerformance
@@ -170,6 +171,19 @@ interface WorkoutRepository {
      * database and the alarm disagree.
      */
     suspend fun startRest(seconds: Int = RestTimer.DEFAULT_SECONDS): DataResult<Instant>
+
+    /**
+     * The heaviest working set at each rep count for this exercise (ROADMAP N23).
+     *
+     * [excludingSessionId] is the session in progress: a set must be compared against what
+     * came *before* it, or the second set of a session would be checked against the first
+     * one's record and every session would look like a breakthrough. `null` includes
+     * everything, which is what a records view wants.
+     */
+    suspend fun personalRecords(
+        exerciseId: String,
+        excludingSessionId: String? = null,
+    ): DataResult<PersonalRecords>
 
     /** Moves the running rest timer by [deltaSeconds]; a finished rest restarts from now. */
     suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant>

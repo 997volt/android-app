@@ -66,13 +66,8 @@ what already exists, then the differentiator, then polish.
 
 **Tier 1 — close the loop on what already shipped.** *Shipped: N19, N20, N21.*
 
-**Tier 2 — the differentiator the data now supports.** *Shipped: N22.*
+**Tier 2 — the differentiator the data now supports.** *Shipped: N22, N23.*
 
-- **N23 (was P2.2, reduced) — Rep-max personal records, and noticing one as it happens.**
-  N17 already computes estimated 1RM (Epley, refusing to guess above a rep ceiling), so
-  what remains is records across rep ranges and a "that's a PR" moment mid-set. Warm-up
-  sets became excludable with N14's roles, which is *why* a record is finally correct
-  rather than approximately correct.
 - **N24 (was P3.6) — Supersets and circuits.** Deliberately deferred when N14 shipped —
   giant-set notation was never modelled — so this is a real question about your programming
   rather than an oversight.

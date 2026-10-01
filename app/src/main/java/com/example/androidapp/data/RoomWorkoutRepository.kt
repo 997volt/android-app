@@ -1,5 +1,9 @@
 package com.example.androidapp.data
 
+import kotlinx.coroutines.flow.first
+import com.example.androidapp.domain.model.PersonalRecords
+import com.example.androidapp.domain.model.PerformedSetSpec
+import com.example.androidapp.data.local.ExerciseTrendRowEntity
 import androidx.room.withTransaction
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
@@ -320,6 +324,19 @@ class RoomWorkoutRepository @Inject constructor(
         )
     }
 
+    override suspend fun personalRecords(
+        exerciseId: String,
+        excludingSessionId: String?,
+    ): DataResult<PersonalRecords> = dataResultOf {
+        // Every session, because a record is against all of them — the window that suits a
+        // chart would silently forget an old best, which is the one thing a record is for.
+        val rows = database.trendsDao().observeExerciseTrendRows(exerciseId, limit = ALL_SESSIONS).first()
+        PersonalRecords.from(
+            rows.filter { it.sessionId != excludingSessionId }
+                .mapNotNull { it.toPerformedSetSpec() },
+        )
+    }
+
     override suspend fun startRest(seconds: Int): DataResult<Instant> = dataResultOf {
         val session = dao.findActiveSession() ?: throw NotFoundException("no active session")
         val now = timeSource.now()
@@ -350,4 +367,24 @@ class RoomWorkoutRepository @Inject constructor(
             throw NotFoundException("session ${session.id}")
         }
     }
+}
+
+/** A stand-in for "all of them": no exercise has anywhere near this many sessions. */
+private const val ALL_SESSIONS = 100_000
+
+/**
+ * A history row as the record rule's input, or null when the row recorded no set.
+ *
+ * The projection keeps `setType` as its stored name (a database column, not an entity), so
+ * the name is resolved here; an unknown name is read as a working set rather than dropped,
+ * because silently discarding a set would make a record easier to beat than it is.
+ */
+private fun ExerciseTrendRowEntity.toPerformedSetSpec(): PerformedSetSpec? {
+    val reps = reps ?: return null
+    return PerformedSetSpec(
+        role = SetType.entries.firstOrNull { it.name == setType } ?: SetType.NORMAL,
+        weightGrams = weightGrams ?: 0L,
+        assistanceGrams = assistanceGrams ?: 0L,
+        reps = reps,
+    )
 }

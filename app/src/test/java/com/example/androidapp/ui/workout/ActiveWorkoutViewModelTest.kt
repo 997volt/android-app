@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.PersonalRecords
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.androidapp.domain.repository.SettingsRepository
 import java.time.DayOfWeek
@@ -992,6 +993,10 @@ class ActiveWorkoutViewModelTest {
         /** The rest length the ViewModel actually asked for, or null if never asked. */
         var lastRestSeconds: Int? = null
 
+        /** What the record read answers with; empty means no records yet. */
+        var records: PersonalRecords = PersonalRecords()
+
+
         /** The readiness note the ViewModel last wrote, or null if never written. */
         var lastReadinessNote: String? = null
 
@@ -1081,6 +1086,11 @@ class ActiveWorkoutViewModelTest {
             sessions.value = sessions.value?.copy(notes = note)
             return DataResult.Success(Unit)
         }
+
+        override suspend fun personalRecords(
+            exerciseId: String,
+            excludingSessionId: String?,
+        ): DataResult<PersonalRecords> = DataResult.Success(records)
 
         override suspend fun finishSession(sessionId: String): DataResult<Unit> {
             sessions.value = null
@@ -1485,6 +1495,64 @@ class ActiveWorkoutViewModelTest {
 
         assertEquals(30, repository.lastRestSeconds)
     }
+
+
+
+    @Test
+    fun loggingASetThatBeatsHistory_raisesTheRecord() = runTest(dispatcher) {
+        // ROADMAP N23: the app has the numbers to say it the second it is true, and a record
+        // noticed a week later in a list is a record nobody feels.
+        val repository = FakeWorkoutRepository().apply {
+            records = PersonalRecords(mapOf(8 to 17_500L))
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        // The prefill is 20 kg × 8, which beats the 17.5 kg recorded at eight reps.
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        val moment = viewModel.personalRecord.value
+        assertNotNull(moment)
+        assertEquals(8, moment!!.reps)
+        assertEquals(20_000L, moment.weightGrams)
+        assertEquals("it says what was beaten, not only what was done", 17_500L, moment.previousBestGrams)
+    }
+    @Test
+    fun matchingTheBest_raisesNothing() = runTest(dispatcher) {
+        // Celebrating a repeat devalues the word.
+        val repository = FakeWorkoutRepository().apply {
+            records = PersonalRecords(mapOf(8 to 20_000L))
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        assertNull(viewModel.personalRecord.value)
+    }
+    @Test
+    fun theRecordIsClearedByTheNextSet() = runTest(dispatcher) {
+        // It is news for the moment between sets, not a banner to dismiss (N23).
+        val repository = FakeWorkoutRepository().apply {
+            records = PersonalRecords(mapOf(8 to 17_500L))
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        assertNotNull(viewModel.personalRecord.value)
+        viewModel.onLogSet(viewModel.uiState.value.exercises.single().id)
+        settle()
+        assertNull("the second set repeats the first, and repeats are not records", viewModel.personalRecord.value)
+    }
+
 }
 
 /**
@@ -1508,5 +1576,6 @@ private class FakeSettingsRepository(
         rest.value = seconds
         return DataResult.Success(Unit)
     }
+
 
 }

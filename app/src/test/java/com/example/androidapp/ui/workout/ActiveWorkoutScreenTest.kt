@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.PersonalRecordMoment
 import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,7 @@ class ActiveWorkoutScreenTest {
     private fun setScreen(
         state: ActiveWorkoutUiState,
         actions: Actions = Actions(),
+        personalRecord: PersonalRecordMoment? = null,
     ) {
         composeTestRule.setContent {
             ActiveWorkoutScreen(
@@ -57,6 +59,7 @@ class ActiveWorkoutScreenTest {
                 clock = remember { mutableStateOf(WorkoutClock()) },
                 onAddExercise = {},
                 onLogSet = actions.onLogSet,
+                personalRecord = personalRecord,
                 onUpdateSet = { _, _, _, _, _, _, _ -> },
                 onRemoveExercise = actions.onRemoveExercise,
                 onRateExercise = actions.onRateExercise,
@@ -403,5 +406,45 @@ class ActiveWorkoutScreenTest {
         setScreen(state = state(isFinished = false))
 
         composeTestRule.onNodeWithTag(TestTags.SUGGESTION_REASON).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRecord_isShownAboveTheWork() {
+        setScreen(
+            state = state(isFinished = false),
+            personalRecord = PersonalRecordMoment(
+                exerciseName = "Back Squat",
+                reps = 5,
+                weightGrams = 100_000L,
+                previousBestGrams = 95_000L,
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.PERSONAL_RECORD).assertExists()
+        composeTestRule.onNodeWithText("Personal record: 100 kg × 5").assertExists()
+        composeTestRule.onNodeWithText("Back Squat — your best before was 95 kg").assertExists()
+    }
+
+    @Test
+    fun theFirstTimeAtARepCount_saysThatInsteadOfClaimingABest() {
+        // There was no bar to clear, and claiming one would be a lie the data does not support.
+        setScreen(
+            state = state(isFinished = false),
+            personalRecord = PersonalRecordMoment(
+                exerciseName = "Back Squat",
+                reps = 3,
+                weightGrams = 60_000L,
+                previousBestGrams = null,
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Back Squat — the first time at this rep count").assertExists()
+    }
+
+    @Test
+    fun withoutARecord_thereIsNoBanner() {
+        setScreen(state = state(isFinished = false))
+
+        composeTestRule.onNodeWithTag(TestTags.PERSONAL_RECORD).assertDoesNotExist()
     }
 }

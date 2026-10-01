@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import com.example.androidapp.domain.model.PersonalRecords
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
@@ -188,6 +189,14 @@ class WorkoutDetailViewModelTest {
             jointPain: Int?,
             jointPainNote: String?,
         ): DataResult<Unit> = unused()
+
+        override suspend fun personalRecords(
+            exerciseId: String,
+            excludingSessionId: String?,
+        ): DataResult<PersonalRecords> = DataResult.Success(records)
+
+        /** What the record read answers with; empty means no records yet. */
+        var records: PersonalRecords = PersonalRecords()
 
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> =

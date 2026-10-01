@@ -209,6 +209,9 @@ object TestTags {
     /** The editor's scrolling exercise list, so a test can scroll to a row. */
     const val TEMPLATE_EXERCISE_LIST = "template_exercise_list"
 
+    /** The record just set (ROADMAP N23). */
+    const val PERSONAL_RECORD = "personal_record"
+
     /** Why the next set is what it is (ROADMAP N22). */
     const val SUGGESTION_REASON = "suggestion_reason"
 

@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.PersonalRecords
+import com.example.androidapp.domain.model.PersonalRecordMoment
 import com.example.androidapp.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -212,6 +214,15 @@ class ActiveWorkoutViewModel @Inject constructor(
      */
     private val defaultRestSeconds = settingsRepository.observeDefaultRestSeconds()
         .stateIn(viewModelScope, SharingStarted.Eagerly, RestTimer.DEFAULT_SECONDS)
+
+    /**
+     * The record just set, if the last logged set was one (ROADMAP N23).
+     *
+     * Not dismissible on purpose: it clears when the next set is logged, which is when the
+     * news is stale — a banner that needs dismissing is a banner in the way between sets.
+     */
+    private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
+    val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
 
     private val _summary = MutableStateFlow<WorkoutSummary?>(null)
     val summary: StateFlow<WorkoutSummary?> = _summary.asStateFlow()
@@ -470,6 +481,34 @@ class ActiveWorkoutViewModel @Inject constructor(
     fun onLogSet(sessionExerciseId: String, setType: SetType = SetType.NORMAL) {
         val row = uiState.value.exercises.firstOrNull { it.id == sessionExerciseId } ?: return
         viewModelScope.launch {
+            // Read *before* the set is written, and excluding this session (ROADMAP N23): a
+            // record is about beating history, and the set being logged is not history yet.
+            // A failed read means no claim either way rather than a missed record.
+            val records = when (
+                val read = workoutRepository.personalRecords(
+                    exerciseId = row.exerciseId,
+                    excludingSessionId = uiState.value.sessionId,
+                )
+            ) {
+                is DataResult.Success -> read.data
+                is DataResult.Failure -> null
+            }
+            // History *and* what this session has already logged: without the second half the
+            // same record is announced on every set that repeats it (found by a test).
+            val against = records?.mergedWith(
+                PersonalRecords.from(
+                    row.sets.map {
+                        PerformedSetSpec(
+                            role = it.setType,
+                            weightGrams = it.weightGrams,
+                            assistanceGrams = it.assistanceGrams,
+                            reps = it.reps,
+                        )
+                    },
+                ),
+            )
+            _personalRecord.value = null
+
             val result = workoutRepository.logSet(
                 sessionExerciseId = sessionExerciseId,
                 reps = row.suggestion.reps,
@@ -481,6 +520,16 @@ class ActiveWorkoutViewModel @Inject constructor(
             )
             handle(result)
             if (result is DataResult.Success) {
+                // A record noticed a week later in a list is a record nobody feels (N23).
+                if (against != null && against.isRecord(row.suggestion.reps, row.suggestion.weightGrams)) {
+                    _personalRecord.value = PersonalRecordMoment(
+                        exerciseName = row.name,
+                        reps = row.suggestion.reps,
+                        weightGrams = row.suggestion.weightGrams,
+                        previousBestGrams = records?.bestAt(row.suggestion.reps),
+                    )
+                }
+
                 // The exercise's own rest when it has one, otherwise the app default
                 // (ROADMAP N5). The +15 s/−15 s controls remain one-off adjustments.
                 // The exercise's own rest wins; otherwise the app-wide setting (N5, N21).

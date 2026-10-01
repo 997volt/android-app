@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.PersonalRecords
 import java.time.DayOfWeek
 import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.model.TemplateSet
@@ -361,6 +362,14 @@ class ExercisePickerViewModelTest {
             jointPain: Int?,
             jointPainNote: String?,
         ): DataResult<Unit> = unused()
+        override suspend fun personalRecords(
+            exerciseId: String,
+            excludingSessionId: String?,
+        ): DataResult<PersonalRecords> = DataResult.Success(records)
+
+        /** What the record read answers with; empty means no records yet. */
+        var records: PersonalRecords = PersonalRecords()
+
         override suspend fun finishSession(sessionId: String): DataResult<Unit> = unused()
         override suspend fun setReadinessNote(sessionId: String, note: String?): DataResult<Unit> = unused()
         override suspend fun setWorkoutNotes(sessionId: String, note: String?): DataResult<Unit> = unused()

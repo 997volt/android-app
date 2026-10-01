@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.PersonalRecordMoment
+import com.example.androidapp.domain.Weight
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
@@ -73,6 +75,7 @@ fun ActiveWorkoutRoute(
     // the whole point of F16. Only the header and the rest bar read it.
     val clock = viewModel.clock.collectAsStateWithLifecycle()
     val summary by viewModel.summary.collectAsStateWithLifecycle()
+    val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
 
     // The rest alert needs two permissions that were declared but never requested
     // (ROADMAP F13). Asked for on the first logged set, where the reason is obvious.
@@ -94,6 +97,7 @@ fun ActiveWorkoutRoute(
         onLogSet = viewModel::onLogSet,
         summary = summary,
         onDismissSummary = viewModel::onDismissSummary,
+        personalRecord = personalRecord,
         onUpdateSet = viewModel::onUpdateSet,
         onRemoveExercise = viewModel::onRemoveExercise,
         onDeleteSet = viewModel::onDeleteSet,
@@ -142,6 +146,7 @@ fun ActiveWorkoutScreen(
     modifier: Modifier = Modifier,
     summary: WorkoutSummary? = null,
     onDismissSummary: () -> Unit = {},
+    personalRecord: PersonalRecordMoment? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     WorkoutSnackbars(
@@ -194,6 +199,7 @@ fun ActiveWorkoutScreen(
             onRateExercise = onRateExercise,
             onReopenExercise = onReopenExercise,
             onDiscard = onDiscard,
+            personalRecord = personalRecord,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -394,8 +400,13 @@ private fun WorkoutBody(
     onReopenExercise: (String) -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
+    personalRecord: PersonalRecordMoment? = null,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        // The record sits above the work, not in a dialog: it happens *between* sets, and
+        // anything that has to be dismissed is in the way there (ROADMAP N23).
+        personalRecord?.let { PersonalRecordBanner(record = it) }
+
         state.error?.let { error ->
             Text(
                 text = dataErrorMessage(error),
@@ -642,5 +653,45 @@ private fun ActiveWorkoutScreenPreview() {
             onDiscard = {},
             onBack = {},
         )
+    }
+}
+
+/**
+ * The record just set (ROADMAP N23).
+ *
+ * It says what was beaten rather than only what was done — "5 reps at 100 kg, best yet" — and
+ * it says the *first* time at a rep count differently, because there was no bar to clear then
+ * and claiming otherwise would be a lie the data does not support.
+ */
+@Composable
+private fun PersonalRecordBanner(
+    record: PersonalRecordMoment,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().testTag(TestTags.PERSONAL_RECORD),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(
+                text = stringResource(
+                    R.string.personal_record_title,
+                    record.reps,
+                    Weight.display(record.weightGrams, 0),
+                ),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = record.previousBestGrams?.let { previous ->
+                    stringResource(
+                        R.string.personal_record_beats,
+                        record.exerciseName,
+                        Weight.display(previous, 0),
+                    )
+                } ?: stringResource(R.string.personal_record_first, record.exerciseName),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }

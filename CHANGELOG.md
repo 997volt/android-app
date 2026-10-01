@@ -8,6 +8,16 @@ Notable changes to Workout Log, newest first. Format follows
 ## [1.5] — 2026-09-30 (versionCode 6)
 
 ### Added
+- **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
+  heaviest working set at each rep count, so 100 kg × 5 is beaten only by more weight at five
+  reps — not by twelve reps at 90 kg. Log a set that beats your best and the app says so
+  straight away, above the work rather than in a dialog, and it says **what it beat**: "your
+  best before was 95 kg". The first time at a rep count says that instead, because there was
+  no bar to clear and claiming one would be a lie the data does not support.
+- **Records are only correct now.** Warm-up sets became excludable with N14's roles, so a
+  120 kg warm-up can no longer be mistaken for the work — which is why this could not have
+  been built honestly before.
+
 - **The app stops handing back the same number.** Until now a new session prefilled exactly
   what was lifted last time, which made a written plan and a year of history worth nothing at
   the moment they should count. The prefill now proposes the next step by **double
