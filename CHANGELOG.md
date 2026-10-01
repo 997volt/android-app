@@ -29,6 +29,14 @@ Notable changes to Workout Log, newest first. Format follows
   against it.
 
 ### Fixed
+- **Finishing a workout leaves the screen again, and the undo offers are back.** Removing the
+  background rest alert took two things with it that sat beside the permission flow: the effect that
+  navigates away once a workout is closed, and the call that draws the undo offer for a deleted set
+  or a finished exercise. Neither is visible in a compile, and neither had a test — both were caught
+  by detekt's unused-parameter and unused-private-member rules, which is the second time in this batch
+  that a gate nobody was watching did the catching.
+
+### Fixed
 - **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure, so a
   failure — or the process dying — between writes could leave half a group: the exact state the
   action exists to prevent, and one the screen would then show as a superset of one. The whole group

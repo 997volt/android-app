@@ -66,6 +66,11 @@ fun ActiveWorkoutRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val closed by viewModel.closed.collectAsStateWithLifecycle()
+    // Finishing closes the session; the review still has to be read, so this is what leaves
+    // the screen once it is dismissed (N20). Read through a remembered state so the effect does
+    // not restart on every recomposition.
+    val leave by rememberUpdatedState(onDone)
+    LaunchedEffect(closed) { if (closed) leave() }
 
     // Kept as a State object rather than unwrapped with `by`: reading it here would
     // recompose this composable — and everything below it — once a second, which is
@@ -151,14 +156,6 @@ fun ActiveWorkoutScreen(
     personalRecord: PersonalRecordMoment? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    WorkoutSnackbars(
-        state = state,
-        hostState = snackbarHostState,
-        onUndoDelete = onUndoDelete,
-        onDismissUndo = onDismissUndo,
-        onUndoFinishExercise = onUndoFinishExercise,
-        onDismissFinishUndo = onDismissFinishUndo,
-    )
 
     // The set being edited, held here so the caller does not have to track it.
     var editing by remember { mutableStateOf<SetRow?>(null) }
@@ -167,6 +164,8 @@ fun ActiveWorkoutScreen(
     if (summary != null) {
         WorkoutReviewDialog(summary = summary, onDismiss = onDismissSummary)
     }
+
+    UndoOffers(state, snackbarHostState, onUndoDelete, onDismissUndo, onUndoFinishExercise, onDismissFinishUndo)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -288,7 +287,7 @@ private fun ShowUndoSnackbar(
  * races through.
  */
 @Composable
-private fun WorkoutSnackbars(
+private fun UndoOffers(
     state: ActiveWorkoutUiState,
     hostState: SnackbarHostState,
     onUndoDelete: () -> Unit,
