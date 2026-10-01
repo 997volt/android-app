@@ -1,8 +1,5 @@
 package com.example.androidapp.di
 
-import dagger.Binds
-import com.example.androidapp.domain.repository.SettingsRepository
-import com.example.androidapp.data.PreferencesSettingsRepository
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -67,15 +64,4 @@ object DatabaseModule {
     @Singleton
     fun provideCrashLogStore(@ApplicationContext context: Context): CrashLogStore =
         CrashLogStore(File(context.filesDir, "crash-logs"))
-}
-
-/** Settings live beside the database binding because they are the same kind of thing: app state. */
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class SettingsModule {
-    @Binds
-    @Singleton
-    abstract fun bindSettingsRepository(
-        implementation: PreferencesSettingsRepository,
-    ): SettingsRepository
 }

@@ -29,22 +29,6 @@ shipped and left the file.
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
-- **B31 — Two names that lie.** Two types are called `WorkoutSummary` — the history row in
-  `domain/model`, and the review payload at the bottom of `ActiveWorkoutViewModel` — and
-  `SettingsModule` lives in `DatabaseModule.kt`, whose name says database while the module binds a
-  `SharedPreferences` repository.
-- **What goes:** the scheduler and its receiver, the notification builder, the
-  ask-on-first-set permission flow, the `RestNotifier` port and its binding, the receiver
-  declaration, and both manifest permissions — `POST_NOTIFICATIONS` and
-  `SCHEDULE_EXACT_ALARM`.
-- **What stays:** the rest timer. The end instant lives on the session row and survives
-  process death; only the way it *reaches* you changes.
-- **The property worth stating:** the app then declares **no permissions at all**, which is
-  a stronger privacy statement than any wording, and belongs in the README.
-- **Why this is not pure deletion:** with no background alert the timer has to be noticed
-  in-app, so **P1.14** (sound and haptics) and **P1.10** (keep the screen on) stop being
-  polish and become its replacement. They lead what follows.
-
 ### N27 — Make the rest timer audible and visible
 
 The replacement for what N26 removes, and the reason the two are one round rather than two. With no

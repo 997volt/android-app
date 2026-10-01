@@ -233,8 +233,8 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
     val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
 
-    private val _summary = MutableStateFlow<WorkoutSummary?>(null)
-    val summary: StateFlow<WorkoutSummary?> = _summary.asStateFlow()
+    private val _summary = MutableStateFlow<WorkoutReview?>(null)
+    val summary: StateFlow<WorkoutReview?> = _summary.asStateFlow()
 
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
     private val previousByExercise = MutableStateFlow<Map<String, PreviousPerformance>>(emptyMap())
@@ -917,7 +917,7 @@ class ActiveWorkoutViewModel @Inject constructor(
 }
 
 /** What the screen shows once a workout is finished (ROADMAP N20). */
-data class WorkoutSummary(
+data class WorkoutReview(
     val note: String?,
     val readinessNote: String?,
     val totalSets: Int,
@@ -947,7 +947,7 @@ private fun buildSummary(
     state: ActiveWorkoutUiState,
     plan: List<TemplateExercise>,
     note: String?,
-): WorkoutSummary {
+): WorkoutReview {
     val actual = state.exercises.map { row ->
         ExerciseActual(
             exerciseId = row.exerciseId,
@@ -978,7 +978,7 @@ private fun buildSummary(
         )
     }
     val allSets = state.exercises.flatMap { it.sets }
-    return WorkoutSummary(
+    return WorkoutReview(
         note = note?.takeIf { it.isNotBlank() },
         readinessNote = state.readinessNote,
         totalSets = allSets.size,

@@ -21,23 +21,23 @@ import org.junit.runner.RunWith
  * user had just given.
  */
 @RunWith(AndroidJUnit4::class)
-class WorkoutSummaryDialogTest {
+class WorkoutReviewDialogTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
     private var dismissals = 0
 
-    private fun show(summary: WorkoutSummary) {
+    private fun show(review: WorkoutReview) {
         composeTestRule.setContent {
-            WorkoutSummaryDialog(summary = summary, onDismiss = { dismissals++ })
+            WorkoutReviewDialog(summary = review, onDismiss = { dismissals++ })
         }
     }
 
-    private fun summary(
+    private fun review(
         comparisons: List<PlanComparison> = emptyList(),
         ratings: List<ExerciseRating> = emptyList(),
-    ) = WorkoutSummary(
+    ) = WorkoutReview(
         note = null,
         readinessNote = null,
         totalSets = 8,
@@ -49,7 +49,7 @@ class WorkoutSummaryDialogTest {
 
     @Test
     fun theTotals_areReadable_withUnits() {
-        show(summary())
+        show(review())
 
         composeTestRule.onNodeWithText("Sets 8 · reps 40 · 1000 kg").assertExists()
     }
@@ -57,7 +57,7 @@ class WorkoutSummaryDialogTest {
     @Test
     fun anOverPlanTopSet_saysSoInKilos() {
         show(
-            summary(
+            review(
                 comparisons = listOf(
                     PlanComparison(
                         name = "Deadlift",
@@ -83,7 +83,7 @@ class WorkoutSummaryDialogTest {
     fun aSkippedExercise_isNotQuietlyOmitted() {
         // A review that only lists what was done is a compliment, not a record.
         show(
-            summary(
+            review(
                 comparisons = listOf(
                     PlanComparison(
                         name = "Squat",
@@ -106,7 +106,7 @@ class WorkoutSummaryDialogTest {
     @Test
     fun aRatingTheUserJustGave_isReadBack() {
         // The ratings used to go nowhere the user could see (N20's complaint).
-        show(summary(ratings = listOf(ExerciseRating("Back Squat", muscleFeel = 8, jointPain = 2))))
+        show(review(ratings = listOf(ExerciseRating("Back Squat", muscleFeel = 8, jointPain = 2))))
 
         composeTestRule.onNodeWithText("How it felt").assertExists()
         composeTestRule.onNodeWithText("Back Squat — felt 8/10, joints 2/10").assertExists()
@@ -114,14 +114,14 @@ class WorkoutSummaryDialogTest {
 
     @Test
     fun withoutAPlan_thereIsNoComparisonSection() {
-        show(summary())
+        show(review())
 
         composeTestRule.onNodeWithText("Plan vs actual").assertDoesNotExist()
     }
 
     @Test
     fun done_dismisses() {
-        show(summary())
+        show(review())
 
         composeTestRule.onNodeWithTag(TestTags.SUMMARY_DONE).performClick()
 

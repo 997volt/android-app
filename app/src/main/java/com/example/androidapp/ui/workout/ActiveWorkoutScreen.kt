@@ -147,7 +147,7 @@ fun ActiveWorkoutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onToggleSuperset: (String) -> Unit = {},
-    summary: WorkoutSummary? = null,
+    summary: WorkoutReview? = null,
     onDismissSummary: () -> Unit = {},
     personalRecord: PersonalRecordMoment? = null,
 ) {
@@ -166,7 +166,7 @@ fun ActiveWorkoutScreen(
 
 
     if (summary != null) {
-        WorkoutSummaryDialog(summary = summary, onDismiss = onDismissSummary)
+        WorkoutReviewDialog(summary = summary, onDismiss = onDismissSummary)
     }
 
     Scaffold(

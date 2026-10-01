@@ -8,6 +8,12 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
+  which is also the name of the history row in the domain — two types, one name, and the reader left
+  to guess which. The review payload is `WorkoutReview` now, and the dialog that draws it is named
+  after it. `SettingsModule` moved out of `DatabaseModule.kt`: the file said database while binding a
+  `SharedPreferences` repository. The move also showed the new import gate working — it flagged the
+  three imports the moved code left behind, in the same commit that would have carried them.
 - **Unused imports are gated.** detekt's `UnusedImports` is off by default and the compiler does not
   run with `-Werror`, so an import left behind by an implementation that landed elsewhere passed every
   gate this project treats as authoritative. Turning the rule on found **fifty-one** across twenty-one

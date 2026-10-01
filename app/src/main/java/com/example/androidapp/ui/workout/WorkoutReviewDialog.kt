@@ -32,8 +32,8 @@ import com.example.androidapp.ui.components.TestTags
  * the session, and a review that omits it is a compliment rather than a record.
  */
 @Composable
-fun WorkoutSummaryDialog(
-    summary: WorkoutSummary,
+fun WorkoutReviewDialog(
+    summary: WorkoutReview,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
