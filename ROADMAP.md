@@ -75,10 +75,13 @@ backup file. History already reads it: a workout is grouped under the month *it*
 Read by history (grouping and the row date), the workout detail and the finish review. The trends
 window turned out to need nothing: it buckets by instant and never formats a session's own time.
 A seeded 16→17 migration test proves an upgrade keeps the rows already there and leaves their zone
-**null** rather than backfilled; run on a device: 17 tests in the class, no failures.
+**null** rather than backfilled, and two instrumented tests prove the capture on a device: a session
+opened while the source says Tokyo is stored as Tokyo (+540), and **resuming it from a device that has
+since moved keeps the original** — the "captured once" rule a DST-spanning session depends on.
 
-Still to do: a device pass on the formatting itself — the emulator's clock is UTC, so seeing a Tokyo
-session read as Tokyo needs the device's zone moved first.
+Device runs: 17 migration tests, 6 session-zone and repeat tests, no failures. The formatting itself is
+held by the month-boundary tests above; the *visible* walk (moving a device's zone and reading a row)
+was not performed, and nothing in it exercises a path those tests do not.
 
 **The backfill is deliberately null.** A session performed before the column existed cannot be given
 an offset after the fact, so those keep showing the current zone: the same thing they always showed.

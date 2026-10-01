@@ -152,4 +152,33 @@ class RepeatLastSessionTest {
         updatedAt = 0L,
         deletedAt = null,
     )
+
+    @Test
+    fun openingASession_recordsTheZoneItIsIn() = runTest {
+        // ROADMAP N25: the capture, on a device. A session opened while the source says Tokyo (+540)
+        // is stored as Tokyo, which is what every screen then reads back.
+        val tokyo = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 540 })
+
+        val started = (tokyo.startOrResumeSession() as DataResult.Success<StartedSession>).data
+
+        assertEquals(540, database.workoutDao().findSession(started.id)?.zoneOffsetMinutes)
+    }
+
+    @Test
+    fun resumingASession_keepsTheZoneItOpenedIn() = runTest {
+        // The "captured once" rule, and the one a DST-spanning session depends on: opening in Tokyo
+        // and resuming hours later from a device that has since moved must NOT rewrite the row. The
+        // DAO returns early for an existing session, which is where this is enforced.
+        val tokyo = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 540 })
+        val started = (tokyo.startOrResumeSession() as DataResult.Success<StartedSession>).data
+
+        val home = RoomWorkoutRepository(database, clock, ZoneOffsetSource { 0 })
+        home.startOrResumeSession()
+
+        assertEquals(
+            "the session still remembers Tokyo",
+            540,
+            database.workoutDao().findSession(started.id)?.zoneOffsetMinutes,
+        )
+    }
 }
