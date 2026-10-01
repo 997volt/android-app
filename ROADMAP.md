@@ -163,14 +163,8 @@ a spelled-out decision — when it is picked up, and leaves for
 
 **Everyday logging**
 - **P1.15** Repeat last workout in one tap.
-- **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
 
 **Insight** — why the app gets opened between workouts
-- **P2.1** Set-by-set history for one lift — N17 delivered the per-exercise chart and its
-  entry point, so what remains is the full list of past performances, if that is wanted.
-- **P2.3** A fuller chart screen over months — N13 settled the drawing approach (a `Canvas`,
-  no dependency) and N17 used it for one lift; this is the longer horizon. Personal records
-  are **N23** and are not this row.
 - **P2.4** Body measurements.
 
 **Programming** — turns a logger into a plan
@@ -178,6 +172,10 @@ a spelled-out decision — when it is picked up, and leaves for
 - **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
   the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
   **N20**.
+
+**Small and self-contained**
+- **P2.6** Plate calculator — unparked, because its trigger has fired: plans carry target
+  weights now, and that is when the arithmetic stops being worth doing in your head.
 
 Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
 as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
@@ -187,8 +185,7 @@ The **accessibility rule still applies to every screen as it is written**
 section is empty until it returns or something replaces it.
 
 Design-system work (**F8**) is a rule rather than a row now: extract a component when
-a second screen needs it, not before. *Next*'s "rule violations found" is that rule
-being broken in five places, so it is enforcement of F8 rather than new work.
+a second screen needs it, not before.
 
 ## Parked — deliberately not planned
 
@@ -213,9 +210,9 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | P5.3 | Monetization / Play Billing | There is a concrete reason to charge, and a willingness to take the Play-services dependency. |
 | P5.4 | Localization | A non-English user appears. |
 | P1.11 | Onboarding: goal, experience level, weekly target | This stops being a single-user local tool with one obvious user. It personalises defaults, and there are no defaults to personalise. |
+| P1.9 | kg/lb display setting | You start lifting in pounds. Storage is canonical grams, so this is display-only whenever it is wanted. |
 | P1.17 | Accessibility audit | The per-screen rule stops being enough — a real complaint on a device, or a screen that grew past ad-hoc tagging. The rule itself still applies to every change; only the sweep is parked. |
 | P2.5 | Progress photos | A visual record is actually wanted, and an encrypted-storage design for it is acceptable. |
-| P2.6 | Plate calculator | You start loading plates from a plan and want the arithmetic done rather than done in your head. |
 | P2.8 | Muscle-group balance warnings | Enough history exists for a rolling window to say something true rather than something plausible. |
 | — | **Play Store listing** | You want distribution beyond `adb install`. Self-install works today, and Play App Signing would change who holds the signing key. |
 | — | **Encryption at rest / app lock** | You start carrying the phone somewhere you would not carry the data. |
