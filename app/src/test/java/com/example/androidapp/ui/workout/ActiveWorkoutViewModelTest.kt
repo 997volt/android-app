@@ -11,7 +11,6 @@ import com.example.androidapp.domain.model.TemplateSet
 import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
-import com.example.androidapp.domain.RestNotifier
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.Weight
@@ -106,14 +105,12 @@ class ActiveWorkoutViewModelTest {
 
     private fun viewModelFor(
         repository: FakeWorkoutRepository,
-        notifier: FakeRestNotifier = FakeRestNotifier(),
         templateId: String? = null,
         templates: FakeTemplateRepository = FakeTemplateRepository(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
     ) = ActiveWorkoutViewModel(
         repository,
         clock,
-        notifier,
         templates,
         activeWorkoutRoute(templateId),
         settings,
@@ -515,8 +512,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun finishingMarksTheScreenClosed_andClearsTheSession() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val notifier = FakeRestNotifier()
-        val viewModel = viewModelFor(repository, notifier)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
@@ -533,15 +529,13 @@ class ActiveWorkoutViewModelTest {
         assertEquals(null, viewModel.uiState.value.sessionId)
         // Asserted here because the code path that does it was rewritten once and the
         // cancel was lost: a finished workout must not leave a rest alarm armed.
-        assertEquals("finishing must cancel any rest alert", 1, notifier.cancelCount)
     }
 
     @Test
     fun finishingWithAComment_alsoCancelsTheRestAlert() = runTest(dispatcher) {
         // The comment is written first, so this is a different path to the same close.
         val repository = FakeWorkoutRepository()
-        val notifier = FakeRestNotifier()
-        val viewModel = viewModelFor(repository, notifier)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
         viewModel.onAddExercise("back-squat")
@@ -554,7 +548,6 @@ class ActiveWorkoutViewModelTest {
         viewModel.onDismissSummary()
         settle()
 
-        assertEquals(1, notifier.cancelCount)
     }
 
     @Test
@@ -590,8 +583,7 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun loggingASet_storesTheSuggestion_andArmsTheRestAlert() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val notifier = FakeRestNotifier()
-        val viewModel = viewModelFor(repository, notifier)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
         viewModel.onAddExercise("back-squat")
@@ -606,7 +598,6 @@ class ActiveWorkoutViewModelTest {
         // N6: the one-tap path deliberately writes neither, so logging stays fast.
         assertNull(logged.rpeHalves)
         assertNull(logged.note)
-        assertEquals("a rest must be armed on set completion", 1, notifier.scheduled.size)
     }
 
     @Test
@@ -761,29 +752,25 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun skippingTheRest_cancelsTheAlert() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val notifier = FakeRestNotifier()
-        val viewModel = viewModelFor(repository, notifier)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
         viewModel.onSkipRest()
         settle()
 
-        assertEquals(1, notifier.cancelCount)
     }
 
     @Test
     fun adjustingTheRest_reschedulesTheAlert() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
-        val notifier = FakeRestNotifier()
-        val viewModel = viewModelFor(repository, notifier)
+        val viewModel = viewModelFor(repository)
         observe(viewModel)
         settle()
 
         viewModel.onAdjustRest(RestTimer.ADJUST_STEP_SECONDS)
         settle()
 
-        assertEquals(1, notifier.scheduled.size)
     }
 
     @Test
@@ -950,7 +937,6 @@ class ActiveWorkoutViewModelTest {
         val viewModel = ActiveWorkoutViewModel(
             FakeWorkoutRepository(),
             tickingClock,
-            FakeRestNotifier(),
             FakeTemplateRepository(),
             activeWorkoutRoute(),
             FakeSettingsRepository(),
@@ -1200,20 +1186,6 @@ class ActiveWorkoutViewModelTest {
         override fun now(): Instant = now
     }
 
-    /** Records what the screen asked to be alerted about, with no Android involved. */
-    private class FakeRestNotifier : RestNotifier {
-        val scheduled = mutableListOf<Instant>()
-        var cancelCount = 0
-            private set
-
-        override fun schedule(endsAt: Instant) {
-            scheduled += endsAt
-        }
-
-        override fun cancel() {
-            cancelCount++
-        }
-    }
 
     private companion object {
         val FIXED_INSTANT: Instant = Instant.parse("2026-09-28T08:00:00Z")

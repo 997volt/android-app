@@ -76,7 +76,6 @@ fun ActiveWorkoutRoute(
 
     // The rest alert needs two permissions that were declared but never requested
     // (ROADMAP F13). Asked for on the first logged set, where the reason is obvious.
-    RestAlertPermissions(enabled = state.exercises.any { it.sets.isNotEmpty() })
 
     // rememberUpdatedState, because the effect below restarts on `closed`:
     // reading the lambda parameter directly would capture whichever `onDone` was

@@ -7,6 +7,14 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Removed
+- **The background rest alert, and with it the app's last permission.** The alarm, its receiver, the
+  notification, the ask-on-first-set prompt and both manifest permissions are gone —
+  `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`. The app now declares **no permissions at all**,
+  which is a stronger statement about your data than any wording could be. The rest timer itself is
+  untouched: the end instant still lives on the session row and survives the process dying; only the
+  way it reaches you changed, and once it can be heard and seen in-app (next change) nothing is lost.
+
 ### Changed
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
   which is also the name of the history row in the domain — two types, one name, and the reader left

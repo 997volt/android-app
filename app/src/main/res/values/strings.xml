@@ -272,10 +272,6 @@
     <string name="rest_add">+15s</string>
     <string name="rest_subtract">−15s</string>
     <string name="rest_skip">Skip rest</string>
-    <string name="rest_over_title">Rest over</string>
-    <string name="rest_over_text">Time for your next set.</string>
-    <string name="rest_channel_name">Rest timer</string>
-    <string name="rest_channel_description">Alerts when a rest between sets is over.</string>
 
     <!-- Write failures (ROADMAP F7) -->
     <string name="workout_error_not_found">That workout is no longer open.</string>

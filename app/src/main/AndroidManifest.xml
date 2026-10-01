@@ -11,8 +11,6 @@
       It is requested so a rest can end on time, but the scheduler falls back to
       an inexact alarm when it is not granted rather than failing.
     -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!--
       Workout history is health data, so it must not leave the device through
@@ -45,11 +43,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Posts the rest-over notification when the alarm fires. Not exported:
-             nothing outside the app should be able to trigger it. -->
-        <receiver
-            android:name=".platform.RestAlarmReceiver"
-            android:exported="false" />
     </application>
 
 </manifest>

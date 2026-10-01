@@ -17,7 +17,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
-import com.example.androidapp.domain.RestNotifier
 import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.Weight
@@ -178,7 +177,6 @@ data class ActiveWorkoutUiState(
 class ActiveWorkoutViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
     private val timeSource: TimeSource,
-    private val restNotifier: RestNotifier,
     private val templateRepository: TemplateRepository,
     savedStateHandle: SavedStateHandle,
     private val settingsRepository: SettingsRepository,
@@ -704,16 +702,14 @@ class ActiveWorkoutViewModel @Inject constructor(
     fun onSkipRest() {
         viewModelScope.launch {
             handle(workoutRepository.clearRest())
-            restNotifier.cancel()
         }
     }
 
     fun onAdjustRest(deltaSeconds: Int) {
         viewModelScope.launch {
-            when (val result = workoutRepository.adjustRest(deltaSeconds)) {
-                is DataResult.Success -> restNotifier.schedule(result.data)
-                is DataResult.Failure -> lastError.value = result.error
-            }
+            // No scheduling branch: the rest is in-app only now (ROADMAP N26), so a success has
+            // nothing left to do beyond the end instant the repository just wrote.
+            handle(workoutRepository.adjustRest(deltaSeconds))
         }
     }
 
@@ -777,7 +773,6 @@ class ActiveWorkoutViewModel @Inject constructor(
      * exactly what happened when N11 rewrote `onFinish` and skipped `write`.
      */
     private fun closeSession() {
-        restNotifier.cancel()
         _closed.value = true
     }
 
@@ -786,10 +781,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     }
 
     private suspend fun startRest(seconds: Int) {
-        when (val result = workoutRepository.startRest(seconds)) {
-            is DataResult.Success -> restNotifier.schedule(result.data)
-            is DataResult.Failure -> lastError.value = result.error
-        }
+        handle(workoutRepository.startRest(seconds))
     }
 
     /** True while the exercise is still part of the open session's list. */
