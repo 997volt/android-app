@@ -61,8 +61,10 @@ Two rules the generator states rather than inherits: identical consecutive warm-
 a bar loaded twice is one warm-up; and a bodyweight or assisted exercise gets **no** ramp, which is
 N15's rule about what a bodyweight set carries applied to generating one.
 
-The button's presence rule is held by two screen tests as well as by the caller's condition; what
-remains for a device is the tap itself writing a ramp into a real plan.
+Verified: eleven JVM tests over the rule, the action and the control; and an **instrumented test that
+writes the ramp through Room and reads it back** — the roles, the weights, the descending reps and the
+working set left intact — which is the one claim a fake cannot make. Run on a device: 26 tests in the
+class, no failures.
 
 ### N25 — A session remembers the timezone it was performed in
 

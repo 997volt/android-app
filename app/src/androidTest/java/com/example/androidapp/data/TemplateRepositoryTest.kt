@@ -3,6 +3,7 @@ package com.example.androidapp.data
 import java.time.DayOfWeek
 import com.example.androidapp.domain.repository.TemplateSetEdit
 import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.warmUpRamp
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -414,5 +415,56 @@ class TemplateRepositoryTest {
         assertTrue(
             repository.setWeekday("nope", DayOfWeek.MONDAY) is DataResult.Failure,
         )
+    }
+
+    @Test
+    fun aWarmUpRamp_writtenToAPlan_comesBackWithItsRolesAndWeights() = runTest {
+        // ROADMAP N28, and the point B24 made about reads and writes that only ever meet a fake: the
+        // generator's output is asserted as *values passed* everywhere else. This is the same ramp
+        // written through the schema and read back, so a column that dropped the role — or a
+        // projection that forgot it — fails here rather than at the gym.
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+        repository.addSet(
+            exercise,
+            TemplateSetEdit(
+                role = SetType.NORMAL,
+                targetWeightGrams = 100_000L,
+                targetRepsMin = 5,
+                targetRepsMax = 5,
+            ),
+        )
+
+        warmUpRamp(workingWeightGrams = 100_000L).forEach { target ->
+            repository.addSet(
+                exercise,
+                TemplateSetEdit(
+                    role = SetType.WARMUP,
+                    targetWeightGrams = target.weightGrams,
+                    targetRepsMin = target.reps,
+                    targetRepsMax = target.reps,
+                ),
+            )
+        }
+
+        val planned = repository.observeExercises(template).first().single().sets
+        val warmUps = planned.filter { it.role == SetType.WARMUP }
+
+        assertEquals(
+            "the ramp survives the schema, lightest first",
+            listOf(40_000L, 60_000L, 75_000L, 85_000L),
+            warmUps.map { it.targetWeightGrams },
+        )
+        assertEquals(
+            "and so do its reps",
+            listOf(5, 3, 2, 1),
+            warmUps.map { it.targetRepsMax },
+        )
+        assertEquals(
+            "the working set is still the only working set",
+            1,
+            planned.count { it.role != SetType.WARMUP },
+        )
+        assertEquals("the plan reads as four warm-ups and the work", 5, planned.size)
     }
 }

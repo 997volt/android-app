@@ -33,7 +33,9 @@ Notable changes to Workout Log, newest first. Format follows
   type one; this is what makes writing four of them a single action instead of four. It is offered
   only where there is a weight to take a fraction of: a bodyweight or assisted exercise gets no ramp,
   because a list of zeroes to load is worse than no control at all. Two screen tests hold the one
-  thing the dialog owns — that the control is drawn when it is given one and absent when it is not.
+  thing the dialog owns — that the control is drawn when it is given one and absent when it is not, and
+  an instrumented test writes the ramp through Room and reads it back: a column that dropped the role,
+  or a projection that forgot it, fails there rather than at the gym.
 
 ### Changed
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
