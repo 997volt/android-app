@@ -14,7 +14,7 @@ server, and nothing leaves the device unless you export it.
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N24` have
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N28` have
 shipped and left the file.
 
 ## Current state
@@ -29,42 +29,12 @@ shipped and left the file.
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
-### N26 — Remove the background rest alert — **done**
+## Next
 
-The alarm, its receiver, the notification, the ask-on-first-set flow and both manifest permissions are
-gone; the app declares **no permissions at all**, and the README says so. What remains of this pair is
-N27: the in-app timer is the whole mechanism until it can be heard and seen.
-
-### N27 — Make the rest timer audible and visible — **done, to the limit of this emulator**
-
-Both halves are in: a tone and a view-level haptic when a rest ends, and a window flag that keeps the
-screen on for a workout. Each has a switch in settings, and both default to on. Neither asks for a
-permission, which is the constraint N26 left.
-
-Checked on the device: the settings screen renders both switches; **the app's window carries
-`KEEP_SCREEN_ON`** while a workout is open (`dumpsys window windows`); and the cue's path — the
-transition out of resting — runs with the app alive and nothing in the crash log.
-
-**What this environment cannot check**: the emulator runs with `-no-audio`, so whether the tone is
-actually *audible* is unverified, and a view-level haptic is invisible headlessly. That leaves the
-sensory half of the feature resting on the code and the API-level check lint made
-(`HapticFeedbackConstants.CONFIRM` is API 30 and would have crashed on the phones this app supports).
-
-### N28 — Warm-up set generator — **done**
-
-Was **P2.7**, and a better feature than it was before plans had roles: it *writes* warm-up sets into a
-plan using the `WARMUP` role rather than only suggesting numbers. A ramp computed from the plan's own
-working weight and added in one action (40/60/75/85% for 5/3/2/1 reps, rounded to 2.5 kg) is the
-difference between a plan that is pleasant to author and one that is not.
-
-Two rules the generator states rather than inherits: identical consecutive warm-ups are dropped, since
-a bar loaded twice is one warm-up; and a bodyweight or assisted exercise gets **no** ramp, which is
-N15's rule about what a bodyweight set carries applied to generating one.
-
-Verified: eleven JVM tests over the rule, the action and the control; and an **instrumented test that
-writes the ramp through Room and reads it back** — the roles, the weights, the descending reps and the
-working set left intact — which is the one claim a fake cannot make. Run on a device: 26 tests in the
-class, no failures.
+**Nothing is marked for work.** The v1.5 review's corrections (B26–B32) and the round that removed the
+background rest alert and replaced it with in-app cues (N26, N27) and the warm-up generator (N28) all
+shipped; what they did is in [CHANGELOG.md](CHANGELOG.md). The next round is a choice rather than a
+queue: everything remaining is in *Later*, below.
 
 ### N25 — A session remembers the timezone it was performed in
 

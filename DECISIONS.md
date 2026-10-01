@@ -1,6 +1,6 @@
 # Decisions
 
-Settled choices for Workout Log, kept out of [ROADMAP.md](ROADMAP.md) so that file can
+Settled choices for Workout, kept out of [ROADMAP.md](ROADMAP.md) so that file can
 stay a queue. Nothing here is a task: each entry is a decision already taken, written
 down so it is not relitigated by accident.
 

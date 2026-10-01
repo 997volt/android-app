@@ -1,23 +1,17 @@
 # Changelog
 
-Notable changes to Workout Log, newest first. Format follows
+Notable changes to Workout, newest first. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
 ## [Unreleased]
 
-### Removed
-- **The background rest alert, and with it the app's last permission.** The alarm, its receiver, the
-  notification, the ask-on-first-set prompt and both manifest permissions are gone —
-  `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`. The app now declares **no permissions at all**,
-  which is a stronger statement about your data than any wording could be. The rest timer itself is
-  untouched: the end instant still lives on the session row and survives the process dying; only the
-  way it reaches you changed, and once it can be heard and seen in-app (next change) nothing is lost.
 
 ### Added
+
 - **A rest is now heard and felt, and a workout keeps the screen awake.** Removing the background alert
-  (above) left the timer noticeable only while you were looking at it, so this is what replaces it: a
+  left the timer noticeable only while you were looking at it, so this is what replaces it: a
   short tone and a tick when a rest ends, and the screen staying on while a workout is open. Both have
   a switch in settings — *Chime when a rest ends* and *Keep the screen on* — and both default to on,
   because an app that got quieter than it was would be a regression wearing a preference's clothes.
@@ -26,7 +20,7 @@ Notable changes to Workout Log, newest first. Format follows
   and it costs `android.permission.VIBRATE` — the one thing the app just stopped declaring, so the
   constraint is recorded in [DECISIONS.md](DECISIONS.md) rather than left to be rediscovered.
 
-### Added
+
 - **A warm-up ramp, in one tap.** A plan's exercise can now generate its warm-ups from the weight the
   plan already names: four sets — 40%, 60%, 75% and 85% for five, three, two and one rep — written
   into the plan as role-carrying warm-ups. N14 made a warm-up expressible and the plan editor let you
@@ -38,6 +32,7 @@ Notable changes to Workout Log, newest first. Format follows
   or a projection that forgot it, fails there rather than at the gym.
 
 ### Changed
+
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
   which is also the name of the history row in the domain — two types, one name, and the reader left
   to guess which. The review payload is `WorkoutReview` now, and the dialog that draws it is named
@@ -50,7 +45,17 @@ Notable changes to Workout Log, newest first. Format follows
   files — far more than the two that prompted it — which is the argument for the rule rather than
   against it.
 
+### Removed
+
+- **The background rest alert, and with it the app's last permission.** The alarm, its receiver, the
+  notification, the ask-on-first-set prompt and both manifest permissions are gone —
+  `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`. The app now declares **no permissions at all**,
+  which is a stronger statement about your data than any wording could be. The rest timer itself is
+  untouched: the end instant still lives on the session row and survives the process dying; only the
+  way it reaches you changed, and since it can now be heard and felt in the app, nothing is lost.
+
 ### Fixed
+
 - **Finishing a workout leaves the screen again, and the undo offers are back.** Removing the
   background rest alert took two things with it that sat beside the permission flow: the effect that
   navigates away once a workout is closed, and the call that draws the undo offer for a deleted set
@@ -58,7 +63,7 @@ Notable changes to Workout Log, newest first. Format follows
   by detekt's unused-parameter and unused-private-member rules, which is the second time in this batch
   that a gate nobody was watching did the catching.
 
-### Fixed
+
 - **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure, so a
   failure — or the process dying — between writes could leave half a group: the exact state the
   action exists to prevent, and one the screen would then show as a superset of one. The whole group
@@ -76,54 +81,9 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [1.6] — 2026-10-01 (versionCode 7)
 
-### Changed
-- **The two reads and writes that only ever met fakes now meet a database.** `personalRecords` and
-  `setSupersetGroup` were exercised through hand-written repositories, which cannot show what the
-  SQL does: that a heavier **warm-up** does not set a record, that the session in progress can be
-  excluded so a set is never compared against itself, and that a superset group written to a row
-  comes back through the projection that reads it. That last one is not hypothetical — the session
-  projection shipped once already without selecting the column, so a grouped exercise arrived
-  ungrouped while the write succeeded.
-
-- **The settings feature has tests.** It shipped with none in either source set, so three things it
-  promises were unverified: that the screen shows what is *stored* rather than what was tapped,
-  that a refused choice leaves the old value in force and says why, and that a preference survives
-  the object that wrote it. The store's round trip is covered on the JVM, including that an invalid
-  rest is refused *without* being written — the difference between reporting a failure and quietly
-  keeping it.
-
-- **A plan that names reps and no load now says why it proposes what it does.** The suggestion for
-  that case passed the rule's reason away, so a step heavier than last time arrived with no
-  explanation. It explains a *load* only: the plan already decides the reps, and "one more rep than
-  last time" beside a set the plan sized would be a sentence about the wrong number.
-- **The superset label and its tap have tests**, which they did not: giant-set notation is the only
-  thing on the workout screen that says two exercises are performed together, and the tap is the
-  only way to group them inside a session.
-
-- **The schema upgrade keeps the rows already in the tables, and now proves it.** `MIGRATION_15_16`
-  was amended after it had already run on development devices — a second column joined the same
-  version — so the question a chain test cannot answer is whether an upgrade preserves what is
-  there. A `MigrationTestHelper` case seeds a session exercise and a planned exercise at v15,
-  migrates, and asserts both survive with their new columns empty, which is what every exercise was
-  before supersets existed.
-
-- **A route that is declared but never registered now fails the test suite.** Two bugs shipped from
-  that gap: a route missing `@Serializable`, and a route with no `composable<...>` registration —
-  the second is what made the settings screen crash on its first run. The old test named twelve
-  routes by hand, so a thirteenth was invisible to it; the list is now read out of `Routes.kt` and
-  compared against what `AppNavHost.kt` registers, with no hand-maintained list to forget. Verified
-  by adding a route and watching it fail, then removing it.
-
-- **A guard against the backup codec quietly losing a column.** The codec is hand-written,
-  listing each field by name, and it has silently dropped an unnamed column three times — a
-  set's location, a set's assistance, a template's weekday — each found by hand, on a device,
-  after shipping. A round trip with every field set to something distinctive now fails in the
-  ordinary test suite when a field stops surviving, so the next column this app adds fails
-  where it is added rather than turning up missing in someone's backup. The guard immediately
-  earned its place by surfacing one drop nobody had written down: a session's rest countdown
-  is deliberately not restored, and the line that drops it now says so.
 
 ### Added
+
 - **Supersets and circuits.** Two or more exercises can be performed together: **Superset with
   above** groups an exercise with the one before it, the pair is labelled **A1/A2**, and the
   **rest belongs to the round rather than the set** — the app only starts a rest once nothing
@@ -135,7 +95,7 @@ Notable changes to Workout Log, newest first. Format follows
   grouped by hand every time. This is the first structural change since N14 — the schema goes to
   v16, with the grouping carried in the backup file so a restored workout keeps its pairs.
 
-### Added
+
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
   heaviest working set at each rep count, so 100 kg × 5 is beaten only by more weight at five
   reps — not by twelve reps at 90 kg. Log a set that beats your best and the app says so
@@ -196,9 +156,59 @@ Notable changes to Workout Log, newest first. Format follows
   seeder runs when the database is *opened* — a clear that only emptied tables would have
   left an empty library until the process restarted, which looks broken rather than clean.
 
+### Changed
+
+- **The two reads and writes that only ever met fakes now meet a database.** `personalRecords` and
+  `setSupersetGroup` were exercised through hand-written repositories, which cannot show what the
+  SQL does: that a heavier **warm-up** does not set a record, that the session in progress can be
+  excluded so a set is never compared against itself, and that a superset group written to a row
+  comes back through the projection that reads it. That last one is not hypothetical — the session
+  projection shipped once already without selecting the column, so a grouped exercise arrived
+  ungrouped while the write succeeded.
+
+- **The settings feature has tests.** It shipped with none in either source set, so three things it
+  promises were unverified: that the screen shows what is *stored* rather than what was tapped,
+  that a refused choice leaves the old value in force and says why, and that a preference survives
+  the object that wrote it. The store's round trip is covered on the JVM, including that an invalid
+  rest is refused *without* being written — the difference between reporting a failure and quietly
+  keeping it.
+
+- **A plan that names reps and no load now says why it proposes what it does.** The suggestion for
+  that case passed the rule's reason away, so a step heavier than last time arrived with no
+  explanation. It explains a *load* only: the plan already decides the reps, and "one more rep than
+  last time" beside a set the plan sized would be a sentence about the wrong number.
+- **The superset label and its tap have tests**, which they did not: giant-set notation is the only
+  thing on the workout screen that says two exercises are performed together, and the tap is the
+  only way to group them inside a session.
+
+- **The schema upgrade keeps the rows already in the tables, and now proves it.** `MIGRATION_15_16`
+  was amended after it had already run on development devices — a second column joined the same
+  version — so the question a chain test cannot answer is whether an upgrade preserves what is
+  there. A `MigrationTestHelper` case seeds a session exercise and a planned exercise at v15,
+  migrates, and asserts both survive with their new columns empty, which is what every exercise was
+  before supersets existed.
+
+- **A route that is declared but never registered now fails the test suite.** Two bugs shipped from
+  that gap: a route missing `@Serializable`, and a route with no `composable<...>` registration —
+  the second is what made the settings screen crash on its first run. The old test named twelve
+  routes by hand, so a thirteenth was invisible to it; the list is now read out of `Routes.kt` and
+  compared against what `AppNavHost.kt` registers, with no hand-maintained list to forget. Verified
+  by adding a route and watching it fail, then removing it.
+
+- **A guard against the backup codec quietly losing a column.** The codec is hand-written,
+  listing each field by name, and it has silently dropped an unnamed column three times — a
+  set's location, a set's assistance, a template's weekday — each found by hand, on a device,
+  after shipping. A round trip with every field set to something distinctive now fails in the
+  ordinary test suite when a field stops surviving, so the next column this app adds fails
+  where it is added rather than turning up missing in someone's backup. The guard immediately
+  earned its place by surfacing one drop nobody had written down: a session's rest countdown
+  is deliberately not restored, and the line that drops it now says so.
+
 ## [1.5] — 2026-09-30 (versionCode 6)
 
+
 ### Added
+
 - **Trends for one exercise.** N13 reads the app's signals across everything; this
   answers the narrower question a lifter actually asks — *how is my bench press going* —
   from rows the app already writes. Over the last ten finished sessions that recorded the
@@ -223,6 +233,7 @@ Notable changes to Workout Log, newest first. Format follows
   chain is run once from the first schema.
 
 ### Changed
+
 - **Tests assert with Truth, and Flow sequences with Turbine.** `assertEquals(expected,
   actual)` puts two bare values side by side with nothing saying which is which, and the
   arguments are easy to swap the wrong way round; `assertThat(actual).isEqualTo(expected)`
@@ -256,6 +267,7 @@ Notable changes to Workout Log, newest first. Format follows
   `RestAlarmReceiver.kt` of its own, since Android instantiates it by name).
 
 ### Removed
+
 - **Deleted what moved and left its shape behind** (B13). The exercise library's
   ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
   state field, two flows, a per-second ticker, and the `TimeSource` and
@@ -268,6 +280,7 @@ Notable changes to Workout Log, newest first. Format follows
   tested them.
 
 ### Fixed
+
 - **The finish review's counts now agree with its reps.** "Prescribed 2×3" meant two sets, one of
   them a warm-up, totalling three reps — the counts included warm-ups while the rep sums dropped
   them. Both exclude warm-ups now, as the record and progression rules do, and the dialog says so.
@@ -327,7 +340,9 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [1.4] — 2026-09-30 (versionCode 5)
 
+
 ### Added
+
 - **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
   share a day — training twice on a Friday is a thing people do — and each is listed with
   a Start action that goes straight into that plan's workout. A plan with no day is a
@@ -396,6 +411,7 @@ Notable changes to Workout Log, newest first. Format follows
   about for these series. Reached from the home overflow. No migration.
 
 ### Changed
+
 - **RPE takes half steps.** `9.5` can be recorded, not just whole numbers. It is stored
   as *halves in an integer* (`19` is 9.5) for the same reason weights are whole grams:
   9.5 has no exact binary representation, and an RPE that compares as `9.499999` — or
@@ -417,6 +433,7 @@ Notable changes to Workout Log, newest first. Format follows
   vocabulary on every past workout.
 
 ### Fixed
+
 - **Export and import are back where you start.** They lived two overflow menus
   deep — home, then the exercise library N1 demoted to a reference screen — so the
   feature read as missing. They are in the home overflow now, beside Library,
@@ -437,7 +454,9 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [1.3] — 2026-09-29 (versionCode 4)
 
+
 ### Added
+
 - **Workout templates: a plan you build once and start in one tap.** Name a
   template, add exercises from the same picker the workout uses, and put them in the
   order you train them. Home's start action now offers the choice — *Start workout*
@@ -498,6 +517,7 @@ Notable changes to Workout Log, newest first. Format follows
   receives them without a migration.
 
 ### Changed
+
 - **An exercise's subtitle no longer reads "Other · Other".** `Other` is the
   "not filled in yet" value a custom exercise is created with, so the library row
   and the workout's exercise header drop that part of the `Quads · Barbell` line —
@@ -509,16 +529,20 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [1.2] — 2026-09-29 (versionCode 3)
 
+
 ### Added
+
 - Set rows announce that they are editable, so a screen reader no longer reads a
   row and leaves the user to guess (`onClickLabel`).
 
 ### Fixed
+
 - A duration of an hour or more rendered differently in the rest timer than in the
   workout clock — `90:00` against `1:30:00`. Both now share one formatter and
   agree; the rest timer gains the hours field.
 
 ## [1.1] — 2026-09-29 (versionCode 2)
+
 
 The upgrade-test build: installed over 1.0 without uninstalling, and confirmed to
 keep the workout history. **No user-visible changes** — it exists to prove that the
@@ -527,9 +551,11 @@ would have cost the history.
 
 ## [1.0] — 2026-09-28 (versionCode 1)
 
+
 First release. Sideloaded as a signed APK; there is no Play Store listing.
 
 ### Added
+
 - Exercise library: 30 seeded movements with primary and secondary muscles,
   equipment and movement pattern. Search covers all of them on the display label
   *and* a locale-stable key, so it survives translation.
@@ -547,6 +573,7 @@ First release. Sideloaded as a signed APK; there is no Play Store listing.
   what is still there.
 
 ### Notes
+
 - Local only. No `INTERNET` permission, no accounts, no ads, no analytics, and
   `allowBackup="false"` — the export file is the only way data leaves the device.
 - Sets are `reps × weight`. Bodyweight work is reps at 0 kg; duration and distance
