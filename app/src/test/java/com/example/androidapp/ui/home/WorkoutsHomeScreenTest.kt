@@ -43,6 +43,7 @@ class WorkoutsHomeScreenTest {
     private data class Actions(
         val onStartWorkout: () -> Unit = {},
         val onStartFromTemplate: () -> Unit = {},
+        val onRepeatLast: () -> Unit = {},
         val onStartTemplate: (String) -> Unit = {},
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
@@ -65,6 +66,7 @@ class WorkoutsHomeScreenTest {
                     clock = remember { mutableStateOf(WorkoutClock()) },
                     onStartWorkout = actions.onStartWorkout,
                     onStartFromTemplate = actions.onStartFromTemplate,
+                    onRepeatLast = actions.onRepeatLast,
                     onStartTemplate = actions.onStartTemplate,
                     onOpenWorkout = actions.onOpenWorkout,
                     onOpenHistory = actions.onOpenHistory,
@@ -269,5 +271,26 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithText("Heavy lower").assertExists()
         composeTestRule.onNodeWithText("Push").assertExists()
+    }
+
+    @Test
+    fun withNoFinishedWorkout_theRepeatAction_isNotOffered() {
+        // ROADMAP N29: there is nothing to repeat, so the control is absent rather than disabled —
+        // a button that does nothing invites a tap and teaches the wrong thing.
+        setScreen(WorkoutsHomeUiState(isLoading = false, recent = emptyList()))
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertDoesNotExist()
+    }
+
+    @Test
+    fun withAFinishedWorkout_itIsOffered_andTapsThrough() {
+        var repeated = 0
+        setScreen(
+            state = WorkoutsHomeUiState(isLoading = false, recent = listOf(summary("session-1"))),
+            actions = Actions(onRepeatLast = { repeated++ }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertIsDisplayed().performClick()
+        assertEquals(1, repeated)
     }
 }

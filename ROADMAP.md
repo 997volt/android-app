@@ -36,7 +36,7 @@ the v1.5 review and the round after it (B26–B32, N26, N27, N28) shipped, and w
 [CHANGELOG.md](CHANGELOG.md). Past N29 the next round is a choice rather than a queue: the rest is in
 *Later*, below.
 
-### N29 — Repeat the last workout in one tap — **built; one screen test outstanding**
+### N29 — Repeat the last workout in one tap — **built, all three edge cases held**
 
 Was **P1.15**. Templates cover the planned session; this covers the unplanned one — "same as last
 time" is the most common thing a lifter does, and today it costs picking six exercises out of the
@@ -62,8 +62,11 @@ cases are held by instrumented tests against a real database — **four cases, n
 the order is kept, an exercise deleted from the library is skipped while the rest repeat, an exercise
 performed twice repeats twice, and with nothing to repeat the session simply opens empty.
 
-Still to do: a screen test that the action is **absent** with no finished workout, which is a UI rule
-rather than a query one, and a device pass on the action itself.
+The third edge case is a UI rule and has its own test: with nothing finished the action is **absent**
+rather than disabled, because a button that does nothing invites a tap and teaches the wrong thing —
+and with something finished it appears and taps through.
+
+Still to do: a device pass on the action itself.
 
 ### N25 — A session remembers the timezone it was performed in
 
