@@ -33,17 +33,6 @@ shipped and left the file.
   `domain/model`, and the review payload at the bottom of `ActiveWorkoutViewModel` — and
   `SettingsModule` lives in `DatabaseModule.kt`, whose name says database while the module binds a
   `SharedPreferences` repository.
-- **B32 — Unused imports are not gated.** Two files carry imports added for an implementation
-  that landed elsewhere, and `./gradlew detekt` passes on them: `UnusedImports` is `active: false`
-  in detekt 1.23.8 and the compiler is not run with `-Werror`, so neither gate this project treats
-  as authoritative can see an unused import. **Decide:** turn the rule on deliberately, or record
-  that imports are not gated.
-
-### N26 — Remove the background rest alert
-
-**Decided: the alarm and notification path goes.** It exists to buzz you when rest ends
-with the screen off, and it is the only reason this app requests *any* permission.
-
 - **What goes:** the scheduler and its receiver, the notification builder, the
   ask-on-first-set permission flow, the `RestNotifier` port and its binding, the receiver
   declaration, and both manifest permissions — `POST_NOTIFICATIONS` and
