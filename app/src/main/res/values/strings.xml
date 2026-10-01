@@ -319,6 +319,10 @@
     <string name="settings_rest_title">Default rest</string>
     <string name="settings_rest_current">Now: %1$s</string>
     <string name="settings_rest_explainer">Used when an exercise has no rest of its own. An exercise set in the template or the library always wins.</string>
+    <string name="settings_rest_cue">Chime when a rest ends</string>
+    <string name="settings_rest_cue_hint">A tone and a short buzz, in the app. Nothing is scheduled in the background.</string>
+    <string name="settings_keep_screen_on">Keep the screen on</string>
+    <string name="settings_keep_screen_on_hint">While a workout is open, so the rest timer stays visible.</string>
     <string name="settings_menu">Settings…</string>
     <!-- Why the prefilled set says what it says (ROADMAP N22). -->
     <string name="suggestion_more_reps">One more rep than last time</string>

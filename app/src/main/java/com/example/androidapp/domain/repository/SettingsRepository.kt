@@ -23,6 +23,28 @@ interface SettingsRepository {
     /** Stores the default rest for future sets. Rejects a value outside [VALID_REST_SECONDS]. */
     suspend fun setDefaultRestSeconds(seconds: Int): DataResult<Unit>
 
+    /**
+     * Whether a finished rest should be **heard** as well as seen (ROADMAP N27).
+     *
+     * With the background alert gone this is the cue that replaces it, so it is on by default: the
+     * app would otherwise be quieter than it was, which is a regression dressed as a preference.
+     * It plays a tone in-process and uses view-level haptics — neither asks for a permission, which
+     * is what N26 bought and DECISIONS.md records.
+     */
+    fun observeRestCueEnabled(): Flow<Boolean>
+
+    suspend fun setRestCueEnabled(enabled: Boolean): DataResult<Unit>
+
+    /**
+     * Whether a workout keeps the screen awake (ROADMAP N27).
+     *
+     * A window flag rather than a wake lock: the screen stays on while the app is in front, and
+     * nothing is held once it is not.
+     */
+    fun observeKeepScreenOn(): Flow<Boolean>
+
+    suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit>
+
     companion object {
         /**
          * What the setting accepts, in seconds.

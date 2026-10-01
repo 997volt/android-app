@@ -34,6 +34,34 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(defaultRestSeconds = seconds) }
             }
         }
+        viewModelScope.launch {
+            settingsRepository.observeRestCueEnabled().collect { enabled ->
+                _uiState.update { it.copy(restCueEnabled = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            settingsRepository.observeKeepScreenOn().collect { enabled ->
+                _uiState.update { it.copy(keepScreenOn = enabled) }
+            }
+        }
+    }
+
+    fun onSetRestCue(enabled: Boolean) {
+        write { settingsRepository.setRestCueEnabled(enabled) }
+    }
+
+    fun onSetKeepScreenOn(enabled: Boolean) {
+        write { settingsRepository.setKeepScreenOn(enabled) }
+    }
+
+    /** One place where a failed write becomes the error the screen shows. */
+    private fun write(action: suspend () -> DataResult<Unit>) {
+        viewModelScope.launch {
+            when (val result = action()) {
+                is DataResult.Success -> _uiState.update { it.copy(error = null) }
+                is DataResult.Failure -> _uiState.update { it.copy(error = result.error) }
+            }
+        }
     }
 
     fun onSetDefaultRest(seconds: Int) {
@@ -49,6 +77,10 @@ class SettingsViewModel @Inject constructor(
 /** What the settings screen shows. */
 data class SettingsUiState(
     val defaultRestSeconds: Int = RestTimer.DEFAULT_SECONDS,
+    /** Whether a finished rest is heard as well as seen (ROADMAP N27). */
+    val restCueEnabled: Boolean = true,
+    /** Whether a workout keeps the screen awake (ROADMAP N27). */
+    val keepScreenOn: Boolean = true,
     val error: DataError? = null,
 ) {
     val choices: List<Int> get() = REST_CHOICES

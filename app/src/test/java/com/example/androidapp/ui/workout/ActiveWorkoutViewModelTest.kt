@@ -1758,6 +1758,14 @@ private class FakeSettingsRepository(
         return DataResult.Success(Unit)
     }
 
+    override fun observeRestCueEnabled(): Flow<Boolean> = flowOf(true)
 
+    override suspend fun setRestCueEnabled(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
+
+    override fun observeKeepScreenOn(): Flow<Boolean> = flowOf(true)
+
+    override suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
 
 }

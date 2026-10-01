@@ -15,6 +15,17 @@ Notable changes to Workout Log, newest first. Format follows
   untouched: the end instant still lives on the session row and survives the process dying; only the
   way it reaches you changed, and once it can be heard and seen in-app (next change) nothing is lost.
 
+### Added
+- **A rest is now heard and felt, and a workout keeps the screen awake.** Removing the background alert
+  (above) left the timer noticeable only while you were looking at it, so this is what replaces it: a
+  short tone and a tick when a rest ends, and the screen staying on while a workout is open. Both have
+  a switch in settings — *Chime when a rest ends* and *Keep the screen on* — and both default to on,
+  because an app that got quieter than it was would be a regression wearing a preference's clothes.
+- **Neither asks for a permission.** The cue is an in-process tone and *view-level* haptics;
+  keep-screen-on is a window flag rather than a wake lock. `Vibrator` would have been the obvious call
+  and it costs `android.permission.VIBRATE` — the one thing the app just stopped declaring, so the
+  constraint is recorded in [DECISIONS.md](DECISIONS.md) rather than left to be rediscovered.
+
 ### Changed
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
   which is also the name of the history row in the domain — two types, one name, and the reader left

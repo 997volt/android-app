@@ -48,6 +48,35 @@ class PreferencesSettingsRepository @Inject constructor(
         awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }.conflate().distinctUntilChanged()
 
+    override fun observeRestCueEnabled(): Flow<Boolean> = observeFlag(KEY_REST_CUE_ENABLED, true)
+
+    override suspend fun setRestCueEnabled(enabled: Boolean): DataResult<Unit> =
+        writeFlag(KEY_REST_CUE_ENABLED, enabled)
+
+    override fun observeKeepScreenOn(): Flow<Boolean> = observeFlag(KEY_KEEP_SCREEN_ON, true)
+
+    override suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit> =
+        writeFlag(KEY_KEEP_SCREEN_ON, enabled)
+
+    /** A boolean preference, defaulted rather than null: these flags have always had a meaning. */
+    private fun observeFlag(key: String, default: Boolean): Flow<Boolean> = callbackFlow {
+        trySend(preferences.getBoolean(key, default))
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
+            if (changed == key) trySend(preferences.getBoolean(key, default))
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.conflate().distinctUntilChanged()
+
+    private fun writeFlag(key: String, value: Boolean): DataResult<Unit> {
+        preferences.edit(commit = true) { putBoolean(key, value) }
+        return if (preferences.getBoolean(key, !value) == value) {
+            DataResult.Success(Unit)
+        } else {
+            DataResult.Failure(DataError.Storage(IllegalStateException("the setting was not stored")))
+        }
+    }
+
     override suspend fun setDefaultRestSeconds(seconds: Int): DataResult<Unit> =
         if (seconds !in SettingsRepository.VALID_REST_SECONDS) {
             DataResult.Failure(DataError.Invalid("a rest must be between 5 seconds and an hour"))
@@ -77,5 +106,7 @@ class PreferencesSettingsRepository @Inject constructor(
     private companion object {
         const val FILE_NAME = "settings"
         const val KEY_DEFAULT_REST_SECONDS = "default_rest_seconds"
+        const val KEY_REST_CUE_ENABLED = "rest_cue_enabled"
+        const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
     }
 }

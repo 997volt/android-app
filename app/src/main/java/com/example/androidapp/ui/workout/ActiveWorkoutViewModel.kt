@@ -228,6 +228,19 @@ class ActiveWorkoutViewModel @Inject constructor(
      * Not dismissible on purpose: it clears when the next set is logged, which is when the
      * news is stale — a banner that needs dismissing is a banner in the way between sets.
      */
+    /**
+     * Whether a finished rest is heard as well as seen (ROADMAP N27).
+     *
+     * Read from settings rather than held as its own state: the flag belongs to the app, and the
+     * screen only needs the current answer.
+     */
+    val restCueEnabled: StateFlow<Boolean> = settingsRepository.observeRestCueEnabled()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Whether the screen should stay awake while this workout is open (ROADMAP N27). */
+    val keepScreenOn: StateFlow<Boolean> = settingsRepository.observeKeepScreenOn()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
     val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
 

@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -95,4 +96,15 @@ private class FakeSettingsRepository(
             DataResult.Success(Unit)
         }
     }
+
+    override fun observeRestCueEnabled(): Flow<Boolean> = flowOf(true)
+
+    override suspend fun setRestCueEnabled(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
+
+    override fun observeKeepScreenOn(): Flow<Boolean> = flowOf(true)
+
+    override suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
+
 }

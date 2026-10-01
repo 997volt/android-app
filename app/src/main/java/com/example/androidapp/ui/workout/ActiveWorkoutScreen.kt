@@ -32,6 +32,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.view.HapticFeedbackConstants
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +82,9 @@ fun ActiveWorkoutRoute(
     // recompose this composable — and everything below it — once a second, which is
     // the whole point of F16. Only the header and the rest bar read it.
     val clock = viewModel.clock.collectAsStateWithLifecycle()
+    val restCueEnabled by viewModel.restCueEnabled.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
+    RestCueAndScreenOn(clock, restCueEnabled, keepScreenOn)
     val summary by viewModel.summary.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
 
@@ -704,3 +713,47 @@ private fun PersonalRecordBanner(
         }
     }
 }
+
+/**
+ * The two things a workout asks of the device rather than of the database (ROADMAP N27).
+ *
+ * Both live inside the permission-free envelope N26 bought, which is recorded in DECISIONS.md:
+ * keep-screen-on is a window flag rather than a wake lock, and the cue is an in-process tone plus
+ * **view-level** haptics. `Vibrator` would have been the obvious call and it costs
+ * `android.permission.VIBRATE` — the one permission the app just stopped declaring.
+ */
+@Composable
+private fun RestCueAndScreenOn(
+    clock: State<WorkoutClock>,
+    restCueEnabled: Boolean,
+    keepScreenOn: Boolean,
+) {
+    val view = LocalView.current
+    DisposableEffect(keepScreenOn) {
+        view.keepScreenOn = keepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
+
+    val tone = remember { ToneGenerator(AudioManager.STREAM_NOTIFICATION, TONE_VOLUME) }
+    DisposableEffect(Unit) { onDispose { tone.release() } }
+
+    // The cue is the *transition* out of resting, not the state: a rest is cued when it ends, and a
+    // workout that opens with no rest must not chime.
+    var wasResting by remember { mutableStateOf(false) }
+    LaunchedEffect(clock) {
+        snapshotFlow { clock.value.isResting }.collect { resting ->
+            if (!resting && wasResting && restCueEnabled) {
+                tone.startTone(ToneGenerator.TONE_PROP_BEEP, TONE_MILLIS)
+                // `CONFIRM` is API 30 and this app supports 26; lint's InlinedApi rule caught that,
+                // which is what it is for. `VIRTUAL_KEY` is the same short tick and has existed since
+                // API 1.
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            }
+            wasResting = resting
+        }
+    }
+}
+
+/** Loud enough to hear across a gym; short enough to be a cue rather than a ringtone. */
+private const val TONE_VOLUME = 70
+private const val TONE_MILLIS = 250

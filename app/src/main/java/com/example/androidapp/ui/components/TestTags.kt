@@ -216,6 +216,8 @@ object TestTags {
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
     const val SETTINGS_REST_CURRENT = "settings_rest_current"
+    const val SETTINGS_REST_CUE = "settings_rest_cue"
+    const val SETTINGS_KEEP_SCREEN_ON = "settings_keep_screen_on"
     const val HOME_SETTINGS = "home_settings"
 
     fun settingRest(seconds: Int) = "setting_rest_$seconds"

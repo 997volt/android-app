@@ -35,20 +35,14 @@ The alarm, its receiver, the notification, the ask-on-first-set flow and both ma
 gone; the app declares **no permissions at all**, and the README says so. What remains of this pair is
 N27: the in-app timer is the whole mechanism until it can be heard and seen.
 
-### N27 — Make the rest timer audible and visible
+### N27 — Make the rest timer audible and visible — **built, device pass outstanding**
 
-The replacement for what N26 removed, and the reason the two are one round rather than two. With no
-background alert, the timer can only be noticed while the app is on screen.
+Both halves are in: a tone and a view-level haptic when a rest ends, and a window flag that keeps the
+screen on for the duration of a workout. Each has a switch in settings (N21), and both are on by
+default. Neither asks for a permission, which is the constraint N26 left and DECISIONS.md records.
 
-- **P1.14** — sound and haptics when a rest ends.
-- **P1.10** — keep the screen on for the duration of a workout. The settings screen exists now
-  (N21), so this has somewhere to live instead of needing a surface of its own.
-- Both were Tier 3 polish; removing the alert is what makes them load-bearing, which is why they
-  are marked here rather than left in *Later*.
-- **Constrained by N26's property, and recorded in [DECISIONS.md](DECISIONS.md):** the cue is
-  view-level haptics plus an in-process tone, and keep-screen-on is a window flag — none of which
-  needs a permission. `Vibrator` would, and "sound and haptics" reads like a platform call until you
-  look at what it costs.
+**What is left is the device pass**: whether the tone is audible and whether the screen actually stays
+awake are things only a phone can answer.
 
 ### N28 — Warm-up set generator
 
