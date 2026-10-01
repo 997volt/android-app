@@ -1,5 +1,7 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.data.local.TemplateExerciseEntity
+import com.example.androidapp.data.local.TemplateEntity
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -434,5 +436,74 @@ class WorkoutEditingTest {
 
         val row = repository.observeSessionExercises("s1").first().single()
         assertNull("a nullable group is how leaving is expressed", row.supersetGroup)
+    }
+
+    @Test
+    fun aWorkoutStartedFromAPlan_arrivesWithItsSupersets() = runTest {
+        // ROADMAP B16's other half, and the reason the column exists at all: a plan that prescribes
+        // a superset must arrive as one. The device walk could only show the editor's labels; this
+        // is the seeding path, where the plan meets the session.
+        database.exerciseDao().insertAll(
+            listOf(
+                ExerciseEntity(
+                    id = "back-squat",
+                    name = "Back Squat",
+                    primaryMuscle = MuscleGroup.QUADS,
+                    secondaryMuscles = emptyList(),
+                    equipment = Equipment.BARBELL,
+                    movementPattern = MovementPattern.SQUAT,
+                    isCustom = false,
+                    createdAt = 0L,
+                    updatedAt = 0L,
+                    deletedAt = null,
+                ),
+                ExerciseEntity(
+                    id = "bench-press",
+                    name = "Barbell Bench Press",
+                    primaryMuscle = MuscleGroup.CHEST,
+                    secondaryMuscles = emptyList(),
+                    equipment = Equipment.BARBELL,
+                    movementPattern = MovementPattern.HORIZONTAL_PUSH,
+                    isCustom = false,
+                    createdAt = 0L,
+                    updatedAt = 0L,
+                    deletedAt = null,
+                ),
+            ),
+        )
+        database.templateDao().insertTemplate(
+            TemplateEntity(
+                id = "t1",
+                name = "Pair",
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+            ),
+        )
+        listOf("te1" to "back-squat", "te2" to "bench-press").forEachIndexed { index, (id, exerciseId) ->
+            database.templateDao().insertTemplateExercise(
+                TemplateExerciseEntity(
+                    id = id,
+                    templateId = "t1",
+                    exerciseId = exerciseId,
+                    position = index,
+                    supersetGroup = 1,
+                    createdAt = 0L,
+                    updatedAt = 0L,
+                    deletedAt = null,
+                ),
+            )
+        }
+
+        val started = repository.startOrResumeSession(templateId = "t1")
+        val sessionId = (started as DataResult.Success).data.id
+
+        val rows = repository.observeSessionExercises(sessionId).first()
+        assertEquals("both arrive", 2, rows.size)
+        assertEquals(
+            "in the plan's group",
+            listOf(1, 1),
+            rows.map { it.supersetGroup },
+        )
     }
 }
