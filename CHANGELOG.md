@@ -8,6 +8,14 @@ Notable changes to Workout Log, newest first. Format follows
 ## [Unreleased]
 
 ### Changed
+- **The two reads and writes that only ever met fakes now meet a database.** `personalRecords` and
+  `setSupersetGroup` were exercised through hand-written repositories, which cannot show what the
+  SQL does: that a heavier **warm-up** does not set a record, that the session in progress can be
+  excluded so a set is never compared against itself, and that a superset group written to a row
+  comes back through the projection that reads it. That last one is not hypothetical — the session
+  projection shipped once already without selecting the column, so a grouped exercise arrived
+  ungrouped while the write succeeded.
+
 - **The settings feature has tests.** It shipped with none in either source set, so three things it
   promises were unverified: that the screen shows what is *stored* rather than what was tapped,
   that a refused choice leaves the old value in force and says why, and that a preference survives

@@ -380,4 +380,59 @@ class WorkoutEditingTest {
         assertEquals("the assisted set contributes nothing, not a negative", 500_000L, uiFormula)
         assertEquals(uiFormula, historyVolume())
     }
+
+    @Test
+    fun personalRecords_ignoreWarmUps_andTheSessionBeingLogged() = runTest {
+        // ROADMAP B24: this read met only hand-written fakes, and the SQL behind it has to do two
+        // things no fake can prove — leave warm-ups out, and be able to exclude the session in
+        // progress, which is what stops a set being compared against itself.
+        val sessionId = seedFinishedWorkout()
+        // A heavier warm-up at the same rep count: with the role ignored it would set the record.
+        database.workoutDao().insertSet(
+            SetEntryEntity(
+                id = "warm-up",
+                sessionExerciseId = "se1",
+                setIndex = 1,
+                reps = 5,
+                weightGrams = 120_000L,
+                setType = SetType.WARMUP,
+                completedAt = 1L,
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
+
+        val records = (repository.personalRecords("back-squat") as DataResult.Success).data
+        assertEquals("the working set, not the heavier warm-up", 100_000L, records.bestAt(5))
+
+        val excluding = (repository.personalRecords("back-squat", excludingSessionId = sessionId)
+            as DataResult.Success).data
+        assertTrue("excluding the session in progress leaves nothing", excluding.isEmpty)
+    }
+
+    @Test
+    fun setSupersetGroup_isReadBackThroughTheProjection() = runTest {
+        // The session projection already shipped once without selecting this column, so the row
+        // arrived ungrouped while the write succeeded — a defect no fake could show, because a fake
+        // never builds a projection from a query string (ROADMAP B24).
+        seedOpenWorkoutWithASet()
+
+        val written = repository.setSupersetGroup("se1", group = 3)
+        assertTrue(written is DataResult.Success)
+
+        val row = repository.observeSessionExercises("s1").first().single()
+        assertEquals("the write reaches the read", 3, row.supersetGroup)
+    }
+
+    @Test
+    fun leavingASuperset_isWrittenToo() = runTest {
+        seedOpenWorkoutWithASet()
+        repository.setSupersetGroup("se1", group = 3)
+
+        repository.setSupersetGroup("se1", group = null)
+
+        val row = repository.observeSessionExercises("s1").first().single()
+        assertNull("a nullable group is how leaving is expressed", row.supersetGroup)
+    }
 }

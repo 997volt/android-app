@@ -69,20 +69,9 @@ Two reviews of v1.5 — one structural, one defect-focused — turned up more th
 admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
 [CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
 that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. What remains is one coverage gap: `personalRecords` and `setSupersetGroup` meet only hand-written
-fakes.
-
-- **B24 — Three new entry points never meet SQLite, and the migration has no seeded test.**
-  **The migration half is done**: `migration15To16_groupsSessionsAndPlans_withoutTouchingTheirRows`
-  seeds a session exercise and a planned exercise at v15 and asserts both survive the upgrade with
-  their new columns empty — the half a 1→16 chain cannot check, and the half the amendment made
-  matter. What remains: `personalRecords` and `setSupersetGroup` are still exercised only through
-  hand-written fakes, and two smaller gaps stand — the `SetSuggestion` branch for a plan that names
-  reps and no load, and N24's A1/A2 label and superset toggle.
-- **B25 — The instrumented job rarely finishes during a busy stretch.** *Settled*: the
-  cancellation is accepted, and the reasoning and the trigger to revisit are in
-  [DECISIONS.md](DECISIONS.md). What makes it safe is B8's guard, which fails a truncated run
-  rather than passing it — so the cost is a job that does not run, never a green that lies.
+arithmetic. **Every finding in this batch is done.** What is left is the device pass for the fixes that are
+user-visible and have not been seen running: B16's plan-side grouping, B21's note in the finish
+review, and the record behaviour B17 and B18 changed.
 
 ### Settled by the review rather than queued
 
