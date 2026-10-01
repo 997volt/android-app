@@ -42,7 +42,7 @@ class SettingsScreenTest {
 
     @Test
     fun theStoredValue_isShown_asATime() {
-        show(SettingsUiState(isLoading = false, defaultRestSeconds = 90))
+        show(SettingsUiState(defaultRestSeconds = 90))
 
         composeTestRule.onNodeWithText("Now: 1:30").assertExists()
         composeTestRule.onNodeWithTag(TestTags.settingRest(90)).assertIsSelected()
@@ -50,7 +50,7 @@ class SettingsScreenTest {
 
     @Test
     fun tappingAChoice_sendsIt() {
-        show(SettingsUiState(isLoading = false, defaultRestSeconds = 90))
+        show(SettingsUiState(defaultRestSeconds = 90))
 
         composeTestRule.onNodeWithTag(TestTags.settingRest(30)).performClick()
 
@@ -63,7 +63,6 @@ class SettingsScreenTest {
         // screen has to say why, or nothing distinguishes it from a tap that did not register.
         show(
             SettingsUiState(
-                isLoading = false,
                 defaultRestSeconds = 90,
                 error = DataError.Invalid("a rest must be between 5 seconds and an hour"),
             ),
@@ -74,7 +73,7 @@ class SettingsScreenTest {
 
     @Test
     fun back_leaves() {
-        show(SettingsUiState(isLoading = false))
+        show(SettingsUiState())
 
         // The back control is icon-only, so its label is a content description (N21's rule that
         // accessibility accompanies each screen).

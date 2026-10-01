@@ -4,9 +4,10 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import java.time.DayOfWeek
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -226,6 +227,9 @@ class TemplateEditorScreenTest {
             ),
         )
 
-        composeTestRule.onNodeWithTag(TestTags.templateWeekday("FRIDAY")).assertExists()
+        // `WeekdayPicker` composes every chip unconditionally, so asserting existence passes even
+        // if the plan's weekday is ignored — the test could not fail (ROADMAP B29).
+        composeTestRule.onNodeWithTag(TestTags.templateWeekday("FRIDAY")).assertIsSelected()
+        composeTestRule.onNodeWithTag(TestTags.templateWeekday("MONDAY")).assertIsNotSelected()
     }
 }

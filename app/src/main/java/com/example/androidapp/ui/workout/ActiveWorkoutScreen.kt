@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -53,7 +51,6 @@ import com.example.androidapp.domain.RestTimer
 import com.example.androidapp.ui.components.SetEditorDialog
 import com.example.androidapp.ui.components.WorkoutNoteDialog
 import com.example.androidapp.ui.components.ReadinessNoteDialog
-import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.ui.components.TestTags

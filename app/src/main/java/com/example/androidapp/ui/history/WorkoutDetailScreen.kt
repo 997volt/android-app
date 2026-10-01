@@ -1,6 +1,5 @@
 package com.example.androidapp.ui.history
 
-import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

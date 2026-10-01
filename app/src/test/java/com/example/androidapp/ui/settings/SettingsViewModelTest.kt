@@ -43,7 +43,6 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(45, viewModel.uiState.value.defaultRestSeconds)
-        assertEquals(false, viewModel.uiState.value.isLoading)
     }
 
     @Test

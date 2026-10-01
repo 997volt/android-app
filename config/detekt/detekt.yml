@@ -22,6 +22,12 @@ naming:
     ignoreAnnotated: ['Composable']
 
 style:
+  UnusedImports:
+    # Off by default in detekt 1.23.8, and the compiler does not run with `-Werror`, so an
+    # import left behind by an implementation that landed elsewhere passed every gate this
+    # project treats as authoritative (ROADMAP B32). Turned on deliberately.
+    active: true
+
   UnusedPrivateMember:
     # `@Preview` composables are private and invoked by the Compose tooling
     # rather than by code, so they always look unused.

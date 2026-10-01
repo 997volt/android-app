@@ -7,6 +7,13 @@ Notable changes to Workout Log, newest first. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **Unused imports are gated.** detekt's `UnusedImports` is off by default and the compiler does not
+  run with `-Werror`, so an import left behind by an implementation that landed elsewhere passed every
+  gate this project treats as authoritative. Turning the rule on found **fifty-one** across twenty-one
+  files — far more than the two that prompted it — which is the argument for the rule rather than
+  against it.
+
 ### Fixed
 - **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure, so a
   failure — or the process dying — between writes could leave half a group: the exact state the

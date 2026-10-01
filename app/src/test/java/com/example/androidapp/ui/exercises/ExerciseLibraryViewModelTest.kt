@@ -18,14 +18,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import com.example.androidapp.domain.DataResult
-import com.example.androidapp.domain.model.PreviousPerformance
-import com.example.androidapp.domain.model.SessionExercise
-import com.example.androidapp.domain.model.SetEntry
-import com.example.androidapp.domain.model.SetType
-import com.example.androidapp.domain.model.WorkoutSession
-import com.example.androidapp.domain.model.WorkoutSummary
-import com.example.androidapp.domain.repository.StartedSession
-import com.example.androidapp.domain.repository.WorkoutRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.junit.After

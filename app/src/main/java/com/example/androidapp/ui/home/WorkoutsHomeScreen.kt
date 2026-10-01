@@ -6,7 +6,6 @@ import kotlinx.coroutines.launch
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.transfer.ClearOutcome
 import androidx.compose.runtime.rememberCoroutineScope
-import java.time.DayOfWeek
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.DropdownMenu

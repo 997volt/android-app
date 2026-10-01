@@ -3,7 +3,6 @@ package com.example.androidapp.ui.history
 import com.example.androidapp.domain.model.PersonalRecords
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MuscleGroup
@@ -14,8 +13,6 @@ import com.example.androidapp.domain.repository.StartedSession
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.WorkoutRepository
-import com.example.androidapp.ui.navigation.WorkoutDetail
-import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

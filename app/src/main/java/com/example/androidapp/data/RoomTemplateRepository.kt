@@ -15,7 +15,6 @@ import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.domain.model.TemplateSet
-import com.example.androidapp.domain.model.TenPointScale
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.repository.TemplateSetEdit

@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
-import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.ui.components.ExerciseRatingDialog
 import com.example.androidapp.ui.components.ExerciseRatingSection

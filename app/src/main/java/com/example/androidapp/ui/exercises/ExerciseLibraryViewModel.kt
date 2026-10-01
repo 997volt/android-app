@@ -10,14 +10,11 @@ import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.taxonomySubtitle
 import com.example.androidapp.domain.repository.ExerciseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
 import javax.inject.Inject
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 

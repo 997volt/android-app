@@ -29,48 +29,6 @@ shipped and left the file.
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
-- **Templates became plans, and shipped**: the v1 half of P3.1 is N3, and its planned
-  sets, per-plan rest and weekday schedule are N14–N16. What remains of the routine
-  scope is in *Later*.
-
-Run `./gradlew testDebugUnitTest` and `./gradlew connectedDebugAndroidTest` for the
-current numbers; dependencies are declared in
-[`gradle/libs.versions.toml`](gradle/libs.versions.toml). Neither is repeated here on
-purpose — see [Keeping this true](#keeping-this-true).
-
-## Open questions
-
-Not tasks: choices with a real cost either way. Each names a trigger, so it can be left
-alone without being forgotten. Settled choices are the other document — see
-[DECISIONS.md](DECISIONS.md).
-
-| Decision | What it would take | Revisit when |
-| --- | --- | --- |
-| **A crash-logs screen** | A small screen over [`CrashLogStore`](app/src/main/java/com/example/androidapp/platform/CrashLogStore.kt). | Reading a crash through an export actually annoys you. |
-
-Four of this table's former rows are settled rather than open. Two became work — **N25**,
-a session remembering its timezone, and **N26**, removing the background rest alert. Two
-are parked with their triggers: the **Play Store listing**, and **Encryption at rest / app
-lock**. What is left above is the one thing genuinely still undecided.
-
-## Next
-
-Marked for work, in order: the corrections the v1.5 review left, then removing the background
-rest alert together with the two things that replace it, then the warm-up generator. **N25**
-is decided but not scheduled — it only bites if you train across timezones.
-
-### B26–B32 — the corrections the v1.5 review left
-
-The first two were verified against the code rather than left as suspicions. **B26, B27 and B28 are fixed** and
-live in [CHANGELOG.md](CHANGELOG.md).
-
-- **B29 — A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that
-  the chip exists, and `WeekdayPicker` composes every chip unconditionally — so it passes even if
-  the plan's `weekday` is ignored. It wants `assertIsSelected()`. Worth watching for in any test
-  written against a control that is always rendered.
-- **B30 — Declarations nothing calls.** `PreviousPerformance.at()` lost its last caller when
-  `SetSuggestion` stopped being indexed, and `SettingsUiState.isLoading` is written and never read
-  while the screen renders no loading state. The rule is to delete them.
 - **B31 — Two names that lie.** Two types are called `WorkoutSummary` — the history row in
   `domain/model`, and the review payload at the bottom of `ActiveWorkoutViewModel` — and
   `SettingsModule` lives in `DatabaseModule.kt`, whose name says database while the module binds a

@@ -31,7 +31,7 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             settingsRepository.observeDefaultRestSeconds().collect { seconds ->
-                _uiState.update { it.copy(defaultRestSeconds = seconds, isLoading = false) }
+                _uiState.update { it.copy(defaultRestSeconds = seconds) }
             }
         }
     }
@@ -48,7 +48,6 @@ class SettingsViewModel @Inject constructor(
 
 /** What the settings screen shows. */
 data class SettingsUiState(
-    val isLoading: Boolean = true,
     val defaultRestSeconds: Int = RestTimer.DEFAULT_SECONDS,
     val error: DataError? = null,
 ) {

@@ -1,6 +1,5 @@
 package com.example.androidapp.domain.repository
 
-import com.example.androidapp.domain.model.PersonalRecords
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.domain.model.TrendPoint
