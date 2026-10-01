@@ -59,8 +59,90 @@ lock**. What is left above is the one thing genuinely still undecided.
 ## Next
 
 Tier 1 (N19–N21) and Tier 2 (N22–N24) shipped in v1.5 and live in
-[CHANGELOG.md](CHANGELOG.md). Two questions that were open are now decided, so they lead as
-work; behind them is what is left of Tier 3.
+[CHANGELOG.md](CHANGELOG.md). The review of that release leads as a short batch of five, because
+one of them is wrong on screen today; behind it are the two decided questions, and then what is
+left of Tier 3.
+
+### The v1.5 review — B14–B18
+
+The review that followed v1.5 found one defect shipped with N21, two guards that do not yet
+cover what they were built for, one feature shipped without tests, and a CI signal that stops
+meaning anything during a busy stretch. They lead because B14 is wrong on screen today; the rest
+are small and each is a rule the project already enforces elsewhere.
+
+- **B14 — The library states the wrong default rest.** N21 made the app-wide default rest
+  editable and the workout honours it — `ActiveWorkoutViewModel` starts a rest from
+  `row.restSeconds ?: defaultRestSeconds.value`. But `ExerciseDetailScreen` still formats the
+  **hardcoded** `RestTimer.DEFAULT_SECONDS`, so with 120 s configured the library reads
+  "Default (1:30)" while the workout actually waits 2:00. The screen's own comment says the point
+  is that "the user needs to know what will actually happen (N5)", and it is the first place
+  anyone looks after changing the setting. **The test is part of the fix:** it asserts
+  `"Default (1:30)"` and its comment still reasons that 90 s "will actually run", so it currently
+  locks the stale value in rather than catching it. Read the setting on this screen, and assert
+  the shown default against a *changed* one.
+- **B15 — The route-registration invariant is still unguarded.** A route with no
+  `composable<...>` compiles and crashes at navigation. That is exactly how the Settings bug
+  shipped, and it was *both* a missing `@Serializable` **and** a missing registration — only the
+  first got a test. `RoutesTest` checks the annotation over a hand-written list of route names, so
+  a new route added to `Routes.kt` without touching the test cannot fail it, and nothing anywhere
+  builds the graph. All twelve are registered today (checked), which is precisely why this is
+  cheap to pin now rather than after the next one. **Do:** fail on a route type that has no
+  registration, with no hand-maintained list — a `TestNavHost` that navigates each destination
+  catches the crash the bug produced, which no serializer assertion can. While there:
+  `composable<Settings>` sits in `historyDestinations`, whose KDoc reads "finished workouts and
+  one workout's detail".
+- **B16 — The settings feature has no tests at all.** N21 shipped `SettingsScreen`,
+  `SettingsViewModel` and `PreferencesSettingsRepository`, and no test in either source set
+  references any of them. That leaves the `SharedPreferences` commit/read-back path, the "render
+  what is stored rather than what was tapped" rule the ViewModel's own KDoc states, and
+  `onSetDefaultRest`'s failure branch unverified — and B14 is a bug in how the rest of the app
+  reads that very setting, so the gap is not hypothetical. **Do:** a ViewModel test for the
+  stored-vs-tapped rule and the failure branch, plus the preferences round trip.
+- **B17 — Three new entry points never meet SQLite, and the migration has no test.**
+  `RoomWorkoutRepository.personalRecords` and `setSupersetGroup` (with
+  `SessionExerciseDao.setSupersetGroup`) are exercised only through hand-written fakes;
+  `app/src/androidTest` was not touched in this batch at all. And `MIGRATION_15_16` — registered,
+  matching its exported schema, covered end-to-end by `MigrationsTest`'s 1→16 chain — has no
+  `MigrationTestHelper` test while the other fourteen each have one, which is what
+  [DECISIONS.md](DECISIONS.md) asks for. What the chain cannot check is the one thing those tests
+  add: that an upgrade **keeps the rows already in the table**. Smaller gaps in the same batch:
+  the `SetSuggestion` branch for a plan that names reps and no load, and N24's A1/A2 label and
+  superset toggle.
+- **B18 — The instrumented job rarely finishes during a busy stretch.** `concurrency:
+  cancel-in-progress` meets a fast push cadence: across the last 60 runs, **40 were cancelled**
+  against 18 successes, and the emulator job needs 15–30 minutes while the build job needs about
+  8. So the fast job validates every commit and the suite covering DAOs, migrations and the backup
+  round trip completes only when pushes are spaced out — the newest commits at the time of writing
+  had only cancelled or in-flight runs. **Not a code defect, and the fix is a workflow decision
+  rather than a patch:** either accept it — the guard reports a truncated run rather than passing
+  it, which is why the one genuine failure in the window was that guard firing — or stop
+  cancelling the run whose job is the slow one, for instance by letting the instrumented job run
+  only on `main`, so a feature branch cannot cancel the validation of the commit before it.
+
+### Rule violations found, not new work, in the same batch
+
+Smaller things the same review turned up, each an existing rule not being followed. They ride with
+whichever change next touches the file.
+
+- **Two declarations nothing calls, one orphaned by this batch.** `PreviousPerformance.at()` lost
+  its last caller when `SetSuggestion` stopped being indexed; `SettingsUiState.isLoading` is
+  written and never read, and the screen renders no loading state. The rule is to delete an API
+  the moment nothing calls it.
+- **Five unused imports survived the gate, which is the more interesting half.**
+  `RoomTrendsRepository.kt` and `TrendsRepository.kt` carry imports added for an implementation
+  that landed in a different file, and `./gradlew detekt` passes on them: detekt's `UnusedImports`
+  is not active and the compiler is not run with `-Werror`, so neither gate this project treats as
+  authoritative can see an unused import. Worth knowing before the next "the gates are clean"
+  claim — either turn the rule on deliberately or record that imports are not gated.
+- **A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that the
+  chip exists, while `WeekdayPicker` composes every chip unconditionally — so it passes even if
+  the plan's `weekday` is ignored. It wants `assertIsSelected()`. Worth watching for in any test
+  written against a control that is always rendered.
+- **Two types share the name `WorkoutSummary`** — the history row in `domain/model`, and the N20
+  review payload at the bottom of `ActiveWorkoutViewModel`. Different shapes, same simple name;
+  the review payload would sit better beside `WorkoutSummaryDialog`.
+- **`SettingsModule` lives in `DatabaseModule.kt`**, whose name says database while the module
+  binds a `SharedPreferences` repository.
 
 ### N25 — A session remembers the timezone it was performed in
 
@@ -111,15 +193,13 @@ with the screen off, and it is the only reason this app requests *any* permissio
 
 ### Rule violations found, not new work
 
-**Nothing outstanding.** Every finding from the review is settled, and how each was settled
-is recorded in [CHANGELOG.md](CHANGELOG.md) under *Unreleased* — per the rule that finished
-work leaves this file.
-
-Two stale statements are worth correcting rather than queueing, being one line each:
-the comment on `Rpe.HALF_STEP` describes it as a whole 1–10 rating when it is RPE's own
-half-step parser (the behaviour is right — the comment is not), and the Robolectric
-comment in [`libs.versions.toml`](gradle/libs.versions.toml) still says 4.15.1 is the
-newest published while the catalog declares 4.17.
+**Nothing outstanding.** Every finding from the earlier review is settled; how each was settled is
+recorded in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, per the rule that finished work leaves
+this file. The two stale statements this section used to carry — `Rpe.HALF_STEP`'s comment
+describing itself as a whole 1–10 rating, and the Robolectric note claiming 4.15.1 was the newest
+published — are both corrected in the code now. That last pair went in without a changelog line,
+which is the smallest kind of drift and only worth a mention so the next reader does not go looking
+for it there.
 
 ## Later (still self-contained)
 
