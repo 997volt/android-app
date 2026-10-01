@@ -11,10 +11,6 @@
 did against it, and let the app show you the difference and what to do next. No account, no
 server, and nothing leaves the device unless you export it.
 
-**The scope rule.** If it does not help log a set faster or make the stored history
-more trustworthy, it does not belong here. Anything that ships data off the device,
-or needs an account or a server, is out by default.
-
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
