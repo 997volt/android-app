@@ -1,5 +1,9 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.suggestProgression
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.PlannedSetSpec
+import com.example.androidapp.domain.model.PerformedSetSpec
 import com.example.androidapp.domain.Load
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
@@ -43,22 +47,10 @@ data class PlannedTarget(
 fun suggestionForNextSet(
     loggedSets: List<SetRow>,
     previous: PreviousPerformance?,
-    nextIndex: Int,
     planned: PlannedTarget? = null,
 ): SetSuggestion {
-    val withoutPlan = when {
-        // Repeating what you just did is almost always right within a session.
-        loggedSets.isNotEmpty() -> loggedSets.last().let {
-            SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
-        }
+    val withoutPlan = prefillWithoutPlan(loggedSets, previous)
 
-        // Otherwise start from what you did last time you trained this.
-        previous?.at(nextIndex) != null -> previous.at(nextIndex)!!.let {
-            SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
-        }
-
-        else -> SetSuggestion(reps = DEFAULT_REPS, weightGrams = Weight.DEFAULT_GRAMS)
-    }
     if (planned == null) return withoutPlan
 
     // A plan's load is *one* number: `-20` is 20 kg of help and no added weight, and
@@ -66,19 +58,27 @@ fun suggestionForNextSet(
     // the fallback would build a set that is both — which would count the default
     // 20 kg as volume on an assisted set, the exact corruption a signed weight was
     // rejected for (ROADMAP N15).
-    val plannedLoad = when {
-        planned.assistanceGrams != null && planned.assistanceGrams > 0L ->
-            Load(weightGrams = 0L, assistanceGrams = planned.assistanceGrams)
+    val plannedLoad = plannedLoadFor(planned)
 
-        planned.weightGrams != null -> Load(planned.weightGrams, assistanceGrams = 0L)
-        else -> null
+    // A plan that writes reps but no load leaves the load to this rule as well (N22): the
+    // prescription is what to *aim* for, and whether that means one more rep or one more
+    // step is exactly what the history answers.
+    val proposedForPlan = if (plannedLoad == null && previous.hasSets()) {
+        progressionFrom(
+            previous = previous!!,
+            target = PlannedSetSpec(role = SetType.NORMAL, minReps = null, maxReps = planned.reps),
+        )
+    } else {
+        null
     }
 
     return SetSuggestion(
         // The upper bound is the one that matters in a written plan (`max 2`).
         reps = planned.reps ?: withoutPlan.reps,
-        weightGrams = plannedLoad?.weightGrams ?: withoutPlan.weightGrams,
-        assistanceGrams = plannedLoad?.assistanceGrams ?: withoutPlan.assistanceGrams,
+        weightGrams = plannedLoad?.weightGrams ?: proposedForPlan?.weightGrams ?: withoutPlan.weightGrams,
+        assistanceGrams = plannedLoad?.assistanceGrams
+            ?: proposedForPlan?.assistanceGrams
+            ?: withoutPlan.assistanceGrams,
     )
 }
 
@@ -108,3 +108,62 @@ fun plannedTargetFor(
 
 /** Typical working-set reps when there is nothing to go on. */
 const val DEFAULT_REPS = 8
+
+/** True when there is a last time worth progressing from. */
+private fun PreviousPerformance?.hasSets(): Boolean = this != null && sets.isNotEmpty()
+
+/**
+ * The next step from the last session, as a prefill (ROADMAP N22).
+ *
+ * One place, because the prefill asks the same question in two situations: with no plan at
+ * all, and with a plan that writes reps but no load.
+ */
+private fun progressionFrom(
+    previous: PreviousPerformance,
+    target: PlannedSetSpec? = null,
+): SetSuggestion {
+    val proposed = suggestProgression(
+        lastTime = previous.sets.map {
+            PerformedSetSpec(
+                role = it.setType,
+                weightGrams = it.weightGrams,
+                assistanceGrams = it.assistanceGrams,
+                reps = it.reps,
+            )
+        },
+        target = target,
+    )
+    return SetSuggestion(proposed.reps, proposed.weightGrams, proposed.assistanceGrams)
+}
+
+/** What to prefill when the plan has nothing to say (or there is none). */
+private fun prefillWithoutPlan(
+    loggedSets: List<SetRow>,
+    previous: PreviousPerformance?,
+): SetSuggestion = when {
+    // Repeating what you just did is almost always right within a session.
+    loggedSets.isNotEmpty() -> loggedSets.last().let {
+        SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
+    }
+
+    previous.hasSets() -> progressionFrom(previous!!)
+
+    else -> SetSuggestion(reps = DEFAULT_REPS, weightGrams = Weight.DEFAULT_GRAMS)
+}
+
+/**
+ * The load a plan names, as the split the app stores.
+ *
+ * A plan's load is *one* number: `-20` is 20 kg of help and no added weight, and `100` is
+ * 100 kg and no help. Taking the half it names and the other half from the fallback would
+ * build a set that is both — which would count the default 20 kg as volume on an assisted
+ * set, the exact corruption a signed weight was rejected for (ROADMAP N15).
+ */
+private fun plannedLoadFor(planned: PlannedTarget): Load? = when {
+    planned.assistanceGrams != null && planned.assistanceGrams > 0L ->
+        Load(weightGrams = 0L, assistanceGrams = planned.assistanceGrams)
+
+    planned.weightGrams != null -> Load(planned.weightGrams, assistanceGrams = 0L)
+
+    else -> null
+}

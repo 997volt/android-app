@@ -706,7 +706,7 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun previousPerformance_prefillsTheFirstEverSet() = runTest(dispatcher) {
+    fun previousPerformance_isProgressed_notRepeated() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository().apply {
             previous = PreviousPerformance(
                 listOf(
@@ -727,9 +727,9 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         val row = viewModel.uiState.value.exercises.single()
-        assertEquals(5, row.suggestion.reps)
+        assertEquals("N22: one more rep at the same load", 6, row.suggestion.reps)
         assertEquals(100_000, row.suggestion.weightGrams)
-        assertEquals("last time should be shown, not just used", 100_000L, row.lastTime?.weightGrams)
+        assertEquals("last time is still shown as itself, not as the target", 100_000L, row.lastTime?.weightGrams)
     }
 
     @Test

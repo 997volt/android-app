@@ -144,6 +144,23 @@ into this file once the feature ships.
   alarm, so a typed zero would fire instantly and a typed negative would not be a setting at
   all; the repository refuses anything outside 5–3600 seconds as `DataError.Invalid`.
 
+- **Progression is double progression, and it only ever suggests** (N22). Keep the load and
+  add a rep until the plan's rep ceiling is reached, then add the smallest loadable step
+  (2.5 kg, a pair of 1.25s) and start the range again. The alternatives were rejected
+  deliberately: a percentage-based rule needs a true one-rep max this app estimates rather
+  than measures, and a linear weekly add ignores missed sessions. Two consequences worth
+  stating: **assisted work inverts the direction** — the machine doing less is the progress,
+  so the step comes off the assistance — and with **no plan there is no ceiling**, so the app
+  proposes one more rep and stops there, because adding weight without a target would be the
+  app programming rather than the lifter.
+- **The app suggests; it never writes.** Nothing here changes a plan or a stored set. A
+  suggestion the app applied silently would be a programme decision taken without the person
+  training, and this app is a log, not a coach.
+- **Warm-ups are excluded from progression too.** The third feature in a row to make that
+  choice (N17, N20, N22) and for the same reason: a warm-up is not the work a target is
+  measured against, and letting one set the next target would ask for a step on a bar that
+  was only ever being warmed up with.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

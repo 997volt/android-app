@@ -16,7 +16,7 @@ class SetSuggestionTest {
 
     @Test
     fun withNothingToGoOn_itFallsBackToTheDefault() {
-        val suggestion = suggestionForNextSet(loggedSets = emptyList(), previous = null, nextIndex = 0)
+        val suggestion = suggestionForNextSet(loggedSets = emptyList(), previous = null, )
 
         assertEquals(DEFAULT_REPS, suggestion.reps)
         assertEquals(Weight.DEFAULT_GRAMS, suggestion.weightGrams)
@@ -27,7 +27,6 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = listOf(SetRow(id = "s1", number = 1, reps = 5, weightGrams = 100_000)),
             previous = null,
-            nextIndex = 1,
         )
 
         assertEquals(5, suggestion.reps)
@@ -40,7 +39,6 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = listOf(SetRow(id = "s1", number = 1, reps = 3, weightGrams = 100_000)),
             previous = null,
-            nextIndex = 1,
             planned = PlannedTarget(reps = 3, weightGrams = 105_000),
         )
 
@@ -54,7 +52,6 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = listOf(SetRow(id = "s1", number = 1, reps = 5, weightGrams = 80_000)),
             previous = null,
-            nextIndex = 1,
             planned = PlannedTarget(reps = 5, weightGrams = null),
         )
 
@@ -67,8 +64,7 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = emptyList(),
             previous = null,
-            nextIndex = 0,
-            planned = PlannedTarget(reps = null, weightGrams = 120_000),
+                        planned = PlannedTarget(reps = null, weightGrams = 120_000),
         )
 
         assertEquals(DEFAULT_REPS, suggestion.reps)
@@ -81,8 +77,7 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = emptyList(),
             previous = null,
-            nextIndex = 0,
-            planned = null,
+                        planned = null,
         )
 
         assertEquals(DEFAULT_REPS, suggestion.reps)
@@ -96,8 +91,7 @@ class SetSuggestionTest {
         val suggestion = suggestionForNextSet(
             loggedSets = emptyList(),
             previous = null,
-            nextIndex = 0,
-            planned = PlannedTarget(reps = 8, weightGrams = null, assistanceGrams = 20_000L),
+                        planned = PlannedTarget(reps = 8, weightGrams = null, assistanceGrams = 20_000L),
         )
 
         assertEquals(8, suggestion.reps)
@@ -120,7 +114,6 @@ class SetSuggestionTest {
                 ),
             ),
             previous = null,
-            nextIndex = 1,
         )
 
         assertEquals(20_000L, suggestion.assistanceGrams)

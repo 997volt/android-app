@@ -765,7 +765,6 @@ class ActiveWorkoutViewModel @Inject constructor(
             suggestion = suggestionForNextSet(
                 loggedSets = loggedSets,
                 previous = previous,
-                nextIndex = loggedSets.size,
                 planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
             ),
             lastTime = previous?.sets?.firstOrNull()?.let { first ->
