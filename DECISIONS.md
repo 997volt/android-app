@@ -139,7 +139,10 @@ into this file once the feature ships.
   warranted the moment settings need a collection, a schema or a migration; until then this
   is one file, one key and no ceremony. Writes are **committed**, not applied, because the
   screen reports a real result: a fire-and-forget write would let it say "saved" about
-  something that never reached disk.
+  something that never reached disk. **A consequence worth naming:** settings are therefore
+  not in the export file, so restoring onto a fresh install returns the default rest to 90 s.
+  That is a decision — a device preference is not training history — rather than the omission
+  it would otherwise look like.
 - **The default rest is a bounded choice, not a number field** (N21). The value becomes an
   alarm, so a typed zero would fire instantly and a typed negative would not be a setting at
   all; the repository refuses anything outside 5–3600 seconds as `DataError.Invalid`.

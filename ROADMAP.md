@@ -1,6 +1,6 @@
 # Workout Tracker — Roadmap
 
-> **v1.4** is shipped and installed. Last reviewed against the code: 2026-09-30.
+> **v1.6** is shipped and installed. Last reviewed against the code: 2026-10-01.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -17,7 +17,7 @@ or needs an account or a server, is out by default.
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N13` have
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N24` have
 shipped and left the file.
 
 ## Current state
@@ -58,88 +58,46 @@ lock**. What is left above is the one thing genuinely still undecided.
 
 ## Next
 
-Tier 1 (N19–N21) and Tier 2 (N22–N24) shipped in v1.5 and live in
-[CHANGELOG.md](CHANGELOG.md). Two reviews of that release lead as a batch of twelve, because two of
-them lose data or contradict a settled decision; behind it are the two decided questions, and then
-what is left of Tier 3.
+Marked for work, in order: the corrections the v1.5 review left, then removing the background
+rest alert together with the two things that replace it, then the warm-up generator. **N25**
+is decided but not scheduled — it only bites if you train across timezones.
 
-### The v1.5 review — B14–B25
+### B26–B32 — the corrections the v1.5 review left
 
-Two reviews of v1.5 — one structural, one defect-focused — turned up more than the release note
-admits. Ordered by what it costs the user. **B14 through B21 are fixed** and live in
-[CHANGELOG.md](CHANGELOG.md): the two that lost data or contradicted a settled decision, the one
-that left a feature half-built, two the record rule got wrong, and three in the finish review's own
-arithmetic. **Every finding in this batch is done.** The device pass covered B14 (an edit keeps the role), B16
-(the plan editor's A1/A2 labels, with the seeding proved by an instrumented test), B17 (a warm-up
-raises nothing where a working set at the same rep count does) and B21 (the review says it excludes
-warm-ups). B18's own scenario needs a ramped plan to reach, so it is held by a test that tells the
-two readings apart instead.
+Small, and three of them are this project's own rule not being the rule it runs. The first two
+were verified against the code rather than left as suspicions.
 
-### Settled by the review rather than queued
-
-- **Every backed-up column is carried, and the one exception is deliberate.** A machine
-  comparison of `16.json` against the DTOs found no column missing from its DTO, and the mappers
-  assign every column both ways. The single non-round-tripped column is
-  `workout_sessions.restEndsAt`, forced to null on import because a rest countdown is
-  device-and-moment state rather than training history — documented in the mapper and asserted
-  explicitly by the round-trip test. Worth recording because it is the only one, and because it
-  looks exactly like the three accidental drops that guard exists to catch.
-- **The N21 default rest is not in the backup file.** It lives in `SharedPreferences`, so a
-  restore onto a fresh install returns it to 90 s. Probably right — it is a device preference,
-  not training history — but it is now a decision rather than an omission.
-
-### Suspicions and smaller findings
-
-Not rows, because none is proven or is a task on its own. The first is a rule that may be
-implemented against its own statement; the rest are existing rules not being followed. They ride
-with whichever change next touches the file.
-
-- **The assisted-progression branch ignores the rep ceiling.** The rule everywhere it is written
-  is rep-first, then the smallest loadable step; as implemented
-  (`ProgressionSuggestion.kt:80-85`) an assisted lifter at the bottom of a 6–8 range is told to
-  repeat the same reps with less help, which never adds the rep the rule asks for first. The one
-  test sits exactly at the ceiling, so it cannot tell the two rules apart. Either the branch
-  needs the ceiling test or the decision needs to say the direction inverts for assistance.
-- **Declarations nothing calls.** `PreviousPerformance.at()` lost its last caller when
-  `SetSuggestion` stopped being indexed; `SettingsUiState.isLoading` is written and never read,
-  and the screen renders no loading state.
-- **Unused imports survive the gate, which is the more interesting half.**
-  `RoomTrendsRepository.kt` and `TrendsRepository.kt` carry imports added for an implementation
-  that landed in a different file, and `./gradlew detekt` passes on them: detekt's
-  `UnusedImports` is `active: false` in 1.23.8 and the compiler is not run with `-Werror`, so
-  neither gate this project treats as authoritative can see an unused import. Either turn the
-  rule on deliberately or record that imports are not gated.
-- **A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that the
-  chip exists, while `WeekdayPicker` composes every chip unconditionally — so it passes even if
+- **B26 — Assisted progression ignores the rep ceiling.**
+  [`suggestProgression`](app/src/main/java/com/example/androidapp/domain/model/ProgressionSuggestion.kt)
+  tests the assisted branch *before* the ceiling branch, so an assisted lifter at the **bottom**
+  of a 6–8 range is told to reduce assistance and keep the reps — "add a rep first" is
+  unreachable for assisted work, which contradicts the double-progression rule the file states in
+  its own KDoc. The one test sits at the ceiling, so it cannot tell the two rules apart.
+  **Fix:** order the branches by the rule, and add the test at the bottom of the range.
+- **B27 — Superset pairing is not atomic.** `onToggleSuperset` writes one row per id through
+  `handle`, which records a failure and carries on, so a failure or a process death between
+  writes leaves half a group — precisely the state the code's own comment says nobody asked for.
+  **Fix:** one transactional write, and stop rather than continue on failure.
+- **B28 — The grouping toggle on a session's first exercise is a no-op that rewrites every
+  ungrouped row.** With no previous exercise the group is null, the filter then matches every
+  ungrouped row, and each is rewritten to null — churning `updatedAt` for no change. **Fix:** do
+  not draw the control on row 0, or make the write a no-op.
+- **B29 — A test that cannot fail.** `TemplateEditorScreenTest`'s weekday case asserts only that
+  the chip exists, and `WeekdayPicker` composes every chip unconditionally — so it passes even if
   the plan's `weekday` is ignored. It wants `assertIsSelected()`. Worth watching for in any test
   written against a control that is always rendered.
-- **Superset pairing is not transactional** (`ActiveWorkoutViewModel.kt:584`): one write per id,
-  so a failure or process death between them leaves the half-a-group state the code's own comment
-  says nobody asked for — and `handle` continues the loop after a failure rather than stopping.
-- **The toggle on the first exercise is a no-op that rewrites every ungrouped row**
-  (`:571-585`): with no previous exercise the group is null, and the filter then selects every
-  ungrouped row and rewrites it, churning `updatedAt` for no change. The control is still drawn
-  on row 0.
-- **Two types share the name `WorkoutSummary`** — the history row in `domain/model`, and the N20
-  review payload at the bottom of `ActiveWorkoutViewModel`.
-- **`SettingsModule` lives in `DatabaseModule.kt`**, whose name says database while the module
-  binds a `SharedPreferences` repository.
-
-### N25 — A session remembers the timezone it was performed in
-
-**Decided: a displayed time is always the time the session was performed in.** Timestamps
-are UTC epoch millis today and every screen formats them in the *current* zone, so a
-workout done in Tokyo reads as the wrong hour — and the wrong day — once you are home.
-
-- **Store the offset on the session**, captured when it opens, and format with it wherever
-  a session's time is shown: history, the workout detail, the trends window and the review.
-- **A migration, and the backfill question it brings.** Rows written before this have no
-  offset; falling back to the current zone is the only honest answer, and it is what they
-  already get. Say so rather than inventing a timezone for the past.
-- **The offset is captured once, when the session starts.** A session that spans a DST
-  change keeps its start offset — a simplification worth stating rather than discovering.
-- **The other half of the zone question is "which day was this"**, and it follows from the
-  same column. Worth doing as one piece rather than two.
+- **B30 — Declarations nothing calls.** `PreviousPerformance.at()` lost its last caller when
+  `SetSuggestion` stopped being indexed, and `SettingsUiState.isLoading` is written and never read
+  while the screen renders no loading state. The rule is to delete them.
+- **B31 — Two names that lie.** Two types are called `WorkoutSummary` — the history row in
+  `domain/model`, and the review payload at the bottom of `ActiveWorkoutViewModel` — and
+  `SettingsModule` lives in `DatabaseModule.kt`, whose name says database while the module binds a
+  `SharedPreferences` repository.
+- **B32 — Unused imports are not gated.** Two files carry imports added for an implementation
+  that landed elsewhere, and `./gradlew detekt` passes on them: `UnusedImports` is `active: false`
+  in detekt 1.23.8 and the compiler is not run with `-Werror`, so neither gate this project treats
+  as authoritative can see an unused import. **Decide:** turn the rule on deliberately, or record
+  that imports are not gated.
 
 ### N26 — Remove the background rest alert
 
@@ -158,29 +116,42 @@ with the screen off, and it is the only reason this app requests *any* permissio
   in-app, so **P1.14** (sound and haptics) and **P1.10** (keep the screen on) stop being
   polish and become its replacement. They lead what follows.
 
-### Then — what is left of Tier 3
+### N27 — Make the rest timer audible and visible
 
-- **P1.14** Rest sound and haptics, and **P1.10** keep the screen on — the two that carry
-  the timer once N26 removes the alert.
-- **P2.7** Warm-up set generator — it can *write* warm-up sets into a plan using the
-  `WARMUP` role, which is what makes it better than it was.
-- **P1.15** Repeat last workout in one tap.
-- **P1.9** kg/lb units — only if you ever lift in pounds.
+The replacement for what N26 removes, and the reason the two are one round rather than two. With no
+background alert, the timer can only be noticed while the app is on screen.
 
-### Decisions waiting
+- **P1.14** — sound and haptics when a rest ends.
+- **P1.10** — keep the screen on for the duration of a workout. The settings screen exists now
+  (N21), so this has somewhere to live instead of needing a surface of its own.
+- Both were Tier 3 polish; removing the alert is what makes them load-bearing, which is why they
+  are marked here rather than left in *Later*.
 
-**None.** D1 through D4 were settled by the work that needed them and moved into
-[DECISIONS.md](DECISIONS.md), which is where a taken decision lives.
+### N28 — Warm-up set generator
 
-### Rule violations found, not new work
+Was **P2.7**, and a better feature than it was before plans had roles: it can *write* warm-up sets
+into a plan using the `WARMUP` role rather than only suggesting numbers. A ramp computed from the
+plan's working weight and added in one action is the difference between a plan that is pleasant to
+author and one that is not.
 
-**Nothing outstanding.** Every finding from the earlier review is settled; how each was settled is
-recorded in [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, per the rule that finished work leaves
-this file. The two stale statements this section used to carry — `Rpe.HALF_STEP`'s comment
-describing itself as a whole 1–10 rating, and the Robolectric note claiming 4.15.1 was the newest
-published — are both corrected in the code now. That last pair went in without a changelog line,
-which is the smallest kind of drift and only worth a mention so the next reader does not go looking
-for it there.
+### N25 — A session remembers the timezone it was performed in
+
+**Not scheduled.** Decided, and waiting on a reason to use it — it only bites if you train across
+timezones.
+
+**Decided: a displayed time is always the time the session was performed in.** Timestamps
+are UTC epoch millis today and every screen formats them in the *current* zone, so a
+workout done in Tokyo reads as the wrong hour — and the wrong day — once you are home.
+
+- **Store the offset on the session**, captured when it opens, and format with it wherever
+  a session's time is shown: history, the workout detail, the trends window and the review.
+- **A migration, and the backfill question it brings.** Rows written before this have no
+  offset; falling back to the current zone is the only honest answer, and it is what they
+  already get. Say so rather than inventing a timezone for the past.
+- **The offset is captured once, when the session starts.** A session that spans a DST
+  change keeps its start offset — a simplification worth stating rather than discovering.
+- **The other half of the zone question is "which day was this"**, and it follows from the
+  same column. Worth doing as one piece rather than two.
 
 ## Later (still self-contained)
 
@@ -192,8 +163,6 @@ a spelled-out decision — when it is picked up, and leaves for
 
 **Everyday logging**
 - **P1.15** Repeat last workout in one tap.
-- **P1.14** Rest sound / haptic feedback.
-- **P1.10** Keep the screen on during a workout.
 - **P1.9** kg/lb display setting — storage is canonical grams, so this is UI only.
 
 **Insight** — why the app gets opened between workouts
@@ -211,10 +180,7 @@ a spelled-out decision — when it is picked up, and leaves for
   **N20**.
 
 Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
-as **N14–N16**. Auto-progression is **N22** and supersets are **N24**, both queued above.
-
-**Small and self-contained**
-- **P2.7** Warm-up set generator.
+as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
 
 The **accessibility rule still applies to every screen as it is written**
 ([DECISIONS.md](DECISIONS.md)); the audit sweep that used to sit here is parked, so this
