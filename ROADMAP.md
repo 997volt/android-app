@@ -36,7 +36,7 @@ the v1.5 review and the round after it (B26–B32, N26, N27, N28) shipped, and w
 [CHANGELOG.md](CHANGELOG.md). Past N29 the next round is a choice rather than a queue: the rest is in
 *Later*, below.
 
-### N29 — Repeat the last workout in one tap — **built, tests outstanding**
+### N29 — Repeat the last workout in one tap — **built; one screen test outstanding**
 
 Was **P1.15**. Templates cover the planned session; this covers the unplanned one — "same as last
 time" is the most common thing a lifter does, and today it costs picking six exercises out of the
@@ -57,10 +57,13 @@ library again.
   since soft-deleted is skipped while the rest repeat; and the same exercise twice in the old
   workout repeats twice, because that is what was performed.
 
-The action, the route flag, the ViewModel branch and the repository path are in. Two of the three edge
-cases live in the SQL (the library join drops a deleted exercise, and there is deliberately no
-`DISTINCT`), so the tests that hold them belong against a real database — the instrumented suite,
-where the last-session query can be seeded.
+The action, the route flag, the ViewModel branch and the repository path are in, and the two SQL edge
+cases are held by instrumented tests against a real database — **four cases, no failures on a device**:
+the order is kept, an exercise deleted from the library is skipped while the rest repeat, an exercise
+performed twice repeats twice, and with nothing to repeat the session simply opens empty.
+
+Still to do: a screen test that the action is **absent** with no finished workout, which is a UI rule
+rather than a query one, and a device pass on the action itself.
 
 ### N25 — A session remembers the timezone it was performed in
 
