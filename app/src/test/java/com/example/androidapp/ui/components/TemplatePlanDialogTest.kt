@@ -2,6 +2,7 @@ package com.example.androidapp.ui.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.model.SetType
@@ -24,7 +25,7 @@ class TemplatePlanDialogTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun show(set: TemplateSet) {
+    private fun show(set: TemplateSet, onAddWarmUpSets: (() -> Unit)? = null) {
         composeTestRule.setContent {
             TemplatePlanDialog(
                 exerciseName = "Back Squat",
@@ -34,6 +35,7 @@ class TemplatePlanDialogTest {
                 onDeleteSet = {},
                 onDuplicate = {},
                 onDismiss = {},
+                onAddWarmUpSets = onAddWarmUpSets,
             )
         }
     }
@@ -52,13 +54,34 @@ class TemplatePlanDialogTest {
         composeTestRule.onNodeWithText("RPE 8", substring = true).assertIsDisplayed()
     }
 
-    private fun plannedSet(targetRpeHalves: Int?) = TemplateSet(
+    private fun plannedSet(
+        targetRpeHalves: Int? = null,
+        targetWeightGrams: Long? = 140_000L,
+    ) = TemplateSet(
         id = "ts1",
         templateExerciseId = "te1",
         setIndex = 0,
         role = SetType.TOP_SET,
-        targetWeightGrams = 140_000L,
+        targetWeightGrams = targetWeightGrams,
         targetRepsMax = 2,
         targetRpeHalves = targetRpeHalves,
     )
+
+    @Test
+    fun theWarmUpRamp_isOffered_whenTheCallerSaysThereIsAWeight() {
+        // ROADMAP N28. The dialog does not decide whether a ramp makes sense — the screen does, since
+        // it knows the plan — so this holds the one thing the dialog owns: it draws the control when
+        // it is given one.
+        show(plannedSet(targetWeightGrams = 100_000L), onAddWarmUpSets = {})
+
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_ADD_WARMUPS).assertIsDisplayed()
+    }
+
+    @Test
+    fun theWarmUpRamp_isNotOffered_whenThereIsNoWeightToRampFrom() {
+        // A bodyweight exercise gets no control rather than one that would write nothing.
+        show(plannedSet(targetWeightGrams = null), onAddWarmUpSets = null)
+
+        composeTestRule.onNodeWithTag(TestTags.TEMPLATE_ADD_WARMUPS).assertDoesNotExist()
+    }
 }

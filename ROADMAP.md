@@ -61,8 +61,8 @@ Two rules the generator states rather than inherits: identical consecutive warm-
 a bar loaded twice is one warm-up; and a bodyweight or assisted exercise gets **no** ramp, which is
 N15's rule about what a bodyweight set carries applied to generating one.
 
-**Device pass outstanding**: the button appears where a weight is planned, and its absence where none
-is, are things a phone can confirm.
+The button's presence rule is held by two screen tests as well as by the caller's condition; what
+remains for a device is the tap itself writing a ramp into a real plan.
 
 ### N25 — A session remembers the timezone it was performed in
 

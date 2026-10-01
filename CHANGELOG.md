@@ -32,7 +32,8 @@ Notable changes to Workout Log, newest first. Format follows
   into the plan as role-carrying warm-ups. N14 made a warm-up expressible and the plan editor let you
   type one; this is what makes writing four of them a single action instead of four. It is offered
   only where there is a weight to take a fraction of: a bodyweight or assisted exercise gets no ramp,
-  because a list of zeroes to load is worse than no control at all.
+  because a list of zeroes to load is worse than no control at all. Two screen tests hold the one
+  thing the dialog owns — that the control is drawn when it is given one and absent when it is not.
 
 ### Changed
 - **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
