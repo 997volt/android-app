@@ -29,6 +29,12 @@ shipped and left the file.
   traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
 - **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
   JVM under Robolectric rather than on a device.
+### N26 — Remove the background rest alert — **done**
+
+The alarm, its receiver, the notification, the ask-on-first-set flow and both manifest permissions are
+gone; the app declares **no permissions at all**, and the README says so. What remains of this pair is
+N27: the in-app timer is the whole mechanism until it can be heard and seen.
+
 ### N27 — Make the rest timer audible and visible
 
 The replacement for what N26 removes, and the reason the two are one round rather than two. With no
