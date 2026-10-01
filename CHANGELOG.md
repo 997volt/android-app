@@ -10,6 +10,14 @@ Notable changes to Workout, newest first. Format follows
 
 ### Added
 
+- **Repeat the last workout in one tap.** Templates cover the planned session; this covers the
+  unplanned one, where "same as last time" is the most common thing a lifter does and used to cost
+  picking six exercises out of the library again. Home's start action offers **Repeat last workout**
+  whenever a finished one exists, and it copies the **exercises and their order — not the loads**:
+  progression and the "last time" prefill already answer what to lift next, and freezing a week's
+  numbers into a fresh session would put the two in conflict. An exercise deleted from the library
+  since is skipped while the rest repeat, and an exercise performed twice repeats twice, because that
+  is what was performed.
 - **A rest is now heard and felt, and a workout keeps the screen awake.** Removing the background alert
   left the timer noticeable only while you were looking at it, so this is what replaces it: a
   short tone and a tick when a rest ends, and the screen staying on while a workout is open. Both have

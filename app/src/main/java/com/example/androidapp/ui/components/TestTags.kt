@@ -73,6 +73,7 @@ object TestTags {
 
     /** The other half of the start action (ROADMAP N3): begin from a template. */
     const val HOME_START_FROM_TEMPLATE = "home_start_from_template"
+    const val HOME_REPEAT_LAST = "home_repeat_last"
     const val HOME_MENU = "home_menu"
     const val HOME_TRENDS = "home_trends"
     const val HOME_TEMPLATES = "home_templates"

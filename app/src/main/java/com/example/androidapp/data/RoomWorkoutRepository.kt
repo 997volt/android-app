@@ -8,6 +8,7 @@ import androidx.room.withTransaction
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
+import com.example.androidapp.data.local.WorkoutDao
 import com.example.androidapp.data.local.toDomain
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.InvalidInputException
@@ -87,6 +88,8 @@ class RoomWorkoutRepository @Inject constructor(
                         // the plan being ignored. Null leaves the library's showing
                         // through, which is the fallback N5 established.
                         appendExercise(
+                            dao = dao,
+                            now = timeSource.nowEpochMillis(),
                             sessionId = start.session.id,
                             exerciseId = planned.exerciseId,
                             restSeconds = planned.restSeconds,
@@ -101,12 +104,37 @@ class RoomWorkoutRepository @Inject constructor(
             }
         }
 
+    override suspend fun repeatLastSession(): DataResult<StartedSession> =
+        dataResultOf {
+            database.withTransaction {
+                val start = dao.findOrCreateActiveSession(
+                    id = UUID.randomUUID().toString(),
+                    now = timeSource.nowEpochMillis(),
+                    zoneOffsetMinutes = zoneOffsetSource.offsetMinutes(),
+                )
+                if (start.created) {
+                    // The same append path every other start uses (ROADMAP N3, N29), so a repeated
+                    // exercise is an ordinary one — its rest, note and grouping rules included.
+                    database.sessionExerciseDao().lastFinishedSessionExerciseIds()
+                        .forEach { exerciseId ->
+                        appendExercise(
+                            dao = dao,
+                            now = timeSource.nowEpochMillis(),
+                            sessionId = start.session.id,
+                            exerciseId = exerciseId,
+                        )
+                    }
+                }
+                StartedSession(id = start.session.id, isNew = start.created)
+            }
+        }
+
     override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> =
         dataResultOf {
             if (dao.findSession(sessionId) == null) {
                 throw NotFoundException("session $sessionId is not open")
             }
-            appendExercise(sessionId, exerciseId)
+            appendExercise(dao, timeSource.nowEpochMillis(), sessionId, exerciseId)
         }
 
     /**
@@ -114,29 +142,6 @@ class RoomWorkoutRepository @Inject constructor(
      * exercise" and by starting a workout from a template (ROADMAP N3) — so the
      * order a template produces is the same order the picker would produce.
      */
-    private suspend fun appendExercise(
-        sessionId: String,
-        exerciseId: String,
-        restSeconds: Int? = null,
-        techniqueNote: String? = null,
-        supersetGroup: Int? = null,
-    ) {
-        val now = timeSource.nowEpochMillis()
-        dao.insertSessionExercise(
-            SessionExerciseEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                position = dao.maxPosition(sessionId) + 1,
-                restSeconds = restSeconds,
-                techniqueNote = techniqueNote,
-                supersetGroup = supersetGroup,
-                createdAt = now,
-                updatedAt = now,
-                deletedAt = null,
-            ),
-        )
-    }
 
     override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> =
         dataResultOf {
@@ -413,5 +418,39 @@ private fun ExerciseTrendRowEntity.toPerformedSetSpec(): PerformedSetSpec? {
         weightGrams = weightGrams ?: 0L,
         assistanceGrams = assistanceGrams ?: 0L,
         reps = reps,
+    )
+}
+
+/**
+ * The one place a session exercise is appended, shared by a manual "add exercise", a template and a
+ * repeat of the last workout (ROADMAP N3, N29) — so a repeated exercise is an ordinary one, carrying
+ * the same defaults and the same position arithmetic.
+ *
+ * A file-level function rather than a private member: `RoomWorkoutRepository` is at detekt's ceiling
+ * for class functions, and the next thing added to it should force a real split rather than another
+ * helper moving out.
+ */
+private suspend fun appendExercise(
+    dao: WorkoutDao,
+    now: Long,
+    sessionId: String,
+    exerciseId: String,
+    restSeconds: Int? = null,
+    techniqueNote: String? = null,
+    supersetGroup: Int? = null,
+) {
+    dao.insertSessionExercise(
+        SessionExerciseEntity(
+            id = UUID.randomUUID().toString(),
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            position = dao.maxPosition(sessionId) + 1,
+            restSeconds = restSeconds,
+            techniqueNote = techniqueNote,
+            supersetGroup = supersetGroup,
+            createdAt = now,
+            updatedAt = now,
+            deletedAt = null,
+        ),
     )
 }

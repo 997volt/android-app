@@ -967,6 +967,9 @@ class ActiveWorkoutViewModelTest {
 
     private class FakeWorkoutRepository : WorkoutRepository {
         val sessions = MutableStateFlow<WorkoutSession?>(null)
+
+        /** What the last finished workout held, in order (ROADMAP N29). */
+        var repeatedExerciseIds: List<String> = emptyList()
         val exercises = MutableStateFlow<List<SessionExercise>>(emptyList())
         val sets = MutableStateFlow<List<SetEntry>>(emptyList())
         var previous: PreviousPerformance = PreviousPerformance(emptyList())
@@ -997,6 +1000,15 @@ class ActiveWorkoutViewModelTest {
             sessions.value?.let { return DataResult.Success(StartedSession(it.id, isNew = false)) }
             val created = WorkoutSession(id = "s1", startedAt = Instant.parse("2026-09-28T07:00:00Z"))
             sessions.value = created
+            return DataResult.Success(StartedSession(created.id, isNew = true))
+        }
+
+        /** ROADMAP N29: the same shape as starting, since a repeat is a start with exercises. */
+        override suspend fun repeatLastSession(): DataResult<StartedSession> {
+            sessions.value?.let { return DataResult.Success(StartedSession(it.id, isNew = false)) }
+            val created = WorkoutSession(id = "s1", startedAt = Instant.parse("2026-09-28T07:00:00Z"))
+            sessions.value = created
+            repeatedExerciseIds.forEach { addExercise(created.id, it) }
             return DataResult.Success(StartedSession(created.id, isNew = true))
         }
 

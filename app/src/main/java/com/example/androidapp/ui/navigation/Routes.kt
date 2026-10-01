@@ -52,7 +52,16 @@ data object Settings
  * the back stack without becoming a second source of truth.
  */
 @Serializable
-data class ActiveWorkout(val templateId: String? = null)
+data class ActiveWorkout(
+    val templateId: String? = null,
+    /**
+     * Start from the last finished workout's exercises instead of an empty session (ROADMAP N29).
+     *
+     * A flag on this route rather than a route of its own: the screen, the ViewModel and the whole
+     * workout flow are the same either way, and the only difference is what the session opens with.
+     */
+    val repeatLast: Boolean = false,
+)
 
 /**
  * Exercise picker, shown over an active workout.

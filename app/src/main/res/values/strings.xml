@@ -143,6 +143,7 @@
     <string name="template_delete_confirm_title">Delete this template?</string>
     <string name="template_delete_confirm_text">The plan goes away. Workouts you already did with it stay in your history.</string>
     <string name="home_start_from_template">Start from template</string>
+    <string name="home_repeat_last">Repeat last workout</string>
     <string name="home_templates">Workout templates</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>

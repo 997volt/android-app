@@ -174,6 +174,8 @@ class WorkoutDetailViewModelTest {
         override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> =
             unused()
 
+        override suspend fun repeatLastSession(): DataResult<StartedSession> = unused()
+
         override suspend fun addExercise(sessionId: String, exerciseId: String): DataResult<Unit> =
             unused()
 

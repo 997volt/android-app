@@ -57,6 +57,7 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
     composable<WorkoutsHome> {
         WorkoutsHomeRoute(
             onStartWorkout = { navController.navigate(ActiveWorkout()) },
+            onRepeatLast = { navController.navigate(ActiveWorkout(repeatLast = true)) },
             // The start action's other half: home offers the choice, the template
             // list makes it (ROADMAP N3).
             onStartFromTemplate = { navController.navigate(WorkoutTemplates) },

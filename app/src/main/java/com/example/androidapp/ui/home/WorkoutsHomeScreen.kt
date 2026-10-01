@@ -69,6 +69,7 @@ import java.time.Instant
 fun WorkoutsHomeRoute(
     onStartWorkout: () -> Unit,
     onStartFromTemplate: () -> Unit,
+    onRepeatLast: () -> Unit,
     onStartTemplate: (String) -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
@@ -110,6 +111,7 @@ fun WorkoutsHomeRoute(
         clock = clock,
         onStartWorkout = onStartWorkout,
         onStartFromTemplate = onStartFromTemplate,
+        onRepeatLast = onRepeatLast,
         onStartTemplate = onStartTemplate,
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
@@ -148,6 +150,7 @@ fun WorkoutsHomeScreen(
     onOpenSettings: (() -> Unit)? = null,
     onStartFromTemplate: () -> Unit = {},
     onStartTemplate: (String) -> Unit = {},
+    onRepeatLast: () -> Unit = {},
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
     onClearData: (() -> Unit)? = null,
@@ -190,6 +193,9 @@ fun WorkoutsHomeScreen(
                 clock = clock,
                 onStartWorkout = onStartWorkout,
                 onStartFromTemplate = onStartFromTemplate,
+                // No new state: the list the home screen already shows answers this.
+                canRepeat = state.recent.isNotEmpty(),
+                onRepeatLast = onRepeatLast,
             )
         },
     ) { innerPadding ->
@@ -368,12 +374,25 @@ private fun StartActions(
     onStartWorkout: () -> Unit,
     onStartFromTemplate: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Whether a finished workout exists to repeat (ROADMAP N29). */
+    canRepeat: Boolean = false,
+    onRepeatLast: () -> Unit = {},
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
     ) {
         if (activeWorkout == null) {
+            if (canRepeat) {
+                TextButton(
+                    onClick = onRepeatLast,
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .testTag(TestTags.HOME_REPEAT_LAST),
+                ) {
+                    Text(stringResource(R.string.home_repeat_last))
+                }
+            }
             FilledTonalButton(
                 onClick = onStartFromTemplate,
                 modifier = Modifier
