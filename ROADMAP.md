@@ -35,14 +35,20 @@ The alarm, its receiver, the notification, the ask-on-first-set flow and both ma
 gone; the app declares **no permissions at all**, and the README says so. What remains of this pair is
 N27: the in-app timer is the whole mechanism until it can be heard and seen.
 
-### N27 — Make the rest timer audible and visible — **built, device pass outstanding**
+### N27 — Make the rest timer audible and visible — **done, to the limit of this emulator**
 
 Both halves are in: a tone and a view-level haptic when a rest ends, and a window flag that keeps the
-screen on for the duration of a workout. Each has a switch in settings (N21), and both are on by
-default. Neither asks for a permission, which is the constraint N26 left and DECISIONS.md records.
+screen on for a workout. Each has a switch in settings, and both default to on. Neither asks for a
+permission, which is the constraint N26 left.
 
-**What is left is the device pass**: whether the tone is audible and whether the screen actually stays
-awake are things only a phone can answer.
+Checked on the device: the settings screen renders both switches; **the app's window carries
+`KEEP_SCREEN_ON`** while a workout is open (`dumpsys window windows`); and the cue's path — the
+transition out of resting — runs with the app alive and nothing in the crash log.
+
+**What this environment cannot check**: the emulator runs with `-no-audio`, so whether the tone is
+actually *audible* is unverified, and a view-level haptic is invisible headlessly. That leaves the
+sensory half of the feature resting on the code and the API-level check lint made
+(`HapticFeedbackConstants.CONFIRM` is API 30 and would have crashed on the phones this app supports).
 
 ### N28 — Warm-up set generator
 
