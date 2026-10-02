@@ -738,6 +738,42 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun acceptingTheOffer_makesItThePrefill_andonlyThen() = runTest(dispatcher) {
+        // ROADMAP N33, the half a user can act on: the proposal is shown, and taking it is what puts its
+        // numbers where one tap will log them.
+        val repository = FakeWorkoutRepository().apply {
+            previous = PreviousPerformance(
+                listOf(
+                    SetEntry(
+                        id = "old",
+                        sessionExerciseId = "old-ex",
+                        setIndex = 0,
+                        reps = 5,
+                        weightGrams = 100_000,
+                    ),
+                ),
+            )
+        }
+        val viewModel = viewModelFor(repository)
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val offered = viewModel.uiState.value.exercises.single()
+        assertEquals("the prefill is what was done", 5, offered.suggestion.reps)
+        assertEquals("and one more rep is offered", 6, offered.suggestion.offer?.reps)
+
+        viewModel.onAcceptOffer(offered.id)
+        settle()
+
+        val accepted = viewModel.uiState.value.exercises.single()
+        assertEquals("taking it makes the proposal the prefill", 6, accepted.suggestion.reps)
+        assertEquals(100_000L, accepted.suggestion.weightGrams)
+        assertNull("and it is no longer a proposal", accepted.suggestion.offer)
+    }
+
+    @Test
     fun deletingASet_thenUndoing_restoresIt() = runTest(dispatcher) {
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)

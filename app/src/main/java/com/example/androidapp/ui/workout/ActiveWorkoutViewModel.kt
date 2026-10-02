@@ -296,6 +296,14 @@ class ActiveWorkoutViewModel @Inject constructor(
         val planned: List<TemplateExercise>,
     )
 
+    /** Offers the user has taken (ROADMAP N33), keyed by the exercise row. */
+    private val acceptedPrefill = MutableStateFlow<Map<String, AcceptedPrefill>>(emptyMap())
+
+    private val rowOverrides: Flow<RowOverrides> =
+        combine(pendingFinishedExercise, acceptedPrefill) { finished, accepted ->
+            RowOverrides(pendingFinishedExerciseId = finished, acceptedPrefill = accepted)
+        }
+
     private val snapshots: Flow<Snapshot> = combine(
         activeSession,
         sessionExercises,
@@ -319,13 +327,14 @@ class ActiveWorkoutViewModel @Inject constructor(
         lastError,
         pendingUndo,
         readinessPromptVisible,
-        pendingFinishedExercise,
-    ) { snapshot, error, undo, promptVisible, finishedExercise ->
+        rowOverrides,
+    ) { snapshot, error, undo, promptVisible, overrides ->
         snapshot.toUiState(
             error = error,
             undo = undo,
             readinessPromptVisible = promptVisible,
-            pendingFinishedExerciseId = finishedExercise,
+            pendingFinishedExerciseId = overrides.pendingFinishedExerciseId,
+            acceptedPrefill = overrides.acceptedPrefill,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -843,11 +852,31 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Takes the offer on a row, so the prefill becomes the proposal (ROADMAP N33).
+     *
+     * This is the only way a proposal becomes a value, which is the point: it used to *be* the value, so
+     * one tap logged the app's arithmetic whether the lifter wanted it or not.
+     */
+    fun onAcceptOffer(sessionExerciseId: String) {
+        val row = uiState.value.exercises.firstOrNull { it.id == sessionExerciseId } ?: return
+        val offer = row.suggestion.offer ?: return
+        acceptedPrefill.value = acceptedPrefill.value + (
+            sessionExerciseId to AcceptedPrefill(
+                setCount = row.sets.size,
+                reps = offer.reps,
+                weightGrams = offer.weightGrams,
+                assistanceGrams = offer.assistanceGrams,
+            )
+            )
+    }
+
     private fun Snapshot.toUiState(
         error: DataError?,
         undo: SetEntry?,
         readinessPromptVisible: Boolean,
         pendingFinishedExerciseId: String?,
+        acceptedPrefill: Map<String, AcceptedPrefill>,
     ): ActiveWorkoutUiState =
         ActiveWorkoutUiState(
             isLoading = false,
@@ -861,6 +890,7 @@ class ActiveWorkoutViewModel @Inject constructor(
                     previous = previous[it.exerciseId],
                     planned = planned,
                     supersetLabels = supersetLabelsFor(exercises),
+                    accepted = acceptedPrefill[it.id],
                 )
             },
             pendingUndo = undo,
@@ -869,61 +899,6 @@ class ActiveWorkoutViewModel @Inject constructor(
             isReadinessPromptVisible = readinessPromptVisible,
             error = error,
         )
-
-    private fun SessionExercise.toRow(
-        sets: List<SetEntry>,
-        previous: PreviousPerformance?,
-        planned: List<TemplateExercise>,
-        supersetLabels: Map<String, String>,
-    ): SessionExerciseRow {
-        val loggedSets = sets
-            .filter { it.sessionExerciseId == id }
-            .sortedBy { it.setIndex }
-            .mapIndexed { index, set ->
-                SetRow(
-                    id = set.id,
-                    // Displayed 1-based and renumbered, so deleting the first set
-                    // leaves the rest reading 1, 2, 3 rather than 2, 3, 4.
-                    number = index + 1,
-                    reps = set.reps,
-                    weightGrams = set.weightGrams,
-                    rpeHalves = set.rpeHalves,
-                    note = set.note,
-                    setType = set.setType,
-                    assistanceGrams = set.assistanceGrams,
-                )
-            }
-
-        return SessionExerciseRow(
-            id = id,
-            exerciseId = exerciseId,
-            name = exerciseName,
-            subtitle = taxonomySubtitle(primaryMuscle, equipment),
-            techniqueNote = techniqueNote,
-            supersetGroup = supersetGroup,
-            supersetLabel = supersetLabels[id],
-            restSeconds = restSeconds,
-            isFinished = isFinished,
-            muscleFeel = muscleFeel,
-            jointPain = jointPain,
-            jointPainNote = jointPainNote,
-            sets = loggedSets,
-            suggestion = suggestionForNextSet(
-                loggedSets = loggedSets,
-                previous = previous,
-                planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
-            ),
-            lastTime = previous?.sets?.firstOrNull()?.let { first ->
-                SetRow(
-                    id = first.id,
-                    number = 1,
-                    reps = first.reps,
-                    weightGrams = first.weightGrams,
-                    assistanceGrams = first.assistanceGrams,
-                )
-            },
-        )
-    }
 
     private companion object {
         /**
@@ -1057,6 +1032,94 @@ private fun ActiveWorkoutUiState.roundIsCompleteFor(row: SessionExerciseRow): Bo
  * so the first pair the user makes is always A — a label that changed as exercises moved would
  * be worse than no label.
  */
+/**
+ * An offer the user accepted, and the set count it was accepted at (ROADMAP N33).
+ *
+ * The count is what keeps it honest: rows are rebuilt from the database after every write, so an
+ * accepted prefill must be applied on top of what the rule would otherwise say — and dropped the
+ * moment a set is logged, because then "what you just did" is the better answer and the offer that
+ * was taken is no longer a proposal.
+ */
+private data class AcceptedPrefill(
+    val setCount: Int,
+    val reps: Int,
+    val weightGrams: Long,
+    val assistanceGrams: Long,
+)
+
+/** The two pieces of state that are overlaid on a snapshot rather than coming from it. */
+private data class RowOverrides(
+    val pendingFinishedExerciseId: String?,
+    val acceptedPrefill: Map<String, AcceptedPrefill>,
+)
+
+private fun SessionExercise.toRow(
+    sets: List<SetEntry>,
+    previous: PreviousPerformance?,
+    planned: List<TemplateExercise>,
+    supersetLabels: Map<String, String>,
+    accepted: AcceptedPrefill?,
+): SessionExerciseRow {
+    val loggedSets = sets
+        .filter { it.sessionExerciseId == id }
+        .sortedBy { it.setIndex }
+        .mapIndexed { index, set ->
+            SetRow(
+                id = set.id,
+                // Displayed 1-based and renumbered, so deleting the first set
+                // leaves the rest reading 1, 2, 3 rather than 2, 3, 4.
+                number = index + 1,
+                reps = set.reps,
+                weightGrams = set.weightGrams,
+                rpeHalves = set.rpeHalves,
+                note = set.note,
+                setType = set.setType,
+                assistanceGrams = set.assistanceGrams,
+            )
+        }
+
+    return SessionExerciseRow(
+        id = id,
+        exerciseId = exerciseId,
+        name = exerciseName,
+        subtitle = taxonomySubtitle(primaryMuscle, equipment),
+        techniqueNote = techniqueNote,
+        supersetGroup = supersetGroup,
+        supersetLabel = supersetLabels[id],
+        restSeconds = restSeconds,
+        isFinished = isFinished,
+        muscleFeel = muscleFeel,
+        jointPain = jointPain,
+        jointPainNote = jointPainNote,
+        sets = loggedSets,
+        suggestion = suggestionForNextSet(
+            loggedSets = loggedSets,
+            previous = previous,
+            planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
+        ).let { suggestion ->
+            // An accepted offer wins over the rule, but only while it still applies: once a set is
+            // logged the count moves on and the offer is spent.
+            accepted?.takeIf { it.setCount == loggedSets.size }?.let { taken ->
+                suggestion.copy(
+                    reps = taken.reps,
+                    weightGrams = taken.weightGrams,
+                    assistanceGrams = taken.assistanceGrams,
+                    offer = null,
+                )
+            } ?: suggestion
+        },
+        lastTime = previous?.sets?.firstOrNull()?.let { first ->
+            SetRow(
+                id = first.id,
+                number = 1,
+                reps = first.reps,
+                weightGrams = first.weightGrams,
+                assistanceGrams = first.assistanceGrams,
+            )
+        },
+    )
+}
+
 private fun supersetLabelsFor(exercises: List<SessionExercise>): Map<String, String> {
     val groups = exercises.mapNotNull { it.supersetGroup }.distinct().sorted()
     return exercises.mapNotNull { exercise ->
