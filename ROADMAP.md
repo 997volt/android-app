@@ -60,17 +60,18 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B38 and B40–B42 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B38, B40–B42 are fixed, and B34's and B41's fixes are device-verified** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
 - **B39 — Test what a screen renders, not only how it groups.** N25's grouping is well covered —
   `GroupByMonthTest` holds the Tokyo/London month boundary both ways — while no test asserts the date
   any screen actually displays, and there is no `HistoryFormat` test at all. The grouping was right and
   the rendering was wrong, so the thorough half was the half that did not need it.
-- **B43 — The repeat path's coverage, partly closed.** The end-to-end branch is now entered by two
-  tests (one per direction). Still open: no test that the action is *absent* while a session is already
-  open, and no instrumented test that an **unfinished** session is excluded — the existing one seeds no
-  rows, so dropping `finishedAt IS NOT NULL` would still pass it. `ActiveWorkoutViewModelTest.kt:104` puts only
+- **B43 — The repeat path's coverage, nearly closed.** Two JVM tests enter the end-to-end branch, one
+  per direction, and an instrumented test asks the query directly about a workout still in progress —
+  which is the only way to see that rule, since such a workout *is* the open session and repeating
+  resumes it. **Device runs**: `RepeatLastSessionTest` 8/8, `TemplateRepositoryTest` 27/27. Still open:
+  no test that the action is *absent* while a session is already open. `ActiveWorkoutViewModelTest.kt:104` puts only
   `templateId` in the `SavedStateHandle`, so `repeatLast` is always false and the branch at
   `ActiveWorkoutViewModel.kt:361-364` is never entered; `repeatedExerciseIds` is never assigned by any
   test. Two smaller gaps ride with it: no test asserts the action is *absent* while a session is already

@@ -105,14 +105,20 @@ class RepeatLastSessionTest {
         return (result as DataResult.Success<StartedSession>).data.id
     }
 
-    /** A finished workout holding [exerciseIds] in order. */
-    private suspend fun seedFinishedWorkout(vararg exerciseIds: String) {
+    /**
+     * A workout holding [exerciseIds] in order — finished unless [finishedAt] says otherwise, which is
+     * how the query's "only finished" rule becomes testable rather than assumed.
+     */
+    private suspend fun seedFinishedWorkout(
+        vararg exerciseIds: String,
+        finishedAt: Long? = 2_000L,
+    ) {
         val dao = database.workoutDao()
         dao.insertSession(
             WorkoutSessionEntity(
                 id = "past",
                 startedAt = 1_000L,
-                finishedAt = 2_000L,
+                finishedAt = finishedAt,
                 notes = null,
                 restEndsAt = null,
                 readinessNote = null,
@@ -207,5 +213,21 @@ class RepeatLastSessionTest {
             copied.map { it.techniqueNote },
         )
         assertEquals("still a superset", listOf(1, 1), copied.map { it.supersetGroup })
+    }
+
+    @Test
+    fun theQuery_ignoresAWorkoutStillInProgress() = runTest {
+        // ROADMAP B43: the existing "no finished workout" case seeds no rows at all, so dropping
+        // `finishedAt IS NOT NULL` would still have passed it. This seeds a workout with exercises and
+        // no finish time — and asks the **query** directly, because through the repository it cannot be
+        // observed: a session with no finish time *is* the open session, so repeating resumes it,
+        // which is correct and a different rule entirely. My first version of this test asserted
+        // through both and caught my own misunderstanding rather than a defect.
+        seedFinishedWorkout("back-squat", "bench-press", finishedAt = null)
+
+        assertTrue(
+            "a workout still in progress is not the last workout",
+            database.sessionExerciseDao().lastFinishedSessionExercises().isEmpty(),
+        )
     }
 }
