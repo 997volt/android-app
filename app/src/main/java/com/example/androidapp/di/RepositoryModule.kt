@@ -1,5 +1,7 @@
 package com.example.androidapp.di
 
+import com.example.androidapp.domain.repository.MeasurementRepository
+import com.example.androidapp.data.RoomMeasurementRepository
 import com.example.androidapp.data.RoomBackupRepository
 import com.example.androidapp.data.RoomExerciseRepository
 import com.example.androidapp.data.RoomTemplateRepository
@@ -34,6 +36,13 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindWorkoutRepository(impl: RoomWorkoutRepository): WorkoutRepository
+
+    /** Measurements are their own store, and they never read training data (ROADMAP N32). */
+    @Binds
+    @Singleton
+    abstract fun bindMeasurementRepository(
+        impl: RoomMeasurementRepository,
+    ): MeasurementRepository
 
     /** Templates and their exercises (N3). */
     @Binds

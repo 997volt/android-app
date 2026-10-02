@@ -31,6 +31,22 @@ interface MeasurementDao {
     @Query("SELECT * FROM measurements WHERE deletedAt IS NULL ORDER BY measuredAt DESC, createdAt DESC")
     fun observeAll(): Flow<List<MeasurementEntity>>
 
+    /**
+     * The live entry for a local day, if there is one (ROADMAP N32, and the decision in DECISIONS.md).
+     *
+     * The day is a half-open range in the caller's own zone rather than a stored date column: the entry
+     * belongs to the day it was taken where it was taken, and the range is what makes that a query
+     * instead of a second source of truth.
+     */
+    @Query(
+        """
+        SELECT * FROM measurements
+        WHERE measuredAt >= :from AND measuredAt < :to AND deletedAt IS NULL
+        ORDER BY measuredAt DESC LIMIT 1
+        """,
+    )
+    suspend fun findOnDay(from: Long, to: Long): MeasurementEntity?
+
     @Query("SELECT * FROM measurements WHERE id = :id AND deletedAt IS NULL")
     suspend fun find(id: String): MeasurementEntity?
 
