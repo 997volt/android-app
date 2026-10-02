@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.history
 
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import org.junit.Assert.assertEquals
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.ui.test.assertIsDisplayed
@@ -63,6 +66,39 @@ class WorkoutDetailScreenTest {
             .assert(hasClickLabel())
     }
 
+    @Test
+    fun withNoExercises_theSaveActionIsNotOffered() {
+        // ROADMAP N31: a workout with nothing to copy offers nothing. The repository refuses it too;
+        // this is the half a user can see.
+        setScreen(uiState = state.copy(exercises = emptyList()))
+
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_SAVE_AS_PLAN).assertDoesNotExist()
+    }
+
+    @Test
+    fun withExercises_itAsksForAName_beforeCopying() {
+        var saved: String? = null
+        setScreen(onSaveAsTemplate = { saved = it })
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_SAVE_AS_PLAN).performClick()
+
+        // A blank name is refused before the tap as well as by the repository.
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_PLAN_CONFIRM).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_PLAN_NAME).performTextInput("Push day")
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_PLAN_CONFIRM).assertIsEnabled().performClick()
+
+        assertEquals("Push day", saved)
+    }
+
+    @Test
+    fun onceSaved_itOffersToOpenThePlan() {
+        var opened: String? = null
+        setScreen(savedTemplate = "t1", onOpenTemplate = { opened = it })
+
+        composeTestRule.onNodeWithTag(TestTags.DETAIL_OPEN_NEW_PLAN).performClick()
+
+        assertEquals("t1", opened)
+    }
+
     private fun setScreen(
         uiState: WorkoutDetailUiState = state,
         onUpdateSet: (String, Int, Long, Int?, String?, SetType, Long) -> Unit =
@@ -71,6 +107,9 @@ class WorkoutDetailScreenTest {
         onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         onDeleteWorkout: () -> Unit = {},
         onOpenExerciseTrends: (String) -> Unit = {},
+        savedTemplate: String? = null,
+        onSaveAsTemplate: (String) -> Unit = {},
+        onOpenTemplate: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
             WorkoutDetailScreen(
@@ -80,6 +119,9 @@ class WorkoutDetailScreenTest {
                 onRateExercise = onRateExercise,
                 onDeleteWorkout = onDeleteWorkout,
                 onOpenExerciseTrends = onOpenExerciseTrends,
+                savedTemplate = savedTemplate,
+                onSaveAsTemplate = onSaveAsTemplate,
+                onOpenTemplate = onOpenTemplate,
                 onBack = {},
             )
         }
