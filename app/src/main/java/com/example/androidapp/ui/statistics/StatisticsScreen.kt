@@ -398,44 +398,32 @@ private fun ReadingRow(label: String, value: String, testTag: String) {
     }
 }
 
-/** The series, drawn through the chart every other trend uses. N37 gives it a time axis. */
+/**
+ * The series, drawn through the chart every other trend uses. N37 gives it a time axis.
+ *
+ * Two functions rather than one: the frame decides *when* and *how much*, and the body works out what to
+ * draw inside it. Kept apart because the whole thing together was past the length a reader can hold, and the
+ * seam is a real one — nothing in the body knows about the picker or the restart.
+ */
 @Composable
 private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?) {
-    val recorded = series.readings.mapNotNull { it.value }
-    if (recorded.size < 2) return
+    if (series.readings.count { it.value != null } < 2) return
     var period by rememberSaveable { mutableStateOf(DAYS) }
-
-    // `fixedRange` keeps a rating on its own 1–10 scale rather than fitting the axis to a 0.2 wobble.
-    val axis = axisBounds(recorded, fromZero = metric.fromZero, goal = goal, fixedRange = metric.fixedRange)
-    val firstAt = series.readings.first().at.toEpochMilli().toDouble()
-    val timeSpan = series.readings.last().at.toEpochMilli().toDouble() - firstAt
+    val overlay = chartOverlay(series, metric, goal, period)
 
     Column {
-        val trend = series.trend()
-        val projected = projectByTime(series.readings)
-        // The mean is a subset of the same readings, so it shares their places on the axis rather than being
-        // projected again — two projections of the same instants would be two chances to disagree.
-        val xByInstant = series.readings.mapIndexed { index, reading -> reading.at to projected[index].x }.toMap()
-        val mean = series.movingAverage(period).mapNotNull { reading ->
-            xByInstant[reading.at]?.let { x -> ChartPoint(x = x, value = reading.value) }
-        }
         TrendChartFrame(
-            points = projected,
+            points = overlay.projected,
             goal = goal,
-            minValue = axis.min,
-            maxValue = axis.max,
+            minValue = overlay.axis.min,
+            maxValue = overlay.axis.max,
             testTag = TestTags.Statistics.CHART,
             bars = metric.isBars,
             average = series.average(),
             // The line is evaluated across the same elapsed time the points are placed by (N37), so it leans
             // the way the readings do rather than the way the index would.
-            movingAverage = mean,
-            trend = trend?.let { fitted ->
-                ChartLine(
-                    start = fitted.valueAt(fraction = 0.0, first = firstAt, span = timeSpan),
-                    end = fitted.valueAt(fraction = 1.0, first = firstAt, span = timeSpan),
-                )
-            },
+            movingAverage = overlay.mean,
+            trend = overlay.fittedLine,
         )
         MovingAveragePicker(period = period, onSelect = { period = it })
 
@@ -443,24 +431,24 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?
         // reader who can see it, "when did this start and end, and what scale is it" is the first question.
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = HistoryFormat.date(firstRecordedAt(series), zone = ZoneId.systemDefault()),
+                text = HistoryFormat.date(recordedSpan(series).first, zone = ZoneId.systemDefault()),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_FIRST_DATE),
             )
             Text(
-                text = HistoryFormat.date(lastRecordedAt(series), zone = ZoneId.systemDefault()),
+                text = HistoryFormat.date(recordedSpan(series).second, zone = ZoneId.systemDefault()),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_LAST_DATE),
             )
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = metric.unit.format(axis.min),
+                text = metric.unit.format(overlay.axis.min),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_MIN),
             )
             Text(
-                text = metric.unit.format(axis.max),
+                text = metric.unit.format(overlay.axis.max),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_MAX),
             )
@@ -468,12 +456,69 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?
     }
 }
 
-/** The first moment that recorded something, which is where the axis starts. */
-private fun firstRecordedAt(series: MetricSeries): Instant =
-    series.readings.first { it.value != null }.at
 
-private fun lastRecordedAt(series: MetricSeries): Instant =
-    series.readings.last { it.value != null }.at
+/**
+ * Everything the chart draws, worked out away from the canvas (ROADMAP N37, N39, N40).
+ *
+ * A pure function rather than locals in the composable so the arithmetic can be asserted without rendering:
+ * the axis depending on the fitted line is the kind of thing that is wrong invisibly, since a clamped line
+ * still draws.
+ */
+private data class ChartOverlay(
+    val projected: List<ChartPoint>,
+    val mean: List<ChartPoint>,
+    val fittedLine: ChartLine?,
+    val axis: AxisBounds,
+)
+
+private fun chartOverlay(
+    series: MetricSeries,
+    metric: MetricEntry,
+    goal: Double?,
+    period: Int,
+): ChartOverlay {
+    val recorded = series.readings.mapNotNull { it.value }
+    val firstAt = series.readings.first().at.toEpochMilli().toDouble()
+    val timeSpan = series.readings.last().at.toEpochMilli().toDouble() - firstAt
+    val trend = series.trend()
+    val projected = projectByTime(series.readings)
+
+    // The fitted line can leave the range of the readings — a series rising fast ends above its own last
+    // point — so its ends are part of the axis. Built from the readings alone, the line was clamped flat along
+    // the top edge for its last stretch and appeared to level off where it rose fastest.
+    fun endAt(fraction: Double) = trend?.valueAt(fraction, first = firstAt, span = timeSpan)
+    val fittedLine = trend?.let {
+        ChartLine(start = endAt(0.0)!!, end = endAt(1.0)!!)
+    }
+
+    // The mean is a subset of the same readings, so it shares their places on the axis rather than being
+    // projected again — two projections of the same instants would be two chances to disagree.
+    val xByInstant = series.readings.mapIndexed { index, reading -> reading.at to projected[index].x }.toMap()
+    val mean = series.movingAverage(period).mapNotNull { reading ->
+        xByInstant[reading.at]?.let { x -> ChartPoint(x = x, value = reading.value) }
+    }
+
+    return ChartOverlay(
+        projected = projected,
+        mean = mean,
+        fittedLine = fittedLine,
+        axis = axisBounds(
+            recorded + listOfNotNull(endAt(0.0), endAt(1.0)),
+            fromZero = metric.fromZero,
+            goal = goal,
+            fixedRange = metric.fixedRange,
+        ),
+    )
+}
+
+/**
+ * The first and last moments that recorded something, which is what the axis labels span.
+ *
+ * A gap means "not recorded", so an empty reading at either end is not the end of the window. One function
+ * rather than two because the pair is only ever used together, and the file is at its function ceiling.
+ */
+private fun recordedSpan(series: MetricSeries): Pair<Instant, Instant> =
+    series.readings.first { it.value != null }.at to series.readings.last { it.value != null }.at
 
 /** The ends of the axis, so the chart can be read without the readings list. */
 

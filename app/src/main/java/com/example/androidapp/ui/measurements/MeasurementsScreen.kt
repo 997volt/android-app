@@ -234,13 +234,29 @@ private fun NumberField(
     )
 }
 
-/** `18.3` or `18,3` reads as 183 tenths; anything else is not a number, and absence is null. */
+/**
+ * `18.3` or `18,3` reads as 183 tenths; anything else is not a number, and absence is null.
+ *
+ * Guarded the way [Weight.parseKilograms] is, and for the same reason: `toDoubleOrNull` accepts `NaN` and
+ * `Infinity`, and `Math.round(NaN * 10)` is `0`, so a typed "NaN" was stored as a real 0.0% reading — a
+ * measurement nobody took, in a series that then draws it. Negative is refused too: no tape measurement or
+ * body-fat percentage in this app is below zero.
+ */
 private fun tenths(text: String): Int? =
-    text.replace(',', '.').trim().toDoubleOrNull()?.let { Math.round(it * TENTHS_PER_PERCENT).toInt() }
+    finite(text)?.let { Math.round(it * TENTHS_PER_PERCENT).toInt() }
 
 /** `86.4` reads as 864 millimetres, which is ten to the centimetre. */
 private fun millimetres(text: String): Long? =
-    text.replace(',', '.').trim().toDoubleOrNull()?.let { Math.round(it * MILLIMETRES_PER_CENTIMETRE) }
+    finite(text)?.let { Math.round(it * MILLIMETRES_PER_CENTIMETRE) }
+
+/**
+ * A typed measurement, or null when it is not one.
+ *
+ * `Math.round` maps anything non-finite or out of `Int` range to a value that looks like a real reading, so the
+ * check has to happen before the conversion rather than after it.
+ */
+private fun finite(text: String): Double? =
+    text.replace(',', '.').trim().toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
 
 /** The units the form collects in, and the schema stores in tenths and millimetres. */
 private const val TENTHS_PER_PERCENT = 10.0

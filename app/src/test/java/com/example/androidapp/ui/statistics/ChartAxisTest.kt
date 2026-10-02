@@ -174,4 +174,27 @@ class ChartAxisTest {
         assertThat(axis.min).isLessThan(70_000.0)
         assertThat(axis.max).isGreaterThan(80_000.0)
     }
+
+    @Test
+    fun theFittedLinesEndsArePartOfTheAxis() {
+        // A series rising fast ends above its own last reading, and the axis was built from the readings
+        // alone — so the line was clamped flat along the top edge for its last stretch, appearing to level off
+        // exactly where it rose fastest. Its ends are drawn, so they count.
+        val readings = listOf(0.0, 100.0, 100.0, 100.0)
+        val fittedEnd = 120.0
+
+        val fromReadingsOnly = axisBounds(readings, fromZero = false)
+        val withTheLine = axisBounds(readings + fittedEnd, fromZero = false)
+
+        assertThat(fromReadingsOnly.max).isLessThan(fittedEnd)
+        assertThat(withTheLine.max).isGreaterThan(fittedEnd)
+    }
+
+    @Test
+    fun andABelowTheReadingsFittedEndIsIncludedToo() {
+        // The symmetric case, which clipping hid the same way.
+        val withTheLine = axisBounds(listOf(100.0, 100.0, 0.0) + (-20.0), fromZero = false)
+
+        assertThat(withTheLine.min).isLessThan(-20.0)
+    }
 }

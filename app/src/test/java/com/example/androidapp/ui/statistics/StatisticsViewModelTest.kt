@@ -238,10 +238,11 @@ class StatisticsViewModelTest {
         // nobody reads — the bug this test found in its own fixture.
         trends: FakeTrendsRepository = FakeTrendsRepository(points = points),
         settings: FakeSettingsRepository = FakeSettingsRepository(range, goals),
+        statistics: FakeStatisticsRepository = FakeStatisticsRepository(sessions, records),
     ) = StatisticsViewModel(
         settings = settings,
         repositories = StatisticsRepositories(
-            statistics = FakeStatisticsRepository(sessions, records),
+            statistics = statistics,
             trends = trends,
             measurements = FakeMeasurementRepository(body),
             exercises = FakeExerciseRepository(lifts),
@@ -284,6 +285,31 @@ class StatisticsViewModelTest {
 
         assertThat(viewModel.uiState.value.goal).isNull()
     }
+
+    @Test
+    fun theAllRange_stillCountsRecords() = runTest(dispatcher) {
+        // "All" has no window, and that used to end the flow early — so the tile showed a permanent dash on
+        // the one range where a lifetime count means most. Unbounded is a range the query can express.
+        val statistics = FakeStatisticsRepository(sessions = emptyList(), records = 7)
+        val viewModel = viewModel(range = StatisticsRange(RangeKind.ALL), statistics = statistics)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertThat(statistics.asked).isTrue()
+        assertThat(viewModel.uiState.value.overview.personalRecords).isEqualTo(7)
+    }
+
+    @Test
+    fun aWindowedRange_countsRecordsToo() = runTest(dispatcher) {
+        // The ordinary case, kept honest beside the new one.
+        val statistics = FakeStatisticsRepository(sessions = emptyList(), records = 3)
+        val viewModel = viewModel(range = StatisticsRange(RangeKind.LAST_7_DAYS), statistics = statistics)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertThat(statistics.asked).isTrue()
+        assertThat(viewModel.uiState.value.overview.personalRecords).isEqualTo(3)
+    }
 }
 
 private class FakeSettingsRepository(
@@ -318,9 +344,16 @@ private class FakeStatisticsRepository(
     private val sessions: List<WorkoutSummary>,
     private val records: Int?,
 ) : StatisticsRepository {
+    /** Whether the count was asked for at all — the distinction the "All" range used to lose. */
+    var asked = false
+        private set
+
     override fun observeWorkoutSummaries(): Flow<List<WorkoutSummary>> = flowOf(sessions)
-    override suspend fun countRecordsIn(from: Instant, to: Instant): DataResult<Int> =
-        records?.let { DataResult.Success(it) } ?: DataResult.Success(0)
+
+    override suspend fun countRecordsIn(from: Instant, to: Instant): DataResult<Int> {
+        asked = true
+        return DataResult.Success(records ?: 0)
+    }
 }
 
 private class FakeTrendsRepository(
@@ -360,4 +393,6 @@ private class FakeExerciseRepository(private val lifts: List<Exercise>) : Exerci
         DataResult.Failure(DataError.Invalid("not used here"))
 
     override suspend fun updateExercise(exercise: Exercise): DataResult<Unit> = DataResult.Success(Unit)
+
+
 }

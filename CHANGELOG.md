@@ -141,6 +141,23 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **The Statistics chart's fitted line is inside the axis.** A series rising fast ends above its own last
+  reading, and the axis was built from the readings alone — so the line was clamped flat along the top edge
+  for its final stretch and appeared to level off exactly where it rose fastest. Its ends are drawn, so they
+  are now part of the axis, and the same holds for a fitted end below the readings.
+- **A tape or body-fat field that is not a real number is no longer stored.** `Math.round(NaN * 10)` is `0`,
+  so typing "NaN" into the body-fat field wrote a real 0.0% reading — a measurement nobody took, in a series
+  that then draws it — and "Infinity" became −0.1%. Negative values were accepted too, though nothing this
+  screen collects is below zero. The guard is the one `Weight.parseKilograms` has always used.
+- **"All" counts records instead of showing a dash.** The tile was permanently empty on the one range where a
+  lifetime count means most, because "all" has no window and the count bailed when the window was absent.
+  Unbounded is a range the query can express.
+- **A long range no longer loses its older sessions.** The training series were fetched with a cap of 500
+  *sessions* and then filtered by date, so with more history than the cap a "last year" range silently omitted
+  the sessions before the newest 500 — including from the record count. The cap is gone; the range is honoured
+  by the date filter, which is what it was always meant to do.
+
+
 - **The Statistics screen can change the lift again.** The picker was drawn only while *no* lift was
   selected, and every entry point — the library, the workout detail, a lift just performed — arrives with one
   already chosen, so the lift could never be changed. The prompt ("choose a lift") is for the empty case and

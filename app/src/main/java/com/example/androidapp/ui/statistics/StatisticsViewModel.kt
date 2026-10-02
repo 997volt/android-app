@@ -148,7 +148,7 @@ class StatisticsViewModel @Inject constructor(
         range,
         selection,
         library,
-        repositories.trends.observeTrends(WINDOW),
+        repositories.trends.observeTrends(NO_LIMIT),
         repositories.measurements.observeAll(),
     ) { range, selection, library, points, body ->
         Sources(range, selection, library.first, points, body, library.second)
@@ -159,7 +159,7 @@ class StatisticsViewModel @Inject constructor(
         val metric = chosen.metric
         val exerciseId = chosen.exerciseId
         if (metric is MetricKey.Exercise && exerciseId != null) {
-            repositories.trends.observeExerciseTrends(exerciseId, WINDOW)
+            repositories.trends.observeExerciseTrends(exerciseId, NO_LIMIT)
         } else {
             flowOf(DataResult.Success(emptyList()))
         }
@@ -167,8 +167,13 @@ class StatisticsViewModel @Inject constructor(
 
     /** How many records the window contains. Its own flow because it is a suspend read, not a stream. */
     private val records = range.mapLatest { current ->
-        val bounds = current.window(today(), currentZone()) ?: return@mapLatest null
-        (repositories.statistics.countRecordsIn(bounds.from, bounds.toExclusive) as? DataResult.Success)?.data
+        // "All" has no window, and the count is still a question worth answering — it is the range where a
+        // lifetime record count means most. A null window means unbounded, which the query expresses as the
+        // ends of the Long range rather than as a missing clause.
+        val bounds = current.window(today(), currentZone())
+        val from = bounds?.from ?: Instant.ofEpochMilli(Long.MIN_VALUE)
+        val to = bounds?.toExclusive ?: Instant.ofEpochMilli(Long.MAX_VALUE)
+        (repositories.statistics.countRecordsIn(from, to) as? DataResult.Success)?.data
     }
 
     val uiState: StateFlow<StatisticsUiState> =
@@ -244,13 +249,18 @@ class StatisticsViewModel @Inject constructor(
 
     private companion object {
         /**
-         * How many sessions the training series are asked for.
+         * How many sessions the training series are asked for: no limit.
          *
-         * The trends queries window by session, not by time, so a range is honoured by asking for more
-         * sessions than the range can hold and then filtering by date. Five hundred is years of training for
-         * anyone, and a chart cannot draw more points than that legibly anyway.
+         * The trends queries window by session, not by time, so a range is honoured by filtering the readings
+         * by date in memory. Asking for a *fixed number* and then filtering was silently wrong: with more
+         * finished sessions than the cap, a long range lost the older sessions inside it — including from the
+         * record count, which is a headline number. The cap was justified by what a chart can draw legibly,
+         * but the chart draws a subset anyway and the readings list is meant to be read.
+         *
+         * `Int.MAX_VALUE` rather than removing the parameter: `LIMIT` is part of the query contract, and the
+         * alternative is a second query shape to keep in step.
          */
-        const val WINDOW = 500
+        const val NO_LIMIT = Int.MAX_VALUE
         const val STOP_TIMEOUT_MILLIS = 5_000L
         /**
          * The zone "today" is measured in, read when it is asked for.

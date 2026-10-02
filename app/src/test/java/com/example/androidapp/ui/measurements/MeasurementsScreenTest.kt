@@ -114,4 +114,35 @@ class MeasurementsScreenTest {
 
         assertEquals(864L, saved?.tape?.get(TapeSite.WAIST))
     }
+
+    @Test
+    fun aFieldThatIsNotARealNumber_isNotStored() {
+        // `toDoubleOrNull` accepts "NaN" and "Infinity", and `Math.round(NaN * 10)` is 0 — so a typed "NaN"
+        // became a real 0.0% body-fat reading, a measurement nobody took, in a series that then draws it.
+        var saved: BodyMeasurement? = null
+        setScreen(onSave = { saved = it })
+        composeTestRule.onNodeWithTag(TestTags.Measurements.ADD).performClick()
+        composeTestRule.onNodeWithTag(TestTags.Measurements.WEIGHT).performTextInput("82.4")
+        composeTestRule.onNodeWithTag(TestTags.Measurements.BODY_FAT).performTextInput("NaN")
+        composeTestRule.onNodeWithTag(TestTags.Measurements.tape(TapeSite.WAIST)).performTextInput("Infinity")
+
+        composeTestRule.onNodeWithTag(TestTags.Measurements.CONFIRM).performClick()
+
+        assertNull("a NaN body fat is not a measurement", saved?.bodyFatTenths)
+        assertTrue("an infinite tape reading is not one either", saved?.tape?.isEmpty() != false)
+    }
+
+    @Test
+    fun aNegativeMeasurement_isNotStored() {
+        // Nothing this screen collects is below zero, and a negative would draw as a real reading.
+        var saved: BodyMeasurement? = null
+        setScreen(onSave = { saved = it })
+        composeTestRule.onNodeWithTag(TestTags.Measurements.ADD).performClick()
+        composeTestRule.onNodeWithTag(TestTags.Measurements.WEIGHT).performTextInput("82.4")
+        composeTestRule.onNodeWithTag(TestTags.Measurements.BODY_FAT).performTextInput("-5")
+
+        composeTestRule.onNodeWithTag(TestTags.Measurements.CONFIRM).performClick()
+
+        assertNull("no body fat below zero", saved?.bodyFatTenths)
+    }
 }
