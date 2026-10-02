@@ -24,10 +24,14 @@ interface StatisticsDao {
      * in it, then the set's index. That is the order a lifter did them in, and it is the only order that
      * makes "earlier" mean anything when two sessions share a timestamp.
      *
-     * **Earlier means an earlier session**, which is the part worth stating: the live path (`onLogSet`) reads
-     * history *excluding the current session* and then merges only the sets of the row being added to. So a
-     * lift added twice in one workout is judged twice against history and never against its own twin, and
-     * this count has to read the same way or the two disagree about a number the user was already told.
+     * **"Earlier" spans the whole of a session, including a second row for the same exercise.** The live path
+     * (`onLogSet`) is narrower than that: it reads history excluding the current session and then merges only
+     * the sets of the row being added to, so a second row for the same exercise does not see the first, and
+     * each row's first set repeating the same weight is announced as a record twice. This query counts one.
+     * The count is the rule `PersonalRecords.isRecord` states — matching a best is not beating it — and the
+     * announce path is the one that diverges; narrowing this to match it was tried and rejected because it
+     * made a single session's repeated set stop counting and contradicted this query's own tests. Fixing the
+     * divergence means the live path merging the whole session's sets for the exercise rather than one row.
      *
      * Warm-ups are excluded on both sides, which is B17's rule — a heavy warm-up is not a record — and a
      * bodyweight set has no weight to compare, so it is excluded by the same `weightGrams > 0` the domain
@@ -61,12 +65,6 @@ interface StatisticsDao {
                         AND earlier.setIndex < s.setIndex
                     )
                 )
-                -- Earlier means earlier *history*. A set is measured against what came before the session it
-                -- is in, never against the other exercises of the same session: adding a lift twice and
-                -- logging the same weight in both is one record's worth of work, but the live path announces
-                -- it once per row (it merges only the current row's sets), and this count has to agree with
-                -- what the user was told at the time.
-                AND ews.id <> ws.id
           )
         """,
     )
