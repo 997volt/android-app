@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.trends
 
+import com.example.androidapp.domain.repository.MeasurementRepository
+import com.example.androidapp.domain.model.BodyMeasurement
 import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
@@ -55,7 +57,7 @@ class TrendsViewModelTest {
                 point(rpeHalves = 8.0, feel = 8.0, pain = 4.0),
             ),
         )
-        val viewModel = TrendsViewModel(repository)
+        val viewModel = TrendsViewModel(repository, EmptyMeasurementRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -80,7 +82,7 @@ class TrendsViewModelTest {
         val repository = FakeTrendsRepository(
             points = listOf(point(rpeHalves = 7.0), point(rpeHalves = null)),
         )
-        val viewModel = TrendsViewModel(repository)
+        val viewModel = TrendsViewModel(repository, EmptyMeasurementRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -95,7 +97,7 @@ class TrendsViewModelTest {
         val repository = FakeTrendsRepository(
             points = listOf(point(feel = 6.0), point(feel = null), point(feel = 8.0)),
         )
-        val viewModel = TrendsViewModel(repository)
+        val viewModel = TrendsViewModel(repository, EmptyMeasurementRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -108,7 +110,7 @@ class TrendsViewModelTest {
 
     @Test
     fun nothingRecorded_isNotTheSameAsNothingToRead() = runTest(dispatcher) {
-        val viewModel = TrendsViewModel(FakeTrendsRepository(points = listOf(point())))
+        val viewModel = TrendsViewModel(FakeTrendsRepository(points = listOf(point())), EmptyMeasurementRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -119,7 +121,10 @@ class TrendsViewModelTest {
 
     @Test
     fun aWorkoutWindow_withOnlySomeMetrics_isNotNothing() = runTest(dispatcher) {
-        val viewModel = TrendsViewModel(FakeTrendsRepository(points = listOf(point(rpeHalves = 7.0))))
+        val viewModel = TrendsViewModel(
+            FakeTrendsRepository(points = listOf(point(rpeHalves = 7.0))),
+            EmptyMeasurementRepository(),
+        )
         observe(viewModel)
         advanceUntilIdle()
 
@@ -132,7 +137,7 @@ class TrendsViewModelTest {
     @Test
     fun aFailedRead_isAScreenState_ratherThanAThrow() = runTest(dispatcher) {
         val repository = FakeTrendsRepository(failure = DataError.Storage(IOException("locked")))
-        val viewModel = TrendsViewModel(repository)
+        val viewModel = TrendsViewModel(repository, EmptyMeasurementRepository())
         observe(viewModel)
         advanceUntilIdle()
 
@@ -163,4 +168,11 @@ class TrendsViewModelTest {
         override fun observeTrends(limit: Int): Flow<DataResult<List<TrendPoint>>> =
             flowOf(failure?.let { DataResult.Failure(it) } ?: DataResult.Success(points))
     }
+}
+
+/** No measurements: this suite is about the training series, and the other is empty by default. */
+private class EmptyMeasurementRepository : MeasurementRepository {
+    override fun observeAll(): Flow<List<BodyMeasurement>> = flowOf(emptyList())
+    override suspend fun save(measurement: BodyMeasurement): DataResult<Unit> = DataResult.Success(Unit)
+    override suspend fun delete(id: String): DataResult<Unit> = DataResult.Success(Unit)
 }
