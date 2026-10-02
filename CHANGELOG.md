@@ -7,7 +7,17 @@ Notable changes to Workout, newest first. Format follows
 
 ## [Unreleased]
 
+## [1.8] — 2026-10-02 (versionCode 9)
+
 ### Added
+
+- **An index on `workout_sessions.startedAt`, schema v19** (B46). The statistics range filter scans by start
+  time and the record count does too, and the existing `finishedAt` index cannot serve either — one filters
+  `IS NOT NULL`, the other wants a range on a different column — so the record query read every set ever
+  logged and ran a correlated subquery per row. The `MigrationTestHelper` case seeds a real row and asserts
+  both that it survives and that the index exists, because an index migration is the one kind with nothing to
+  show for itself: a query cannot report a missing index, it just gets slower.
+
 - **A target for any metric, drawn on the chart.** Type one in the unit the screen shows — 80 kilograms — and it
   is stored in the units everything else uses, so the line it draws is the same number the readings are. It is
   **dotted where the average is dashed**, because the two are both levels and reading the user's own target as
@@ -94,7 +104,8 @@ Notable changes to Workout, newest first. Format follows
   indexed by workout, and a measurement is not a workout — so each series carries its unit and is scaled
   to its own readings rather than to a rating's fixed range.
 - Measurements travel in the **backup file** like everything else, with a round-trip guard test, and the
-  schema is at **version 18**; the upgrade keeps every row that was already there.
+  measurements schema is at **version 18** (the index below takes it to 19); the upgrade keeps every row
+  that was already there.
 - **A finished workout can become a plan.** The app went plan to session and history to session, but
   never session to plan: after a good unplanned workout the only way to keep it was rebuilding it by
   hand. The workout detail now offers **Save as plan** — it asks for a name, copies the exercises in
@@ -135,7 +146,8 @@ Notable changes to Workout, newest first. Format follows
   minutes, and the suite now completes with the count guard satisfied — *declared 175 instrumented tests,
   executed 175, every one executed*. It also runs against an image with no Google services, which is the
   constraint this app has anyway. The cost is real and recorded: the suite is tested against API 34 rather
-  than 36. The flags the job was told to try turned out to be the action's own defaults, so that lever had
+  than 37, which is what the app ships against. The flags the job was told to try turned out to be the
+  action's own defaults, so that lever had
   been pulled all along — a workflow that omits a key is still choosing a value, and the value lives in the
   pinned action.
 
@@ -177,16 +189,6 @@ Notable changes to Workout, newest first. Format follows
   the default state before anything had been read, so a first frame — and any failed read, which had no
   message at all — made a claim about data the screen did not have. Both now say what is happening, using the
   shared message component and the read error the view model was already carrying.
-
-### Added
-
-- **An index on `workout_sessions.startedAt`, schema v19** (B46). The statistics range filter scans by start
-  time and the record count does too, and the existing `finishedAt` index cannot serve either — one filters
-  `IS NOT NULL`, the other wants a range on a different column — so the record query read every set ever
-  logged and ran a correlated subquery per row. The `MigrationTestHelper` case seeds a real row and asserts
-  both that it survives and that the index exists, because an index migration is the one kind with nothing to
-  show for itself: a query cannot report a missing index, it just gets slower.
-
 
 - **The exported schema for version 18 was corrupted, and is regenerated.** That file listed fifteen
   entities for eight tables — every table from before the measurements work appeared twice, byte for byte.

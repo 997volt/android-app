@@ -1,6 +1,6 @@
 # Workout — Roadmap
 
-> **v1.7** is shipped and installed. Last reviewed against the code: 2026-10-02.
+> **v1.8** is shipped and installed. Last reviewed against the code: 2026-10-02.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -15,7 +15,7 @@ Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
 order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N29` and
-`N31`–`N33` have shipped and left the file.
+`N31`–`N40` have shipped and left the file.
 
 ## Current state
 
@@ -47,31 +47,36 @@ decision rather than a cleanup, which is why it is a row instead of a commit.
 
 ### B47 — Dead code the deleted trends screens left behind, and one rule question
 
-The review of the statistics round found 19 test tags and four members that nothing calls. Not urgent, and
-deliberately left for whoever wants it rather than decided in the review that found it.
+The review of the statistics round found 19 `TestTags` members and four other members with no production
+caller. Not urgent, and deliberately left for whoever wants it rather than decided in the review that found
+it.
 
-**The tags name controls that no longer exist.** N35 folded the per-exercise trends screen into Statistics and
-deleted it; the tags went with the screen and the constants did not. Twelve constants have no reference
-anywhere but their own declaration — `TRENDS_TITLE`, `TRENDS_EMPTY`, `TRENDS_WINDOW`, `TRENDS_READ_ERROR`,
-`EXERCISE_TRENDS_EMPTY`, `EXERCISE_TRENDS_ERROR`, `EXERCISE_TRENDS_DIRECTION` — and with them the tag
-functions that address them, 19 members of `TestTags` in all out of 160. This is the one half that is not a
-judgement call: they address nothing, and they cannot come back without the screen coming back.
+**The stale tags.** N35 folded the per-exercise trends screen into Statistics and deleted it; the tags went
+with the screen and the constants did not. Sixteen members have no reference anywhere but their own
+declaration: the constants `TRENDS_TITLE`, `TRENDS_WINDOW`, `TRENDS_EMPTY`, `TRENDS_READ_ERROR`,
+`EXERCISE_TRENDS_EMPTY`, `EXERCISE_TRENDS_ERROR`, `EXERCISE_TRENDS_DIRECTION`, `TEMPLATE_PLAN_TITLE` and
+`TEMPLATE_WEEKDAY`, and the functions `TestTags.trendSection`, `trendCaption`, `trendChart`, `exerciseTrend`,
+`Measurements.trend`, `Measurements.trendChart` and `Measurements.trendCaption`. The trends ones address
+controls that no longer exist; `TEMPLATE_PLAN_TITLE` and `TEMPLATE_WEEKDAY` name controls that do, but are no
+longer how those controls are tagged. This is the one half that is not a judgement call: removing them changes
+no behaviour.
 
-Two of them, `HOME_TRENDS` and `HOME_SETTINGS`, survive only as `assertDoesNotExist` assertions in
-`WorkoutsHomeScreenTest` — tests that assert the absence of things that are already absent, so they pass
-whatever the code does. Removing the constants means removing those assertions too, which makes this one
-change that touches a test as well as production.
+Three more constants have no production caller but a test names them: `HOME_TRENDS`, `HOME_TEMPLATES` and
+`HOME_SETTINGS` survive only as `assertDoesNotExist` assertions in `WorkoutsHomeScreenTest` — tests that
+assert the absence of things that are already absent, so they pass whatever the code does. Removing the
+constants means removing those assertions too, which makes this one change that touches a test as well as
+production.
 
-**Four members** have no caller in production. `MetricSeries.recorded` and `TrendSlope.points` have **no
-reference anywhere at all**, not even a test. `List<Double?>.recordedCount()` and
-`List<ExerciseTrendPoint>.recordedCount(metric)` are reached only by the test that tests them.
+**Four members** have no caller in production. `MetricSeries.recorded` and `TrendSlope.points` are read only by
+the tests that assert on them. `List<Double?>.recordedCount()` is reached only by the test that tests it, and
+`List<ExerciseTrendPoint>.recordedCount(metric)` by nothing at all.
 
-**And that last pair is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md) says both "delete an API
-the moment nothing calls it" and that no-dead-weight is "strict about APIs that exist to be tested, and
-lenient about…" something the sentence does not finish in a way that settles this. So does a test count as a
-caller? It has been left open on purpose rather than decided by a cleanup, because the answer changes what the
-rule means for every future change. **Whichever way it is settled belongs in DECISIONS.md**, and then this row
-is a five-minute deletion.
+**And whether a test counts as a caller is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md) says
+both "delete an API the moment nothing calls it" and that no-dead-weight is "strict about APIs that exist to
+be tested, and lenient about…" something the sentence does not finish in a way that settles this. So does a
+test count as a caller? It has been left open on purpose rather than decided by a cleanup, because the answer
+changes what the rule means for every future change. **Whichever way it is settled belongs in
+[DECISIONS.md](DECISIONS.md)**, and then this row is a five-minute deletion.
 
 One correction while writing this down: `MetricEntry.higherIsBetter` was reported as dead in the review and is
 **not** — it is read in two places in `main`. Recorded here only so the next reader does not go looking for
@@ -165,14 +170,7 @@ a second screen needs it, not before.
 
 ## Parked — deliberately not planned
 
-### N39 — the plan's target, parked by decision
-
-The per-metric target shipped; **the plan's target was scoped out** when the feature was built, so it is parked
-rather than planned. It is a different shape of work: the training plan is not one of the statistics screen's
-sources, so it means making the plan available to a screen that knows nothing about it, plus a rule for a lift
-that is in two plans at once or in none.
-
-Each is a product in its own right, contradicts "local-only", or both. Parking is a
+Each parked row is a product in its own right, contradicts "local-only", or both. Parking is a
 decision, not a backlog. Every row names what would change it.
 
 Parked is **not** the same as the non-goals below: these become possible again the
@@ -202,6 +200,13 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | — | **Encryption at rest / app lock** | You start carrying the phone somewhere you would not carry the data. |
 | F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
 | F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
+
+### N39 — the plan's target, parked by decision
+
+The per-metric target shipped; **the plan's target was scoped out** when the feature was built, so it is parked
+rather than planned. It is a different shape of work: the training plan is not one of the statistics screen's
+sources, so it means making the plan available to a screen that knows nothing about it, plus a rule for a lift
+that is in two plans at once or in none.
 
 ## Explicit non-goals
 
