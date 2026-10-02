@@ -147,8 +147,19 @@ name, because the group was what allowed a documentation push to cancel an instr
 in — and the cancelled job's summary was indistinguishable from the infrastructure failure this thread is
 about, which is how a self-inflicted cancellation got read as evidence.
 
-**What is actually left.** The emulator's reliability, now measured nightly rather than guessed at. If it
-fails again on infrastructure rather than on a test, the levers are about the runner rather than the flags:
+**Measured, and the answer was not what the options promised.** The first nightly run booted and then lost
+the emulator without running a test: `Boot completed in 990222 ms` — sixteen and a half minutes — followed
+immediately by `Failure calling service settings: Broken pipe`, `Emulator client has not yet been
+configured` and the netsim wifi stream being cancelled. Sixteen minutes to boot is not a slow start, it is
+a starved runner, and the emulator it eventually produced was already gone.
+
+So the image is now **`aosp_atd` at API 34** rather than `google_apis` at 36: an Automated Test Device is
+built for this job and carries none of the Google services this app does not use at runtime, which is a
+second reason to prefer it. It costs two API levels, and that is a real trade — the suite now runs against
+34 rather than 36 — taken because a suite that never runs tests nothing at all. Boot time and the failure
+signature on the nightly run are what will say whether it worked.
+
+**If it fails again**, the levers are about the runner rather than the flags:
 
 - a lighter system image — `google_atd` or `aosp_atd`, which exist to be automated-test devices and boot
   far faster and leaner than `google_apis`; this is the standard answer to a hosted runner whose emulator

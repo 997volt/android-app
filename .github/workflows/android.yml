@@ -168,8 +168,18 @@ jobs:
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 36
-          target: google_apis
+          # N30. The boot is what fails here: a nightly run on this image logged "Boot completed in
+          # 990222 ms" — sixteen and a half minutes — and the emulator's adb connection died
+          # immediately afterwards ("Failure calling service settings: Broken pipe"), before a single
+          # test ran. More minutes to boot is more time for a starved runner to lose the emulator.
+          #
+          # So the lever is a lighter image rather than more patience: `aosp_atd` is an Automated Test
+          # Device, built for exactly this and without the Google services this app does not use at
+          # runtime. It costs an API level (ATD images stop short of the newest), which changes what the
+          # suite is tested against — 36 to 34 — and that is a real trade, taken because a suite that
+          # never runs tests nothing at all.
+          api-level: 34
+          target: aosp_atd
           arch: x86_64
           disable-animations: true
           emulator-boot-timeout: 900
