@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import com.example.androidapp.data.local.MeasurementEntity
 import com.example.androidapp.data.local.ExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
@@ -16,6 +17,42 @@ import com.example.androidapp.data.local.WorkoutSessionEntity
  * no-op on the data. Anything clever here would show up as a restore that is
  * subtly not the original.
  */
+
+internal fun MeasurementEntity.toDto() = MeasurementDto(
+    id = id,
+    measuredAt = measuredAt,
+    weightGrams = weightGrams,
+    bodyFatTenths = bodyFatTenths,
+    muscleTenths = muscleTenths,
+    neckMm = neckMm,
+    chestMm = chestMm,
+    waistMm = waistMm,
+    hipsMm = hipsMm,
+    upperArmMm = upperArmMm,
+    thighMm = thighMm,
+    calfMm = calfMm,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun MeasurementDto.toEntity() = MeasurementEntity(
+    id = id,
+    measuredAt = measuredAt,
+    weightGrams = weightGrams,
+    bodyFatTenths = bodyFatTenths,
+    muscleTenths = muscleTenths,
+    neckMm = neckMm,
+    chestMm = chestMm,
+    waistMm = waistMm,
+    hipsMm = hipsMm,
+    upperArmMm = upperArmMm,
+    thighMm = thighMm,
+    calfMm = calfMm,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
 
 internal fun ExerciseEntity.toDto() = ExerciseDto(
     id = id,

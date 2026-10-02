@@ -50,6 +50,7 @@ class RoomBackupRepository @Inject constructor(
                 templateExercises = dao.allTemplateExercises().map { it.toDto() },
                 // A plan's sets are the plan (ROADMAP N14).
                 templateSets = dao.allTemplateSets().map { it.toDto() },
+                measurements = database.measurementDao().allForExport().map { it.toDto() },
                 // Diagnostics ride along so they are reachable on a release
                 // build; import ignores them, deliberately.
                 crashLogs = crashLogStore.all(),
@@ -151,10 +152,13 @@ class RoomBackupRepository @Inject constructor(
                     .count { it != SKIPPED }
             val addedTemplateSets = dao.insertTemplateSets(file.templateSets.map { it.toEntity() })
                 .count { it != SKIPPED }
+            val addedMeasurements = database.measurementDao()
+                .insertAll(file.measurements.map { it.toEntity() })
+                .count { it != SKIPPED }
 
             ImportSummary(
                 added = addedExercises + addedSessions + addedSessionExercises + addedSets +
-                    addedTemplates + addedTemplateExercises + addedTemplateSets,
+                    addedTemplates + addedTemplateExercises + addedTemplateSets + addedMeasurements,
                 restored = restored,
             )
         }

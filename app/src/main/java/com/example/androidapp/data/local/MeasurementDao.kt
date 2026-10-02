@@ -15,6 +15,19 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MeasurementDao {
 
+    /**
+     * Every measurement, including soft-deleted ones, for an export (ROADMAP N32).
+     *
+     * Here rather than in BackupDao, which is at its function ceiling — and this is the table's own
+     * DAO, which is where its reads belong anyway. A soft-deleted row is exported like every other
+     * table's, because an export is a copy of the database rather than of the current screen.
+     */
+    @Query("SELECT * FROM measurements")
+    suspend fun allForExport(): List<MeasurementEntity>
+
+    @Insert
+    suspend fun insertAll(rows: List<MeasurementEntity>): List<Long>
+
     @Query("SELECT * FROM measurements WHERE deletedAt IS NULL ORDER BY measuredAt DESC, createdAt DESC")
     fun observeAll(): Flow<List<MeasurementEntity>>
 

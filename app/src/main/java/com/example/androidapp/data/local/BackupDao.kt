@@ -46,6 +46,7 @@ interface BackupDao {
     @Query("SELECT * FROM template_sets")
     suspend fun allTemplateSets(): List<TemplateSetEntity>
 
+
     /**
      * Ids of rows the user deleted, which are still present with `deletedAt` set.
      *
@@ -122,4 +123,5 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTemplateSets(rows: List<TemplateSetEntity>): List<Long>
+
 }

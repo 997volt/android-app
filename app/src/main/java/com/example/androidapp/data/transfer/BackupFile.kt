@@ -48,6 +48,13 @@ data class BackupFile(
     /** A plan's sets (ROADMAP N14). Defaulted, like every added collection. */
     val templateSets: List<TemplateSetDto> = emptyList(),
     /**
+     * Body measurements (ROADMAP N32).
+     *
+     * Defaulted, like every added collection — and it must be here in the same change as the table,
+     * or an export would silently carry none of them.
+     */
+    val measurements: List<MeasurementDto> = emptyList(),
+    /**
      * Diagnostics, not user data (ROADMAP F11). They ride along with an export
      * because a release build is not debuggable and this is the only way a crash log
      * reaches the user; import deliberately ignores them.
@@ -76,6 +83,35 @@ data class ExerciseDto(
      */
     val restSeconds: Int? = null,
     val techniqueNote: String? = null,
+)
+
+/**
+ * One dated set of body measurements (ROADMAP N32).
+ *
+ * Every field but the weight is nullable, and null means "not taken" rather than zero — a waist
+ * recorded without a scale reading is a real entry, and a zero would be indistinguishable from a
+ * measurement of nothing.
+ */
+@Serializable
+data class MeasurementDto(
+    val id: String,
+    val measuredAt: Long,
+    /** Whole grams, the only required measurement. */
+    val weightGrams: Long,
+    /** Tenths of a percent, the unit RPE halves exist for. */
+    val bodyFatTenths: Int? = null,
+    val muscleTenths: Int? = null,
+    /** Tape sites in millimetres, every one optional. */
+    val neckMm: Long? = null,
+    val chestMm: Long? = null,
+    val waistMm: Long? = null,
+    val hipsMm: Long? = null,
+    val upperArmMm: Long? = null,
+    val thighMm: Long? = null,
+    val calfMm: Long? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
 )
 
 @Serializable
