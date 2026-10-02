@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.MovementPattern
@@ -175,6 +176,21 @@ class StatisticsViewModelTest {
     )
 
     @Test
+    fun arrivingWithALift_preselectsIt_andAStrengthMetric() {
+        // What "how is my bench going" arrives with, from the library or from the lift just performed: an
+        // Exercise series means nothing until a lift is chosen, so the screen must not land on bodyweight.
+        val selection = initialSelection("bench-press")
+
+        assertEquals("bench-press", selection.exerciseId)
+        assertTrue(selection.metric is MetricKey.Exercise)
+    }
+
+    @Test
+    fun arrivingWithNoLift_startsOnBodyweight() {
+        assertEquals(StatisticsSelection(), initialSelection(null))
+    }
+
+    @Test
     fun theLibrary_reachesTheState_forTheLiftPicker() = runTest(dispatcher) {
         // The picker offers the library's names and nothing else: a second way to name a lift would be a
         // second thing to keep in step with it.
@@ -225,11 +241,14 @@ class StatisticsViewModelTest {
         settings: FakeSettingsRepository = FakeSettingsRepository(range),
     ) = StatisticsViewModel(
         settings = settings,
-        statistics = FakeStatisticsRepository(sessions, records),
-        trends = trends,
-        measurements = FakeMeasurementRepository(body),
-        exercises = FakeExerciseRepository(lifts),
+        repositories = StatisticsRepositories(
+            statistics = FakeStatisticsRepository(sessions, records),
+            trends = trends,
+            measurements = FakeMeasurementRepository(body),
+            exercises = FakeExerciseRepository(lifts),
+        ),
         timeSource = TimeSource { now },
+        savedStateHandle = SavedStateHandle(),
     )
 
     /**

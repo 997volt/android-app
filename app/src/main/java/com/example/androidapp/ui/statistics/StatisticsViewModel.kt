@@ -1,6 +1,9 @@
 package com.example.androidapp.ui.statistics
 
-import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.ui.navigation.Statistics
+import com.example.androidapp.domain.model.ExerciseTrendMetric
+import androidx.navigation.toRoute
+import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.model.Exercise
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,10 +16,7 @@ import com.example.androidapp.domain.model.TrendPoint
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.model.window
 import com.example.androidapp.domain.nowEpochMillis
-import com.example.androidapp.domain.repository.MeasurementRepository
 import com.example.androidapp.domain.repository.SettingsRepository
-import com.example.androidapp.domain.repository.StatisticsRepository
-import com.example.androidapp.domain.repository.TrendsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -32,6 +32,26 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/**
+ * What the picker starts on (ROADMAP N35).
+ *
+ * Arriving with a lift — "how is my bench going", from the library or from the lift just performed —
+ * selects that lift and a strength metric: an Exercise series means nothing until a lift is chosen, and
+ * bodyweight would answer a question nobody asked. Estimated 1RM rather than the heaviest set, because it
+ * accounts for the reps a heavy single and a hard set of five differ by.
+ *
+ * Without a lift, bodyweight: the series a person checks most often.
+ */
+fun initialSelection(exerciseId: String?): StatisticsSelection =
+    if (exerciseId == null) {
+        StatisticsSelection()
+    } else {
+        StatisticsSelection(
+            metric = MetricKey.Exercise(ExerciseTrendMetric.ESTIMATED_1RM),
+            exerciseId = exerciseId,
+        )
+    }
 
 /** The metric the picker is on, and the lift when that metric needs one (ROADMAP N35). */
 data class StatisticsSelection(
@@ -72,14 +92,14 @@ data class StatisticsUiState(
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val settings: SettingsRepository,
-    private val statistics: StatisticsRepository,
-    private val trends: TrendsRepository,
-    private val measurements: MeasurementRepository,
-    private val exercises: ExerciseRepository,
+    private val repositories: StatisticsRepositories,
     private val timeSource: TimeSource,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val selection = MutableStateFlow(StatisticsSelection())
+    private val selection = MutableStateFlow(
+        initialSelection(savedStateHandle.toRoute<Statistics>().exerciseId),
+    )
 
     /**
      * The range the screen is showing.
@@ -105,8 +125,8 @@ class StatisticsViewModel @Inject constructor(
      * nothing to do with the selected metric.
      */
     private val library = combine(
-        statistics.observeWorkoutSummaries(),
-        exercises.observeExercises(),
+        repositories.statistics.observeWorkoutSummaries(),
+        repositories.exercises.observeExercises(),
     ) { summaries, result ->
         summaries to (result as? DataResult.Success)?.data.orEmpty()
     }
@@ -115,8 +135,8 @@ class StatisticsViewModel @Inject constructor(
         range,
         selection,
         library,
-        trends.observeTrends(WINDOW),
-        measurements.observeAll(),
+        repositories.trends.observeTrends(WINDOW),
+        repositories.measurements.observeAll(),
     ) { range, selection, library, points, body ->
         Sources(range, selection, library.first, points, body, library.second)
     }
@@ -126,7 +146,7 @@ class StatisticsViewModel @Inject constructor(
         val metric = chosen.metric
         val exerciseId = chosen.exerciseId
         if (metric is MetricKey.Exercise && exerciseId != null) {
-            trends.observeExerciseTrends(exerciseId, WINDOW)
+            repositories.trends.observeExerciseTrends(exerciseId, WINDOW)
         } else {
             flowOf(DataResult.Success(emptyList()))
         }
@@ -135,7 +155,7 @@ class StatisticsViewModel @Inject constructor(
     /** How many records the window contains. Its own flow because it is a suspend read, not a stream. */
     private val records = range.mapLatest { current ->
         val bounds = current.window(today(), ZONE) ?: return@mapLatest null
-        (statistics.countRecordsIn(bounds.from, bounds.toExclusive) as? DataResult.Success)?.data
+        (repositories.statistics.countRecordsIn(bounds.from, bounds.toExclusive) as? DataResult.Success)?.data
     }
 
     val uiState: StateFlow<StatisticsUiState> =

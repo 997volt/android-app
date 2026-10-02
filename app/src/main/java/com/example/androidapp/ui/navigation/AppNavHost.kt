@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import com.example.androidapp.ui.measurements.MeasurementsRoute
 import com.example.androidapp.ui.settings.SettingsRoute
-import com.example.androidapp.ui.trends.ExerciseTrendsRoute
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
@@ -126,13 +125,10 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
         ExerciseDetailRoute(
             onBack = { navController.popBackStack() },
             // The lift's own trends (ROADMAP N17), reached from the library.
-            onOpenTrends = { exerciseId -> navController.navigate(ExerciseTrends(exerciseId)) },
+            onOpenTrends = { exerciseId -> navController.navigate(Statistics(exerciseId)) },
         )
     }
 
-    composable<ExerciseTrends> {
-        ExerciseTrendsRoute(onBack = { navController.popBackStack() })
-    }
 }
 
 /** The in-progress workout and the picker it opens. */
@@ -192,7 +188,7 @@ private fun NavGraphBuilder.historyDestinations(navController: NavHostController
             onBack = { navController.popBackStack() },
             // The lift you just did, tapped to see how it is going (ROADMAP N17).
             onOpenExerciseTrends = { exerciseId ->
-                navController.navigate(ExerciseTrends(exerciseId))
+                navController.navigate(Statistics(exerciseId))
             },
             // Saving a workout as a plan offers to go straight to it (ROADMAP N31) — to the editor,
             // not the list, because the point of the offer is the plan that was just made.

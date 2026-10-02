@@ -217,27 +217,15 @@
          the window, so a bare "last 2 workouts" would misstate what is on screen. -->
     <string name="trends_metric_rpe">RPE</string>
     <!-- One exercise's own trends (ROADMAP N17). -->
-    <string name="exercise_trends_title">Trends</string>
-    <string name="exercise_trends_title_named">%1$s — trends</string>
-    <string name="exercise_trends_empty">Nothing recorded yet</string>
-    <string name="exercise_trends_empty_hint">Finish a workout with this exercise in it, and its own series appear here.</string>
-    <string name="exercise_trends_less_is_more">Less is more: a lower line is a harder set.</string>
     <string name="exercise_trend_heaviest">Heaviest set</string>
     <string name="exercise_trend_one_rep_max">Estimated 1RM</string>
     <string name="exercise_trend_volume">Volume</string>
     <string name="exercise_trend_reps">Total reps</string>
     <string name="exercise_trend_assistance">Least assistance</string>
-    <string name="exercise_trend_kilograms">%1$s kg</string>
     <string name="exercise_trends_open">Trends for this exercise</string>
     <string name="exercise_trends_open_short">Trends</string>
     <string name="trends_metric_muscle">Muscle feel</string>
     <string name="trends_metric_joint">Joint pain</string>
-    <string name="trends_not_recorded">Not recorded in these workouts</string>
-    <string name="trends_recorded_once">Recorded once: %1$s</string>
-    <plurals name="trends_caption">
-        <item quantity="one">Latest %1$s · average %2$s over %3$d workout</item>
-        <item quantity="other">Latest %1$s · average %2$s over %3$d workouts</item>
-    </plurals>
     <!-- How an exercise felt (ROADMAP N8). Deliberately unlabelled ends: numbers
          only for now, because an anchor would be a claim the app cannot justify. -->
     <string name="rating_prompt_title">How did that feel?</string>

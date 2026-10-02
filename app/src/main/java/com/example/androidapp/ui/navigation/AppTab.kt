@@ -61,7 +61,7 @@ enum class AppTab(
         TestTags.TAB_HISTORY,
     ),
     STATISTICS(
-        Statistics,
+        Statistics(),
         Statistics.serializer().descriptor.serialName,
         R.string.tab_statistics,
         Icons.Filled.Insights,
