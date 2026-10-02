@@ -5,7 +5,7 @@ Notable changes to Workout, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
-## [Unreleased]
+## [1.7] — 2026-10-02 (versionCode 8)
 
 
 ### Added
