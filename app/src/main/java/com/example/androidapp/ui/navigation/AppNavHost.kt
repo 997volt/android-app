@@ -1,5 +1,14 @@
 package com.example.androidapp.ui.navigation
 
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import com.example.androidapp.ui.measurements.MeasurementsRoute
 import com.example.androidapp.ui.settings.SettingsRoute
 import com.example.androidapp.ui.trends.ExerciseTrendsRoute
@@ -37,15 +46,36 @@ fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = WorkoutsHome,
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val destination = backStackEntry?.destination
+
+    // A pushed detail keeps its tab highlighted, which is what makes the bar a map of where you are
+    // rather than five buttons that forget the moment you open something.
+    var lastTab by rememberSaveable { mutableStateOf(AppTab.WORKOUTS) }
+    val tabRoot = AppTab.of(destination)
+    LaunchedEffect(tabRoot) { tabRoot?.let { lastTab = it } }
+
+    val showBar = !isFullScreenDestination(destination)
+    Scaffold(
+        // The shell owns the bar's height and nothing else: each screen keeps its own top bar and its own
+        // status-bar inset, which is what stops the two from padding the same content twice.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = {
+            if (showBar) AppTabBar(selected = lastTab, onSelect = navController::switchTab)
+        },
         modifier = modifier,
-    ) {
-        homeDestinations(navController)
-        workoutDestinations(navController)
-        templateDestinations(navController)
-        historyDestinations(navController)
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = WorkoutsHome,
+            // Applied once here instead of by every screen (ROADMAP N34).
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+        ) {
+            homeDestinations(navController)
+            workoutDestinations(navController)
+            templateDestinations(navController)
+            historyDestinations(navController)
+        }
     }
 }
 

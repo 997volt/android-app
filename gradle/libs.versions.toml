@@ -80,6 +80,9 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 # Version comes from the Compose BOM, which pins the frozen icons line at 1.7.8.
 androidx-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
+# N34: the bottom bar needs a chart, a history and a fitness icon, none of which the core set has.
+# R8 shrinks the unused ones out of a release build; the debug build is where the size shows.
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 # The core artifact, not truth-android: these tests run on the JVM, and the Android

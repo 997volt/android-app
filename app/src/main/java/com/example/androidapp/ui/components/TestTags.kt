@@ -225,6 +225,14 @@ object TestTags {
     /** Taking the app's proposal, which is the only way it becomes the prefill (ROADMAP N33). */
     const val SUGGESTION_ACCEPT = "suggestion_accept"
 
+    /** The bottom bar's five roots (ROADMAP N34). */
+    const val TAB_BAR = "tab_bar"
+    const val TAB_WORKOUTS = "tab_workouts"
+    const val TAB_HISTORY = "tab_history"
+    const val TAB_STATISTICS = "tab_statistics"
+    const val TAB_LIBRARY = "tab_library"
+    const val TAB_SETTINGS = "tab_settings"
+
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
     const val SETTINGS_REST_CURRENT = "settings_rest_current"
