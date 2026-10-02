@@ -45,11 +45,6 @@ different shape of work rather than more of the same: the plan is not one of the
 this needs the plan available to a screen that currently knows nothing about it, plus a rule for what to do when
 a lift is in two plans at once or in none.
 
-**A smaller thing the target work exposed.** A target outside the readings' range is drawn pinned to the edge of
-the chart — set 80 kg against a series that runs 81.75 to 84.75 and the line sits on the bottom, which is a
-target nobody can see. The axis policy is where that belongs: the bounds should include the target when there is
-one, the same way they already include zero for a bars metric.
-
 ## Later (still self-contained)
 
 Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.

@@ -360,7 +360,7 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?
     if (recorded.size < 2) return
     var period by rememberSaveable { mutableStateOf(DAYS) }
 
-    val axis = axisBounds(values = recorded, fromZero = metric.fromZero)
+    val axis = axisBounds(values = recorded, fromZero = metric.fromZero, goal = goal)
     val firstAt = series.readings.first().at.toEpochMilli().toDouble()
     val timeSpan = series.readings.last().at.toEpochMilli().toDouble() - firstAt
 

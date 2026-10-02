@@ -13,7 +13,9 @@ Notable changes to Workout, newest first. Format follows
   **dotted where the average is dashed**, because the two are both levels and reading the user's own target as
   the app's summary of them would be the worst kind of quiet error. A target can be cleared, and a number that
   cannot be read sets nothing at all rather than a zero — a target of zero would be a line along the bottom of
-  every chart and a claim nobody made.
+  every chart and a claim nobody made. **The axis widens to include the target**, because a target you cannot
+  see is not a target: setting 80 against a series running 81.75 to 84.75 used to pin the line to the bottom
+  edge, and now moves the axis to start below it.
 
 - **The readings, under the chart.** Every reading as a date and a value, newest first, collapsed until it is
   asked for, with **Average** and **Trend** rows above them. It is also the accessible counterpart to the chart:

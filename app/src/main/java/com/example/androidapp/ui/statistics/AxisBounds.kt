@@ -17,11 +17,16 @@ data class AxisBounds(val min: Double, val max: Double)
  * where every reading is equal gets a range anyway rather than collapsing — except when the axis starts at
  * zero, where the top is the reading itself plus the same padding and the bottom is zero by definition.
  */
-fun axisBounds(values: List<Double>, fromZero: Boolean): AxisBounds {
-    if (values.isEmpty()) return AxisBounds(0.0, 1.0)
+fun axisBounds(values: List<Double>, fromZero: Boolean, goal: Double? = null): AxisBounds {
+    // The target is part of the axis, not something drawn outside it: a target you cannot see is not a target,
+    // and pinning the line to the edge of the chart hides it exactly when it is furthest from the readings —
+    // which is when it is most worth seeing. The cost is that a target far from the data compresses the
+    // readings, and that is the right way round: the readings are still there, and are read against it.
+    val plotted = values + listOfNotNull(goal)
+    val lowest = plotted.minOrNull()
+    val highest = plotted.maxOrNull()
+    if (lowest == null || highest == null) return AxisBounds(0.0, 1.0)
 
-    val lowest = values.min()
-    val highest = values.max()
     val span = highest - lowest
     val pad = if (span == 0.0) 1.0 else span * AXIS_PAD_FRACTION
 
