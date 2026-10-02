@@ -101,16 +101,15 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             onStartTemplate = { templateId -> navController.navigate(ActiveWorkout(templateId)) },
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
             onOpenHistory = { navController.navigate(WorkoutHistory) },
-            onOpenLibrary = { navController.navigate(ExerciseLibrary) },
-            onOpenTemplates = { navController.navigate(WorkoutTemplates) },
-            onOpenTrends = { navController.navigate(WorkoutTrends) },
-            onOpenSettings = { navController.navigate(Settings) },
-            onOpenMeasurements = { navController.navigate(Measurements) },
         )
     }
 
     composable<WorkoutTrends> {
-        TrendsRoute(onBack = { navController.popBackStack() })
+        TrendsRoute(
+            onBack = { navController.popBackStack() },
+            // The tab's own pushed destination (ROADMAP N34).
+            onOpenMeasurements = { navController.navigate(Measurements) },
+        )
     }
 
     composable<ExerciseLibrary> {

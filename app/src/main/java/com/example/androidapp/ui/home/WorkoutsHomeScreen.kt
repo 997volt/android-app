@@ -75,14 +75,9 @@ fun WorkoutsHomeRoute(
     onStartTemplate: (String) -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenLibrary: () -> Unit,
-    onOpenTemplates: () -> Unit,
-    onOpenTrends: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
-    onOpenSettings: () -> Unit = {},
-    onOpenMeasurements: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Not unwrapped with `by`: reading it here would rebuild the list every second.
@@ -118,11 +113,6 @@ fun WorkoutsHomeRoute(
         onStartTemplate = onStartTemplate,
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
-        onOpenLibrary = onOpenLibrary,
-        onOpenTemplates = onOpenTemplates,
-        onOpenTrends = onOpenTrends,
-        onOpenSettings = onOpenSettings,
-        onOpenMeasurements = onOpenMeasurements,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         onClearData = {
@@ -147,12 +137,7 @@ fun WorkoutsHomeScreen(
     onStartWorkout: () -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenLibrary: () -> Unit,
-    onOpenTemplates: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenTrends: () -> Unit = {},
-    onOpenSettings: (() -> Unit)? = null,
-    onOpenMeasurements: (() -> Unit)? = null,
     onStartFromTemplate: () -> Unit = {},
     onStartTemplate: (String) -> Unit = {},
     onRepeatLast: () -> Unit = {},
@@ -182,12 +167,6 @@ fun WorkoutsHomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeTopBar(
-                onOpenSettings = onOpenSettings,
-                onOpenMeasurements = onOpenMeasurements,
-                onOpenLibrary = onOpenLibrary,
-                onOpenHistory = onOpenHistory,
-                onOpenTemplates = onOpenTemplates,
-                onOpenTrends = onOpenTrends,
                 onExport = onExportData,
                 onImport = onImportData,
                 onClear = onClearData?.let { { confirmingClear = true } },
@@ -503,8 +482,6 @@ private fun WorkoutsHomeScreenPreview() {
             onStartFromTemplate = {},
             onOpenWorkout = {},
             onOpenHistory = {},
-            onOpenLibrary = {},
-            onOpenTemplates = {},
         )
     }
 }
@@ -518,16 +495,10 @@ private fun WorkoutsHomeScreenPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeTopBar(
-    onOpenLibrary: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenTemplates: () -> Unit,
-    onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    onOpenSettings: (() -> Unit)? = null,
-    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -551,12 +522,6 @@ private fun HomeTopBar(
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 HomeMenuItems(
-                    onOpenLibrary = onOpenLibrary,
-                    onOpenHistory = onOpenHistory,
-                    onOpenTemplates = onOpenTemplates,
-                    onOpenTrends = onOpenTrends,
-                    onOpenSettings = onOpenSettings,
-                    onOpenMeasurements = onOpenMeasurements,
                     onExport = onExport,
                     onImport = onImport,
                     onClear = onClear,
@@ -625,59 +590,12 @@ private fun DataActions(
  */
 @Composable
 private fun HomeMenuItems(
-    onOpenLibrary: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenTemplates: () -> Unit,
-    onOpenTrends: () -> Unit,
     onExport: (() -> Unit)?,
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     onDismiss: () -> Unit,
-    onOpenSettings: (() -> Unit)? = null,
-    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     Column {
-        onOpenMeasurements?.let { open -> HomeMenuItem(R.string.measurements_title, onDismiss, open) }
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.exercise_library_title)) },
-            onClick = {
-                onDismiss()
-                onOpenLibrary()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.history_title)) },
-            onClick = {
-                onDismiss()
-                onOpenHistory()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.home_templates)) },
-            onClick = {
-                onDismiss()
-                onOpenTemplates()
-            },
-            modifier = Modifier.testTag(TestTags.HOME_TEMPLATES),
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.home_trends)) },
-            onClick = {
-                onDismiss()
-                onOpenTrends()
-            },
-            modifier = Modifier.testTag(TestTags.HOME_TRENDS),
-        )
-        if (onOpenSettings != null) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.settings_menu)) },
-                onClick = {
-                    onDismiss()
-                    onOpenSettings()
-                },
-                modifier = Modifier.testTag(TestTags.HOME_SETTINGS),
-            )
-        }
         // Export and import, moved down from the library (ROADMAP B1).
         if (onExport != null && onImport != null) {
             DataActions(
@@ -688,16 +606,4 @@ private fun HomeMenuItems(
             )
         }
     }
-}
-
-/** One menu entry, so a menu stays a list of them rather than a growing function. */
-@Composable
-private fun HomeMenuItem(label: Int, onDismiss: () -> Unit, onOpen: () -> Unit) {
-    DropdownMenuItem(
-        text = { Text(stringResource(label)) },
-        onClick = {
-            onDismiss()
-            onOpen()
-        },
-    )
 }

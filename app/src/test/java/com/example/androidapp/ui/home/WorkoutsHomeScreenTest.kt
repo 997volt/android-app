@@ -49,7 +49,6 @@ class WorkoutsHomeScreenTest {
         val onStartTemplate: (String) -> Unit = {},
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
-        val onOpenTemplates: () -> Unit = {},
         // Null by default, mirroring the screen: a host that wired no transfer
         // actions gets no dead menu entries (ROADMAP B1).
         val onExportData: (() -> Unit)? = null,
@@ -72,8 +71,6 @@ class WorkoutsHomeScreenTest {
                     onStartTemplate = actions.onStartTemplate,
                     onOpenWorkout = actions.onOpenWorkout,
                     onOpenHistory = actions.onOpenHistory,
-                    onOpenLibrary = {},
-                    onOpenTemplates = actions.onOpenTemplates,
                     onExportData = actions.onExportData,
                     onImportData = actions.onImportData,
                     message = message,
@@ -142,17 +139,17 @@ class WorkoutsHomeScreenTest {
     }
 
     @Test
-    fun theOverflowMenu_reachesTheTemplates() {
-        var opened = false
-        setScreen(
-            WorkoutsHomeUiState(isLoading = false),
-            Actions(onOpenTemplates = { opened = true }),
-        )
+    fun theOverflowMenu_noLongerCarriesTheTabs() {
+        // ROADMAP N34: the surfaces with a permanent home moved to the bottom bar, so the menu is now the
+        // data actions and nothing else. Three of the departed entries carried tags, and those are the
+        // ones a test can name without matching on English.
+        setScreen(WorkoutsHomeUiState(isLoading = false))
 
         composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
-        composeTestRule.onNodeWithTag(TestTags.HOME_TEMPLATES).performClick()
 
-        assert(opened) { "the menu did not reach the templates" }
+        composeTestRule.onNodeWithTag(TestTags.HOME_TEMPLATES).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.HOME_TRENDS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.HOME_SETTINGS).assertDoesNotExist()
     }
 
     @Test

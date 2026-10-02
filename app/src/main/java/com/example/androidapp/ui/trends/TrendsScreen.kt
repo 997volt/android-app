@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.trends
 
+import androidx.compose.material3.TextButton
 import com.example.androidapp.ui.measurements.MeasurementFormat
 import com.example.androidapp.domain.Weight
 import androidx.compose.foundation.layout.Arrangement
@@ -51,10 +52,16 @@ fun TrendsRoute(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TrendsViewModel = hiltViewModel(),
+    onOpenMeasurements: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    TrendsScreen(state = state, onBack = onBack, modifier = modifier)
+    TrendsScreen(
+        state = state,
+        onBack = onBack,
+        modifier = modifier,
+        onOpenMeasurements = onOpenMeasurements,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +70,14 @@ fun TrendsScreen(
     state: TrendsUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Opens body measurements (ROADMAP N34).
+     *
+     * They are pushed from here rather than living in the overflow menu: recording a measurement and
+     * reading a trend are different jobs, and this is the tab that answers "how is everything going".
+     * Nullable, so a preview or a test that does not exercise it shows no button.
+     */
+    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -80,6 +95,16 @@ fun TrendsScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.nav_back),
                         )
+                    }
+                },
+                actions = {
+                    if (onOpenMeasurements != null) {
+                        TextButton(
+                            onClick = onOpenMeasurements,
+                            modifier = Modifier.testTag(TestTags.TRENDS_MEASUREMENTS),
+                        ) {
+                            Text(stringResource(R.string.measurements_title))
+                        }
                     }
                 },
             )

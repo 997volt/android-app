@@ -233,6 +233,9 @@ object TestTags {
     const val TAB_LIBRARY = "tab_library"
     const val TAB_SETTINGS = "tab_settings"
 
+    /** Statistics → body measurements, until N35 folds them into the picker. */
+    const val TRENDS_MEASUREMENTS = "trends_measurements"
+
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
     const val SETTINGS_REST_CURRENT = "settings_rest_current"
