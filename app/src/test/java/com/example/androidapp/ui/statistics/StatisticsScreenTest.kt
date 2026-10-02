@@ -1,5 +1,9 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.MovementPattern
+import com.example.androidapp.domain.model.Exercise
+import com.example.androidapp.domain.model.Equipment
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -43,6 +47,7 @@ class StatisticsScreenTest {
         ),
         onSelectRange: (StatisticsRange) -> Unit = {},
         onSelectMetric: (MetricKey) -> Unit = {},
+        onSelectExercise: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -50,6 +55,7 @@ class StatisticsScreenTest {
                     state = state,
                     onSelectRange = onSelectRange,
                     onSelectMetric = onSelectMetric,
+                    onSelectExercise = onSelectExercise,
                 )
             }
         }
@@ -143,6 +149,37 @@ class StatisticsScreenTest {
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.CUSTOM.name)).assertIsSelected()
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.LAST_MONTH.name)).assertIsNotSelected()
     }
+
+    @Test
+    fun theLiftPicker_offersTheLibrary_andReportsTheChoice() {
+        var chosen: String? = null
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                selection = StatisticsSelection(metric = MetricKey.Exercise(ExerciseTrendMetric.VOLUME)),
+                lifts = listOf(
+                    lift("back-squat", "Back Squat"),
+                    lift("bench-press", "Barbell Bench Press"),
+                ),
+            ),
+            onSelectExercise = { chosen = it },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.LIFT).performClick()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.lift("bench-press")).performClick()
+
+        assertEquals("bench-press", chosen)
+    }
+
+    private fun lift(id: String, name: String) = Exercise(
+        id = id,
+        name = name,
+        primaryMuscle = MuscleGroup.QUADS,
+        secondaryMuscles = emptyList(),
+        equipment = Equipment.BARBELL,
+        movementPattern = MovementPattern.SQUAT,
+        isCustom = false,
+    )
 
     @Test
     fun aMetricThatNeedsALift_asksForOne() {

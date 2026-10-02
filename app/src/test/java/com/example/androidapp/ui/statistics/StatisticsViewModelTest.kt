@@ -1,9 +1,15 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.MovementPattern
+import com.example.androidapp.domain.model.Equipment
+import com.example.androidapp.domain.DataError
 import kotlinx.coroutines.launch
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.BodyMeasurement
+import com.example.androidapp.domain.model.Exercise
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.ExerciseTrendPoint
 import com.example.androidapp.domain.model.RangeKind
@@ -168,6 +174,33 @@ class StatisticsViewModelTest {
         tape = emptyMap<TapeSite, Long>(),
     )
 
+    @Test
+    fun theLibrary_reachesTheState_forTheLiftPicker() = runTest(dispatcher) {
+        // The picker offers the library's names and nothing else: a second way to name a lift would be a
+        // second thing to keep in step with it.
+        val viewModel = viewModel(
+            range = StatisticsRange(RangeKind.ALL),
+            lifts = listOf(lift("back-squat", "Back Squat"), lift("bench-press", "Barbell Bench Press")),
+        )
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Back Squat", "Barbell Bench Press"),
+            viewModel.uiState.value.lifts.map { it.name },
+        )
+    }
+
+    private fun lift(id: String, name: String) = Exercise(
+        id = id,
+        name = name,
+        primaryMuscle = MuscleGroup.QUADS,
+        secondaryMuscles = emptyList(),
+        equipment = Equipment.BARBELL,
+        movementPattern = MovementPattern.SQUAT,
+        isCustom = false,
+    )
+
     private fun summary(at: Instant, volume: Long) = WorkoutSummary(
         id = "s-$at",
         startedAt = at,
@@ -185,6 +218,7 @@ class StatisticsViewModelTest {
         points: List<TrendPoint> = emptyList(),
         body: List<BodyMeasurement> = emptyList(),
         records: Int? = null,
+        lifts: List<Exercise> = emptyList(),
         // Defaults may reference earlier parameters, which is what keeps `points` from being a parameter
         // nobody reads — the bug this test found in its own fixture.
         trends: FakeTrendsRepository = FakeTrendsRepository(points = points),
@@ -194,6 +228,7 @@ class StatisticsViewModelTest {
         statistics = FakeStatisticsRepository(sessions, records),
         trends = trends,
         measurements = FakeMeasurementRepository(body),
+        exercises = FakeExerciseRepository(lifts),
         timeSource = TimeSource { now },
     )
 
@@ -257,4 +292,16 @@ private class FakeMeasurementRepository(
     override fun observeAll(): Flow<List<BodyMeasurement>> = flowOf(entries)
     override suspend fun save(measurement: BodyMeasurement): DataResult<Unit> = DataResult.Success(Unit)
     override suspend fun delete(id: String): DataResult<Unit> = DataResult.Success(Unit)
+}
+
+private class FakeExerciseRepository(private val lifts: List<Exercise>) : ExerciseRepository {
+    override fun observeExercises(): Flow<DataResult<List<Exercise>>> = flowOf(DataResult.Success(lifts))
+
+    override suspend fun getExercise(id: String): DataResult<Exercise?> =
+        DataResult.Success(lifts.firstOrNull { it.id == id })
+
+    override suspend fun createCustomExercise(name: String): DataResult<Exercise> =
+        DataResult.Failure(DataError.Invalid("not used here"))
+
+    override suspend fun updateExercise(exercise: Exercise): DataResult<Unit> = DataResult.Success(Unit)
 }

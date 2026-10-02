@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.model.Exercise
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidapp.domain.DataError
@@ -47,6 +49,8 @@ data class StatisticsUiState(
     val series: MetricSeries? = null,
     /** The read failed, shown in place of the chart (the same shape the trends screen uses). */
     val error: DataError? = null,
+    /** The library, for choosing the lift an Exercise metric is about. */
+    val lifts: List<Exercise> = emptyList(),
 ) {
     /**
      * True when the chosen metric needs a lift and none is chosen yet.
@@ -71,6 +75,7 @@ class StatisticsViewModel @Inject constructor(
     private val statistics: StatisticsRepository,
     private val trends: TrendsRepository,
     private val measurements: MeasurementRepository,
+    private val exercises: ExerciseRepository,
     private val timeSource: TimeSource,
 ) : ViewModel() {
 
@@ -91,16 +96,29 @@ class StatisticsViewModel @Inject constructor(
         val summaries: List<WorkoutSummary>,
         val workoutPoints: DataResult<List<TrendPoint>>,
         val measurements: List<BodyMeasurement>,
+        val lifts: List<Exercise>,
     )
+
+    /**
+     * The two reads that are not a series: the workouts the overview totals, and the library the lift picker
+     * offers. Combined first because the typed `combine` stops at five flows and this is the pair that has
+     * nothing to do with the selected metric.
+     */
+    private val library = combine(
+        statistics.observeWorkoutSummaries(),
+        exercises.observeExercises(),
+    ) { summaries, result ->
+        summaries to (result as? DataResult.Success)?.data.orEmpty()
+    }
 
     private val sources = combine(
         range,
         selection,
-        statistics.observeWorkoutSummaries(),
+        library,
         trends.observeTrends(WINDOW),
         measurements.observeAll(),
-    ) { range, selection, summaries, points, body ->
-        Sources(range, selection, summaries, points, body)
+    ) { range, selection, library, points, body ->
+        Sources(range, selection, library.first, points, body, library.second)
     }
 
     /** The chosen lift's own series, or nothing when the metric does not need one. */
@@ -129,6 +147,7 @@ class StatisticsViewModel @Inject constructor(
                     range = sources.range,
                     selection = sources.selection,
                     error = workoutPoints.error,
+                    lifts = sources.lifts,
                 )
             } else {
                 val body = sources.range.inWindow(
@@ -153,6 +172,7 @@ class StatisticsViewModel @Inject constructor(
                         personalRecords = records,
                     ),
                     series = MetricSeries(key = sources.selection.metric, readings = body),
+                    lifts = sources.lifts,
                 )
             }
         }.stateIn(

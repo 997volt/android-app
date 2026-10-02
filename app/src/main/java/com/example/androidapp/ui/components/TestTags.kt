@@ -309,6 +309,10 @@ object TestTags {
         const val METRIC = "statistics_metric"
         const val CHART = "statistics_chart"
         const val CHOOSE_LIFT = "statistics_choose_lift"
+        const val LIFT = "statistics_lift"
+
+        /** One row of the lift picker, named by the exercise it selects. */
+        fun lift(id: String) = "statistics_lift_$id"
         const val CUSTOM_FROM = "statistics_custom_from"
         const val CUSTOM_TO = "statistics_custom_to"
         const val CUSTOM_APPLY = "statistics_custom_apply"

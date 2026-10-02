@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.model.Exercise
 import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.Instant
@@ -54,6 +55,7 @@ fun StatisticsRoute(
         onSelectRange = viewModel::onSelectRange,
         onSelectMetric = viewModel::onSelectMetric,
         modifier = modifier,
+        onSelectExercise = viewModel::onSelectExercise,
     )
 }
 
@@ -70,6 +72,7 @@ fun StatisticsScreen(
     onSelectRange: (StatisticsRange) -> Unit,
     onSelectMetric: (MetricKey) -> Unit,
     modifier: Modifier = Modifier,
+    onSelectExercise: (String) -> Unit = {},
 ) {
     var choosingDates by remember { mutableStateOf(false) }
     if (choosingDates) {
@@ -109,6 +112,11 @@ fun StatisticsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag(TestTags.Statistics.CHOOSE_LIFT),
+                )
+                LiftPicker(
+                    lifts = state.lifts,
+                    selectedId = state.selection.exerciseId,
+                    onSelectExercise = onSelectExercise,
                 )
             }
 
@@ -362,5 +370,39 @@ private fun DatePrompt(initial: Long?, onDismiss: () -> Unit, onPick: (LocalDate
 private fun DateRow(labelRes: Int, date: LocalDate?, testTag: String, onClick: () -> Unit) {
     TextButton(onClick = onClick, modifier = Modifier.testTag(testTag)) {
         Text(stringResource(labelRes) + ": " + (date?.toString() ?: stringResource(R.string.statistics_custom_no_date)))
+    }
+}
+
+/**
+ * Which lift an Exercise metric is about (ROADMAP N35).
+ *
+ * Only shown when the metric needs one, and only the library's names: the same list the library screen
+ * offers, because a second way to name a lift would be a second thing to keep in step.
+ */
+@Composable
+private fun LiftPicker(lifts: List<Exercise>, selectedId: String?, onSelectExercise: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val selected = lifts.firstOrNull { it.id == selectedId }
+
+    Column {
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.testTag(TestTags.Statistics.LIFT),
+        ) {
+            Text(selected?.name ?: stringResource(R.string.statistics_choose_lift))
+        }
+
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            lifts.forEach { lift ->
+                DropdownMenuItem(
+                    text = { Text(lift.name) },
+                    onClick = {
+                        open = false
+                        onSelectExercise(lift.id)
+                    },
+                    modifier = Modifier.testTag(TestTags.Statistics.lift(lift.id)),
+                )
+            }
+        }
     }
 }
