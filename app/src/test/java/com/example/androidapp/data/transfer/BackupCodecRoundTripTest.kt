@@ -5,6 +5,7 @@ import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.MeasurementEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
@@ -32,6 +33,32 @@ import org.junit.Test
  * than needing a device, and it cannot be skipped for being inconvenient.
  */
 class BackupCodecRoundTripTest {
+
+    @Test
+    fun aMeasurement_survivesTheCodec() {
+        // ROADMAP N32, and the reason this file exists: the codec lists every field by hand, so a
+        // column it forgets comes back as its default — an export that looks complete and is not.
+        // Every field is set to something distinctive, so nothing can pass by coincidence.
+        val entity = MeasurementEntity(
+            id = "m1",
+            measuredAt = 1_700_000_000_000L,
+            weightGrams = 82_450L,
+            bodyFatTenths = 183,
+            muscleTenths = 421,
+            neckMm = 381L,
+            chestMm = 1_042L,
+            waistMm = 864L,
+            hipsMm = 977L,
+            upperArmMm = 363L,
+            thighMm = 574L,
+            calfMm = 389L,
+            createdAt = 1_700_000_000_001L,
+            updatedAt = 1_700_000_000_002L,
+            deletedAt = 1_700_000_000_003L,
+        )
+
+        assertEquals(entity, entity.toDto().toEntity())
+    }
 
     @Test
     fun aSessionExercise_survivesTheCodec() {
