@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.example.androidapp.R
@@ -84,13 +83,12 @@ enum class AppTab(
     ),
     ;
 
-    /** True when this destination *is* the tab — not something pushed from it. */
-    fun isCurrent(destination: NavDestination?): Boolean = destination.isRouteOf(routeName)
+    /** True when this *is* the tab — not something pushed from it. */
+    fun isCurrent(route: String?): Boolean = route.isRouteNamed(routeName)
 
     companion object {
-        /** The tab a destination is, or null when it is something pushed from one. */
-        fun of(destination: NavDestination?): AppTab? =
-            entries.firstOrNull { it.isCurrent(destination) }
+        /** The tab a route is, or null when it is something pushed from one. */
+        fun forRoute(route: String?): AppTab? = entries.firstOrNull { it.isCurrent(route) }
     }
 }
 
@@ -101,18 +99,19 @@ enum class AppTab(
  * `…ActiveWorkout?templateId={templateId}`, and comparing the whole string would miss exactly the routes
  * that carry data.
  */
-private fun NavDestination?.isRouteOf(name: String): Boolean =
-    this?.route?.startsWith(name) == true
+private fun String?.isRouteNamed(name: String): Boolean = this?.startsWith(name) == true
 
 /**
- * Destinations that take the whole screen (ROADMAP N34).
+ * Whether the bar belongs on this route (ROADMAP N34).
  *
- * A live set logger with a tab bar under it is an invitation to lose the session, and the exercise picker
- * is the same flow one step earlier. Everything else keeps the bar: a pushed detail is still inside a tab.
+ * False for the two that take the whole screen: a live set logger with a tab bar under it is an invitation
+ * to lose the session, and the exercise picker is the same flow one step earlier. Everything else keeps
+ * the bar — a pushed detail is still inside a tab — and no route at all (the graph before it settles)
+ * keeps it too, because a bar that flickers in is worse than one that appears a frame late.
  */
-fun isFullScreenDestination(destination: NavDestination?): Boolean =
-    destination.isRouteOf(ActiveWorkout.serializer().descriptor.serialName) ||
-        destination.isRouteOf(ExercisePicker.serializer().descriptor.serialName)
+fun showsTabBar(route: String?): Boolean =
+    !route.isRouteNamed(ActiveWorkout.serializer().descriptor.serialName) &&
+        !route.isRouteNamed(ExercisePicker.serializer().descriptor.serialName)
 
 /** The bar. A label and a selected state per item, because five unlabelled squares are not a map. */
 @Composable

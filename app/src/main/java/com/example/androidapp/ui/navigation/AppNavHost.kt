@@ -52,10 +52,10 @@ fun AppNavHost(
     // A pushed detail keeps its tab highlighted, which is what makes the bar a map of where you are
     // rather than five buttons that forget the moment you open something.
     var lastTab by rememberSaveable { mutableStateOf(AppTab.WORKOUTS) }
-    val tabRoot = AppTab.of(destination)
+    val tabRoot = AppTab.forRoute(destination?.route)
     LaunchedEffect(tabRoot) { tabRoot?.let { lastTab = it } }
 
-    val showBar = !isFullScreenDestination(destination)
+    val showBar = showsTabBar(destination?.route)
     Scaffold(
         // The shell owns the bar's height and nothing else: each screen keeps its own top bar and its own
         // status-bar inset, which is what stops the two from padding the same content twice.
