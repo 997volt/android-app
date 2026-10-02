@@ -104,6 +104,16 @@ Notable changes to Workout, newest first. Format follows
   library since is skipped while the rest copy, and the copy stands independent of its source.
 
 ### Changed
+
+- **The instrumented job runs the emulator with VM acceleration.** It had gone red on infrastructure four
+  times with four different signatures, and the emulator's own probe named the cause every time: `/dev/kvm` is
+  on the runner and the `kvm` group exists, but the runner user is not in it, so the emulator fell back to
+  software emulation. A udev rule grants it, and `-accel auto` takes it. Every one of those signatures is what
+  a starved emulator does — a sixteen-minute boot, an adb connection that dies as tests start, and a device
+  that boots and then cannot answer `getprop`, which made AGP skip it as "Unknown API Level" and run no tests
+  at all. The previous answers were all about tolerating a slow emulator (a longer timeout, a lighter image, a
+  lower API level) rather than asking why it was slow.
+
 - **CI: the emulator job's flags are set explicitly, and the lever it was waiting for turned out to be
   pulled already.** The job was gated behind a manual dispatch because the hosted runner's emulator kept
   dying, and the untried prescription was to set the emulator's options to what works locally. Reading the

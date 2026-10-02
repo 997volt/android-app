@@ -145,6 +145,24 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
+      # N30, and the answer to a year of flakiness. `/dev/kvm` *is* present on the hosted runner — the
+      # emulator's own probe says so and names the problem: "This user doesn't have permissions to use KVM
+      # (/dev/kvm). The KVM line in /etc/group is: [kvm:x:993:]". The device is there and the group exists;
+      # the runner user is simply not in it. Without this step the emulator falls back to software emulation
+      # ("Disabling Linux hardware acceleration"), which is what produced every signature this job has failed
+      # with: a sixteen-minute boot, an adb connection that dies the moment tests start, and — most recently —
+      # a device that booted and then could not answer `getprop`, so AGP skipped it as "Unknown API Level" and
+      # the suite ran nothing at all.
+      #
+      # Documented by GitHub for the hosted runners, and by the emulator action itself:
+      # https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
+      # https://github.com/ReactiveCircus/android-emulator-runner#running-hardware-accelerated-emulators-on-linux-runners
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       # The slowest and most environment-sensitive job here, and the only one that has failed on
       # infrastructure rather than on a test. The hosted runner has no hardware acceleration, so a boot
       # takes minutes, and it has now gone red without a test running three times, with three different
@@ -173,17 +191,22 @@ jobs:
           # immediately afterwards ("Failure calling service settings: Broken pipe"), before a single
           # test ran. More minutes to boot is more time for a starved runner to lose the emulator.
           #
-          # So the lever is a lighter image rather than more patience: `aosp_atd` is an Automated Test
-          # Device, built for exactly this and without the Google services this app does not use at
-          # runtime. It costs an API level (ATD images stop short of the newest), which changes what the
-          # suite is tested against — 36 to 34 — and that is a real trade, taken because a suite that
-          # never runs tests nothing at all.
+          # So the image is a lighter one as well: `aosp_atd` is an Automated Test Device, built for exactly
+          # this and without the Google services this app does not use at runtime. It costs an API level —
+          # `aosp_atd` is published for x86_64 up to 34 — which changes what the suite is tested against, and
+          # that is a real trade: the suite runs at 34 rather than at the 37 it ships against. It was taken
+          # because a suite that never runs tests nothing at all, and with VM acceleration working it is worth
+          # revisiting: the boot time that drove the choice is no longer the constraint.
           api-level: 34
           target: aosp_atd
           arch: x86_64
           disable-animations: true
           emulator-boot-timeout: 900
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # `-accel auto`, not the action's default, because the default now resolves to hardware
+          # acceleration (the KVM step above is what makes it available) and this file should say which
+          # way it goes rather than inherit it. `-gpu swiftshader_indirect` stays: GPU acceleration needs a
+          # host GPU the runner does not have, and that is a different lever from VM acceleration.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel auto
           script: ./gradlew connectedDebugAndroidTest --console=plain
 
       # B8. A green run whose XML records fewer tests than the source declares is the

@@ -271,6 +271,20 @@ into this file once the feature ships.
   each other: that is not hypothetical, a push once cancelled an instrumented run twenty minutes in and the
   cancelled job's summary was indistinguishable from an infrastructure failure.
 
+- **The emulator runs with VM acceleration, and that is what the flakiness was** (N30). The job had failed on
+  infrastructure four times with four signatures — a corrupt image download, a boot that outran its timeout, an
+  adb connection that died after a sixteen-minute boot, and a device that booted and then could not answer
+  `getprop`, so AGP skipped it as "Unknown API Level" and no test ran. The emulator's own probe named the
+  cause every time and it was read as background noise: "This user doesn't have permissions to use KVM
+  (/dev/kvm). The KVM line in /etc/group is: [kvm:x:993:]". The device is on the runner and the group exists;
+  the runner user is simply not in it, so the emulator fell back to software emulation — "Disabling Linux
+  hardware acceleration" — and every one of those signatures is what a starved emulator does. A udev rule
+  grants the group access and `-accel auto` lets the emulator take it. The levers tried before this one were
+  all about tolerating a slow emulator rather than checking why it was slow: a longer boot timeout, a lighter
+  image, a lower API level. The API level is still 34 rather than the 37 the app ships against, and that is
+  now the only remaining trade — worth revisiting on its own merits, since the boot time that drove it is no
+  longer the binding constraint.
+
 - **A series is described once, in the metric registry** (N35). Labels, units, formatters, groups, whether a
   series is bars or a line, whether its axis starts at zero and which direction is better all live in one
   place, because twenty-one series spread across three screens and three query shapes is what made "show
