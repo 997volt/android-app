@@ -82,6 +82,21 @@ class StatisticsOverviewTest {
         assertNull(StatisticsOverview().personalRecords)
     }
 
+    @Test
+    fun theRecordCount_isCarriedThroughWhenItIsKnown() {
+        // The count comes from its own query over the set history (StatisticsDao.countRecordsIn), because
+        // nothing stores that a set *was* a record — only what it weighed.
+        val overview = statisticsOverview(
+            range = StatisticsRange(RangeKind.ALL),
+            today = today,
+            sessions = emptyList(),
+            zone = zone,
+            personalRecords = 4,
+        )
+
+        assertEquals(4, overview.personalRecords)
+    }
+
     private fun session(date: LocalDate, hour: Int = 12, volume: Long) = WorkoutSummary(
         id = "s-$date-$hour",
         startedAt = date.atTime(hour, 0).atZone(zone).toInstant(),

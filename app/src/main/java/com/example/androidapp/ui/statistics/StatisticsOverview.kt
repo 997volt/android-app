@@ -14,13 +14,12 @@ data class StatisticsOverview(
     /** Gram-reps, the unit the summary query already totals in. */
     val volumeGrams: Long = 0L,
     /**
-     * Records set inside the range — **not counted yet**.
+     * Records set inside the range.
      *
-     * Null rather than zero, because zero is a claim: it says "you set no records", and what is true is
-     * that this build cannot tell. A record is judged per rep count against everything before it
-     * (`PersonalRecords`), and nothing stores *when* one was set, so counting them needs its own
-     * time-scoped query over the set history — the next piece of N35, recorded in the roadmap rather than
-     * faked with a lower bar here.
+     * Null rather than zero when the count was not supplied, because zero is a claim — it says "you set no
+     * records" — and null says the question was not asked. `StatisticsDao.countRecordsIn` is the answer
+     * when it has been: a record is judged per rep count against everything before it, and nothing stores
+     * that a set *was* one.
      */
     val personalRecords: Int? = null,
 )
@@ -38,6 +37,7 @@ fun statisticsOverview(
     today: LocalDate,
     sessions: List<WorkoutSummary>,
     zone: ZoneId = ZoneId.systemDefault(),
+    personalRecords: Int? = null,
 ): StatisticsOverview {
     val window = range.window(today, zone)
     val inRange = if (window == null) sessions else sessions.filter { it.startedAt in window }
@@ -45,5 +45,6 @@ fun statisticsOverview(
     return StatisticsOverview(
         workouts = inRange.size,
         volumeGrams = inRange.sumOf { it.volumeGrams },
+        personalRecords = personalRecords,
     )
 }

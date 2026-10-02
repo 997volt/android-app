@@ -1,5 +1,7 @@
 package com.example.androidapp.di
 
+import com.example.androidapp.domain.repository.StatisticsRepository
+import com.example.androidapp.data.RoomStatisticsRepository
 import com.example.androidapp.domain.repository.MeasurementRepository
 import com.example.androidapp.data.RoomMeasurementRepository
 import com.example.androidapp.data.RoomBackupRepository
@@ -43,6 +45,13 @@ abstract class RepositoryModule {
     abstract fun bindMeasurementRepository(
         impl: RoomMeasurementRepository,
     ): MeasurementRepository
+
+    /** Statistics reads history to summarise it, which is its own concern (ROADMAP N35). */
+    @Binds
+    @Singleton
+    abstract fun bindStatisticsRepository(
+        impl: RoomStatisticsRepository,
+    ): StatisticsRepository
 
     /** Templates and their exercises (N3). */
     @Binds

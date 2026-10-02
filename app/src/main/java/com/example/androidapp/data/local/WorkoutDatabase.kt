@@ -35,6 +35,8 @@ abstract class WorkoutDatabase : RoomDatabase() {
 
     abstract fun measurementDao(): MeasurementDao
 
+    abstract fun statisticsDao(): StatisticsDao
+
     abstract fun sessionExerciseDao(): SessionExerciseDao
 
     abstract fun workoutDao(): WorkoutDao
