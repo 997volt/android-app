@@ -1,5 +1,8 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.ui.workout.suggestionForNextSet
+import com.example.androidapp.ui.workout.plannedTargetFor
+import org.junit.Assert.assertNull
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.androidapp.data.local.ExerciseEntity
@@ -164,6 +167,101 @@ class TemplateFromSessionTest {
         )
     }
 
+    @Test
+    fun startingTheCopiedPlan_prefillsTheSameNumbers() = runTest {
+        // ROADMAP N31's fourth rule, end to end through the real database: what the workout recorded
+        // becomes the plan's target, and the plan's target is what the next session prefills. The parts
+        // were covered separately — the copy by the tests above, the precedence by SetSuggestionTest —
+        // and this is the join, which is where a copy that carried the wrong column would still pass
+        // both halves.
+        val dao = database.workoutDao()
+        dao.insertSession(
+            WorkoutSessionEntity(
+                id = "past",
+                startedAt = 1_000L,
+                finishedAt = 2_000L,
+                notes = null,
+                restEndsAt = null,
+                readinessNote = null,
+                createdAt = 1_000L,
+                updatedAt = 2_000L,
+                deletedAt = null,
+            ),
+        )
+        dao.insertSessionExercise(
+            SessionExerciseEntity(
+                id = "past-0",
+                sessionId = "past",
+                exerciseId = "back-squat",
+                position = 0,
+                restSeconds = 180,
+                techniqueNote = null,
+                finishedAt = null,
+                supersetGroup = null,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+            ),
+        )
+        // Two sets at different loads, which is what makes this test able to fail. The plan's target
+        // for the *first* set is 102.5 kg x 5, while "what you did last time" is the *last* set,
+        // 110 kg x 3. If the copy dropped its load, the prefill would fall through to last time and
+        // this test would say so — with one set the two answers would be the same number and the
+        // assertion could not tell them apart.
+        dao.insertSet(
+            set(
+                id = "past-0-0",
+                sessionExerciseId = "past-0",
+                index = 0,
+                reps = 5,
+                type = SetType.NORMAL,
+                weightGrams = 102_500L,
+                rpeHalves = 16,
+            ),
+        )
+        dao.insertSet(
+            set(
+                id = "past-0-1",
+                sessionExerciseId = "past-0",
+                index = 1,
+                reps = 3,
+                type = SetType.NORMAL,
+                weightGrams = 110_000L,
+            ),
+        )
+
+        val templateId = saved("Push day")
+        val planned = templates.observeExercises(templateId).first()
+
+        // First: the copy carried the numbers that were performed, RPE included.
+        val target = planned.single().sets.first { it.setIndex == 0 }
+        assertEquals(102_500L, target.targetWeightGrams)
+        assertEquals(5, target.targetRepsMax)
+        assertEquals(16, target.targetRpeHalves)
+
+        // Then: starting that plan puts them where the first tap will log them.
+        val started = workouts.startOrResumeSession(templateId) as DataResult.Success
+        val previous = workouts.previousPerformance("back-squat", started.data.id) as DataResult.Success
+        assertEquals(
+            "last time ends at 110 kg, which is what the prefill must not be",
+            110_000L,
+            previous.data.sets.last().weightGrams,
+        )
+
+        val prefill = suggestionForNextSet(
+            loggedSets = emptyList(),
+            previous = previous.data,
+            planned = plannedTargetFor(planned, position = 0, nextIndex = 0),
+        )
+
+        assertEquals("the plan's reps are the prefill", 5, prefill.reps)
+        assertEquals("and the plan's load, not last time's", 102_500L, prefill.weightGrams)
+        assertNull(
+            "with the plan naming the load there is nothing to propose (N33)",
+            prefill.offer,
+        )
+    }
+
     /** Saves the seeded workout as a plan and returns its id. */
     private suspend fun saved(name: String): String {
         val result = templates.createTemplateFromSession("past", name)
@@ -216,15 +314,17 @@ class TemplateFromSessionTest {
         index: Int,
         reps: Int,
         type: SetType,
+        weightGrams: Long = 100_000L,
+        rpeHalves: Int? = null,
     ) = SetEntryEntity(
         id = id,
         sessionExerciseId = sessionExerciseId,
         setIndex = index,
         reps = reps,
-        weightGrams = 100_000L,
+        weightGrams = weightGrams,
         assistanceGrams = 0L,
         setType = type,
-        rpeHalves = null,
+        rpeHalves = rpeHalves,
         note = null,
         completedAt = null,
         createdAt = 1_000L,
