@@ -48,11 +48,18 @@ change.
   what it does not do: *"Plan a workout, log what you actually did, and see the difference. Local-only:
   no account, no server, no permissions at all."* Topics: `android`, `kotlin`, `jetpack-compose`, `room`,
   `offline-first`, `local-first`, `workout-tracker`. Both read back from the API rather than assumed.
-- **Get one green CI run over the rename — still open, and close to self-inflicted.** Every run since
-  the rename has been cancelled by the next push: twelve in a row at the last check, with the tip
-  *pending*. Nothing is wrong with the pipeline — this is the cancellation already accepted and recorded
-  in [DECISIONS.md](DECISIONS.md) — and it closes as soon as pushes stop for twenty minutes. The commit
-  that carries this note deliberately was **not pushed**, so the run in flight can finish.
+- **The evidence a green CI run was wanted for is now in hand, from three directions.** What the note
+  below was really about is that the rename's label change rested on nothing but a local build. Since:
+  **CI's build job passed green** (JVM suite, lint, detekt, R8) on a run that survived; the **full
+  instrumented suite passed locally on the emulator — 164 tests, no failures** — which is the same
+  suite the pipeline's second job runs; and the label itself was read back with `aapt2 dump badging`.
+  The pipeline's *own* instrumented job was still running at the last check, and the run's conclusion is
+  the one thing that cannot be hurried without cancelling it — so this stays open in the strict sense
+  while being evidenced in every other one.
+- **Why every run before this one was cancelled.** Twelve in a row, each cancelled by the next push:
+  nothing wrong with the pipeline, just the cancellation already accepted and recorded in
+  [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
+  is what let the run under discussion survive.
 
 ## Parked — deliberately not planned
 
