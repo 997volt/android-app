@@ -80,6 +80,33 @@ change.
   [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
   is what let the run under discussion survive.
 
+## Later (still self-contained)
+
+Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
+
+This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#` id and
+a spelled-out decision — when it is picked up, and leaves for
+[CHANGELOG.md](CHANGELOG.md) when it ships.
+
+**Insight** — why the app gets opened between workouts
+- **P2.4** Body measurements.
+
+**Programming** — turns a logger into a plan
+- **P3.3** Programs / mesocycles with scheduled deloads.
+- **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
+  the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
+  **N20**.
+
+Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
+as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
+
+The **accessibility rule still applies to every screen as it is written**
+([DECISIONS.md](DECISIONS.md)); the audit sweep that used to sit here is parked, so this
+section is empty until it returns or something replaces it.
+
+Design-system work (**F8**) is a rule rather than a row now: extract a component when
+a second screen needs it, not before.
+
 ## Parked — deliberately not planned
 
 Each is a product in its own right, contradicts "local-only", or both. Parking is a
