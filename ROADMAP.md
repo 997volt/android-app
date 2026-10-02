@@ -1,6 +1,6 @@
 # Workout — Roadmap
 
-> **v1.7** is shipped and installed. Last reviewed against the code: 2026-10-01.
+> **v1.7** is shipped and installed. Last reviewed against the code: 2026-10-02.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -14,8 +14,8 @@ server, and nothing leaves the device unless you export it.
 Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
 `P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
 commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N29` have
-shipped and left the file.
+order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N29` and
+`N31`–`N33` have shipped and left the file.
 
 ## Current state
 
@@ -32,13 +32,97 @@ shipped and left the file.
 
 ## Next
 
-**Nothing is marked as next.** N31, N32 and N33 have all shipped and are in
-[CHANGELOG.md](CHANGELOG.md). **B44 — the white screen after a discard — is fixed** and lives in
-[CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
-everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
-after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). What comes next is therefore a choice
-rather than a queue — the rest is in *Later*, and the one open thread, **N30**, is at the end of this
-section rather than a promise about the next round.
+**The next round is a UI one, in seven steps**: five tabs along the bottom, a Statistics
+screen that shows everything, and then the chart underneath it. N31–N33 and B44 have shipped and are in
+[CHANGELOG.md](CHANGELOG.md), as has everything before them — the v1.6 review (B33–B43), the v1.5
+corrections (B26–B32), the round after it (N26–N28), repeating the last workout (N29) and the session
+timezone (N25). The one open thread from the rename, **N30**, stays at the end of this section.
+
+### N34 — Five tabs along the bottom
+
+Every surface hangs off home's overflow menu today, which is why "how is everything going" has no home
+of its own. This gives the four that have earned permanence one — **Workouts · History · Statistics ·
+Library · Settings** — with Workouts still the start destination.
+
+- **A tab root, and what is pushed from it:** Workouts → ActiveWorkout, Templates, TemplateEditor,
+  WorkoutDetail; History → WorkoutDetail; Statistics → Measurements; Library → ExerciseDetail; Settings
+  → nothing. **Templates belong under Workouts** (decided): a plan is part of working out, and Library
+  stays the exercise reference it is.
+- **The bar hides during a workout.** ActiveWorkout and ExercisePicker are a modal flow with their own
+  chrome, and a tab bar under a live set logger is an invitation to lose the session.
+- **Each tab keeps its own back stack** — `popUpTo(start) { saveState = true }`, `launchSingleTop`,
+  `restoreState` — so History keeps its place while you look at Statistics.
+- **Back is defined rather than discovered:** a pushed detail pops; a non-Workouts tab root goes to
+  Workouts; Workouts exits.
+- **Insets move into one outer `Scaffold`**, so the bar's height is applied once rather than by each
+  screen.
+- **Accessibility is part of the bar**: a label per item and a selected state TalkBack can announce, or
+  it reads as five unlabelled squares.
+- **What it costs:** the overflow menu shrinks, the nav host gains a test, and every screen's padding
+  becomes the shell's business instead of its own.
+
+### N35 — The Statistics tab
+
+One screen that answers "how is everything going", in the shape Waistline settled on: **one big chart
+with a picker**, not a wall of small multiples.
+
+- **Overview: three numbers for the selected range** — workouts, volume lifted, PRs. Deliberately no
+  more than three for now.
+- **Range:** 7d / 1m / 3m / 6m / 1y / All, plus a custom From–To. Persisted, and a range ending "today"
+  stays today.
+- **One picker over every metric**, in three groups — **Workout** (`TrendMetric`'s RPE, muscle feel,
+  joint pain), **Exercise** (`ExerciseTrendMetric`'s eight) and **Body** (weight, body fat and muscle,
+  plus `TapeSite`'s seven). Choosing an Exercise metric reveals a lift picker, and the last choice
+  persists.
+- **A metric registry is the piece that makes "everything" maintainable.** Twenty-one series already
+  exist across three enums, reached today from three screens with three query shapes; a registry entry
+  carries each one's id, label, group, unit, value formatter, supplying query, axis policy and whether
+  it is a line or bars. It **promotes a pattern this codebase already arrived at** rather than inventing
+  one: `ExerciseTrendMetric` already carries `isLoad` ("drawn from zero rather than on 1–10") and
+  `higherIsBetter` (N17's assisted direction), which are exactly the fields a registry needs. The three
+  enums stay, and the registry references them — this is not a scheme to delete three enums that each
+  mean something.
+- **Measurements fold in.** Their charts become picker entries; the entry and editing screen stays a
+  pushed destination, because viewing and recording are different jobs.
+- **ExerciseTrends folds in** as the same screen with the lift preselected, so "how is my bench going"
+  arrives here. The separate screen, its ViewModel and their tests are deleted.
+
+### N36 — The readings list
+
+A collapsible list under the chart: every reading as date and value, newest first, with Average and
+Trend rows on top. It is Waistline's timeline, it is the literal answer to "see everything", and it is
+the accessible counterpart to a canvas this app deliberately blanks out for screen readers. Cheap, and
+it should not wait for the chart work.
+
+### N37 — The chart's x-axis becomes time
+
+Points spread by elapsed time rather than by index. Today two workouts a day apart and two a month apart
+are drawn the same distance apart, which is a real distortion rather than a detail.
+
+- **The gap question is settled here, and the answer is not Waistline's:** keep **breaking** the line at
+  a missing reading rather than spanning it. A time axis shows the gap as distance, which is more honest
+  than a straight segment drawn across three weeks. Waistline spans gaps; this is the one place the two
+  should differ, and the row says so.
+- **The axis gains labels** — first and last date, minimum and maximum value.
+- The projection is pure Kotlin, so it is unit-tested like the rest of the domain maths.
+
+### N38 — Bars or a line, and where zero is
+
+Per metric rather than a global switch: bars for count-like series (volume, total reps), lines for
+continuous ones (bodyweight, ratings, tape). A zero baseline stays a property of the metric, which is
+what the chart already does for ratings — this makes it explicit rather than incidental.
+
+### N39 — Average, goal and trend lines
+
+A horizontal average; a goal line — a target setting for a measurement, the plan's target (N14) for a
+lift; and a least-squares regression line with its slope as text ("−0.3 kg/week"). Pure Kotlin with
+tests, the same way Epley and the warm-up ramp are.
+
+### N40 — A moving average
+
+A trailing simple moving average, period configurable, default seven, drawn heavier with no dots. For
+bodyweight this is the point of the whole exercise: daily weight is noise, and the seven-day mean is the
+signal.
 
 ### N30 — the CI emulator thread, continued
 
@@ -71,12 +155,10 @@ fails again on infrastructure rather than on a test, the levers are about the ru
   dies, and it costs an API level (ATD images stop short of the newest) and therefore changes what the
   suite is tested against;
 - `-memory` and `-cores`, which trade emulator stability against host pressure in either direction and
-  therefore need a measurement rather than a guess;
-- running the suite **nightly on a schedule** rather than behind a manual dispatch, so a regression in
-  the pipeline is noticed by the pipeline instead of by whoever remembers to ask.
+  therefore need a measurement rather than a guess.
 
-None of those is done here. The job stays gated, and the next change to it should be one of them, tried
-on its own so its result means something.
+Neither is done here, and the next change to it should be one of them, tried on its own so its result
+means something.
 
 ## Later (still self-contained)
 
