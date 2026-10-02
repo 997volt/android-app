@@ -81,6 +81,12 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **Three tests that could not fail now can.** They were written for the background rest alert, and
+  when the alert was deleted their assertions went with it — leaving two empty-bodied tests whose names
+  described behaviour that no longer existed, and one that ran a whole finish flow to assert nothing.
+  Two of them were the only coverage of the actions they called. They now assert what remains: that
+  skipping a rest clears it, that adjusting one reaches the repository with the step the button sends,
+  and that a comment written on the way to finishing lands on the session.
 - **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
   first and then the four warm-ups that exist to prepare for it — while its own description said it
   wrote them in front. The ramp is now written to the head of the exercise in one transactional call.

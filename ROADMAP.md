@@ -60,18 +60,9 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33, B34 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B35 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
-- **B35 — Three tests assert nothing, and two were the only coverage of what they name.**
-  `skippingTheRest_cancelsTheAlert`, `adjustingTheRest_reschedulesTheAlert` and
-  `finishingWithAComment_alsoCancelsTheRestAlert` each set up, call one function and end — no assertion
-  at all, so they pass whatever the code does. The names describe the alarm N26 deleted. Worse than the
-  vacuity: those are the *only* test callers of `onSkipRest` and `onAdjustRest`, so skipping and
-  adjusting a rest lost its entire coverage in the same change that removed the alert — and the N27
-  replacement (sound and haptics) depends on exactly that behaviour. Each test should either assert the
-  new in-app behaviour or be deleted; renaming one while leaving the body empty would be worse than
-  either.
 - **B36 — The manifest still describes the permissions it no longer declares.** The comment block at
   `AndroidManifest.xml:5-13` explains `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`, both deleted by
   N26, and it is the last mention of either anywhere in `app/src`. Harmless to the build and misleading

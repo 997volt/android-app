@@ -532,8 +532,10 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun finishingWithAComment_alsoCancelsTheRestAlert() = runTest(dispatcher) {
-        // The comment is written first, so this is a different path to the same close.
+    fun finishingWithAComment_writesTheNote_beforeClosing() = runTest(dispatcher) {
+        // ROADMAP B35, the third: its name described cancelling an alert that no longer exists, and it
+        // asserted nothing. What it exercised — a comment written on the way to finishing — is real
+        // and was covered by nothing else.
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
         observe(viewModel)
@@ -548,6 +550,7 @@ class ActiveWorkoutViewModelTest {
         viewModel.onDismissSummary()
         settle()
 
+        assertEquals("the comment reaches the session", "Good session", repository.lastWorkoutNotes)
     }
 
     @Test
@@ -750,7 +753,9 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun skippingTheRest_cancelsTheAlert() = runTest(dispatcher) {
+    fun skippingTheRest_clearsIt() = runTest(dispatcher) {
+        // ROADMAP B35: this test asserted nothing once the alert it was written for was deleted. What
+        // remains is the clearing, which is the part a user can see — and it had no coverage.
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
         observe(viewModel)
@@ -759,10 +764,13 @@ class ActiveWorkoutViewModelTest {
         viewModel.onSkipRest()
         settle()
 
+        assertTrue("the rest is cleared", repository.restCleared)
     }
 
     @Test
-    fun adjustingTheRest_reschedulesTheAlert() = runTest(dispatcher) {
+    fun adjustingTheRest_movesTheEndInstant() = runTest(dispatcher) {
+        // ROADMAP B35, the second of the two: the adjustment reaches the repository with the step the
+        // button sends, which is the contract the screen depends on.
         val repository = FakeWorkoutRepository()
         val viewModel = viewModelFor(repository)
         observe(viewModel)
@@ -771,6 +779,7 @@ class ActiveWorkoutViewModelTest {
         viewModel.onAdjustRest(RestTimer.ADJUST_STEP_SECONDS)
         settle()
 
+        assertEquals(RestTimer.ADJUST_STEP_SECONDS, repository.lastRestAdjustedBy)
     }
 
     @Test
@@ -982,6 +991,10 @@ class ActiveWorkoutViewModelTest {
         /** The rest length the ViewModel actually asked for, or null if never asked. */
         var lastRestSeconds: Int? = null
 
+        /** The rest actions, which used to be recorded nowhere (ROADMAP B35). */
+        var lastRestAdjustedBy: Int? = null
+        var restCleared = false
+
         /** What the record read answers with; empty means no records yet. */
         var records: PersonalRecords = PersonalRecords()
 
@@ -1187,10 +1200,15 @@ class ActiveWorkoutViewModelTest {
             return DataResult.Success(FIXED_INSTANT.plusSeconds(seconds.toLong()))
         }
 
-        override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> =
-            DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))
+        override suspend fun adjustRest(deltaSeconds: Int): DataResult<Instant> {
+            lastRestAdjustedBy = deltaSeconds
+            return DataResult.Success(FIXED_INSTANT.plusSeconds(deltaSeconds.toLong()))
+        }
 
-        override suspend fun clearRest(): DataResult<Unit> = DataResult.Success(Unit)
+        override suspend fun clearRest(): DataResult<Unit> {
+            restCleared = true
+            return DataResult.Success(Unit)
+        }
     }
 
     /** A clock the test can move, so elapsed time can be asserted exactly. */
