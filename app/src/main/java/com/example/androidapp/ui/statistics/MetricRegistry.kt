@@ -25,6 +25,21 @@ sealed interface MetricKey {
 
     /** A tape site, which is a body series but not one of the three body metrics (ROADMAP N32). */
     data class Tape(val site: TapeSite) : MetricKey
+
+    /**
+     * A stable name for this series.
+     *
+     * Built from the enums' own names rather than hand-written, so a test tag, a stored preference and a
+     * log line all say the same thing and cannot drift from the metric they name. The enums already store
+     * by name for the same reason.
+     */
+    val id: String
+        get() = when (this) {
+            is Workout -> "WORKOUT:${metric.name}"
+            is Exercise -> "EXERCISE:${metric.name}"
+            is Body -> "BODY:${metric.name}"
+            is Tape -> "TAPE:${site.name}"
+        }
 }
 
 /** The body series that are not tape sites (ROADMAP N32). */
@@ -124,6 +139,15 @@ object MetricRegistry {
 
     /** The entry for a key. Every key has one, which a test asserts in both directions. */
     fun entryFor(key: MetricKey): MetricEntry = entries.first { it.key == key }
+
+    /**
+     * The entry with this [MetricKey.id], or null.
+     *
+     * Null rather than a default, because the caller is usually reading a stored preference: an id from a
+     * build that had a series this one does not should leave the screen on its default rather than silently
+     * showing a different metric than the one that was chosen.
+     */
+    fun byId(id: String?): MetricEntry? = entries.firstOrNull { it.key.id == id }
 }
 
 private fun workoutEntry(metric: TrendMetric) = MetricEntry(

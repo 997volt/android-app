@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import org.junit.Assert.assertNull
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.TapeSite
 import com.example.androidapp.domain.model.TrendMetric
@@ -44,6 +45,20 @@ class MetricRegistryTest {
 
         // Three ratings, eight exercise metrics, three body metrics and seven tape sites.
         assertEquals(21, entries.size)
+    }
+
+    @Test
+    fun everyIdIsUnique_andRoundTripsThroughTheRegistry() {
+        // The ids are what a test tag, a stored preference and the picker all agree on, so a duplicate or a
+        // missed round trip would show one metric while claiming another.
+        val ids = entries.map { it.key.id }
+
+        assertEquals("no two series share an id", ids.size, ids.distinct().size)
+        entries.forEach { entry ->
+            assertEquals(entry, MetricRegistry.byId(entry.key.id))
+        }
+        assertNull("an unknown id is nothing, not a default", MetricRegistry.byId("WORKOUT:NOPE"))
+        assertNull(MetricRegistry.byId(null))
     }
 
     @Test

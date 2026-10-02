@@ -299,4 +299,20 @@ object TestTags {
 
         fun trendCaption(labelRes: Int) = "trend_measurement_caption_$labelRes"
     }
+
+    /** The Statistics screen's own tags (ROADMAP N35), grouped so this object stays under its ceiling. */
+    object Statistics {
+        /** The Statistics screen (ROADMAP N35). */
+        const val OVERVIEW_WORKOUTS = "statistics_overview_workouts"
+        const val OVERVIEW_VOLUME = "statistics_overview_volume"
+        const val OVERVIEW_RECORDS = "statistics_overview_records"
+        const val METRIC = "statistics_metric"
+        const val CHART = "statistics_chart"
+        const val CHOOSE_LIFT = "statistics_choose_lift"
+    
+        /** One range chip, and one picker row, named by what they select. */
+        fun range(kind: String) = "statistics_range_$kind"
+    
+        fun metric(id: String) = "statistics_metric_$id"
+    }
 }
