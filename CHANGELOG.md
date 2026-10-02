@@ -8,6 +8,20 @@ Notable changes to Workout, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Five tabs along the bottom.** Workouts · History · Statistics · Library · Settings, with Workouts
+  where the app opens. Every surface used to hang off home's overflow menu, which is why "how is everything
+  going" had no home of its own; the menu is now the data actions and nothing else, and the six entries that
+  left it took their plumbing with them rather than leaving five callbacks nothing consumes. **Templates
+  stayed under Workouts** — a plan is part of working out — and Library remains the exercise reference.
+- **Each tab keeps its own place**, so History is where you left it after a look at Statistics, and back
+  from a tab root goes to Workouts rather than walking back through the tabs in the order you visited them.
+- **The bar disappears during a workout** — a live set logger with a tab bar under it is an invitation to
+  lose the session — and a detail pushed inside a tab keeps that tab highlighted, so the bar reads as a map
+  of where you are rather than five buttons that forget. Each item carries a label and a selected state, so
+  TalkBack announces it as a named, selected tab rather than an unlabelled square.
+- Body measurements moved with the surfaces: they are now pushed from **Statistics**, which is the tab that
+  answers how everything is going, rather than sitting in the menu.
+
 - **Body measurements**, on their own screen reached from home. A dated entry with a **weight, and
   optionally** body fat, muscle and seven tape sites — every one of those nullable, because that is how
   people measure: a waist taken on a morning the scale was not stepped on is a real entry, and it must not

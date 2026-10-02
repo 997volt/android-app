@@ -32,34 +32,11 @@ order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`�
 
 ## Next
 
-**The next round is a UI one, in seven steps**: five tabs along the bottom, a Statistics
-screen that shows everything, and then the chart underneath it. N31–N33 and B44 have shipped and are in
-[CHANGELOG.md](CHANGELOG.md), as has everything before them — the v1.6 review (B33–B43), the v1.5
-corrections (B26–B32), the round after it (N26–N28), repeating the last workout (N29) and the session
-timezone (N25). The one open thread from the rename, **N30**, stays at the end of this section.
-
-### N34 — Five tabs along the bottom
-
-Every surface hangs off home's overflow menu today, which is why "how is everything going" has no home
-of its own. This gives the four that have earned permanence one — **Workouts · History · Statistics ·
-Library · Settings** — with Workouts still the start destination.
-
-- **A tab root, and what is pushed from it:** Workouts → ActiveWorkout, Templates, TemplateEditor,
-  WorkoutDetail; History → WorkoutDetail; Statistics → Measurements; Library → ExerciseDetail; Settings
-  → nothing. **Templates belong under Workouts** (decided): a plan is part of working out, and Library
-  stays the exercise reference it is.
-- **The bar hides during a workout.** ActiveWorkout and ExercisePicker are a modal flow with their own
-  chrome, and a tab bar under a live set logger is an invitation to lose the session.
-- **Each tab keeps its own back stack** — `popUpTo(start) { saveState = true }`, `launchSingleTop`,
-  `restoreState` — so History keeps its place while you look at Statistics.
-- **Back is defined rather than discovered:** a pushed detail pops; a non-Workouts tab root goes to
-  Workouts; Workouts exits.
-- **Insets move into one outer `Scaffold`**, so the bar's height is applied once rather than by each
-  screen.
-- **Accessibility is part of the bar**: a label per item and a selected state TalkBack can announce, or
-  it reads as five unlabelled squares.
-- **What it costs:** the overflow menu shrinks, the nav host gains a test, and every screen's padding
-  becomes the shell's business instead of its own.
+**A UI round in six remaining steps**: a Statistics screen that shows everything, then the chart
+underneath it. **N34 — the five tabs — has shipped** and is in [CHANGELOG.md](CHANGELOG.md), as are N31–N33
+and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
+after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). The one open thread
+from the rename, **N30**, stays at the end of this section.
 
 ### N35 — The Statistics tab
 
