@@ -32,35 +32,13 @@ shipped and left the file.
 
 ## Next
 
-**Three things are marked, in order.** **B44 — the white screen after a discard — is fixed** and lives in
+**Two things are marked, in order** — N32 and N33, with N31 now shipped and in
+[CHANGELOG.md](CHANGELOG.md). **B44 — the white screen after a discard — is fixed** and lives in
 [CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
 everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). Past the three, the
 next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the rename is
 at the end of this section.
-
-### N31 — Save a finished workout as a template
-
-The app goes plan → session (N3, N16) and history → session (N29), but never **session → plan**. After
-a good unplanned workout, the only way to keep it as a plan is rebuilding it by hand.
-
-- **Where:** the workout detail's top bar, beside the delete action, and hidden when the workout has no
-  exercises.
-- **What it copies:** the exercises in order, and their **performed sets as targets** — role, weight,
-  assistance, reps, and RPE. Warm-ups are included, because the role vocabulary has `WARMUP` and a
-  copied ramp is a real ramp; superset grouping is included so pairs survive (N24). RPE is copied
-  because a plan can carry a target RPE and that was the intent that day.
-- **What it does not copy:** the readiness note, the ratings and the workout comment — those describe
-  that day, not the plan.
-- **How:** one **transactional** repository call, `createTemplateFromSession(sessionId, name)`. Not a
-  client-side loop: `addExercise` returns `Unit` rather than the new id, so a loop would have to re-read
-  the template to find ids and could leave a half-built plan if the user backed out. Seeding a session
-  from a template is the precedent.
-- **After:** confirm and offer to open the new plan. The source workout is untouched — this is a copy,
-  so deleting the workout later must not disturb the template.
-- **Edges the tests should hold:** an empty workout offers nothing; a session whose exercise was since
-  soft-deleted copies the rest; the copy is independent in both directions; and starting the copied plan
-  prefills the same numbers.
 
 ### N32 — Body measurements
 
