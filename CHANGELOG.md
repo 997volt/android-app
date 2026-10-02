@@ -81,6 +81,10 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **Two documents that had stopped describing the code.** A KDoc for the append helper was left
+  stranded above a different function when the helper moved, and the repeat port claimed an open
+  session is *refused* when it is in fact *resumed* — the opposite, and the kind of sentence a reader
+  plans around.
 - **The last trace of the rest alert is gone from the device too.** Android keeps a notification
   channel across updates until uninstall, so a phone that ran a build before the alert was removed
   still listed "Rest timer" in its notification settings — for an app that posts nothing and declares

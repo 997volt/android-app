@@ -78,9 +78,12 @@ interface WorkoutRepository {
      * plan-shaped copy quietly winning. What "same as last time" means here is *the same movements*.
      *
      * An exercise whose library row has been deleted since is skipped and the rest repeat; the same
-     * exercise performed twice repeats twice, because that is what was performed. A session already
-     * open is refused rather than seeded — the active-session rule is the same one every other start
-     * path follows.
+     * exercise performed twice repeats twice, because that is what was performed.
+     *
+     * **An already-open session is resumed, not seeded and not refused** — it comes back with
+     * `isNew = false` and whatever it already holds, which is the same rule every other start path
+     * follows. Said plainly because the obvious reading of "a session is already open" is that the
+     * call fails, and it does not.
      */
     suspend fun repeatLastSession(): DataResult<StartedSession>
 

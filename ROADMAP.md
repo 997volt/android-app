@@ -60,17 +60,13 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B38, B40 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B38 and B40–B42 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
 - **B39 — Test what a screen renders, not only how it groups.** N25's grouping is well covered —
   `GroupByMonthTest` holds the Tokyo/London month boundary both ways — while no test asserts the date
   any screen actually displays, and there is no `HistoryFormat` test at all. The grouping was right and
   the rendering was wrong, so the thorough half was the half that did not need it.
-- **B42 — Two pieces of documentation that no longer match the code.** The original `appendExercise`
-  KDoc sits orphaned at `RoomWorkoutRepository.kt:140-144`, detached above `removeExercise` while the
-  function it describes now lives at `:424`; and `WorkoutRepository.kt:79-83` says an open session is
-  "refused rather than seeded" when it is in fact *resumed* without seeding, via `created = false`.
 - **B43 — The repeat path has no end-to-end test.** `ActiveWorkoutViewModelTest.kt:104` puts only
   `templateId` in the `SavedStateHandle`, so `repeatLast` is always false and the branch at
   `ActiveWorkoutViewModel.kt:361-364` is never entered; `repeatedExerciseIds` is never assigned by any

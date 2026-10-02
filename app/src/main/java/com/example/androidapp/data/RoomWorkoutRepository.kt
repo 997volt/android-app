@@ -142,12 +142,6 @@ class RoomWorkoutRepository @Inject constructor(
             appendExercise(dao, timeSource.nowEpochMillis(), sessionId, exerciseId)
         }
 
-    /**
-     * The one place a session exercise is appended, shared by a manual "add
-     * exercise" and by starting a workout from a template (ROADMAP N3) — so the
-     * order a template produces is the same order the picker would produce.
-     */
-
     override suspend fun removeExercise(sessionExerciseId: String): DataResult<Unit> =
         dataResultOf {
             val updated = dao.softDeleteSessionExercise(
