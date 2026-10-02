@@ -222,6 +222,9 @@ object TestTags {
     /** Why the next set is what it is (ROADMAP N22). */
     const val SUGGESTION_REASON = "suggestion_reason"
 
+    /** Taking the app's proposal, which is the only way it becomes the prefill (ROADMAP N33). */
+    const val SUGGESTION_ACCEPT = "suggestion_accept"
+
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
     const val SETTINGS_REST_CURRENT = "settings_rest_current"

@@ -70,6 +70,7 @@ internal fun ExerciseList(
     onReopenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
     onToggleSuperset: (String) -> Unit = {},
+    onAcceptOffer: (String) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -90,6 +91,7 @@ internal fun ExerciseList(
                 // comes out null and the write would rewrite every ungrouped row, churning
                 // `updatedAt` for no change (ROADMAP B28).
                 onToggleSuperset = if (index == 0) null else { { onToggleSuperset(row.id) } },
+                onAcceptOffer = { onAcceptOffer(row.id) },
             )
             HorizontalDivider()
         }
@@ -117,6 +119,7 @@ private fun ExerciseSection(
     onReopenExercise: () -> Unit,
     modifier: Modifier = Modifier,
     onToggleSuperset: (() -> Unit)? = null,
+    onAcceptOffer: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
@@ -161,6 +164,7 @@ private fun ExerciseSection(
             onLogSet = onLogSet,
             onEditSet = onEditSet,
             onDeleteSet = onDeleteSet,
+            onAcceptOffer = onAcceptOffer,
         )
 
         // N10: the ratings can be given while the exercise is still in front of you,
@@ -284,6 +288,7 @@ private fun ExerciseSets(
     onEditSet: (SetRow) -> Unit,
     onDeleteSet: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onAcceptOffer: (() -> Unit)? = null,
 ) {
     // The armed role belongs here rather than in the screen's state: it is a choice about
     // the set the button below is about to write, and it clears itself afterwards
@@ -309,13 +314,7 @@ private fun ExerciseSets(
         // exists to prevent. The role picker beside it is what makes a warm-up one tap
         // instead of log-then-edit three times (ROADMAP N19).
         if (!row.isFinished) {
-            row.suggestion.offer?.reason?.let { reason ->
-                Text(
-                    text = stringResource(reason.explanationRes()),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.testTag(TestTags.SUGGESTION_REASON),
-                )
-            }
+            row.suggestion.offer?.let { offer -> SuggestionOffer(offer = offer, onAccept = onAcceptOffer) }
             Row(
                 modifier = Modifier.padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -528,5 +527,35 @@ private fun SupersetToggle(
                 if (row.supersetGroup == null) R.string.superset_pair else R.string.superset_unpair,
             ),
         )
+    }
+}
+
+/**
+ * The app's proposal, and the way to take it (ROADMAP N33).
+ *
+ * Shown with its reason and applied only when accepted — which is the whole change: while the proposal
+ * *was* the prefill, the next tap logged the app's arithmetic whether or not it was wanted, and a lifter
+ * who progresses by hand had to undo it on every first set.
+ */
+@Composable
+private fun SuggestionOffer(offer: SetOffer, onAccept: (() -> Unit)? = null) {
+    // One source at the top level, which is what the rule asks for and what reads better: the reason and
+    // the way to take it belong together.
+    Column {
+    offer.reason?.let { reason ->
+        Text(
+            text = stringResource(reason.explanationRes()),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.testTag(TestTags.SUGGESTION_REASON),
+        )
+    }
+    if (onAccept != null) {
+        TextButton(
+            onClick = onAccept,
+            modifier = Modifier.testTag(TestTags.SUGGESTION_ACCEPT),
+        ) {
+            Text(stringResource(R.string.set_use_suggestion))
+        }
+    }
     }
 }
