@@ -71,6 +71,8 @@ data class StatisticsUiState(
     val error: DataError? = null,
     /** The library, for choosing the lift an Exercise metric is about. */
     val lifts: List<Exercise> = emptyList(),
+    /** The target set for the chosen metric, in its own units, or null when there is none (ROADMAP N39). */
+    val goal: Double? = null,
 ) {
     /**
      * True when the chosen metric needs a lift and none is chosen yet.
@@ -159,7 +161,7 @@ class StatisticsViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<StatisticsUiState> =
-        combine(sources, exercisePoints, records) { sources, points, records ->
+        combine(sources, exercisePoints, records, settings.observeGoals()) { sources, points, records, goals ->
             val workoutPoints = sources.workoutPoints
             if (workoutPoints is DataResult.Failure) {
                 StatisticsUiState(
@@ -168,6 +170,7 @@ class StatisticsViewModel @Inject constructor(
                     selection = sources.selection,
                     error = workoutPoints.error,
                     lifts = sources.lifts,
+                    goal = goals[sources.selection.metric.id],
                 )
             } else {
                 val body = sources.range.inWindow(
@@ -193,6 +196,7 @@ class StatisticsViewModel @Inject constructor(
                     ),
                     series = MetricSeries(key = sources.selection.metric, readings = body),
                     lifts = sources.lifts,
+                    goal = goals[sources.selection.metric.id],
                 )
             }
         }.stateIn(
@@ -200,6 +204,16 @@ class StatisticsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = StatisticsUiState(),
         )
+
+    /**
+     * Sets or clears the chosen metric's target (ROADMAP N39).
+     *
+     * Written straight through rather than buffered: a target is one number the user typed and expects to be
+     * remembered, so a failure has to be visible — the rule every other write in this app follows.
+     */
+    fun onSetGoal(value: Double?) {
+        viewModelScope.launch { settings.setGoal(selection.value.metric.id, value) }
+    }
 
     fun onSelectMetric(metric: MetricKey) {
         selection.value = selection.value.copy(metric = metric)

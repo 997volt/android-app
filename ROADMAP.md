@@ -37,15 +37,13 @@ average, a fitted trend and a trailing mean — and it is in [CHANGELOG.md](CHAN
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
-### N39 — The goal line
+### N39 — The plan's target on the chart
 
-The average and the fitted trend shipped with the rest of the chart round; **the goal line did not**, and the
-reason is scope rather than difficulty. A goal for a measurement is a feature this app has never had: no surface
-to enter a target, nothing to store one, and a default would be an invented goal. The plan's target for a lift
-(N14) is the other half of the same item and needs the plan available to the statistics screen.
-
-Both halves are one small feature — a persisted target per metric, a place to set it, and a line on the chart
-where one exists — and it should be built as that rather than smuggled into the chart work.
+The per-metric target shipped with the chart round: a value the user sets for any series, stored in that
+metric's own units and drawn as a dotted line. **A target from the training plan is what remains**, and it is a
+different shape of work rather than more of the same: the plan is not one of the statistics screen's sources, so
+this needs the plan available to a screen that currently knows nothing about it, plus a rule for what to do when
+a lift is in two plans at once or in none.
 
 ## Later (still self-contained)
 

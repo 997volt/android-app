@@ -56,6 +56,17 @@ interface SettingsRepository {
 
     suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit>
 
+    /**
+     * The targets the user has set, keyed by `MetricKey.id`, in each metric's own units (ROADMAP N39).
+     *
+     * One map rather than a read per metric: the screen draws whichever goal belongs to the metric on show,
+     * and the number of metrics is the registry's, not the user's.
+     */
+    fun observeGoals(): Flow<Map<String, Double>>
+
+    /** Sets or clears a metric's target. Null clears it, because a goal nobody wants must be removable. */
+    suspend fun setGoal(metricId: String, value: Double?): DataResult<Unit>
+
     companion object {
         /**
          * What the setting accepts, in seconds.

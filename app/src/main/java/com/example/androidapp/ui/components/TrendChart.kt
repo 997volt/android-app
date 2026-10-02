@@ -47,6 +47,8 @@ fun TrendChart(
     trend: ChartLine? = null,
     /** The trailing mean, drawn heavier and without dots (ROADMAP N40). */
     movingAverage: List<ChartPoint> = emptyList(),
+    /** The target for this metric, drawn dotted so it is not the average (ROADMAP N39). */
+    goal: Double? = null,
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
@@ -60,23 +62,16 @@ fun TrendChart(
 
         fun y(value: Double): Float = size.height * (1f - axis.fractionOf(value).toFloat())
 
-        // The top and bottom of the axis, so an empty stretch still reads as a scale. These were deleted by
-        // the extraction that moved the reference lines out — the unused-import report is what caught it.
-        listOf(minValue, maxValue).forEach { value ->
-            drawLine(
-                color = gridColor,
-                start = Offset(0f, y(value)),
-                end = Offset(size.width, y(value)),
-                strokeWidth = GRID_STROKE_PX,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH_ON_PX, DASH_OFF_PX)),
-            )
-        }
+        drawAxisGrid(gridColor = gridColor, minValue = minValue, maxValue = maxValue, y = ::y)
 
         drawReferenceLines(
             referenceColor = referenceColor,
-            average = average,
-            trend = trend,
-            movingAverage = movingAverage,
+            lines = ReferenceLines(
+                average = average,
+                trend = trend,
+                movingAverage = movingAverage,
+                goal = goal,
+            ),
             y = ::y,
         )
 
@@ -132,6 +127,7 @@ fun TrendChartFrame(
     average: Double? = null,
     trend: ChartLine? = null,
     movingAverage: List<ChartPoint> = emptyList(),
+    goal: Double? = null,
 ) {
     TrendChart(
         points = points,
@@ -141,6 +137,7 @@ fun TrendChartFrame(
         average = average,
         trend = trend,
         movingAverage = movingAverage,
+        goal = goal,
         modifier = modifier
             .fillMaxWidth()
             .height(CHART_HEIGHT_DP.dp)
@@ -155,8 +152,20 @@ data class ChartLine(val start: Double, val end: Double)
 /** Thinner than the data, because a fitted line is a summary rather than a measurement. */
 private const val REFERENCE_STROKE_PX = 2f
 
+/** The lines that are about the series rather than readings in it (ROADMAP N39, N40). */
+data class ReferenceLines(
+    val average: Double?,
+    val trend: ChartLine?,
+    val movingAverage: List<ChartPoint>,
+    val goal: Double?,
+)
+
 /** Heavier than a fitted line: the mean is what a noisy daily reading is read through. */
 private const val MEAN_STROKE_PX = 4f
+
+/** A dot, then a gap four times its length: a dotted line rather than a dashed one. */
+private const val GOAL_DOT_PX = 1f
+private const val GOAL_GAP_PX = 4f
 
 /** A bar is a share of the width, not a sliver: two fifths of the space each bar has. */
 private const val BAR_WIDTH_FRACTION = 2.5f
@@ -223,11 +232,13 @@ private fun DrawScope.drawBars(points: List<ChartPoint>, y: (Double) -> Float, c
  */
 private fun DrawScope.drawReferenceLines(
     referenceColor: Color,
-    average: Double?,
-    trend: ChartLine?,
-    movingAverage: List<ChartPoint>,
+    lines: ReferenceLines,
     y: (Double) -> Float,
 ) {
+    val average = lines.average
+    val trend = lines.trend
+    val movingAverage = lines.movingAverage
+    val goal = lines.goal
     val color = referenceColor
     // Dashed, because an average is a level rather than a measurement: it says where the series sits, and
     // every reading is above or below it.
@@ -248,6 +259,17 @@ private fun DrawScope.drawReferenceLines(
             strokeWidth = REFERENCE_STROKE_PX,
         )
     }
+    // Dotted where the average is dashed: both are levels, and reading the user's own target as the app's
+    // summary of them would be the worst kind of quiet error.
+    goal?.let { value ->
+        drawLine(
+            color = color,
+            start = Offset(0f, y(value)),
+            end = Offset(size.width, y(value)),
+            strokeWidth = REFERENCE_STROKE_PX,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(GOAL_DOT_PX, GOAL_GAP_PX)),
+        )
+    }
     movingAverage.zipWithNext { from, to ->
         val fromValue = from.value ?: return@zipWithNext
         val toValue = to.value ?: return@zipWithNext
@@ -256,6 +278,24 @@ private fun DrawScope.drawReferenceLines(
             start = Offset(from.x * size.width, y(fromValue)),
             end = Offset(to.x * size.width, y(toValue)),
             strokeWidth = MEAN_STROKE_PX,
+        )
+    }
+}
+
+/** The top and bottom of the axis, so an empty stretch still reads as a scale. */
+private fun DrawScope.drawAxisGrid(
+    gridColor: Color,
+    minValue: Double,
+    maxValue: Double,
+    y: (Double) -> Float,
+) {
+    listOf(minValue, maxValue).forEach { value ->
+        drawLine(
+            color = gridColor,
+            start = Offset(0f, y(value)),
+            end = Offset(size.width, y(value)),
+            strokeWidth = GRID_STROKE_PX,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH_ON_PX, DASH_OFF_PX)),
         )
     }
 }

@@ -58,23 +58,41 @@ enum class MetricUnit(
 ) {
     KILOGRAMS(R.string.unit_kilograms) {
         override fun format(value: Double): String = Weight.kilograms(value.toLong())
+
+        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(GRAMS_PER_KILOGRAM)
     },
     RATING(R.string.unit_rating) {
         override fun format(value: Double): String = value.asRating()
+
+        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(HALVES_PER_POINT)
     },
     REPS(R.string.unit_reps) {
         override fun format(value: Double): String = value.toInt().toString()
     },
     PERCENT(R.string.unit_percent) {
         override fun format(value: Double): String = MeasurementFormat.percent(value.toInt())
+
+        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(TENTHS_PER_PERCENT)
     },
     CENTIMETRES(R.string.unit_centimetres) {
         override fun format(value: Double): String = MeasurementFormat.centimetres(value.toLong())
+
+        override fun parse(text: String): Double? =
+            text.trim().toDoubleOrNull()?.times(MILLIMETRES_PER_CENTIMETRE)
     },
     ;
 
     /** The number without its unit: the unit belongs to the label's language, as everywhere else. */
     abstract fun format(value: Double): String
+
+    /**
+     * What a typed number means in the metric's stored units (ROADMAP N39).
+     *
+     * The inverse of [format], and needed because a target is *typed* as "80" kilograms and *stored* as 80000
+     * grams, like every other weight in the app. Null for anything that is not a number, so a typo cannot
+     * become a target.
+     */
+    open fun parse(text: String): Double? = text.trim().toDoubleOrNull()
 }
 
 /**
@@ -217,3 +235,9 @@ private fun ExerciseTrendMetric.labelRes(): Int = when (this) {
     ExerciseTrendMetric.MUSCLE_FEEL -> R.string.trends_metric_muscle
     ExerciseTrendMetric.JOINT_PAIN -> R.string.trends_metric_joint
 }
+
+/** Stored units per displayed unit: grams, millimetres, tenths of a percent, half-points of RPE. */
+private const val GRAMS_PER_KILOGRAM = 1000.0
+private const val MILLIMETRES_PER_CENTIMETRE = 10.0
+private const val TENTHS_PER_PERCENT = 10.0
+private const val HALVES_PER_POINT = 2.0

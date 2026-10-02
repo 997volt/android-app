@@ -66,6 +66,7 @@ fun StatisticsRoute(
         onSelectMetric = viewModel::onSelectMetric,
         modifier = modifier,
         onSelectExercise = viewModel::onSelectExercise,
+        onSetGoal = viewModel::onSetGoal,
         onOpenMeasurements = onOpenMeasurements,
     )
 }
@@ -84,6 +85,8 @@ fun StatisticsScreen(
     onSelectMetric: (MetricKey) -> Unit,
     modifier: Modifier = Modifier,
     onSelectExercise: (String) -> Unit = {},
+    /** Sets or clears the chosen metric's target (ROADMAP N39). */
+    onSetGoal: (Double?) -> Unit = {},
     /**
      * Opens body measurements (ROADMAP N35).
      *
@@ -140,10 +143,12 @@ fun StatisticsScreen(
             }
 
             state.series?.let { series ->
-                SeriesChart(series = series, metric = MetricRegistry.entryFor(series.key))
+                val entry = MetricRegistry.entryFor(series.key)
+                SeriesChart(series = series, metric = entry, goal = state.goal)
                 // Under the chart, and the literal answer to "see everything" — which is also the accessible
                 // counterpart to a canvas this app blanks out for screen readers (ROADMAP N36).
-                ReadingsSection(series = series, metric = MetricRegistry.entryFor(series.key))
+                ReadingsSection(series = series, metric = entry)
+                GoalRow(goal = state.goal, metric = entry, onSetGoal = onSetGoal)
             }
         }
     }
@@ -350,7 +355,7 @@ private fun ReadingRow(label: String, value: String, testTag: String) {
 
 /** The series, drawn through the chart every other trend uses. N37 gives it a time axis. */
 @Composable
-private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
+private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?) {
     val recorded = series.readings.mapNotNull { it.value }
     if (recorded.size < 2) return
     var period by rememberSaveable { mutableStateOf(DAYS) }
@@ -370,6 +375,7 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
         }
         TrendChartFrame(
             points = projected,
+            goal = goal,
             minValue = axis.min,
             maxValue = axis.max,
             testTag = TestTags.Statistics.CHART,

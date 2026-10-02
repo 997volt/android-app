@@ -317,6 +317,11 @@ object TestTags {
         const val READINGS_AVERAGE = "statistics_readings_average"
         const val READINGS_TREND = "statistics_readings_trend"
         const val MOVING_AVERAGE = "statistics_moving_average"
+        const val GOAL = "statistics_goal"
+        const val GOAL_SET = "statistics_goal_set"
+        const val GOAL_FIELD = "statistics_goal_field"
+        const val GOAL_CONFIRM = "statistics_goal_confirm"
+        const val GOAL_CLEAR = "statistics_goal_clear"
 
         /** One period the moving average can be taken over. */
         fun movingAveragePeriod(period: Int) = "statistics_moving_average_$period"

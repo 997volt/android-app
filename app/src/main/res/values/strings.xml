@@ -171,6 +171,10 @@
     <string name="statistics_average">Average</string>
     <string name="statistics_trend">Trend</string>
     <string name="statistics_moving_average">Average of last</string>
+    <string name="statistics_goal">Target</string>
+    <string name="statistics_goal_none">Set a target</string>
+    <string name="statistics_goal_confirm">Set</string>
+    <string name="statistics_goal_clear">Clear</string>
     <string name="statistics_per_week">%1$s %2$s per week</string>
     <string name="unit_kilograms">kg</string>
     <string name="unit_centimetres">cm</string>

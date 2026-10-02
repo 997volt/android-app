@@ -293,6 +293,14 @@ into this file once the feature ships.
   hold one reading and average nothing. A window that is sometimes empty is worse than one whose unit is stated
   on the control.
 
+- **Test tags are exposed as resource ids** (N38–N39). The app opts in with `testTagsAsResourceId`, so a
+  device-side tool can address a control by *identity* rather than by coordinates: a tap then either lands on the
+  control or fails, instead of silently hitting its neighbour and producing a screen that reads as a bug in the
+  app. Two rounds were spent guessing offsets before this was found — a Compose app is otherwise an opaque tree
+  of anonymous Views to everything outside its process. The cost is that the tags become visible to accessibility
+  tooling, which is what an annotation meant for tooling is for. Noted as a limit: `android_ui_tree` cannot see
+  popup windows, so items inside a `DropdownMenu` still have to be tapped by coordinates read from a screenshot.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

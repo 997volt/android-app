@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertNull
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.TapeSite
@@ -59,6 +60,24 @@ class MetricRegistryTest {
         }
         assertNull("an unknown id is nothing, not a default", MetricRegistry.byId("WORKOUT:NOPE"))
         assertNull(MetricRegistry.byId(null))
+    }
+
+    @Test
+    fun parsingIsTheInverseOfFormatting() {
+        // A target is typed in the unit on screen and stored in the unit on disk, so the two have to agree:
+        // 80 kilograms is 80000 grams, which is what every other weight in the app is.
+        assertThat(MetricUnit.KILOGRAMS.parse("80")).isEqualTo(80_000.0)
+        assertThat(MetricUnit.CENTIMETRES.parse("82.5")).isEqualTo(825.0)
+        assertThat(MetricUnit.PERCENT.parse("18")).isEqualTo(180.0)
+        assertThat(MetricUnit.RATING.parse("7.5")).isEqualTo(15.0)
+        assertThat(MetricUnit.REPS.parse("5")).isEqualTo(5.0)
+    }
+
+    @Test
+    fun somethingThatIsNotANumber_parsesToNothing() {
+        // Null rather than zero: a typo must not become a target of zero.
+        assertThat(MetricUnit.KILOGRAMS.parse("eighty")).isNull()
+        assertThat(MetricUnit.KILOGRAMS.parse("")).isNull()
     }
 
     @Test

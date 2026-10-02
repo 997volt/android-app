@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.model.MuscleGroup
@@ -235,10 +236,11 @@ class StatisticsViewModelTest {
         body: List<BodyMeasurement> = emptyList(),
         records: Int? = null,
         lifts: List<Exercise> = emptyList(),
+        goals: Map<String, Double> = emptyMap(),
         // Defaults may reference earlier parameters, which is what keeps `points` from being a parameter
         // nobody reads — the bug this test found in its own fixture.
         trends: FakeTrendsRepository = FakeTrendsRepository(points = points),
-        settings: FakeSettingsRepository = FakeSettingsRepository(range),
+        settings: FakeSettingsRepository = FakeSettingsRepository(range, goals),
     ) = StatisticsViewModel(
         settings = settings,
         repositories = StatisticsRepositories(
@@ -258,12 +260,50 @@ class StatisticsViewModelTest {
     private fun TestScope.observe(viewModel: StatisticsViewModel) {
         backgroundScope.launch(dispatcher) { viewModel.uiState.collect {} }
     }
+
+
+    @Test
+    fun aGoalForTheChosenMetric_reachesTheState() = runTest(dispatcher) {
+        // The chart draws it and the row shows it, so this is where the screen's copy comes from.
+        val viewModel = viewModel(
+            range = StatisticsRange(RangeKind.ALL),
+            goals = mapOf("BODY:WEIGHT" to 80_000.0),
+        )
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.goal).isEqualTo(80_000.0)
+    }
+
+    @Test
+    fun aGoalForAnotherMetric_isNotShown() = runTest(dispatcher) {
+        // Otherwise a target set for bodyweight would draw a line across a chart of volume.
+        val viewModel = viewModel(
+            range = StatisticsRange(RangeKind.ALL),
+            goals = mapOf("BODY:WAIST" to 800.0),
+        )
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.goal).isNull()
+    }
 }
 
 private class FakeSettingsRepository(
     initial: StatisticsRange = StatisticsRange(),
+    initialGoals: Map<String, Double> = emptyMap(),
 ) : SettingsRepository {
     val stored = MutableStateFlow(initial)
+    private val goals = MutableStateFlow(initialGoals)
+
+    override fun observeGoals(): Flow<Map<String, Double>> = goals
+
+    override suspend fun setGoal(metricId: String, value: Double?): DataResult<Unit> {
+        goals.value = goals.value.toMutableMap().apply {
+            if (value == null) remove(metricId) else put(metricId, value)
+        }
+        return DataResult.Success(Unit)
+    }
     override fun observeDefaultRestSeconds(): Flow<Int> = flowOf(45)
     override suspend fun setDefaultRestSeconds(seconds: Int): DataResult<Unit> = DataResult.Success(Unit)
     override fun observeRestCueEnabled(): Flow<Boolean> = flowOf(true)

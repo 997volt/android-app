@@ -81,6 +81,27 @@ class PreferencesSettingsRepository @Inject constructor(
         awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }.conflate().distinctUntilChanged()
 
+    override fun observeGoals(): Flow<Map<String, Double>> = callbackFlow {
+        trySend(currentGoals())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
+            if (changed == null || changed == KEY_GOALS) trySend(currentGoals())
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.conflate().distinctUntilChanged()
+
+    override suspend fun setGoal(metricId: String, value: Double?): DataResult<Unit> {
+        preferences.edit(commit = true) {
+            val goals = currentGoals().toMutableMap()
+            if (value == null) goals.remove(metricId) else goals[metricId] = value
+            putString(KEY_GOALS, encodeGoals(goals))
+        }
+        return DataResult.Success(Unit)
+    }
+
+    private fun currentGoals(): Map<String, Double> =
+        decodeGoals(preferences.getString(KEY_GOALS, null))
+
     override suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit> {
         preferences.edit(commit = true) {
             putString(KEY_RANGE_KIND, range.kind.name)
@@ -172,4 +193,26 @@ class PreferencesSettingsRepository @Inject constructor(
         /** The three keys that together are one value. */
         val RANGE_KEYS = setOf(KEY_RANGE_KIND, KEY_RANGE_FROM, KEY_RANGE_TO)
     }
+}
+
+/** One line per metric that has a target. */
+private const val KEY_GOALS = "metric_goals"
+
+/**
+ * Goals as one line each, `id=value` (ROADMAP N39).
+ *
+ * A goal is one number per metric, so this needs no schema and no dependency: a document format would be a
+ * library and a migration for something a reader can check by eye. A line that cannot be read is dropped
+ * rather than failing the whole map — a lost target is better than a screen that will not open.
+ */
+private fun encodeGoals(goals: Map<String, Double>): String =
+    goals.entries.joinToString("\n") { "${it.key}=${it.value}" }
+
+private fun decodeGoals(text: String?): Map<String, Double> {
+    if (text.isNullOrBlank()) return emptyMap()
+    return text.lineSequence().mapNotNull { line ->
+        val parts = line.split('=', limit = 2)
+        val value = parts.getOrNull(1)?.toDoubleOrNull()
+        if (parts.size == 2 && value != null) parts[0] to value else null
+    }.toMap()
 }

@@ -8,6 +8,13 @@ Notable changes to Workout, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **A target for any metric, drawn on the chart.** Type one in the unit the screen shows — 80 kilograms — and it
+  is stored in the units everything else uses, so the line it draws is the same number the readings are. It is
+  **dotted where the average is dashed**, because the two are both levels and reading the user's own target as
+  the app's summary of them would be the worst kind of quiet error. A target can be cleared, and a number that
+  cannot be read sets nothing at all rather than a zero — a target of zero would be a line along the bottom of
+  every chart and a claim nobody made.
+
 - **The readings, under the chart.** Every reading as a date and a value, newest first, collapsed until it is
   asked for, with **Average** and **Trend** rows above them. It is also the accessible counterpart to the chart:
   a canvas is deliberately blanked out for a screen reader, so for anyone who cannot see the line this list is

@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextClearance
 import org.junit.Assert.assertTrue
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.MovementPattern
@@ -51,6 +54,7 @@ class StatisticsScreenTest {
         onSelectMetric: (MetricKey) -> Unit = {},
         onSelectExercise: (String) -> Unit = {},
         onOpenMeasurements: (() -> Unit)? = null,
+        onSetGoal: (Double?) -> Unit = {},
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -60,6 +64,7 @@ class StatisticsScreenTest {
                     onSelectMetric = onSelectMetric,
                     onSelectExercise = onSelectExercise,
                     onOpenMeasurements = onOpenMeasurements,
+                    onSetGoal = onSetGoal,
                 )
             }
         }
@@ -152,6 +157,48 @@ class StatisticsScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.CUSTOM.name)).assertIsSelected()
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.LAST_MONTH.name)).assertIsNotSelected()
+    }
+
+    @Test
+    fun aTarget_isShownInTheMetricsOwnUnit_andEditable() {
+        // Typed as 82 kilograms and reported as 82000 grams: the row shows what a person reads, and the
+        // screen hands over what the app stores (ROADMAP N39).
+        var reported: Double? = null
+        var called = false
+        setScreen(
+            state = StatisticsUiState(isLoading = false, series = weightSeries(), goal = 80_000.0),
+            onSetGoal = { called = true; reported = it },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).performScrollTo()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).assertTextEquals("80")
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).performClick()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_FIELD).performTextClearance()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_FIELD).performTextInput("82")
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_CONFIRM).performClick()
+
+        assertThat(called).isTrue()
+        assertThat(reported).isEqualTo(82_000.0)
+    }
+
+    @Test
+    fun clearingATarget_isOfferedOnlyWhenThereIsOne() {
+        setScreen(state = StatisticsUiState(isLoading = false, series = weightSeries(), goal = 80_000.0))
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).performScrollTo().performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_CLEAR).assertExists()
+    }
+
+    @Test
+    fun withNoTarget_theRowAsksForOne_ratherThanShowingZero() {
+        // A target of zero would be a line along the bottom of every chart and a claim nobody made.
+        setScreen(state = StatisticsUiState(isLoading = false, series = weightSeries()))
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).performScrollTo()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.GOAL_SET).assertTextEquals("Set a target")
     }
 
     @Test
@@ -342,3 +389,12 @@ class StatisticsScreenTest {
         composeTestRule.onNodeWithTag(TestTags.Statistics.CHOOSE_LIFT).assertDoesNotExist()
     }
 }
+
+/** A pair of weigh-ins: enough for a chart, which is where the target line lives. */
+private fun weightSeries() = MetricSeries(
+    key = MetricKey.Body(BodyMetric.WEIGHT),
+    readings = listOf(
+        MetricReading(Instant.parse("2026-09-01T08:00:00Z"), 83_000.0),
+        MetricReading(Instant.parse("2026-09-15T08:00:00Z"), 82_000.0),
+    ),
+)
