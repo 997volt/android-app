@@ -81,6 +81,10 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **Repeating a workout keeps its rest, note and superset grouping.** Only the exercises were copied,
+  so a repeated superset arrived ungrouped — and with no group the round logic short-circuits, so the
+  pair degraded into unrelated exercises resting separately, which is the behaviour supersets exist to
+  prevent. The rest and the technique note were dropped the same way.
 - **Home shows a past workout's date in its own zone.** It was the one screen that dropped the
   argument and fell back to the phone's zone, so the same workout read as two different dates on two
   screens — differing by a day near midnight, which is exactly the case the stored offset exists for.

@@ -60,7 +60,7 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33 is fixed** and lives in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
 - **B34 — The warm-up ramp lands after the working sets, not in front.** The KDoc says it "writes a
@@ -110,19 +110,6 @@ rest are the removal and the tests that came with it. Ordered by what they cost.
   accepted. Smallest of the three and the one most likely to be forgotten, which is why it is written
   down rather than remembered.
 
-- **B41 — Repeating a workout silently drops its rest, cue and superset grouping, and a comment
-  claims the opposite.** `repeatLastSession` calls `appendExercise` with only `exerciseId`
-  (`RoomWorkoutRepository.kt:120-125`), and that function defaults `restSeconds`, `techniqueNote` and
-  `supersetGroup` to null (`:433-441`), so all three are dropped — while the comment immediately above
-  the call says *"a repeated exercise is an ordinary one — its rest, note and grouping rules
-  included."* The template path right beside it passes all three (`:95-99`), so the two share a helper
-  and disagree about what it carries. The consequence is not only cosmetic: with `supersetGroup` nulled,
-  `roundIsCompleteFor` short-circuits to true (`ActiveWorkoutViewModel.kt:1046`) and `longestRestInRound`
-  returns null (`:1076`), so a repeated superset degrades into unrelated exercises resting separately —
-  the exact behaviour N24 exists to prevent. **The data cannot be copied as the code stands:** the
-  query selects only `se.exerciseId` (`SessionExerciseDao.kt:47-60`), so the fix is to widen it and pass
-  the three columns through, or to correct the comment and record that a repeat is deliberately
-  exercises-and-order-only. The first is the smaller change and the one the comment already promises.
 - **B42 — Two pieces of documentation that no longer match the code.** The original `appendExercise`
   KDoc sits orphaned at `RoomWorkoutRepository.kt:140-144`, detached above `removeExercise` while the
   function it describes now lives at `:424`; and `WorkoutRepository.kt:79-83` says an open session is

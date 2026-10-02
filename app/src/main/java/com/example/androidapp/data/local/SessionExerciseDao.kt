@@ -43,20 +43,44 @@ interface SessionExerciseDao {
      *    one missing movement is not a reason to refuse the whole session.
      *  - **No `DISTINCT`.** The same exercise performed twice was performed twice, and folding it into
      *    one entry would quietly rewrite what happened.
+     *  - **The rest, the note and the grouping come with it** (ROADMAP B41). Copying only the movement
+     *    silently discarded three things the append helper accepts: a repeated superset lost its
+     *    grouping, and with `supersetGroup` null the round logic short-circuits, so the pair degraded
+     *    into unrelated exercises resting separately — the behaviour N24 exists to prevent.
+     *  - **`startedAt` breaks ties on `finishedAt`.** A backup import round-trips the value, so two
+     *    sessions can share one, and without a second key "the last workout" is whichever the database
+     *    happens to return — which need not be the one at the top of Recent.
      */
     @Query(
         """
-        SELECT se.exerciseId FROM session_exercises se
+        SELECT se.exerciseId AS exerciseId,
+               se.restSeconds AS restSeconds,
+               se.techniqueNote AS techniqueNote,
+               se.supersetGroup AS supersetGroup
+        FROM session_exercises se
         JOIN exercises e ON e.id = se.exerciseId
         WHERE se.sessionId = (
             SELECT id FROM workout_sessions
             WHERE finishedAt IS NOT NULL AND deletedAt IS NULL
-            ORDER BY finishedAt DESC LIMIT 1
+            ORDER BY finishedAt DESC, startedAt DESC, id DESC LIMIT 1
         )
         AND se.deletedAt IS NULL AND e.deletedAt IS NULL
         ORDER BY se.position
         """,
     )
-    suspend fun lastFinishedSessionExerciseIds(): List<String>
-
+    suspend fun lastFinishedSessionExercises(): List<RepeatExerciseRow>
 }
+
+/**
+ * One exercise of the last finished workout, with everything a repeat needs to reproduce it
+ * (ROADMAP B41).
+ *
+ * A projection rather than the entity: the repeat reads a handful of columns across two tables, and
+ * the row it comes from belongs to a workout that is already over.
+ */
+data class RepeatExerciseRow(
+    val exerciseId: String,
+    val restSeconds: Int?,
+    val techniqueNote: String?,
+    val supersetGroup: Int?,
+)

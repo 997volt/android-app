@@ -181,4 +181,31 @@ class RepeatLastSessionTest {
             database.workoutDao().findSession(started.id)?.zoneOffsetMinutes,
         )
     }
+
+    @Test
+    fun itCarriesTheRest_theNote_andTheGrouping() = runTest {
+        // ROADMAP B41: only the movement used to be copied, so a repeated superset lost its grouping —
+        // and with a null group the round logic short-circuits, degrading the pair into unrelated
+        // exercises resting separately, which is what N24 exists to prevent.
+        val dao = database.workoutDao()
+        seedFinishedWorkout("back-squat", "bench-press")
+        // The past workout prescribed a 3-minute rest, a note, and performed the two as a superset.
+        database.openHelper.writableDatabase.execSQL(
+            """
+            UPDATE session_exercises
+            SET restSeconds = 180, techniqueNote = 'pause at the bottom', supersetGroup = 1
+            WHERE sessionId = 'past'
+            """.trimIndent(),
+        )
+
+        val started = opened()
+        val copied = repository.observeSessionExercises(started).first()
+
+        assertEquals(listOf(180, 180), copied.map { it.restSeconds })
+        assertEquals(
+            listOf("pause at the bottom", "pause at the bottom"),
+            copied.map { it.techniqueNote },
+        )
+        assertEquals("still a superset", listOf(1, 1), copied.map { it.supersetGroup })
+    }
 }

@@ -115,15 +115,20 @@ class RoomWorkoutRepository @Inject constructor(
                 if (start.created) {
                     // The same append path every other start uses (ROADMAP N3, N29), so a repeated
                     // exercise is an ordinary one — its rest, note and grouping rules included.
-                    database.sessionExerciseDao().lastFinishedSessionExerciseIds()
-                        .forEach { exerciseId ->
-                        appendExercise(
-                            dao = dao,
-                            now = timeSource.nowEpochMillis(),
-                            sessionId = start.session.id,
-                            exerciseId = exerciseId,
-                        )
-                    }
+                    database.sessionExerciseDao().lastFinishedSessionExercises()
+                        .forEach { past ->
+                            appendExercise(
+                                dao = dao,
+                                now = timeSource.nowEpochMillis(),
+                                sessionId = start.session.id,
+                                exerciseId = past.exerciseId,
+                                // The three the comment above promises, now actually carried: a
+                                // repeated superset stays a superset (ROADMAP B41).
+                                restSeconds = past.restSeconds,
+                                techniqueNote = past.techniqueNote,
+                                supersetGroup = past.supersetGroup,
+                            )
+                        }
                 }
                 StartedSession(id = start.session.id, isNew = start.created)
             }
