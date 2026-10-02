@@ -57,6 +57,20 @@ the gitignored `keystore.properties`; see
 
 ### 5. Verify, before tagging
 
+**Run the pipeline first.** CI no longer runs on every push, so nothing has confirmed this commit on the
+hosted runner — dispatch it and wait for both jobs, including the instrumented one:
+
+```sh
+gh workflow run "Android CI" --ref main
+gh run watch
+```
+
+The build job is what runs the gate set (unit tests, lint, detekt, R8) on a clean machine, and the
+instrumented job is the only place the emulator suite runs outside a developer's machine. A release is the
+wrong time to discover that either has stopped working, which is why this is a step rather than a
+suggestion. If the instrumented job fails on the emulator rather than on a test, say so and decide
+deliberately — the failure signatures and the levers still untried are in ROADMAP.md (N30).
+
 ```bash
 APK=app/build/outputs/apk/release/app-release.apk
 BT=.toolchain/android-sdk/build-tools/36.0.0    # or the runner's build-tools

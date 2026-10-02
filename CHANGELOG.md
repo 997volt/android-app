@@ -39,9 +39,15 @@ Notable changes to Workout, newest first. Format follows
   pinned `android-emulator-runner`'s own `action.yml` settled it: its default *is* exactly those flags, so
   an absent key was inheriting them and the experiment could not have been the fix. They are set now
   anyway, so the workflow owns the flags it depends on and a future action bump cannot change how the
-  emulator boots without this file saying so. The job stays gated, and the levers that are genuinely
-  untried — a lighter ATD system image, memory and core counts that need measuring, or a nightly schedule
-  so the pipeline notices its own regressions — are recorded in [ROADMAP.md](ROADMAP.md) (N30).
+  emulator boots without this file saying so. **CI now runs nightly and on demand before a release rather
+  than on every push**: the emulator is the one piece of infrastructure here that has failed without a test
+  running, so a per-push run would mostly report on the runner, and the per-change guard is the local gate
+  set. The instrumented job is no longer held back to a manual dispatch, so it is exercised on a schedule,
+  and the concurrency group now includes the event name — a dispatch before a release can no longer be
+  cancelled by the nightly run, or the reverse. That last one was not hypothetical: a documentation push
+  cancelled an instrumented run twenty minutes in, and the cancelled job's summary looked exactly like the
+  infrastructure failure this whole thread is about. What remains open is the emulator's reliability
+  itself, which the nightly run now measures (N30).
 
 - **The app's progression is now offered rather than applied.** N22 shipped a suggestion whose own
   documentation said it "suggests; it never writes", and in two places it *was* the value one tap logged:

@@ -8,15 +8,23 @@ name: Android CI
 # is a per-machine, gitignored install, and tools/android-env.sh is a no-op
 # without it (see README), so the runner's own JDK and Android SDK are used.
 
+# Nightly, and on demand before a release (RELEASING.md step 1). Deliberately **not** on every push:
+# the instrumented job's emulator is the one piece of infrastructure here that has failed without a test
+# running, so a per-push run would mostly report on the runner rather than on the change. The per-change
+# guard is the local gate set in AGENTS.md, which is the same set the build job runs.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  schedule:
+    # 05:17 UTC. Not on the hour: that is when every scheduled job on GitHub starts, and the runners
+    # queue behind each other.
+    - cron: '17 5 * * *'
   workflow_dispatch:
 
-# A new push to the same branch makes the in-flight run pointless.
+# A rerun of the same kind supersedes its predecessor, and the event name is part of the group so that a
+# dispatch before a release cannot cancel the nightly run or the other way round. The one time this cost
+# something, a documentation push cancelled an instrumented run twenty minutes in, and the result was a
+# cancelled job whose summary looked exactly like an infrastructure failure.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
@@ -112,13 +120,10 @@ jobs:
 
   instrumented:
     name: Instrumented tests (emulator)
-    # On demand, not on every push (see the note on the step below). The hosted runner's emulator is
-    # the only infrastructure here that has failed without a test running — three times now, with three
-    # different signatures — and the prescription this step's own comment already carried was to move it
-    # behind workflow_dispatch rather than delete it. This is that, executed: the build job still guards
-    # every push, and this one runs when asked, from the Actions tab or
-    # `gh workflow run "Android CI"`.
-    if: github.event_name == 'workflow_dispatch'
+    # Runs with the workflow now: nightly, and on a dispatch before a release. It is no longer gated to
+    # a manual dispatch, which is the change N30 was waiting for — the emulator gets exercised on a
+    # schedule, so a regression in this job is found by the pipeline rather than by whoever remembers to
+    # ask. Nothing is cancelled by it, because no push starts a run any more.
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -147,10 +152,10 @@ jobs:
       # outran the default 600 s timeout, and an emulator that booted and then died — the runner's own
       # adb emulator-kill failing while the job's failure summary printed no failing tests.
       #
-      # The boot timeout was raised for the second of those; this one is different, and the fallback was
-      # written here in advance: move the job behind workflow_dispatch rather than delete it, so the
-      # tests still exist. It is gated now. The instrumented suite still runs on every change — locally,
-      # on a device, where it passes — and this job is the pipeline's confirmation of it, run when asked.
+      # The boot timeout was raised for the second of those. The third is why this job no longer runs on
+      # every push: for a while it was gated to a manual dispatch, and it now runs nightly instead, which
+      # keeps it exercised without letting a runner problem read as a verdict on a change. The suite also
+      # runs locally on a device, where it passes.
       #
       # N30. The lever this step was waiting for turned out to be pulled already: the flags the suite
       # uses locally are the action's own defaults, so "try the emulator's options" could not have been

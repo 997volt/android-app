@@ -54,8 +54,17 @@ The flags are now set explicitly anyway, so the workflow owns them rather than i
 future SHA bump cannot change how the emulator boots without this file saying so. That is hardening, not
 a fix, and it is stated as such.
 
-**What is actually left.** The failure that gated this job is the emulator dying mid-run, and the levers
-that remain untried are about the runner rather than the flags:
+**When it runs is now decided** (this round): **nightly, and on demand before a release**. Not on every
+push — the emulator is the one piece of infrastructure here that has failed without a test running, so a
+per-push run mostly reports on the runner, and the per-change guard is the local gate set. The instrumented
+job is ungated again as part of that, so it is exercised on a schedule rather than when someone remembers,
+and `RELEASING.md` step 5 dispatches the pipeline before a tag. The concurrency group also gained the event
+name, because the group was what allowed a documentation push to cancel an instrumented run twenty minutes
+in — and the cancelled job's summary was indistinguishable from the infrastructure failure this thread is
+about, which is how a self-inflicted cancellation got read as evidence.
+
+**What is actually left.** The emulator's reliability, now measured nightly rather than guessed at. If it
+fails again on infrastructure rather than on a test, the levers are about the runner rather than the flags:
 
 - a lighter system image — `google_atd` or `aosp_atd`, which exist to be automated-test devices and boot
   far faster and leaner than `google_apis`; this is the standard answer to a hosted runner whose emulator
