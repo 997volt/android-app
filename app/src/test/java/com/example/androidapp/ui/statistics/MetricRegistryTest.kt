@@ -173,6 +173,19 @@ class MetricRegistryTest {
     }
 
     @Test
+    fun everyBarSeries_alsoStartsAtZero() {
+        // The two rules are tested separately above, and the chart depends on their *combination*: a bar's
+        // length is the quantity, so a bar drawn from a truncated baseline would misstate the magnitude while
+        // looking zero-based. It holds today because {VOLUME, TOTAL_REPS} happens to sit inside `isLoad`, so
+        // this asserts the implication rather than the coincidence — one registry edit is all it would take.
+        MetricRegistry.entries.filter { it.isBars }.forEach { entry ->
+            assertWithMessage("a bar series must be anchored at zero: ${entry.key.id}")
+                .that(entry.fromZero)
+                .isTrue()
+        }
+    }
+
+    @Test
     fun loadsStartAtZero_andRatingsAndBodyReadingsDoNot() {
         // A weight axis that started at the lightest set would exaggerate every change; a weight of zero
         // is a real weight, which is why a load is drawn from it.
