@@ -32,8 +32,8 @@ order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`�
 
 ## Next
 
-**The Statistics round has shipped** — the five tabs, and the Statistics screen with
-its registry — and they are in [CHANGELOG.md](CHANGELOG.md), as are N31–N33 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
+**The Statistics round has shipped** — five tabs, one screen with a registry over every series, a time axis, bars where bars belong, an
+average, a fitted trend and a trailing mean — and it is in [CHANGELOG.md](CHANGELOG.md), as are N31–N33 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
