@@ -8,6 +8,22 @@ Notable changes to Workout, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **Body measurements**, on their own screen reached from home. A dated entry with a **weight, and
+  optionally** body fat, muscle and seven tape sites — every one of those nullable, because that is how
+  people measure: a waist taken on a morning the scale was not stepped on is a real entry, and it must not
+  need a second screen or a fake zero to exist. A zero would be indistinguishable from a measurement of
+  nothing, which is the one reading no body ever gives. Weight is the only thing an entry cannot be
+  without, and the save says so before it is tapped rather than after.
+- **A day has one entry, and saving onto it edits it.** The second reading of a day is nearly always a
+  correction of the first rather than a second measurement, and "what did I weigh today" should not have
+  two answers. An unmeasured tape site stays blank rather than carrying the previous value forward:
+  carrying a number forward invents a measurement and draws a flat line through a site nobody measured.
+- **Measurements are charted** alongside the training trends, through the same chart: bodyweight first,
+  then body fat, muscle and each site. They share the chart rather than the axis — the training trends are
+  indexed by workout, and a measurement is not a workout — so each series carries its unit and is scaled
+  to its own readings rather than to a rating's fixed range.
+- Measurements travel in the **backup file** like everything else, with a round-trip guard test, and the
+  schema is at **version 18**; the upgrade keeps every row that was already there.
 - **A finished workout can become a plan.** The app went plan to session and history to session, but
   never session to plan: after a good unplanned workout the only way to keep it was rebuilding it by
   hand. The workout detail now offers **Save as plan** — it asks for a name, copies the exercises in

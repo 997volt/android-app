@@ -32,44 +32,13 @@ shipped and left the file.
 
 ## Next
 
-**Two things are marked, in order** — N32 and N33, with N31 now shipped and in
+**One thing is marked** — N33, with N31 and N32 now shipped and in
 [CHANGELOG.md](CHANGELOG.md). **B44 — the white screen after a discard — is fixed** and lives in
 [CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
 everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). Past the three, the
 next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the rename is
 at the end of this section.
-
-### N32 — Body measurements
-
-**Weight, with optional body-fat %, muscle %, and tape measurements.** Weight is the only required
-field; the rest are filled when they are taken, which is how people actually measure.
-
-- **One dated entry, nullable fields:** `measuredAt`, `weightGrams`, `bodyFatTenths`, `muscleTenths`,
-  and the tape sites. A waist recorded without a weight that morning must not be a second screen or a
-  fake zero.
-- **Units and storage follow what is settled.** Weight in whole grams; percentages as **tenths of a
-  percent in an `Int`**, for the same reason RPE is halves — `18.3` has no exact binary representation;
-  tape in **millimetres in a `Long`**, displayed as cm.
-- **A fixed set of tape sites for v1, every one optional:** neck, chest, waist, hips, upper arm, thigh,
-  calf. A user-defined site list is a later row, not a first one.
-- **A new sync-shaped table** (`measurements`), so it rides the export — and the codec guard means its
-  columns must reach the backup DTO in the same change.
-- **Shown as trends on the existing chart** — read carefully, because the chart is not the series. The
-  trends screen is **session-indexed**: a `TrendPoint` is one workout, and `TrendMetric` reads a value off
-  it, so a measurement cannot travel that pipeline — it is not a session and has no RPE or muscle feel to
-  average. What it *can* share is `TrendChartFrame`, the component every series already draws through. So
-  measurements get their own series, one point per entry, drawn by the same chart: bodyweight first, then
-  body fat, muscle and each site. The alternative — new values on `TrendMetric` — would have forced them
-  through a shape whose x-axis is workouts, and the mismatch would have shown up as a chart with the wrong
-  axis rather than as an error.
-  Entry and history live on a Measurements screen reached from home.
-- **What it deliberately does not do:** change volume. Bodyweight exercises count `0 kg` today — a
-  settled decision in [DECISIONS.md](DECISIONS.md) — and using a recorded bodyweight in their volume is
-  that decision's own conversation. Stated here so it is not quietly assumed.
-- **Decide at implementation:** one entry per day with later edits, or several; and whether an
-  unmeasured tape site carries forward or stays blank. It should stay blank — carrying a number forward
-  invents a measurement.
 
 ### N33 — Show the progression suggestion; do not substitute it
 
