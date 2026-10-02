@@ -148,6 +148,20 @@
     <string name="detail_plan_name">Plan name</string>
     <string name="detail_saved_as_plan">Saved as a plan</string>
     <string name="detail_open_plan">Open plan</string>
+    <string name="measurements_delete">Delete</string>
+    <string name="measurements_title">Measurements</string>
+    <string name="measurements_add">Add measurement</string>
+    <string name="measurements_empty">No measurements yet.</string>
+    <string name="measurements_weight">Weight</string>
+    <string name="measurements_body_fat">Body fat %</string>
+    <string name="measurements_muscle">Muscle %</string>
+    <string name="measurements_neck">Neck</string>
+    <string name="measurements_chest">Chest</string>
+    <string name="measurements_waist">Waist</string>
+    <string name="measurements_hips">Hips</string>
+    <string name="measurements_upper_arm">Upper arm</string>
+    <string name="measurements_thigh">Thigh</string>
+    <string name="measurements_calf">Calf</string>
     <string name="home_templates">Workout templates</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>

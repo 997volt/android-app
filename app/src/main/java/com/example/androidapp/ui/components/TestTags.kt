@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.components
 
+import com.example.androidapp.domain.model.TapeSite
+
 /**
  * Test tags for shared controls (ROADMAP P1.17).
  *
@@ -261,5 +263,18 @@ object TestTags {
     const val TEMPLATE_WEEKDAY = "template_weekday"
 
     fun templateWeekday(day: String) = "template_weekday_$day"
-}
 
+    /** The measurements screen's own tags (ROADMAP N32), grouped so this object stays under its ceiling. */
+    object Measurements {
+        const val ADD = "measurements_add"
+        const val WEIGHT = "measurements_weight"
+        const val BODY_FAT = "measurements_body_fat"
+        const val MUSCLE = "measurements_muscle"
+        const val CONFIRM = "measurements_confirm"
+    
+        /** One per tape site, so a test names the site rather than a position. */
+        fun tape(site: TapeSite) = "measurements_tape_${site.name.lowercase()}"
+    
+        fun delete(id: String) = "measurements_delete_$id"
+    }
+}
