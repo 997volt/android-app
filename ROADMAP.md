@@ -53,9 +53,11 @@ change.
   **CI's build job passed green** (JVM suite, lint, detekt, R8) on a run that survived; the **full
   instrumented suite passed locally on the emulator — 164 tests, no failures** — which is the same
   suite the pipeline's second job runs; and the label itself was read back with `aapt2 dump badging`.
-  The pipeline's *own* instrumented job was still running at the last check, and the run's conclusion is
-  the one thing that cannot be hurried without cancelling it — so this stays open in the strict sense
-  while being evidenced in every other one.
+  The pipeline's *own* instrumented job was still running after twenty-two minutes, and waiting for it
+  had become self-defeating: the work could not be pushed without cancelling it, and it could not be
+  pushed *after* it without pushing something, which cancels it. **The queue was pushed once, on
+  purpose.** That cancelled the run that was in flight — and started a fresh one on the tip, which is
+  now the run this item waits on. One push, once, and then silence.
 - **Why every run before this one was cancelled.** Twelve in a row, each cancelled by the next push:
   nothing wrong with the pipeline, just the cancellation already accepted and recorded in
   [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
