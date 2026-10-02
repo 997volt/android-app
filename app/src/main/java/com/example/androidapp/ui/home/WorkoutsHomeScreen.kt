@@ -51,6 +51,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
+import com.example.androidapp.domain.model.zoneIdOrNull
+import java.time.ZoneId
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.ClearEverythingDialog
@@ -350,7 +352,17 @@ private fun RecentWorkoutRow(
     val setCount = pluralStringResource(R.plurals.history_sets, workout.setCount, workout.setCount)
 
     ListItem(
-        headlineContent = { Text(HistoryFormat.date(workout.startedAt)) },
+        headlineContent = {
+            // The session's own zone, like history and the workout detail (ROADMAP B33). Omitting it
+            // here was a dropped argument rather than missing data, and it made one workout read as
+            // two different dates on two screens.
+            Text(
+                HistoryFormat.date(
+                    workout.startedAt,
+                    zone = workout.zoneIdOrNull() ?: ZoneId.systemDefault(),
+                ),
+            )
+        },
         supportingContent = {
             val duration = workout.duration?.let { WorkoutFormat.elapsed(it) }.orEmpty()
             val volume = stringResource(R.string.history_volume, Weight.kilograms(workout.volumeGrams))

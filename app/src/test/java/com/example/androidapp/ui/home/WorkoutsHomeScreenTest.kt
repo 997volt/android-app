@@ -17,6 +17,8 @@ import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutClock
 import java.time.Instant
 import org.junit.Rule
+import com.example.androidapp.ui.history.HistoryFormat
+import java.time.ZoneOffset
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -292,5 +294,23 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertIsDisplayed().performClick()
         assertEquals(1, repeated)
+    }
+
+    @Test
+    fun aPastWorkoutsDate_isRenderedInItsOwnZone() {
+        // ROADMAP B33 and B39: grouping was well covered while the rendering was not, and the
+        // rendering is where the bug was. Home and history now agree — and the expected string is
+        // produced by the same formatter, so this cannot drift with the machine's locale.
+        val tokyo = summary("session-1").copy(
+            startedAt = Instant.parse("2026-09-30T20:00:00Z"),
+            zoneOffsetMinutes = 540,
+        )
+        setScreen(WorkoutsHomeUiState(isLoading = false, recent = listOf(tokyo)))
+
+        val expected = HistoryFormat.date(
+            tokyo.startedAt,
+            zone = ZoneOffset.ofHours(9),
+        )
+        composeTestRule.onNodeWithText(expected, substring = true).assertIsDisplayed()
     }
 }
