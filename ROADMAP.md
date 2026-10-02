@@ -66,6 +66,15 @@ change.
   the case `tools/ci-check-instrumented.py` exists for: a truncated run must fail rather than look green.
   The same suite passes locally, 164 tests with no failures — so the gap is the pipeline's emulator
   provisioning, not the code.
+
+  **The step is already hardened, which is the useful part of the diagnosis.** It boots with
+  `emulator-boot-timeout: 900` and `disable-animations: true`, and the action is pinned by SHA — so the
+  earlier hardening was aimed at boots that outran a timeout, and this failure is a different one: the
+  emulator dies and the runner's own `adb emu kill` fails. The next lever is the emulator's *options*,
+  which are not set: matching what works locally (`-no-window -gpu swiftshader_indirect -no-snapshot
+  -noaudio -no-boot-anim`) is the obvious candidate, and it should be tried on its own so the result
+  means something. Untested, and recorded rather than guessed at — an untested workflow edit at the end
+  of a long session is how a pipeline gets broken for everyone.
 - **Why every run before this one was cancelled.** Twelve in a row, each cancelled by the next push:
   nothing wrong with the pipeline, just the cancellation already accepted and recorded in
   [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
