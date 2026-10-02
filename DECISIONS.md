@@ -283,6 +283,16 @@ into this file once the feature ships.
   metrics, estimated 1RM is the one that answers it: the heaviest set ignores the reps, and volume rewards a
   long session over a strong one.
 
+- **A gap is distance, and the line breaks at it** (N37). On an index axis a missing reading was merely
+  invisible; on a time axis it is a stretch of the chart, and a straight segment across it would be a claim about
+  weeks nobody measured. This is the one place the app deliberately differs from the tool whose shape it borrows:
+  that one spans its gaps, and the argument for breaking them is stronger here because the x-axis now means
+  something.
+- **The moving average's period counts readings, not days** (N40). For a daily weigh-in the two are the same
+  thing — the case the feature exists for — but a seven-day window for a lift trained twice a week would often
+  hold one reading and average nothing. A window that is sometimes empty is worse than one whose unit is stated
+  on the control.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

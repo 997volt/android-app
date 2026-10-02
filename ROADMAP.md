@@ -32,48 +32,20 @@ order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`�
 
 ## Next
 
-**A UI round in five remaining steps**: the chart underneath the new Statistics tab, then its readings
-list and the four chart changes. **N34 and N35 have shipped** — the five tabs, and the Statistics screen with
+**The Statistics round has shipped** — the five tabs, and the Statistics screen with
 its registry — and they are in [CHANGELOG.md](CHANGELOG.md), as are N31–N33 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
-### N36 — The readings list
+### N39 — The goal line
 
-A collapsible list under the chart: every reading as date and value, newest first, with Average and
-Trend rows on top. It is Waistline's timeline, it is the literal answer to "see everything", and it is
-the accessible counterpart to a canvas this app deliberately blanks out for screen readers. Cheap, and
-it should not wait for the chart work.
+The average and the fitted trend shipped with the rest of the chart round; **the goal line did not**, and the
+reason is scope rather than difficulty. A goal for a measurement is a feature this app has never had: no surface
+to enter a target, nothing to store one, and a default would be an invented goal. The plan's target for a lift
+(N14) is the other half of the same item and needs the plan available to the statistics screen.
 
-### N37 — The chart's x-axis becomes time
-
-Points spread by elapsed time rather than by index. Today two workouts a day apart and two a month apart
-are drawn the same distance apart, which is a real distortion rather than a detail.
-
-- **The gap question is settled here, and the answer is not Waistline's:** keep **breaking** the line at
-  a missing reading rather than spanning it. A time axis shows the gap as distance, which is more honest
-  than a straight segment drawn across three weeks. Waistline spans gaps; this is the one place the two
-  should differ, and the row says so.
-- **The axis gains labels** — first and last date, minimum and maximum value.
-- The projection is pure Kotlin, so it is unit-tested like the rest of the domain maths.
-
-### N38 — Bars or a line, and where zero is
-
-Per metric rather than a global switch: bars for count-like series (volume, total reps), lines for
-continuous ones (bodyweight, ratings, tape). A zero baseline stays a property of the metric, which is
-what the chart already does for ratings — this makes it explicit rather than incidental.
-
-### N39 — Average, goal and trend lines
-
-A horizontal average; a goal line — a target setting for a measurement, the plan's target (N14) for a
-lift; and a least-squares regression line with its slope as text ("−0.3 kg/week"). Pure Kotlin with
-tests, the same way Epley and the warm-up ramp are.
-
-### N40 — A moving average
-
-A trailing simple moving average, period configurable, default seven, drawn heavier with no dots. For
-bodyweight this is the point of the whole exercise: daily weight is noise, and the seven-day mean is the
-signal.
+Both halves are one small feature — a persisted target per metric, a place to set it, and a line on the chart
+where one exists — and it should be built as that rather than smuggled into the chart work.
 
 ## Later (still self-contained)
 

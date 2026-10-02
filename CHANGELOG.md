@@ -8,6 +8,36 @@ Notable changes to Workout, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **The readings, under the chart.** Every reading as a date and a value, newest first, collapsed until it is
+  asked for, with **Average** and **Trend** rows above them. It is also the accessible counterpart to the chart:
+  a canvas is deliberately blanked out for a screen reader, so for anyone who cannot see the line this list is
+  the screen. A moment that recorded nothing is not a reading — the chart draws it as a gap, and a list of
+  numbers with holes in it would be a list of holes — and the average is over the readings that exist, so a week
+  nobody weighed in cannot pull it towards zero.
+- **The chart's x-axis is time.** Two workouts a day apart and two a month apart used to be drawn the same
+  distance apart, which made a month off look like a day off. Where a reading sits is now a question about
+  elapsed time, answered by pure Kotlin with its own tests, and the axis is labelled in words: first and last
+  date, minimum and maximum. **The line still breaks at a missing reading rather than spanning it**, and on a
+  time axis that matters more, not less — the gap is now visible as *distance*, and a straight segment across
+  three weeks would be a claim about weeks nobody measured. That is the one place this app deliberately differs
+  from the tool it borrows its shape from.
+- **Bars for quantities, a line for a scale, and zero where zero is.** Volume draws as bars from the baseline;
+  the ratings, bodyweight and tape measurements stay lines. A weight axis beginning at the lightest set turns
+  every change into a cliff, and a 1–10 rating anchored at zero flattens the differences ratings exist to show —
+  so which it is remains a property of the metric rather than of the data.
+- **An average, a fitted trend and its slope.** A dashed horizontal average; a least-squares line; and the slope
+  as text in the metric's own unit, **per week** rather than per reading, because a slope per point reports the
+  same number for a change over a day and the same change over a month. The sign is part of the text, since the
+  same number is progress on a bodyweight and a warning on joint pain, and only the metric knows which. A gap
+  does not pull the line: only the readings that exist are fitted. *A first attempt drew all three in the
+  theme's tertiary colour, which is close enough to the surface that they were invisible on a device — they are
+  a neutral annotation now, and the average is dashed.*
+- **A trailing mean, drawn heavier, over a configurable period.** Seven readings by default. The period counts
+  **readings rather than days**: for a daily weigh-in the two are the same thing, but a seven-day window for a
+  lift trained twice a week would often hold one reading and average nothing. It emits from the first reading
+  rather than waiting for a full period — a chart beginning a week in would hide the first week of the signal it
+  was added to show — and an unmeasured day neither counts towards the period nor drags the mean down.
+
 - **A Statistics tab, and one picker over every series.** It answers "how is everything going" with one
   chart, a range and three numbers, where there used to be a workout-trends screen and a separate per-lift one
   reached from two places. Every series the app records — the workout ratings, the eight exercise metrics, and
