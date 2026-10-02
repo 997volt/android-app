@@ -52,9 +52,20 @@ data class TrendSection(
  * A point per entry rather than per session, and dated rather than counted — which is exactly why it is
  * not a [TrendSection]: that one reads its values off a workout.
  */
+/**
+ * The units a measurement series can be in (ROADMAP N32).
+ *
+ * The stored number is whatever the schema stores — grams, tenths, millimetres — and this is what turns
+ * it into a reading. Without it a chart of bodyweight and a chart of body fat would be the same shape
+ * with no way to tell which number was which.
+ */
+enum class MeasurementUnit { KILOGRAMS, PERCENT, CENTIMETRES }
+
 data class MeasurementTrend(
     /** The label, as a string resource: the unit belongs to the language, not to the number. */
     val labelRes: Int,
+    /** What the numbers are, so a caption can say them the way a person would. */
+    val unit: MeasurementUnit,
     /** Oldest first, null where that entry did not take this measurement. */
     val values: List<Double?>,
     val latest: Double?,
@@ -143,10 +154,15 @@ private fun List<TrendPoint>.sectionFor(metric: TrendMetric): TrendSection {
  */
 private fun List<BodyMeasurement>.toMeasurementTrends(): List<MeasurementTrend> {
     val oldestFirst = sortedBy { it.measuredAt }
-    fun trend(labelRes: Int, value: (BodyMeasurement) -> Double?): MeasurementTrend {
+    fun trend(
+        labelRes: Int,
+        unit: MeasurementUnit,
+        value: (BodyMeasurement) -> Double?,
+    ): MeasurementTrend {
         val values = oldestFirst.map(value)
         return MeasurementTrend(
             labelRes = labelRes,
+            unit = unit,
             values = values,
             latest = values.lastOrNull { it != null },
             recorded = values.count { it != null },
@@ -154,11 +170,11 @@ private fun List<BodyMeasurement>.toMeasurementTrends(): List<MeasurementTrend> 
     }
 
     return buildList {
-        add(trend(R.string.measurements_weight) { it.weightGrams.toDouble() })
-        add(trend(R.string.measurements_body_fat) { it.bodyFatTenths?.toDouble() })
-        add(trend(R.string.measurements_muscle) { it.muscleTenths?.toDouble() })
+        add(trend(R.string.measurements_weight, MeasurementUnit.KILOGRAMS) { it.weightGrams.toDouble() })
+        add(trend(R.string.measurements_body_fat, MeasurementUnit.PERCENT) { it.bodyFatTenths?.toDouble() })
+        add(trend(R.string.measurements_muscle, MeasurementUnit.PERCENT) { it.muscleTenths?.toDouble() })
         TapeSite.entries.forEach { site ->
-            add(trend(measurementTapeLabel(site)) { it.at(site)?.toDouble() })
+            add(trend(measurementTapeLabel(site), MeasurementUnit.CENTIMETRES) { it.at(site)?.toDouble() })
         }
     }
 }

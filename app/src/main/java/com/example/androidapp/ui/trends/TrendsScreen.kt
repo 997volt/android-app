@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.trends
 
+import com.example.androidapp.ui.measurements.MeasurementFormat
+import com.example.androidapp.domain.Weight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -125,8 +127,54 @@ private fun TrendsBody(state: TrendsUiState, modifier: Modifier = Modifier) {
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             TrendSectionBlock(section)
         }
+
+        // Measurements after the training trends (ROADMAP N32): the same chart, their own axis.
+        state.measurements.filter { it.recorded > 0 }.forEach { trend ->
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            MeasurementSectionBlock(trend)
+        }
     }
 }
+
+@Composable
+private fun MeasurementSectionBlock(trend: MeasurementTrend, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.testTag(TestTags.Measurements.trend(trend.labelRes))) {
+        Text(
+            text = stringResource(trend.labelRes),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = trend.caption(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(TestTags.Measurements.trendCaption(trend.labelRes)),
+        )
+
+        if (trend.hasLine) {
+            val readings = trend.values.filterNotNull()
+            TrendChartFrame(
+                values = trend.values,
+                minValue = readings.min() - axisPad(readings),
+                maxValue = readings.max() + axisPad(readings),
+                testTag = TestTags.Measurements.trendChart(trend.labelRes),
+            )
+        }
+    }
+}
+
+/**
+ * How far the axis reaches past the readings.
+ *
+ * A measurement series is not a rating on a fixed 1-to-10, so its own range is what the chart has to
+ * show — with a little room above and below, so a line at the top edge is not mistaken for a ceiling.
+ * A series where every reading is the same has no range at all, so it gets one.
+ */
+private fun axisPad(readings: List<Double>): Double {
+    val span = readings.max() - readings.min()
+    return if (span == 0.0) 1.0 else span * AXIS_PAD_FRACTION
+}
+
+private const val AXIS_PAD_FRACTION = 0.1
 
 @Composable
 private fun TrendSectionBlock(section: TrendSection, modifier: Modifier = Modifier) {
@@ -213,4 +261,15 @@ private fun TrendsScreenPreview() {
             onBack = {},
         )
     }
+}
+
+/** What a measurement series reads as: the latest reading, and how many there have been. */
+private fun MeasurementTrend.caption(): String {
+    val value = latest ?: return ""
+    val reading = when (unit) {
+        MeasurementUnit.KILOGRAMS -> Weight.kilograms(value.toLong())
+        MeasurementUnit.PERCENT -> MeasurementFormat.percent(value.toInt())
+        MeasurementUnit.CENTIMETRES -> MeasurementFormat.centimetres(value.toLong())
+    }
+    return reading
 }

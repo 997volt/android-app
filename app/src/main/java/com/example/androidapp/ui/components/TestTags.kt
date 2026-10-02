@@ -111,6 +111,7 @@ object TestTags {
 
     fun trendChart(metric: String) = "trend_chart_$metric"
 
+
     /** A read that failed, shown where the data would have been (ROADMAP B4). */
     const val LIBRARY_READ_ERROR = "library_read_error"
     const val EXERCISE_READ_ERROR = "exercise_read_error"
@@ -276,5 +277,12 @@ object TestTags {
         fun tape(site: TapeSite) = "measurements_tape_${site.name.lowercase()}"
     
         fun delete(id: String) = "measurements_delete_$id"
+
+        /** The trend series a measurement appears as, on the trends screen. */
+        fun trend(labelRes: Int) = "trend_measurement_$labelRes"
+
+        fun trendChart(labelRes: Int) = "trend_measurement_chart_$labelRes"
+
+        fun trendCaption(labelRes: Int) = "trend_measurement_caption_$labelRes"
     }
 }
