@@ -1,13 +1,12 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.RangeKind
 import com.example.androidapp.domain.model.WorkoutSummary
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** What the overview counts, and what it refuses to claim (ROADMAP N35). */
@@ -30,8 +29,8 @@ class StatisticsOverviewTest {
             zone = zone,
         )
 
-        assertEquals(2, overview.workouts)
-        assertEquals(20_500_000L, overview.volumeGrams)
+        assertThat(overview.workouts).isEqualTo(2)
+        assertThat(overview.volumeGrams).isEqualTo(20_500_000L)
     }
 
     @Test
@@ -48,8 +47,8 @@ class StatisticsOverviewTest {
             zone = zone,
         )
 
-        assertEquals(1, overview.workouts)
-        assertEquals(1_000L, overview.volumeGrams)
+        assertThat(overview.workouts).isEqualTo(1)
+        assertThat(overview.volumeGrams).isEqualTo(1_000L)
     }
 
     @Test
@@ -64,24 +63,25 @@ class StatisticsOverviewTest {
             zone = zone,
         )
 
-        assertEquals(2, overview.workouts)
-        assertEquals(12_000L, overview.volumeGrams)
+        assertThat(overview.workouts).isEqualTo(2)
+        assertThat(overview.volumeGrams).isEqualTo(12_000L)
     }
 
     @Test
     fun anEmptyRange_isZerosRatherThanNothing() {
         val overview = statisticsOverview(StatisticsRange(RangeKind.LAST_7_DAYS), today, emptyList(), zone)
 
-        assertEquals(0, overview.workouts)
-        assertEquals(0L, overview.volumeGrams)
+        assertThat(overview.workouts).isEqualTo(0)
+        assertThat(overview.volumeGrams).isEqualTo(0L)
     }
 
     @Test
     fun recordsAreNotCountedYet_andSaySoRatherThanZero() {
         // A zero here would be a claim: "you set no records". Null is the truth, and the screen can say
         // "not counted yet" instead of printing a number it does not have.
-        assertNull(statisticsOverview(StatisticsRange(RangeKind.ALL), today, emptyList(), zone).personalRecords)
-        assertNull(StatisticsOverview().personalRecords)
+        assertThat(statisticsOverview(StatisticsRange(RangeKind.ALL), today, emptyList(), zone).personalRecords)
+            .isNull()
+        assertThat(StatisticsOverview().personalRecords).isNull()
     }
 
     @Test
@@ -96,7 +96,7 @@ class StatisticsOverviewTest {
             personalRecords = 4,
         )
 
-        assertEquals(4, overview.personalRecords)
+        assertThat(overview.personalRecords).isEqualTo(4)
     }
 
     private fun session(date: LocalDate, hour: Int = 12, volume: Long) = WorkoutSummary(

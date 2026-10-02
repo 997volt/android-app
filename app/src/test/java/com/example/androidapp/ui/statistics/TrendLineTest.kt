@@ -1,8 +1,8 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import java.time.Instant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -31,15 +31,15 @@ class TrendLineTest {
             3L to 81_500.0,
         ).trend()!!
 
-        assertEquals("half a kilo a week", -500.0, trend.perWeek, 0.001)
-        assertEquals(4, trend.points)
+        assertWithMessage("half a kilo a week").that(trend.perWeek).isWithin(0.001).of(-500.0)
+        assertThat(trend.points).isEqualTo(4)
     }
 
     @Test
     fun aFlatSeries_hasNoSlope() {
         val trend = series(0L to 82_000.0, 1L to 82_000.0, 2L to 82_000.0).trend()!!
 
-        assertEquals(0.0, trend.perWeek, 0.0001)
+        assertThat(trend.perWeek).isWithin(0.0001).of(0.0)
     }
 
     @Test
@@ -52,27 +52,27 @@ class TrendLineTest {
             3L to 82_000.0,
         ).trend()!!
 
-        assertEquals(0.0, trend.perWeek, 0.0001)
-        assertEquals("three readings, not four moments", 3, trend.points)
+        assertThat(trend.perWeek).isWithin(0.0001).of(0.0)
+        assertWithMessage("three readings, not four moments").that(trend.points).isEqualTo(3)
     }
 
     @Test
     fun oneReading_isANumberRatherThanATrend() {
-        assertNull(series(0L to 82_000.0).trend())
-        assertNull(series(0L to 82_000.0, 1L to null).trend())
+        assertThat(series(0L to 82_000.0).trend()).isNull()
+        assertThat(series(0L to 82_000.0, 1L to null).trend()).isNull()
     }
 
     @Test
     fun readingsAtTheSameInstant_haveNoSlopeToSpeakOf() {
-        assertNull(series(0L to 82_000.0, 0L to 83_000.0).trend())
+        assertThat(series(0L to 82_000.0, 0L to 83_000.0).trend()).isNull()
     }
 
     @Test
     fun theSlopeText_carriesItsSign() {
         // Signed because a slope with no sign is half the information: the same number is progress on a
         // bodyweight and a warning on joint pain.
-        assertEquals("−0.3", slopeText(-300.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) })
-        assertEquals("+0.3", slopeText(300.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) })
-        assertEquals("+0.0", slopeText(0.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) })
+        assertThat(slopeText(-300.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) }).isEqualTo("−0.3")
+        assertThat(slopeText(300.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) }).isEqualTo("+0.3")
+        assertThat(slopeText(0.0) { String.format(java.util.Locale.ROOT, "%.1f", it / 1000) }).isEqualTo("+0.0")
     }
 }

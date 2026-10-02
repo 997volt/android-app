@@ -1,8 +1,7 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
 import java.time.Instant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** What the readings list shows, and what it leaves out (ROADMAP N36). */
@@ -23,8 +22,8 @@ class ReadingsListTest {
             MetricReading(september, 82_000.0),
         ).asReadings()
 
-        assertEquals(listOf(october, september, august), list.map { it.at })
-        assertEquals(listOf(81_000.0, 82_000.0, 83_000.0), list.map { it.value })
+        assertThat(list.map { it.at }).isEqualTo(listOf(october, september, august))
+        assertThat(list.map { it.value }).isEqualTo(listOf(81_000.0, 82_000.0, 83_000.0))
     }
 
     @Test
@@ -36,14 +35,14 @@ class ReadingsListTest {
             MetricReading(october, 81_000.0),
         ).asReadings()
 
-        assertEquals(2, list.size)
-        assertEquals(listOf(october, august), list.map { it.at })
+        assertThat(list.size).isEqualTo(2)
+        assertThat(list.map { it.at }).isEqualTo(listOf(october, august))
     }
 
     @Test
     fun aSeriesWithNothingInIt_isAnEmptyListRatherThanAnError() {
-        assertEquals(emptyList<Reading>(), series(MetricReading(august, null)).asReadings())
-        assertEquals(emptyList<Reading>(), series().asReadings())
+        assertThat(series(MetricReading(august, null)).asReadings()).isEqualTo(emptyList<Reading>())
+        assertThat(series().asReadings()).isEqualTo(emptyList<Reading>())
     }
 
     @Test
@@ -55,12 +54,12 @@ class ReadingsListTest {
             MetricReading(october, 82_000.0),
         ).average()
 
-        assertEquals(81_000.0, average!!, 0.0001)
+        assertThat(average!!).isWithin(0.0001).of(81_000.0)
     }
 
     @Test
     fun anAverageOfNothing_isNullRatherThanZero() {
-        assertNull(series().average())
-        assertNull(series(MetricReading(august, null)).average())
+        assertThat(series().average()).isNull()
+        assertThat(series(MetricReading(august, null)).average()).isNull()
     }
 }

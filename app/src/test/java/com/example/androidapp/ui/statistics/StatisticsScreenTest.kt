@@ -3,7 +3,6 @@ package com.example.androidapp.ui.statistics
 import com.google.common.truth.Truth.assertThat
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextClearance
-import org.junit.Assert.assertTrue
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.Exercise
@@ -23,7 +22,6 @@ import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import java.time.Instant
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -103,7 +101,7 @@ class StatisticsScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.LAST_YEAR.name)).performClick()
 
-        assertEquals(RangeKind.LAST_YEAR, chosen?.kind)
+        assertThat(chosen?.kind).isEqualTo(RangeKind.LAST_YEAR)
     }
 
     @Test
@@ -126,7 +124,7 @@ class StatisticsScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.metric(volume.id)).performClick()
 
-        assertEquals(volume, chosen)
+        assertThat(chosen).isEqualTo(volume)
     }
 
     @Test
@@ -326,7 +324,7 @@ class StatisticsScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.MEASUREMENTS).performClick()
 
-        assertTrue(opened)
+        assertThat(opened).isTrue()
     }
 
     @Test
@@ -356,7 +354,7 @@ class StatisticsScreenTest {
         composeTestRule.onNodeWithTag(TestTags.Statistics.LIFT).performClick()
         composeTestRule.onNodeWithTag(TestTags.Statistics.lift("bench-press")).performClick()
 
-        assertEquals("bench-press", chosen)
+        assertThat(chosen).isEqualTo("bench-press")
     }
 
     private fun lift(id: String, name: String) = Exercise(

@@ -1,13 +1,10 @@
 package com.example.androidapp.ui.statistics
 
 import com.google.common.truth.Truth.assertThat
-import org.junit.Assert.assertNull
+import com.google.common.truth.Truth.assertWithMessage
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.TapeSite
 import com.example.androidapp.domain.model.TrendMetric
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -24,28 +21,25 @@ class MetricRegistryTest {
     @Test
     fun everySeriesIsRegistered_andNothingElse() {
         TrendMetric.entries.forEach { metric ->
-            assertEquals(
-                "the workout series are all here",
-                1,
-                entries.count { it.key == MetricKey.Workout(metric) },
-            )
+            assertWithMessage("the workout series are all here")
+                .that(entries.count { it.key == MetricKey.Workout(metric) })
+                .isEqualTo(1)
         }
         ExerciseTrendMetric.entries.forEach { metric ->
-            assertEquals(
-                "and so are the exercise ones",
-                1,
-                entries.count { it.key == MetricKey.Exercise(metric) },
-            )
+            assertWithMessage("and so are the exercise ones")
+                .that(entries.count { it.key == MetricKey.Exercise(metric) })
+                .isEqualTo(1)
         }
         BodyMetric.entries.forEach { metric ->
-            assertEquals(1, entries.count { it.key == MetricKey.Body(metric) })
+            assertThat(entries.count { it.key == MetricKey.Body(metric) }).isEqualTo(1)
         }
         TapeSite.entries.forEach { site ->
-            assertEquals("every tape site is a series", 1, entries.count { it.key == MetricKey.Tape(site) })
+            assertWithMessage("every tape site is a series").that(entries.count { it.key == MetricKey.Tape(site) })
+                .isEqualTo(1)
         }
 
         // Three ratings, eight exercise metrics, three body metrics and seven tape sites.
-        assertEquals(21, entries.size)
+        assertThat(entries.size).isEqualTo(21)
     }
 
     @Test
@@ -54,12 +48,12 @@ class MetricRegistryTest {
         // missed round trip would show one metric while claiming another.
         val ids = entries.map { it.key.id }
 
-        assertEquals("no two series share an id", ids.size, ids.distinct().size)
+        assertWithMessage("no two series share an id").that(ids.distinct().size).isEqualTo(ids.size)
         entries.forEach { entry ->
-            assertEquals(entry, MetricRegistry.byId(entry.key.id))
+            assertThat(MetricRegistry.byId(entry.key.id)).isEqualTo(entry)
         }
-        assertNull("an unknown id is nothing, not a default", MetricRegistry.byId("WORKOUT:NOPE"))
-        assertNull(MetricRegistry.byId(null))
+        assertWithMessage("an unknown id is nothing, not a default").that(MetricRegistry.byId("WORKOUT:NOPE")).isNull()
+        assertThat(MetricRegistry.byId(null)).isNull()
     }
 
     @Test
@@ -85,15 +79,15 @@ class MetricRegistryTest {
         // A rate without a unit is an ambiguous number, which is how "−0.483 per week" shipped: the slope was
         // formatted correctly and the thing it was a slope *of* was missing.
         MetricUnit.entries.forEach { unit ->
-            assertTrue("$unit has no label", unit.labelRes != 0)
+            assertWithMessage("$unit has no label").that(unit.labelRes != 0).isTrue()
         }
-        assertEquals(MetricUnit.entries.size, MetricUnit.entries.map { it.labelRes }.distinct().size)
+        assertThat(MetricUnit.entries.map { it.labelRes }.distinct().size).isEqualTo(MetricUnit.entries.size)
     }
 
     @Test
     fun everyEntryCanBeFoundByItsKey() {
         entries.forEach { entry ->
-            assertEquals(entry, MetricRegistry.entryFor(entry.key))
+            assertThat(MetricRegistry.entryFor(entry.key)).isEqualTo(entry)
         }
     }
 
@@ -103,11 +97,9 @@ class MetricRegistryTest {
         // the invariant is per group, which is how the picker shows them.
         MetricGroup.entries.forEach { group ->
             val labels = entries.filter { it.group == group }.map { it.labelRes }
-            assertEquals(
-                "two series in $group share a label, so one of them is unreadable",
-                labels.size,
-                labels.distinct().size,
-            )
+            assertWithMessage("two series in $group share a label, so one of them is unreadable")
+                .that(labels.distinct().size)
+                .isEqualTo(labels.size)
         }
     }
 
@@ -115,29 +107,21 @@ class MetricRegistryTest {
     fun onlyAssistanceAndPain_areBetterWhenLower() {
         val lower = entries.filterNot { it.higherIsBetter }.map { it.key }.toSet()
 
-        assertEquals(
-            "assistance and joint pain are the two where less is better",
-            setOf(
+        assertWithMessage("assistance and joint pain are the two where less is better").that(lower).isEqualTo(setOf(
                 MetricKey.Exercise(ExerciseTrendMetric.ASSISTANCE),
                 MetricKey.Workout(TrendMetric.JOINT_PAIN),
                 MetricKey.Exercise(ExerciseTrendMetric.JOINT_PAIN),
-            ),
-            lower,
-        )
+            ))
     }
 
     @Test
     fun countLikeSeriesAreBars_andTheRestAreLines() {
         val bars = entries.filter { it.isBars }.map { it.key }.toSet()
 
-        assertEquals(
-            "a quantity is bars; a position on a scale is a line",
-            setOf(
+        assertWithMessage("a quantity is bars; a position on a scale is a line").that(bars).isEqualTo(setOf(
                 MetricKey.Exercise(ExerciseTrendMetric.VOLUME),
                 MetricKey.Exercise(ExerciseTrendMetric.TOTAL_REPS),
-            ),
-            bars,
-        )
+            ))
     }
 
     @Test
@@ -145,20 +129,18 @@ class MetricRegistryTest {
         // A weight axis that started at the lightest set would exaggerate every change; a weight of zero
         // is a real weight, which is why a load is drawn from it.
         ExerciseTrendMetric.entries.filter { it.isLoad }.forEach { metric ->
-            assertTrue("$metric is a load", MetricRegistry.entryFor(MetricKey.Exercise(metric)).fromZero)
+            assertWithMessage("$metric is a load").that(MetricRegistry.entryFor(MetricKey.Exercise(metric)).fromZero)
+                .isTrue()
         }
-        assertFalse(MetricRegistry.entryFor(MetricKey.Workout(TrendMetric.RPE)).fromZero)
-        assertFalse(MetricRegistry.entryFor(MetricKey.Body(BodyMetric.WEIGHT)).fromZero)
+        assertThat(MetricRegistry.entryFor(MetricKey.Workout(TrendMetric.RPE)).fromZero).isFalse()
+        assertThat(MetricRegistry.entryFor(MetricKey.Body(BodyMetric.WEIGHT)).fromZero).isFalse()
     }
 
     @Test
     fun onlyTheExerciseGroupNeedsALiftChosen() {
         entries.forEach { entry ->
-            assertEquals(
-                "${entry.key} chooses for itself whether a lift is needed",
-                entry.group == MetricGroup.EXERCISE,
-                entry.needsExercise,
-            )
+            assertWithMessage("${entry.key} chooses for itself whether a lift is needed").that(entry.needsExercise)
+                .isEqualTo(entry.group == MetricGroup.EXERCISE)
         }
     }
 }

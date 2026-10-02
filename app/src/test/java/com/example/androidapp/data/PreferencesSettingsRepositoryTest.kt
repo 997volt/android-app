@@ -1,6 +1,7 @@
 package com.example.androidapp.data
 
-import org.junit.Assert.assertNull
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import java.time.LocalDate
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.RangeKind
@@ -11,8 +12,6 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.RestTimer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -39,7 +38,7 @@ class PreferencesSettingsRepositoryTest {
         context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
             .edit().clear().commit()
 
-        assertEquals(StatisticsRange(RangeKind.LAST_7_DAYS), repository().observeStatisticsRange().first())
+        assertThat(repository().observeStatisticsRange().first()).isEqualTo(StatisticsRange(RangeKind.LAST_7_DAYS))
     }
 
     @Test
@@ -51,9 +50,9 @@ class PreferencesSettingsRepositoryTest {
             to = LocalDate.of(2026, 8, 31),
         )
 
-        assertTrue(repository.setStatisticsRange(custom) is DataResult.Success)
+        assertThat(repository.setStatisticsRange(custom) is DataResult.Success).isTrue()
 
-        assertEquals(custom, repository.observeStatisticsRange().first())
+        assertThat(repository.observeStatisticsRange().first()).isEqualTo(custom)
     }
 
     @Test
@@ -61,10 +60,10 @@ class PreferencesSettingsRepositoryTest {
         val repository = repository()
         val half = StatisticsRange(kind = RangeKind.CUSTOM, from = LocalDate.of(2026, 8, 1), to = null)
 
-        assertTrue(repository.setStatisticsRange(half) is DataResult.Success)
+        assertThat(repository.setStatisticsRange(half) is DataResult.Success).isTrue()
 
         // The window treats a missing end as "nothing excluded"; the store must not invent one.
-        assertEquals(half, repository.observeStatisticsRange().first())
+        assertThat(repository.observeStatisticsRange().first()).isEqualTo(half)
     }
 
     @Test
@@ -76,12 +75,12 @@ class PreferencesSettingsRepositoryTest {
             StatisticsRange(RangeKind.CUSTOM, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)),
         )
 
-        assertTrue(repository.setStatisticsRange(StatisticsRange(RangeKind.LAST_7_DAYS)) is DataResult.Success)
+        assertThat(repository.setStatisticsRange(StatisticsRange(RangeKind.LAST_7_DAYS)) is DataResult.Success).isTrue()
 
         val stored = repository.observeStatisticsRange().first()
-        assertEquals(RangeKind.LAST_7_DAYS, stored.kind)
-        assertNull(stored.from)
-        assertNull(stored.to)
+        assertThat(stored.kind).isEqualTo(RangeKind.LAST_7_DAYS)
+        assertThat(stored.from).isNull()
+        assertThat(stored.to).isNull()
     }
 
     @Test
@@ -91,7 +90,7 @@ class PreferencesSettingsRepositoryTest {
         context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
             .edit().clear().putString("statistics_range_kind", "LAST_DECADE").commit()
 
-        assertEquals(RangeKind.LAST_7_DAYS, repository().observeStatisticsRange().first().kind)
+        assertThat(repository().observeStatisticsRange().first().kind).isEqualTo(RangeKind.LAST_7_DAYS)
     }
 
     @Test
@@ -100,16 +99,16 @@ class PreferencesSettingsRepositoryTest {
         context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
             .edit().clear().commit()
 
-        assertEquals(RestTimer.DEFAULT_SECONDS, repository().observeDefaultRestSeconds().first())
+        assertThat(repository().observeDefaultRestSeconds().first()).isEqualTo(RestTimer.DEFAULT_SECONDS)
     }
 
     @Test
     fun aStoredValue_comesBack() = runTest {
         val repository = repository()
 
-        assertTrue(repository.setDefaultRestSeconds(45) is DataResult.Success)
+        assertThat(repository.setDefaultRestSeconds(45) is DataResult.Success).isTrue()
 
-        assertEquals(45, repository.observeDefaultRestSeconds().first())
+        assertThat(repository.observeDefaultRestSeconds().first()).isEqualTo(45)
     }
 
     @Test
@@ -122,9 +121,10 @@ class PreferencesSettingsRepositoryTest {
 
         val refused = repository.setDefaultRestSeconds(0)
 
-        assertTrue(refused is DataResult.Failure)
-        assertTrue((refused as DataResult.Failure).error is DataError.Invalid)
-        assertEquals("the stored value is untouched", 60, repository.observeDefaultRestSeconds().first())
+        assertThat(refused is DataResult.Failure).isTrue()
+        assertThat((refused as DataResult.Failure).error is DataError.Invalid).isTrue()
+        assertWithMessage("the stored value is untouched").that(repository.observeDefaultRestSeconds().first())
+            .isEqualTo(60)
     }
 
     @Test
@@ -132,6 +132,6 @@ class PreferencesSettingsRepositoryTest {
         // The point of a preference over in-memory state: it survives the object that wrote it.
         repository().setDefaultRestSeconds(120)
 
-        assertEquals(120, repository().observeDefaultRestSeconds().first())
+        assertThat(repository().observeDefaultRestSeconds().first()).isEqualTo(120)
     }
 }

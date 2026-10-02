@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.navigation
 
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -13,10 +15,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,26 +66,26 @@ class AppTabTest {
 
         composeTestRule.onNodeWithTag(TestTags.TAB_LIBRARY).performClick()
 
-        assertEquals(AppTab.LIBRARY, chosen)
+        assertThat(chosen).isEqualTo(AppTab.LIBRARY)
     }
 
     @Test
     fun aTabRootMapsToItsTab_andAPushedRouteDoesNot() {
-        assertEquals(AppTab.HISTORY, AppTab.forRoute(history))
-        assertEquals(AppTab.WORKOUTS, AppTab.forRoute(workouts))
+        assertThat(AppTab.forRoute(history)).isEqualTo(AppTab.HISTORY)
+        assertThat(AppTab.forRoute(workouts)).isEqualTo(AppTab.WORKOUTS)
 
         // WorkoutDetail is pushed from a tab, so it is not a tab: a bar that lit up for it would be
         // claiming the detail is a destination of its own.
         val detail = WorkoutDetail("s1").let { WorkoutDetail.serializer().descriptor.serialName }
-        assertNull(AppTab.forRoute(detail))
-        assertNull(AppTab.forRoute(null))
+        assertThat(AppTab.forRoute(detail)).isNull()
+        assertThat(AppTab.forRoute(null)).isNull()
     }
 
     @Test
     fun aRouteCarryingArguments_stillMapsToItsTab() {
         // The pattern a route with arguments compiles to has them appended, which is why the match is a
         // prefix: an equality would miss exactly the routes that carry data.
-        assertTrue(AppTab.STATISTICS.isCurrent("$statistics?from={from}"))
+        assertThat(AppTab.STATISTICS.isCurrent("$statistics?from={from}")).isTrue()
     }
 
     @Test
@@ -95,13 +93,14 @@ class AppTabTest {
         val workout = ActiveWorkout.serializer().descriptor.serialName
         val picker = ExercisePicker.serializer().descriptor.serialName
 
-        assertFalse("a live set logger is not a tab", showsTabBar(workout))
-        assertFalse("nor is the picker one step earlier", showsTabBar("$picker?templateId={templateId}"))
+        assertWithMessage("a live set logger is not a tab").that(showsTabBar(workout)).isFalse()
+        assertWithMessage("nor is the picker one step earlier").that(showsTabBar("$picker?templateId={templateId}"))
+            .isFalse()
 
-        assertTrue("a tab root keeps it", showsTabBar(history))
+        assertWithMessage("a tab root keeps it").that(showsTabBar(history)).isTrue()
         val detail = "${WorkoutDetail.serializer().descriptor.serialName}?sessionId={sessionId}"
-        assertTrue("and so does a detail pushed inside a tab", showsTabBar(detail))
-        assertTrue("and before the graph settles", showsTabBar(null))
+        assertWithMessage("and so does a detail pushed inside a tab").that(showsTabBar(detail)).isTrue()
+        assertWithMessage("and before the graph settles").that(showsTabBar(null)).isTrue()
     }
 
     @Test
@@ -120,20 +119,20 @@ class AppTabTest {
 
         composeTestRule.runOnIdle { navController.switchTab(AppTab.HISTORY) }
         composeTestRule.waitForIdle()
-        assertEquals(history, navController.currentDestination?.route)
+        assertThat(navController.currentDestination?.route).isEqualTo(history)
 
         composeTestRule.runOnIdle { navController.switchTab(AppTab.LIBRARY) }
         composeTestRule.waitForIdle()
-        assertEquals(library, navController.currentDestination?.route)
+        assertThat(navController.currentDestination?.route).isEqualTo(library)
 
         // Coming back finds the tab rather than rebuilding a path through the one in between.
         composeTestRule.runOnIdle { navController.switchTab(AppTab.HISTORY) }
         composeTestRule.waitForIdle()
-        assertEquals(history, navController.currentDestination?.route)
+        assertThat(navController.currentDestination?.route).isEqualTo(history)
 
         // And back from a tab root lands on Workouts, not on the tab visited before it.
         composeTestRule.runOnIdle { navController.popBackStack() }
         composeTestRule.waitForIdle()
-        assertEquals(workouts, navController.currentDestination?.route)
+        assertThat(navController.currentDestination?.route).isEqualTo(workouts)
     }
 }

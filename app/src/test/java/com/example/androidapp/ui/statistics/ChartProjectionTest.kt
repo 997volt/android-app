@@ -1,9 +1,9 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.example.androidapp.ui.components.ChartPoint
 import java.time.Instant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -29,9 +29,9 @@ class ChartProjectionTest {
             ),
         )
 
-        assertEquals(0f, points[0].x, 0.0001f)
-        assertEquals(0.5f, points[1].x, 0.0001f)
-        assertEquals(1f, points[2].x, 0.0001f)
+        assertThat(points[0].x).isWithin(0.0001f).of(0f)
+        assertThat(points[1].x).isWithin(0.0001f).of(0.5f)
+        assertThat(points[2].x).isWithin(0.0001f).of(1f)
     }
 
     @Test
@@ -46,9 +46,9 @@ class ChartProjectionTest {
             ),
         )
 
-        assertEquals(0f, points[0].x, 0.0001f)
-        assertEquals("a day out of a month is a small step", 0.032f, points[1].x, 0.005f)
-        assertEquals(1f, points[2].x, 0.0001f)
+        assertThat(points[0].x).isWithin(0.0001f).of(0f)
+        assertWithMessage("a day out of a month is a small step").that(points[1].x).isWithin(0.005f).of(0.032f)
+        assertThat(points[2].x).isWithin(0.0001f).of(1f)
     }
 
     @Test
@@ -61,8 +61,8 @@ class ChartProjectionTest {
             ),
         )
 
-        assertEquals("it is still a place on the axis", 0.5f, points[1].x, 0.0001f)
-        assertNull("and a break in the line", points[1].value)
+        assertWithMessage("it is still a place on the axis").that(points[1].x).isWithin(0.0001f).of(0.5f)
+        assertWithMessage("and a break in the line").that(points[1].value).isNull()
     }
 
     @Test
@@ -70,8 +70,8 @@ class ChartProjectionTest {
         // There is no span to place it across, and the left edge would read as "the start of something".
         val points = projectByTime(listOf(MetricReading(day, 80_000.0)))
 
-        assertEquals(1, points.size)
-        assertEquals(0.5f, points.single().x, 0.0001f)
+        assertThat(points.size).isEqualTo(1)
+        assertThat(points.single().x).isWithin(0.0001f).of(0.5f)
     }
 
     @Test
@@ -83,11 +83,11 @@ class ChartProjectionTest {
             ),
         )
 
-        assertEquals(listOf(0.5f, 0.5f), points.map { it.x })
+        assertThat(points.map { it.x }).isEqualTo(listOf(0.5f, 0.5f))
     }
 
     @Test
     fun nothingAtAll_isNoPoints() {
-        assertEquals(emptyList<ChartPoint>(), projectByTime(emptyList()))
+        assertThat(projectByTime(emptyList())).isEqualTo(emptyList<ChartPoint>())
     }
 }

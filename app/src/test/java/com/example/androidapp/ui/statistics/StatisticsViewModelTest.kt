@@ -1,6 +1,7 @@
 package com.example.androidapp.ui.statistics
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidapp.domain.repository.ExerciseRepository
 import com.example.androidapp.domain.model.MuscleGroup
@@ -39,8 +40,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -72,8 +71,8 @@ class StatisticsViewModelTest {
         observe(viewModel)
         advanceUntilIdle()
 
-        assertEquals(RangeKind.LAST_MONTH, viewModel.uiState.value.range.kind)
-        assertEquals(MetricKey.Body(BodyMetric.WEIGHT), viewModel.uiState.value.selection.metric)
+        assertThat(viewModel.uiState.value.range.kind).isEqualTo(RangeKind.LAST_MONTH)
+        assertThat(viewModel.uiState.value.selection.metric).isEqualTo(MetricKey.Body(BodyMetric.WEIGHT))
     }
 
     @Test
@@ -92,9 +91,9 @@ class StatisticsViewModelTest {
         advanceUntilIdle()
 
         val overview = viewModel.uiState.value.overview
-        assertEquals(2, overview.workouts)
-        assertEquals(15_000L, overview.volumeGrams)
-        assertEquals("the record count comes from its own query", 3, overview.personalRecords)
+        assertThat(overview.workouts).isEqualTo(2)
+        assertThat(overview.volumeGrams).isEqualTo(15_000L)
+        assertWithMessage("the record count comes from its own query").that(overview.personalRecords).isEqualTo(3)
     }
 
     @Test
@@ -112,8 +111,8 @@ class StatisticsViewModelTest {
         advanceUntilIdle()
 
         val series = viewModel.uiState.value.series
-        assertEquals("only the readings inside the window", 2, series?.readings?.size)
-        assertEquals(83_000.0, series?.readings?.first()?.value)
+        assertWithMessage("only the readings inside the window").that(series?.readings?.size).isEqualTo(2)
+        assertThat(series?.readings?.first()?.value).isEqualTo(83_000.0)
     }
 
     @Test
@@ -128,7 +127,7 @@ class StatisticsViewModelTest {
         viewModel.onSelectMetric(MetricKey.Workout(TrendMetric.RPE))
         advanceUntilIdle()
 
-        assertEquals(8.0, viewModel.uiState.value.series?.readings?.single()?.value)
+        assertThat(viewModel.uiState.value.series?.readings?.single()?.value).isEqualTo(8.0)
     }
 
     @Test
@@ -144,14 +143,15 @@ class StatisticsViewModelTest {
 
         viewModel.onSelectMetric(MetricKey.Exercise(ExerciseTrendMetric.VOLUME))
         advanceUntilIdle()
-        assertTrue("with no lift chosen yet, the screen says so", viewModel.uiState.value.needsExercise)
+        assertWithMessage("with no lift chosen yet, the screen says so").that(viewModel.uiState.value.needsExercise)
+            .isTrue()
 
         viewModel.onSelectExercise("back-squat")
         advanceUntilIdle()
 
-        assertEquals("back-squat", trends.askedFor)
-        assertEquals(4_000_000.0, viewModel.uiState.value.series?.readings?.single()?.value)
-        assertEquals(false, viewModel.uiState.value.needsExercise)
+        assertThat(trends.askedFor).isEqualTo("back-squat")
+        assertThat(viewModel.uiState.value.series?.readings?.single()?.value).isEqualTo(4_000_000.0)
+        assertThat(viewModel.uiState.value.needsExercise).isEqualTo(false)
     }
 
     @Test
@@ -165,7 +165,7 @@ class StatisticsViewModelTest {
         viewModel.onSelectRange(custom)
         advanceUntilIdle()
 
-        assertEquals(custom, settings.stored.value)
+        assertThat(settings.stored.value).isEqualTo(custom)
     }
 
     /** A measurement entry, with only the fields these tests care about. */
@@ -182,13 +182,13 @@ class StatisticsViewModelTest {
         // Exercise series means nothing until a lift is chosen, so the screen must not land on bodyweight.
         val selection = initialSelection("bench-press")
 
-        assertEquals("bench-press", selection.exerciseId)
-        assertTrue(selection.metric is MetricKey.Exercise)
+        assertThat(selection.exerciseId).isEqualTo("bench-press")
+        assertThat(selection.metric is MetricKey.Exercise).isTrue()
     }
 
     @Test
     fun arrivingWithNoLift_startsOnBodyweight() {
-        assertEquals(StatisticsSelection(), initialSelection(null))
+        assertThat(initialSelection(null)).isEqualTo(StatisticsSelection())
     }
 
     @Test
@@ -202,10 +202,7 @@ class StatisticsViewModelTest {
         observe(viewModel)
         advanceUntilIdle()
 
-        assertEquals(
-            listOf("Back Squat", "Barbell Bench Press"),
-            viewModel.uiState.value.lifts.map { it.name },
-        )
+        assertThat(viewModel.uiState.value.lifts.map { it.name }).isEqualTo(listOf("Back Squat", "Barbell Bench Press"))
     }
 
     private fun lift(id: String, name: String) = Exercise(

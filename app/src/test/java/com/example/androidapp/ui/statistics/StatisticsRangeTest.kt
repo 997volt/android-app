@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.statistics
 
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.example.androidapp.domain.model.window
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.RangeKind
@@ -7,10 +9,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -28,8 +26,8 @@ class StatisticsRangeTest {
         // A picker entry with no label is an invisible option, and two kinds sharing one is unreadable.
         val labels = RangeKind.entries.map { it.labelRes }
 
-        assertEquals(RangeKind.entries.size, labels.distinct().size)
-        assertTrue("every kind is labelled", labels.none { it == 0 })
+        assertThat(labels.distinct().size).isEqualTo(RangeKind.entries.size)
+        assertWithMessage("every kind is labelled").that(labels.none { it == 0 }).isTrue()
     }
 
     private fun at(date: LocalDate, hour: Int = 12) =
@@ -39,31 +37,23 @@ class StatisticsRangeTest {
     fun sevenDays_includesTodayAndTheSixBeforeIt() {
         val window = StatisticsRange(RangeKind.LAST_7_DAYS).window(today, zone)!!
 
-        assertEquals(at(LocalDate.of(2026, 9, 26), hour = 0), window.from)
-        assertTrue(at(LocalDate.of(2026, 9, 26)) in window)
-        assertTrue(at(today, hour = 23) in window)
+        assertThat(window.from).isEqualTo(at(LocalDate.of(2026, 9, 26), hour = 0))
+        assertThat(at(LocalDate.of(2026, 9, 26)) in window).isTrue()
+        assertThat(at(today, hour = 23) in window).isTrue()
         // Exclusive at the end: tomorrow belongs to tomorrow's window, not today's.
-        assertFalse(at(today.plusDays(1), hour = 0) in window)
+        assertThat(at(today.plusDays(1), hour = 0) in window).isFalse()
     }
 
     @Test
     fun theLongerRanges_goBackTheMonthsTheySay() {
-        assertEquals(
-            at(LocalDate.of(2026, 9, 2), hour = 0),
-            StatisticsRange(RangeKind.LAST_MONTH).window(today, zone)!!.from,
-        )
-        assertEquals(
-            at(LocalDate.of(2026, 7, 2), hour = 0),
-            StatisticsRange(RangeKind.LAST_3_MONTHS).window(today, zone)!!.from,
-        )
-        assertEquals(
-            at(LocalDate.of(2026, 4, 2), hour = 0),
-            StatisticsRange(RangeKind.LAST_6_MONTHS).window(today, zone)!!.from,
-        )
-        assertEquals(
-            at(LocalDate.of(2025, 10, 2), hour = 0),
-            StatisticsRange(RangeKind.LAST_YEAR).window(today, zone)!!.from,
-        )
+        assertThat(StatisticsRange(RangeKind.LAST_MONTH).window(today, zone)!!.from)
+            .isEqualTo(at(LocalDate.of(2026, 9, 2), hour = 0))
+        assertThat(StatisticsRange(RangeKind.LAST_3_MONTHS).window(today, zone)!!.from)
+            .isEqualTo(at(LocalDate.of(2026, 7, 2), hour = 0))
+        assertThat(StatisticsRange(RangeKind.LAST_6_MONTHS).window(today, zone)!!.from)
+            .isEqualTo(at(LocalDate.of(2026, 4, 2), hour = 0))
+        assertThat(StatisticsRange(RangeKind.LAST_YEAR).window(today, zone)!!.from)
+            .isEqualTo(at(LocalDate.of(2025, 10, 2), hour = 0))
     }
 
     @Test
@@ -75,17 +65,17 @@ class StatisticsRangeTest {
         val now = saved.window(today, zone)!!
         val nextWeek = saved.window(today.plusDays(7), zone)!!
 
-        assertTrue("today moves with the calendar", nextWeek.toExclusive > now.toExclusive)
-        assertEquals(at(today.plusDays(8), hour = 0), nextWeek.toExclusive)
-        assertFalse("and the old window's end is now inside it", at(today, hour = 23) in nextWeek)
+        assertWithMessage("today moves with the calendar").that(nextWeek.toExclusive > now.toExclusive).isTrue()
+        assertThat(nextWeek.toExclusive).isEqualTo(at(today.plusDays(8), hour = 0))
+        assertWithMessage("and the old window's end is now inside it").that(at(today, hour = 23) in nextWeek).isFalse()
     }
 
     @Test
     fun allTime_excludesNothing() {
-        assertNull(StatisticsRange(RangeKind.ALL).window(today, zone))
+        assertThat(StatisticsRange(RangeKind.ALL).window(today, zone)).isNull()
 
         val readings = listOf(MetricReading(at(LocalDate.of(2020, 1, 1), hour = 12), 80_000.0))
-        assertEquals(readings, StatisticsRange(RangeKind.ALL).inWindow(readings, today, zone))
+        assertThat(StatisticsRange(RangeKind.ALL).inWindow(readings, today, zone)).isEqualTo(readings)
     }
 
     @Test
@@ -97,9 +87,9 @@ class StatisticsRangeTest {
         )
 
         val window = range.window(today, zone)!!
-        assertEquals(at(LocalDate.of(2026, 8, 1), hour = 0), window.from)
-        assertTrue(at(LocalDate.of(2026, 8, 31), hour = 23) in window)
-        assertFalse(at(LocalDate.of(2026, 9, 1), hour = 0) in window)
+        assertThat(window.from).isEqualTo(at(LocalDate.of(2026, 8, 1), hour = 0))
+        assertThat(at(LocalDate.of(2026, 8, 31), hour = 23) in window).isTrue()
+        assertThat(at(LocalDate.of(2026, 9, 1), hour = 0) in window).isFalse()
     }
 
     @Test
@@ -107,14 +97,14 @@ class StatisticsRangeTest {
         val forwards = StatisticsRange(RangeKind.CUSTOM, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31))
         val backwards = StatisticsRange(RangeKind.CUSTOM, LocalDate.of(2026, 8, 31), LocalDate.of(2026, 8, 1))
 
-        assertEquals(forwards.window(today, zone), backwards.window(today, zone))
+        assertThat(backwards.window(today, zone)).isEqualTo(forwards.window(today, zone))
     }
 
     @Test
     fun customWithNoDatesYet_isEverythingRatherThanNothing() {
         // An empty form excludes nothing. An empty chart would look like a failure to load.
-        assertNull(StatisticsRange(RangeKind.CUSTOM).window(today, zone))
-        assertNull(StatisticsRange(RangeKind.CUSTOM, from = today, to = null).window(today, zone))
+        assertThat(StatisticsRange(RangeKind.CUSTOM).window(today, zone)).isNull()
+        assertThat(StatisticsRange(RangeKind.CUSTOM, from = today, to = null).window(today, zone)).isNull()
     }
 
     @Test
@@ -127,8 +117,8 @@ class StatisticsRangeTest {
 
         val kept = StatisticsRange(RangeKind.LAST_7_DAYS).inWindow(readings, today, zone)
 
-        assertEquals("the September reading is out of range", 1, kept.size)
-        assertNull("and the October one is a gap that stays", kept.single().value)
+        assertWithMessage("the September reading is out of range").that(kept.size).isEqualTo(1)
+        assertWithMessage("and the October one is a gap that stays").that(kept.single().value).isNull()
     }
 
     @Test
@@ -139,7 +129,7 @@ class StatisticsRangeTest {
 
         val window = StatisticsRange(RangeKind.LAST_7_DAYS).window(today, zone)!!
 
-        assertTrue(midnight in window)
-        assertFalse("the instant before the first day is not in it", justBefore in window)
+        assertThat(midnight in window).isTrue()
+        assertWithMessage("the instant before the first day is not in it").that(justBefore in window).isFalse()
     }
 }

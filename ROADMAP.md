@@ -38,21 +38,10 @@ after it (N26–N28), repeating the last workout (N29) and the session timezone 
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
 
-### Test assertions move to Truth (no feature id — it is a rework of existing tests)
 
-A rule in DECISIONS.md says new and touched tests assert with Truth and assert Flow sequences with Turbine;
-**78 of 81 test files use JUnit's `assertEquals`**, including the statistics suite written for N35–N40. The
-decision was to convert those, and it is unfinished: `ChartAxisTest` is done as the worked example, and ten
-statistics test files remain.
-
-**Do it one file at a time, compiling between each.** A scripted rewrite was tried and reverted: it mistook a
-trailing comma for a tolerance argument and rewrote two-argument assertions as `isWithin(...).of(...)`, and it
-turned a string expectation into a message. The traps, now known: a trailing comma is not an argument; a
-two-argument `assertEquals` with a string first argument is *expected/actual*, not *message/actual*; a message is
-only possible where an expected/actual pair follows it; and a single un-convertible call must not end the pass
-over a file. JUnit's `assertEquals(expected, actual)` is Truth's `assertThat(actual).isEqualTo(expected)`;
-`assertEquals(expected, actual, delta)` is `assertThat(actual).isWithin(delta).of(expected)`; lists compare with
-`isEqualTo(listOf(...))`, and Truth spells "at least" `isAtLeast`.
+**Test assertions are on Truth** across the JVM suite, including the statistics tests written for N35–N40. The
+instrumented suite keeps JUnit: Truth is `testImplementation` only, which is the rule's own stated limit rather
+than an exception to it.
 
 ## Later (still self-contained)
 
