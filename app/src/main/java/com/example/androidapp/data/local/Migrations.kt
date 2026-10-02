@@ -462,6 +462,23 @@ db.execSQL(
     }
 }
 
+/**
+ * v18 -> v19: an index on the session's start time (ROADMAP B46).
+ *
+ * The statistics range filter scans `workout_sessions` by `startedAt`, and the record count does too. The
+ * existing `finishedAt` index cannot serve either — one filters `IS NOT NULL`, the other wants a range on a
+ * different column — so the record query was reading every set ever logged and running a correlated subquery
+ * per row. The index has to be created from the entity too, so Room's schema validation still matches.
+ */
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_workout_sessions_startedAt` " +
+                "ON `workout_sessions` (`startedAt`)",
+        )
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -481,4 +498,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_15_16,
     MIGRATION_16_17,
     MIGRATION_17_18,
+    MIGRATION_18_19,
 )

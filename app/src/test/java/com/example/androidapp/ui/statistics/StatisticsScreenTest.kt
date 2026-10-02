@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.DataError
+import java.io.IOException
+import androidx.compose.ui.test.onNodeWithText
 import com.google.common.truth.Truth.assertThat
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextClearance
@@ -385,6 +388,67 @@ class StatisticsScreenTest {
         setScreen()
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.CHOOSE_LIFT).assertDoesNotExist()
+    }
+
+    @Test
+    fun withALiftAlreadyChosen_thePickerIsStillOffered() {
+        // The defect this guards: the picker was drawn only while *nothing* was selected, and every entry
+        // point selects a lift, so arriving from the library or from a lift just performed left no way to
+        // change it. The prompt is for the empty case; the control is for either.
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                selection = StatisticsSelection(
+                    metric = MetricKey.Exercise(ExerciseTrendMetric.VOLUME),
+                    exerciseId = "back-squat",
+                ),
+                lifts = listOf(lift("back-squat", "Back Squat"), lift("bench-press", "Barbell Bench Press")),
+                series = series,
+            ),
+        )
+
+        // No question, because an answer is already on screen...
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHOOSE_LIFT).assertDoesNotExist()
+        // ...but the control that changes the answer is.
+        composeTestRule.onNodeWithTag(TestTags.Statistics.LIFT).assertExists()
+    }
+
+    @Test
+    fun theChosenLift_isTheOneTheControlNames() {
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                selection = StatisticsSelection(
+                    metric = MetricKey.Exercise(ExerciseTrendMetric.VOLUME),
+                    exerciseId = "bench-press",
+                ),
+                lifts = listOf(lift("back-squat", "Back Squat"), lift("bench-press", "Barbell Bench Press")),
+                series = series,
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Barbell Bench Press").assertExists()
+    }
+
+    @Test
+    fun loading_saysSo_ratherThanClaimingZero() {
+        // The overview reads "0 workouts · 0 kg" from the default state, which is a claim about data that has
+        // not been read yet — and the same zeros used to appear behind a failed read.
+        setScreen(state = StatisticsUiState(isLoading = true))
+
+        composeTestRule.onNodeWithText("Loading statistics…").assertExists()
+    }
+
+    @Test
+    fun aFailedRead_saysSo_ratherThanClaimingZero() {
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                error = DataError.Storage(IOException("disk full")),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Couldn’t save that. Your last change may not be stored.").assertExists()
     }
 }
 

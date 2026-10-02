@@ -17,7 +17,13 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "workout_sessions",
-    indices = [Index(value = ["finishedAt"])],
+    indices = [
+        Index(value = ["finishedAt"]),
+        // The statistics range filter scans by start time, and the `finishedAt` index cannot serve it: one
+        // asks `IS NOT NULL`, this one asks a range on another column. Without it the record count reads
+        // every set ever logged (ROADMAP B46).
+        Index(value = ["startedAt"]),
+    ],
 )
 data class WorkoutSessionEntity(
     @PrimaryKey val id: String,

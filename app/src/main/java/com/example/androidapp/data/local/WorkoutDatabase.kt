@@ -25,7 +25,7 @@ import androidx.room.TypeConverters
         TemplateSetEntity::class,
         MeasurementEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

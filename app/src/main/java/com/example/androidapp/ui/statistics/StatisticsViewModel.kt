@@ -81,7 +81,18 @@ data class StatisticsUiState(
      * one of them is true.
      */
     val needsExercise: Boolean
-        get() = MetricRegistry.entryFor(selection.metric).needsExercise && selection.exerciseId == null
+        get() = metricNeedsExercise && selection.exerciseId == null
+
+    /**
+     * True when the chosen metric is about a lift at all.
+     *
+     * Separate from [needsExercise] because the two drive different things, and conflating them made the
+     * picker unreachable: the screen gated the *picker* on "nothing is chosen yet", so the only way to change
+     * lift was to arrive with none selected — and every entry point selects one. This is "the metric needs a
+     * lift"; that is "and there is not one yet", which is about the prompt instead.
+     */
+    val metricNeedsExercise: Boolean
+        get() = MetricRegistry.entryFor(selection.metric).needsExercise
 }
 
 /**
@@ -156,7 +167,7 @@ class StatisticsViewModel @Inject constructor(
 
     /** How many records the window contains. Its own flow because it is a suspend read, not a stream. */
     private val records = range.mapLatest { current ->
-        val bounds = current.window(today(), ZONE) ?: return@mapLatest null
+        val bounds = current.window(today(), currentZone()) ?: return@mapLatest null
         (repositories.statistics.countRecordsIn(bounds.from, bounds.toExclusive) as? DataResult.Success)?.data
     }
 
@@ -181,7 +192,7 @@ class StatisticsViewModel @Inject constructor(
                         measurements = sources.measurements,
                     ).readings,
                     today = today(),
-                    zone = ZONE,
+                    zone = currentZone(),
                 )
                 StatisticsUiState(
                     isLoading = false,
@@ -191,7 +202,7 @@ class StatisticsViewModel @Inject constructor(
                         range = sources.range,
                         today = today(),
                         sessions = sources.summaries,
-                        zone = ZONE,
+                        zone = currentZone(),
                         personalRecords = records,
                     ),
                     series = MetricSeries(key = sources.selection.metric, readings = body),
@@ -229,7 +240,7 @@ class StatisticsViewModel @Inject constructor(
     }
 
     private fun today(): LocalDate =
-        Instant.ofEpochMilli(timeSource.nowEpochMillis()).atZone(ZONE).toLocalDate()
+        Instant.ofEpochMilli(timeSource.nowEpochMillis()).atZone(currentZone()).toLocalDate()
 
     private companion object {
         /**
@@ -241,6 +252,13 @@ class StatisticsViewModel @Inject constructor(
          */
         const val WINDOW = 500
         const val STOP_TIMEOUT_MILLIS = 5_000L
-        val ZONE: ZoneId = ZoneId.systemDefault()
+        /**
+         * The zone "today" is measured in, read when it is asked for.
+         *
+         * A function rather than a `val`: a companion-object `val` is evaluated once at class load, so a
+         * process that outlives a timezone change would keep computing today's date in the old zone. See
+         * DECISIONS.md — a range is a window in the current zone.
+         */
+        fun currentZone(): ZoneId = ZoneId.systemDefault()
     }
 }

@@ -303,6 +303,21 @@ into this file once the feature ships.
 
 ## Rules that apply to every change
 
+- **A range is a window in the current zone; a session's date is where it happened** (B45). These are two
+  different questions and the app answers them differently on purpose. A *window* — "the last 7 days", a
+  custom range — is one interval, and an interval has to be measured somewhere; the device's current zone is
+  the only answer that makes "today" mean today for the person reading the screen. A *session's date* is a
+  fact about the past, so it is shown in the zone the session was performed in, which is what N25 stores. The
+  consequence is real and accepted: after a long flight a workout near midnight can be listed under one date
+  and fall outside a window that appears to include it. The alternative — a window per session — is not a
+  window, and one screen cannot be drawn against several intervals at once. The reason this is written down
+  rather than patched is that the two readings are both correct about different things, so the next person to
+  notice the mismatch should find a decision here instead of a bug report.
+- **The current zone is read when it is needed, never captured** (B45). `ZoneId.systemDefault()` is a
+  function for a reason: a `val` in a companion object freezes the zone at class load, so a process that
+  outlives a timezone change keeps computing "today" in a zone the device no longer has. Every screen reads
+  it at the point of use, and the statistics view model now does too.
+
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
   does (`onClickLabel`), *announce* state changes rather than only drawing them, and tag
   things so tests do not assert on English literals.

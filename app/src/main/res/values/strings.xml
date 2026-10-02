@@ -171,6 +171,7 @@
     <string name="statistics_average">Average</string>
     <string name="statistics_trend">Trend</string>
     <string name="statistics_moving_average">Average of last</string>
+    <string name="statistics_loading">Loading statistics…</string>
     <string name="statistics_goal">Target</string>
     <string name="statistics_goal_none">Set a target</string>
     <string name="statistics_goal_confirm">Set</string>

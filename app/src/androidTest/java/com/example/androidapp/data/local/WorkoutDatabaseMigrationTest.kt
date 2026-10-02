@@ -829,4 +829,37 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration18To19_addsTheStartTimeIndex_leavingTheRowsAlone() {
+        // ROADMAP B46. An index is the migration with nothing to show for itself: it changes no column and no
+        // row, so only a test can tell an upgrade that added it from one that did nothing. What matters is
+        // that the rows survive and the index exists, because a query cannot report a missing index — it
+        // just gets slower.
+        helper.createDatabase(TEST_DB, 18).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, finishedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 100, 200, 100, 200, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 19, true, MIGRATION_18_19)
+
+        migrated.query("SELECT id, startedAt FROM workout_sessions").use { cursor ->
+            assertTrue("the workout already there survived", cursor.moveToFirst())
+            assertEquals("s1", cursor.getString(0))
+            assertEquals(100L, cursor.getLong(1))
+        }
+        migrated.query(
+            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+            arrayOf("index_workout_sessions_startedAt"),
+        ).use { cursor ->
+            assertTrue("the index the range filter needs is there", cursor.moveToFirst())
+        }
+
+        migrated.close()
+    }
 }

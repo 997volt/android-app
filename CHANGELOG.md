@@ -141,6 +141,26 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **The Statistics screen can change the lift again.** The picker was drawn only while *no* lift was
+  selected, and every entry point — the library, the workout detail, a lift just performed — arrives with one
+  already chosen, so the lift could never be changed. The prompt ("choose a lift") is for the empty case and
+  the control is for either; they were being asked of the same flag, and the control lost. Its
+  selected-name branch was dead code, which is the tell that it was meant to be reachable.
+- **Loading and failure no longer read as "0 workouts, 0 kg".** The overview and the chart were drawn from
+  the default state before anything had been read, so a first frame — and any failed read, which had no
+  message at all — made a claim about data the screen did not have. Both now say what is happening, using the
+  shared message component and the read error the view model was already carrying.
+
+### Added
+
+- **An index on `workout_sessions.startedAt`, schema v19** (B46). The statistics range filter scans by start
+  time and the record count does too, and the existing `finishedAt` index cannot serve either — one filters
+  `IS NOT NULL`, the other wants a range on a different column — so the record query read every set ever
+  logged and ran a correlated subquery per row. The `MigrationTestHelper` case seeds a real row and asserts
+  both that it survives and that the index exists, because an index migration is the one kind with nothing to
+  show for itself: a query cannot report a missing index, it just gets slower.
+
+
 - **The exported schema for version 18 was corrupted, and is regenerated.** That file listed fifteen
   entities for eight tables — every table from before the measurements work appeared twice, byte for byte.
   Room never writes that and nothing consumed the duplicates, so it was invisible; what makes it worth

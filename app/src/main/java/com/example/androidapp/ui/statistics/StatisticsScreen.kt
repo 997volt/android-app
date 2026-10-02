@@ -50,6 +50,8 @@ import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.RangeKind
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.components.TrendChartFrame
 
 /** The Statistics tab (ROADMAP N35). */
@@ -126,8 +128,51 @@ fun StatisticsScreen(
                 onChooseDates = { choosingDates = true },
             )
             MetricPicker(selected = state.selection.metric, onSelectMetric = onSelectMetric)
-            Overview(overview = state.overview)
 
+            // The overview and the chart both read the series, so neither is drawn until it exists: a frame
+            // that printed "0 workouts · 0 kg" while loading was making a claim about data it had not read
+            // yet, and the same zeros appeared behind a failed read with no message at all.
+            when {
+                state.isLoading -> CenteredMessage(
+                    text = stringResource(R.string.statistics_loading),
+                    showSpinner = true,
+                )
+
+                state.error != null -> CenteredMessage(text = dataErrorMessage(state.error))
+
+                else -> StatisticsBody(
+                    state = state,
+                    series = state.series,
+                    onSelectExercise = onSelectExercise,
+                    onSetGoal = onSetGoal,
+                    goal = state.goal,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What the screen shows once the series has been read.
+ *
+ * Split out so the loading and error frames above are a decision about the *state* rather than a set of
+ * conditions threaded through the body.
+ */
+@Composable
+private fun StatisticsBody(
+    state: StatisticsUiState,
+    series: com.example.androidapp.ui.statistics.MetricSeries?,
+    onSelectExercise: (String) -> Unit,
+    onSetGoal: (Double?) -> Unit,
+    goal: Double?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Overview(overview = state.overview)
+
+        // The picker is drawn whenever the metric is about a lift, not only when nothing is chosen yet.
+        // Gating it on "no lift selected" made it unreachable: every entry point arrives with one selected,
+        // so the lift could never be changed, and the picker's own selected-name branch was dead code.
+        if (state.metricNeedsExercise) {
             if (state.needsExercise) {
                 Text(
                     text = stringResource(R.string.statistics_choose_lift),
@@ -135,21 +180,21 @@ fun StatisticsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag(TestTags.Statistics.CHOOSE_LIFT),
                 )
-                LiftPicker(
-                    lifts = state.lifts,
-                    selectedId = state.selection.exerciseId,
-                    onSelectExercise = onSelectExercise,
-                )
             }
+            LiftPicker(
+                lifts = state.lifts,
+                selectedId = state.selection.exerciseId,
+                onSelectExercise = onSelectExercise,
+            )
+        }
 
-            state.series?.let { series ->
+        series?.let { series ->
                 val entry = MetricRegistry.entryFor(series.key)
                 SeriesChart(series = series, metric = entry, goal = state.goal)
                 // Under the chart, and the literal answer to "see everything" — which is also the accessible
                 // counterpart to a canvas this app blanks out for screen readers (ROADMAP N36).
                 ReadingsSection(series = series, metric = entry)
                 GoalRow(goal = state.goal, metric = entry, onSetGoal = onSetGoal)
-            }
         }
     }
 }
