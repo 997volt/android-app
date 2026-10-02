@@ -23,6 +23,16 @@ data object ExerciseLibrary
 @Serializable
 data class ExerciseDetail(val exerciseId: String)
 
+/**
+ * The Statistics tab (ROADMAP N35).
+ *
+ * It replaced the workout-trends screen, which was the tab root before it: the registry draws every series
+ * that screen drew and the rest of them too, so keeping both would have been two screens answering one
+ * question.
+ */
+@Serializable
+data object Statistics
+
 /** One exercise's own trends (ROADMAP N17), reached from the library or a past lift. */
 @Serializable
 data class ExerciseTrends(val exerciseId: String)
@@ -77,9 +87,6 @@ data class ActiveWorkout(
 @Serializable
 data class ExercisePicker(val templateId: String? = null)
 
-/** What the app collected, read back (ROADMAP N13). */
-@Serializable
-data object WorkoutTrends
 
 /** The template list (ROADMAP N3). */
 @Serializable

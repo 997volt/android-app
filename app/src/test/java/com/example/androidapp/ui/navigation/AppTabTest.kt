@@ -37,7 +37,7 @@ class AppTabTest {
     private val history = WorkoutHistory.serializer().descriptor.serialName
     private val library = ExerciseLibrary.serializer().descriptor.serialName
     private val workouts = WorkoutsHome.serializer().descriptor.serialName
-    private val statistics = WorkoutTrends.serializer().descriptor.serialName
+    private val statistics = Statistics.serializer().descriptor.serialName
 
     @Test
     fun theBar_offersFiveNamedTabs_andSaysWhichIsSelected() {
@@ -113,7 +113,7 @@ class AppTabTest {
                 composable<WorkoutsHome> { Text("workouts") }
                 composable<WorkoutHistory> { Text("history") }
                 composable<ExerciseLibrary> { Text("library") }
-                composable<WorkoutTrends> { Text("statistics") }
+                composable<Statistics> { Text("statistics") }
                 composable<Settings> { Text("settings") }
             }
         }

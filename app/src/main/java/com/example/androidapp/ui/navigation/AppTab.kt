@@ -28,8 +28,8 @@ import com.example.androidapp.ui.components.TestTags
  * it lives under Workouts — and Library stays the exercise reference it is rather than becoming a second
  * way to start a session.
  *
- * Statistics currently selects the trends screen; N35 replaces that destination with the Statistics
- * screen itself, and the tab does not move when it does.
+ * Statistics is the screen that answers "how is everything going" (N35); it replaced the trends screen,
+ * which drew three of the twenty-one series the registry now covers.
  */
 enum class AppTab(
     /** The route this tab selects. */
@@ -61,8 +61,8 @@ enum class AppTab(
         TestTags.TAB_HISTORY,
     ),
     STATISTICS(
-        WorkoutTrends,
-        WorkoutTrends.serializer().descriptor.serialName,
+        Statistics,
+        Statistics.serializer().descriptor.serialName,
         R.string.tab_statistics,
         Icons.Filled.Insights,
         TestTags.TAB_STATISTICS,

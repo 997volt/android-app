@@ -25,7 +25,7 @@ import com.example.androidapp.ui.history.WorkoutDetailRoute
 import com.example.androidapp.ui.history.WorkoutHistoryRoute
 import com.example.androidapp.ui.home.WorkoutsHomeRoute
 import com.example.androidapp.ui.templates.TemplateEditorRoute
-import com.example.androidapp.ui.trends.TrendsRoute
+import com.example.androidapp.ui.statistics.StatisticsRoute
 import com.example.androidapp.ui.templates.TemplatesRoute
 import com.example.androidapp.ui.workout.ActiveWorkoutRoute
 import com.example.androidapp.ui.workout.ExercisePickerRoute
@@ -104,12 +104,8 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
         )
     }
 
-    composable<WorkoutTrends> {
-        TrendsRoute(
-            onBack = { navController.popBackStack() },
-            // The tab's own pushed destination (ROADMAP N34).
-            onOpenMeasurements = { navController.navigate(Measurements) },
-        )
+    composable<Statistics> {
+        StatisticsRoute()
     }
 
     composable<ExerciseLibrary> {

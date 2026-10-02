@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Workout</string>
     <string name="nav_back">Back</string>
     <!-- Exercise library -->
     <string name="exercise_library_title">Exercise library</string>
@@ -167,6 +166,7 @@
     <string name="statistics_metric">Metric</string>
     <string name="tab_library">Library</string>
     <string name="tab_settings">Settings</string>
+    <string name="app_name">Workout</string>
     <string name="measurements_title">Measurements</string>
     <string name="measurements_add">Add measurement</string>
     <string name="measurements_empty">No measurements yet.</string>
@@ -209,16 +209,8 @@
     <string name="workout_note_body">Optional — why it went well or badly. You can add it later from the workout.</string>
     <string name="workout_note_label">Comment</string>
     <string name="workout_note_row">Comment</string>
-    <string name="trends_title">Trends</string>
-    <string name="trends_loading">Loading trends…</string>
-    <string name="trends_empty">Nothing to show yet</string>
-    <string name="trends_empty_hint">Trends come from the RPE, muscle feel and joint pain you record during a workout.</string>
     <!-- "with a rating" matters: a finished workout that recorded nothing is not in
          the window, so a bare "last 2 workouts" would misstate what is on screen. -->
-    <plurals name="trends_window">
-        <item quantity="one">Last %1$d workout with a rating</item>
-        <item quantity="other">Last %1$d workouts with a rating</item>
-    </plurals>
     <string name="trends_metric_rpe">RPE</string>
     <!-- One exercise's own trends (ROADMAP N17). -->
     <string name="exercise_trends_title">Trends</string>
