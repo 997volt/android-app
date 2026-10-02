@@ -46,6 +46,7 @@ class ActiveWorkoutScreenTest {
         val onRateExercise: (String, Int?, Int?, String?) -> Unit = { _, _, _, _ -> },
         val onFinish: (String?) -> Unit = {},
         val onLogSet: (String, SetType) -> Unit = { _, _ -> },
+        val onAcceptOffer: (String) -> Unit = {},
     )
 
     private fun setScreen(
@@ -59,6 +60,7 @@ class ActiveWorkoutScreenTest {
                 clock = remember { mutableStateOf(WorkoutClock()) },
                 onAddExercise = {},
                 onLogSet = actions.onLogSet,
+                onAcceptOffer = actions.onAcceptOffer,
                 personalRecord = personalRecord,
                 onUpdateSet = { _, _, _, _, _, _, _ -> },
                 onRemoveExercise = actions.onRemoveExercise,
@@ -518,5 +520,42 @@ class ActiveWorkoutScreenTest {
         setScreen(state = state(isFinished = true))
 
         composeTestRule.onNodeWithTag(TestTags.supersetToggle("se1")).assertDoesNotExist()
+    }
+
+    @Test
+    fun anOfferIsTakeable_andNamesItsOwnRow() {
+        // ROADMAP N33: the button is the only way a proposal becomes the prefill, so what it reports is
+        // the row it was about.
+        var accepted: String? = null
+        val base = state(isFinished = false)
+        val offered = base.copy(
+            exercises = base.exercises.map {
+                it.copy(
+                    suggestion = SetSuggestion(
+                        reps = 5,
+                        weightGrams = 100_000L,
+                        offer = SetOffer(
+                            reps = 6,
+                            weightGrams = 100_000L,
+                            assistanceGrams = 0L,
+                            reason = ProgressionReason.MORE_REPS,
+                        ),
+                    ),
+                )
+            },
+        )
+
+        setScreen(offered, actions = Actions(onAcceptOffer = { accepted = it }))
+        composeTestRule.onNodeWithTag(TestTags.SUGGESTION_ACCEPT).performClick()
+
+        assertEquals(base.exercises.single().id, accepted)
+    }
+
+    @Test
+    fun withNoOffer_thereIsNothingToTake() {
+        // The button is not decoration: with nothing proposed there is no action to offer.
+        setScreen(state(isFinished = false))
+
+        composeTestRule.onNodeWithTag(TestTags.SUGGESTION_ACCEPT).assertDoesNotExist()
     }
 }
