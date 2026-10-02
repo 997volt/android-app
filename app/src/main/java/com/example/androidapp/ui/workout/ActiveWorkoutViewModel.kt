@@ -794,9 +794,11 @@ class ActiveWorkoutViewModel @Inject constructor(
     /**
      * What "this workout is over" means, in one place.
      *
-     * Every path that closes the screen goes through here: a workout that is over must
-     * not leave a rest alarm armed, and a path that forgot the cancel would be silent —
-     * exactly what happened when N11 rewrote `onFinish` and skipped `write`.
+     * Every path that closes the screen goes through here. It used to have a second job — cancelling the
+     * background rest alert — and the history is kept only as a warning: N11 rewrote `onFinish` and
+     * skipped this call, which was silent until a test caught it. The alert is gone (ROADMAP N26), so
+     * what remains is the closing, and one path that forgets it still strands the user on a finished
+     * workout.
      */
     private fun closeSession() {
         _closed.value = true

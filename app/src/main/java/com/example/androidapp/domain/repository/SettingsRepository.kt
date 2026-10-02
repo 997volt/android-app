@@ -49,9 +49,10 @@ interface SettingsRepository {
         /**
          * What the setting accepts, in seconds.
          *
-         * Bounded rather than free-form because this number becomes a PendingIntent alarm:
-         * zero or a negative rest is not a setting, it is a bug waiting to be entered, and
-         * a rest longer than the session itself is a mistake rather than a preference.
+         * Bounded rather than free-form: zero or a negative rest is not a setting, it is a bug waiting
+         * to be entered, and a rest longer than the session itself is a mistake rather than a
+         * preference. (This used to argue from the value becoming an alarm; the alert is gone
+         * (ROADMAP N26), and the bounds are still right — they are about what a rest means.)
          */
         val VALID_REST_SECONDS = 5..3600
     }

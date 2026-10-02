@@ -88,9 +88,6 @@ fun ActiveWorkoutRoute(
     val summary by viewModel.summary.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
 
-    // The rest alert needs two permissions that were declared but never requested
-    // (ROADMAP F13). Asked for on the first logged set, where the reason is obvious.
-
     // rememberUpdatedState, because the effect below restarts on `closed`:
     // reading the lambda parameter directly would capture whichever `onDone` was
     // current when the effect last started.

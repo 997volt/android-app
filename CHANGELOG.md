@@ -81,6 +81,11 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **The comments the removed rest alert left behind.** Six places still described permissions and
+  behaviour the app no longer has — including `AndroidManifest.xml`, the very file whose emptiness the
+  no-permissions promise rests on, and `AGENTS.md` naming a test fake that was deleted with the alert.
+  Documentation that contradicts the code is worse than none: a reader trusts the file nearest the
+  claim, which is how the stale comment outlives the change.
 - **Three tests that could not fail now can.** They were written for the background rest alert, and
   when the alert was deleted their assertions went with it — leaving two empty-bodied tests whose names
   described behaviour that no longer existed, and one that ran a whole finish flow to assert nothing.

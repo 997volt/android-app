@@ -26,8 +26,8 @@ class DataTransferActions(
  * Wires the data menu to the Storage Access Framework (ROADMAP P1.12).
  *
  * SAF rather than a fixed path or `WRITE_EXTERNAL_STORAGE`: the user picks where
- * the file goes, the app needs **no** storage permission, and its only declared
- * permission stays the optional rest alert. It also means the backup can live
+ * the file goes, and the app declares **no permissions at all** (ROADMAP N26) — so there
+ * is no storage permission to ask for and nothing else to ask for either. It also means the backup can live
  * somewhere that survives uninstalling the app, which is the entire point.
  *
  * The file IO lives here, in the composable, because it needs a `Context` and a

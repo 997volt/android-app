@@ -3,13 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Rest-timer alert (ROADMAP P1.4). POST_NOTIFICATIONS is a runtime permission
-      on API 33+; if it is refused the timer still runs in-app and the alert is
-      simply not posted.
-
-      SCHEDULE_EXACT_ALARM is a special permission the user grants in Settings.
-      It is requested so a rest can end on time, but the scheduler falls back to
-      an inexact alarm when it is not granted rather than failing.
+      **No permissions at all** (ROADMAP N26). This file declared POST_NOTIFICATIONS and
+      SCHEDULE_EXACT_ALARM for the background rest alert; the alert was removed and they went with it.
+      An empty permission list is a stronger statement about health data than any wording, so the
+      two comments that used to explain them are gone rather than left to mislead — see README.md.
     -->
 
     <!--

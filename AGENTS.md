@@ -48,7 +48,7 @@ than improving on them in passing.
   `runCatching` catches `Throwable` and so swallows cancellation; do not use it in a
   `suspend` function.
 - **No mocking framework, and no new test dependency without asking.** Tests use
-  hand-written fakes (`FakeWorkoutRepository`, `FakeRestNotifier`) and JUnit 4
+  hand-written fakes (`FakeWorkoutRepository`, `FakeTemplateRepository`) and JUnit 4
   assertions. Compose UI tests run on the JVM under Robolectric; the instrumented
   suite is for Room, DAOs and migrations.
 - **Migrations are numbered as they ship.** Copy the SQL from Room's generated
