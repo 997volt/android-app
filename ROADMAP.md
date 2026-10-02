@@ -40,16 +40,34 @@ after it (N26–N28), repeating the last workout (N29) and the session timezone 
 rather than a queue — the rest is in *Later*, and one CI thread from the rename is
 at the end of this section.
 
-### N30 — the CI emulator-options thread
+### N30 — the CI emulator thread, continued
 
-The rename is done: the app is **Workout**, the repository is `997volt/workout`, the description and
-topics are filled in, and the evidence a green run was wanted for is in hand — a green build job, the
-full instrumented suite passing locally, and the label read back with `aapt2 dump badging`. One thread
-is genuinely open. The pipeline's instrumented job fails because the emulator dies and the runner's own
-`adb emu kill` errors — a different failure from the boot timeout the step was already hardened for, and
-one `tools/ci-check-instrumented.py` correctly refuses to call green. The next lever is the emulator's
-*options*, which are unset: matching what works locally (`-no-window -gpu swiftshader_indirect
--no-snapshot -noaudio -no-boot-anim`), tried on its own so the result means something.
+**The emulator-options lever was already pulled.** The pinned `reactivecircus/android-emulator-runner`
+at the SHA this workflow uses defaults `emulator-options` to exactly the flags this repository's local
+runs use — `-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim` — so "none of those
+are set here" was true of the *file* and false of the run: an absent key inherits that default. Reading
+the action's own `action.yml` at the pinned SHA is what settled it, and it is worth recording as the
+lesson rather than the trivia: a workflow that omits a key is still choosing a value, and the value it
+chooses lives in the pinned action, not in this repository.
+
+The flags are now set explicitly anyway, so the workflow owns them rather than inheriting them and a
+future SHA bump cannot change how the emulator boots without this file saying so. That is hardening, not
+a fix, and it is stated as such.
+
+**What is actually left.** The failure that gated this job is the emulator dying mid-run, and the levers
+that remain untried are about the runner rather than the flags:
+
+- a lighter system image — `google_atd` or `aosp_atd`, which exist to be automated-test devices and boot
+  far faster and leaner than `google_apis`; this is the standard answer to a hosted runner whose emulator
+  dies, and it costs an API level (ATD images stop short of the newest) and therefore changes what the
+  suite is tested against;
+- `-memory` and `-cores`, which trade emulator stability against host pressure in either direction and
+  therefore need a measurement rather than a guess;
+- running the suite **nightly on a schedule** rather than behind a manual dispatch, so a regression in
+  the pipeline is noticed by the pipeline instead of by whoever remembers to ask.
+
+None of those is done here. The job stays gated, and the next change to it should be one of them, tried
+on its own so its result means something.
 
 ## Later (still self-contained)
 

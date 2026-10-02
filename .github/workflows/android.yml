@@ -152,10 +152,14 @@ jobs:
       # tests still exist. It is gated now. The instrumented suite still runs on every change — locally,
       # on a device, where it passes — and this job is the pipeline's confirmation of it, run when asked.
       #
-      # If it is ever to come back to every push, the untried lever is the emulator's own options:
-      # locally the same suite runs with -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
-      # -no-boot-anim, and none of those are set here. That should be tried on its own, so its result
-      # means something.
+      # N30. The lever this step was waiting for turned out to be pulled already: the flags the suite
+      # uses locally are the action's own defaults, so "try the emulator's options" could not have been
+      # the fix, and this run is not the experiment the roadmap expected. Checking the pinned action's
+      # action.yml is what settled it — its default is exactly
+      # `-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim`, which is what the
+      # absence of this key meant. They are set here anyway, explicitly, for two reasons: the workflow
+      # then owns the flags it depends on rather than inheriting them, and a future bump of the action's
+      # SHA cannot change how the emulator boots without this file saying so.
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -164,6 +168,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: ./gradlew connectedDebugAndroidTest --console=plain
 
       # B8. A green run whose XML records fewer tests than the source declares is the
