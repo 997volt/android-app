@@ -800,4 +800,33 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration17To18_addsMeasurements_withoutTouchingTheRowsAlreadyThere() {
+        // ROADMAP N32: a new table is the easiest migration to get wrong in the quiet direction — an
+        // upgrade that dropped what was there would look identical to one that worked, until someone
+        // opened a workout.
+        helper.createDatabase(TEST_DB, 17).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, finishedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 100, 200, 100, 200, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 18, true, MIGRATION_17_18)
+
+        migrated.query("SELECT id FROM workout_sessions").use { cursor ->
+            assertTrue("the workout already there survived", cursor.moveToFirst())
+            assertEquals("s1", cursor.getString(0))
+        }
+        migrated.query("SELECT COUNT(*) FROM measurements").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("and the new table is there, empty", 0, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
 }
