@@ -55,7 +55,14 @@ field; the rest are filled when they are taken, which is how people actually mea
   calf. A user-defined site list is a later row, not a first one.
 - **A new sync-shaped table** (`measurements`), so it rides the export — and the codec guard means its
   columns must reach the backup DTO in the same change.
-- **Shown as trends** on the existing chart: bodyweight first, then body fat, muscle and each site.
+- **Shown as trends on the existing chart** — read carefully, because the chart is not the series. The
+  trends screen is **session-indexed**: a `TrendPoint` is one workout, and `TrendMetric` reads a value off
+  it, so a measurement cannot travel that pipeline — it is not a session and has no RPE or muscle feel to
+  average. What it *can* share is `TrendChartFrame`, the component every series already draws through. So
+  measurements get their own series, one point per entry, drawn by the same chart: bodyweight first, then
+  body fat, muscle and each site. The alternative — new values on `TrendMetric` — would have forced them
+  through a shape whose x-axis is workouts, and the mismatch would have shown up as a chart with the wrong
+  axis rather than as an error.
   Entry and history live on a Measurements screen reached from home.
 - **What it deliberately does not do:** change volume. Bodyweight exercises count `0 kg` today — a
   settled decision in [DECISIONS.md](DECISIONS.md) — and using a recorded bodyweight in their volume is
