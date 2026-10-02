@@ -1325,6 +1325,11 @@ class ActiveWorkoutViewModelTest {
             flowOf(planned)
 
         override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun createTemplateFromSession(
+            sessionId: String,
+            name: String,
+        ): DataResult<String> = DataResult.Success("t1")
+
         override suspend fun createTemplate(name: String): DataResult<String> = notUsed()
         override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> =
             notUsed()

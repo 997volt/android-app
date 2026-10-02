@@ -299,6 +299,11 @@ class TemplateEditorViewModelTest {
             return DataResult.Success(Unit)
         }
 
+        override suspend fun createTemplateFromSession(
+            sessionId: String,
+            name: String,
+        ): DataResult<String> = DataResult.Success("t1")
+
         override suspend fun createTemplate(name: String): DataResult<String> =
             DataResult.Success("t-new")
 

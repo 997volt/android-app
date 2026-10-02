@@ -42,6 +42,23 @@ interface TemplateRepository {
      */
     suspend fun createTemplate(name: String): DataResult<String>
 
+    /**
+     * Saves a finished workout as a new plan (ROADMAP N31), returning the new plan's id.
+     *
+     * **One transaction, not a client-side loop.** [addExercise] returns `Unit` rather than the new id,
+     * so a loop would have to re-read the plan to find what it had just written — and could leave a
+     * half-built plan behind if anything failed in between. This is the same shape as seeding a session
+     * from a plan, in the other direction.
+     *
+     * Copies the exercises in order and **their performed sets as targets** — role, weight, assistance,
+     * reps and RPE — so a copied warm-up ramp is a ramp and a copied superset stays paired. It copies
+     * neither the readiness note, the ratings nor the workout comment: those describe that day rather
+     * than the plan. The source workout is untouched and stays independent of the copy.
+     *
+     * A workout with nothing to copy is refused rather than turned into an empty plan.
+     */
+    suspend fun createTemplateFromSession(sessionId: String, name: String): DataResult<String>
+
     suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit>
 
     /** Soft-deletes the template; its rows stay for an export to carry. */

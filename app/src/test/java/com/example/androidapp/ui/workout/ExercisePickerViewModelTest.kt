@@ -318,6 +318,11 @@ class ExercisePickerViewModelTest {
             error("these tests do not write a plan")
         }
 
+        override suspend fun createTemplateFromSession(
+            sessionId: String,
+            name: String,
+        ): DataResult<String> = DataResult.Success("t1")
+
         override suspend fun createTemplate(name: String): DataResult<String> = unused()
         override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> = unused()
         override suspend fun setWeekday(

@@ -1,5 +1,8 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.data.local.SetEntryEntity
+import com.example.androidapp.data.local.SessionExerciseEntity
+import com.example.androidapp.data.local.TemplateDao
 import androidx.room.withTransaction
 import com.example.androidapp.domain.model.Rpe
 import java.time.DayOfWeek
@@ -76,6 +79,44 @@ class RoomTemplateRepository @Inject constructor(
             ),
         )
         id
+    }
+
+    override suspend fun createTemplateFromSession(
+        sessionId: String,
+        name: String,
+    ): DataResult<String> = dataResultOf {
+        val trimmed = requireName(name)
+        database.withTransaction {
+            val exercises = database.sessionExerciseDao().findLiveSessionExercises(sessionId)
+            if (exercises.isEmpty()) {
+                throw InvalidInputException("That workout has no exercises to copy")
+            }
+            val sets = database.sessionExerciseDao()
+                .findLiveSetsForSession(sessionId)
+                .groupBy { it.sessionExerciseId }
+
+            val now = timeSource.nowEpochMillis()
+            val templateId = UUID.randomUUID().toString()
+            dao.insertTemplate(
+                TemplateEntity(
+                    id = templateId,
+                    name = trimmed,
+                    createdAt = now,
+                    updatedAt = now,
+                    deletedAt = null,
+                ),
+            )
+            val plan = PlanBeingBuilt(dao = dao, templateId = templateId, now = now)
+            exercises.forEachIndexed { index, exercise ->
+                copyExerciseInto(
+                    plan = plan,
+                    exercise = exercise,
+                    position = index,
+                    sets = sets[exercise.id].orEmpty(),
+                )
+            }
+            templateId
+        }
     }
 
     override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> =
@@ -347,5 +388,65 @@ class RoomTemplateRepository @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) throw InvalidInputException("Give the template a name.")
         return trimmed
+    }
+}
+
+/**
+ * Copies one performed exercise and its sets into a plan being built (ROADMAP N31).
+ *
+ * File-level rather than a private member, for the same reason the workout repository's append helper
+ * is: the class is at its function ceiling, and this keeps the copy a readable sequence rather than one
+ * long method.
+ */
+/** The plan a copy is being written into: what every exercise shares. */
+private class PlanBeingBuilt(
+    val dao: TemplateDao,
+    val templateId: String,
+    val now: Long,
+)
+
+private suspend fun copyExerciseInto(
+    plan: PlanBeingBuilt,
+    exercise: SessionExerciseEntity,
+    position: Int,
+    sets: List<SetEntryEntity>,
+) {
+    val plannedId = UUID.randomUUID().toString()
+    plan.dao.insertTemplateExercise(
+        TemplateExerciseEntity(
+            id = plannedId,
+            templateId = plan.templateId,
+            exerciseId = exercise.exerciseId,
+            position = position,
+            // The rest and the note are part of how it was performed, so the plan carries them; the
+            // grouping is what makes a copied superset arrive together (N24).
+            restSeconds = exercise.restSeconds,
+            techniqueNote = exercise.techniqueNote,
+            supersetGroup = exercise.supersetGroup,
+            createdAt = plan.now,
+            updatedAt = plan.now,
+            deletedAt = null,
+        ),
+    )
+    sets.forEachIndexed { setIndex, set ->
+        plan.dao.insertTemplateSet(
+            TemplateSetEntity(
+                id = UUID.randomUUID().toString(),
+                templateExerciseId = plannedId,
+                setIndex = setIndex,
+                role = set.setType,
+                targetWeightGrams = set.weightGrams,
+                // A set stores assistance as a magnitude and so does a plan; zero means "none", which
+                // is what a plan should say rather than zero.
+                targetAssistanceGrams = set.assistanceGrams.takeIf { it > 0L },
+                targetRepsMin = set.reps,
+                targetRepsMax = set.reps,
+                targetRpeHalves = set.rpeHalves,
+                note = set.note,
+                createdAt = plan.now,
+                updatedAt = plan.now,
+                deletedAt = null,
+            ),
+        )
     }
 }

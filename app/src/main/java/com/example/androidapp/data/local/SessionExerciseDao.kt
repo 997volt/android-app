@@ -69,6 +69,35 @@ interface SessionExerciseDao {
         """,
     )
     suspend fun lastFinishedSessionExercises(): List<RepeatExerciseRow>
+
+    /**
+     * The live exercises of one session, in the order they were performed (ROADMAP N31).
+     *
+     * The join drops an exercise deleted from the library since, the same rule the repeat query
+     * follows: a plan pointing at nothing would be worse than a plan missing one movement.
+     */
+    @Query(
+        """
+        SELECT se.* FROM session_exercises se
+        JOIN exercises e ON e.id = se.exerciseId
+        WHERE se.sessionId = :sessionId AND se.deletedAt IS NULL AND e.deletedAt IS NULL
+        ORDER BY se.position
+        """,
+    )
+    suspend fun findLiveSessionExercises(sessionId: String): List<SessionExerciseEntity>
+
+    /** Every live set of those exercises, for the same session (ROADMAP N31). */
+    @Query(
+        """
+        SELECT s.* FROM set_entries s
+        JOIN session_exercises se ON se.id = s.sessionExerciseId
+        JOIN exercises e ON e.id = se.exerciseId
+        WHERE se.sessionId = :sessionId
+          AND s.deletedAt IS NULL AND se.deletedAt IS NULL AND e.deletedAt IS NULL
+        ORDER BY se.position, s.setIndex
+        """,
+    )
+    suspend fun findLiveSetsForSession(sessionId: String): List<SetEntryEntity>
 }
 
 /**

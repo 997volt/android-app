@@ -195,6 +195,11 @@ class TemplatesViewModelTest {
             error("these tests do not write a plan")
         }
 
+        override suspend fun createTemplateFromSession(
+            sessionId: String,
+            name: String,
+        ): DataResult<String> = DataResult.Success("t1")
+
         override suspend fun createTemplate(name: String): DataResult<String> {
             if (failWrites) return DataResult.Failure(DataError.Storage(IOException("disk full")))
             createdName = name
