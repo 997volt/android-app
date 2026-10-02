@@ -261,6 +261,16 @@ into this file once the feature ships.
   is global, not program-only: how a workout was started says nothing about whether its lifter progresses by
   hand.
 
+- **CI runs nightly and before a release, not on every push** (N30). The emulator is the one piece of
+  infrastructure in this project that has failed without a test running, so a per-push run would mostly
+  report on the runner, and a red pipeline that says nothing about the change trains people to ignore it.
+  The per-change guard is the local gate set in AGENTS.md — the same tasks the build job runs — and the
+  nightly run is what catches the drift a local run cannot see. A release dispatches the pipeline first
+  (RELEASING.md step 5), because a release is the wrong time to discover the gate set has stopped working.
+  The concurrency group carries the event name, so a release dispatch and the nightly run cannot cancel
+  each other: that is not hypothetical, a push once cancelled an instrumented run twenty minutes in and the
+  cancelled job's summary was indistinguishable from an infrastructure failure.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

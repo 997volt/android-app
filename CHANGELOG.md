@@ -60,8 +60,17 @@ Notable changes to Workout, newest first. Format follows
   and the concurrency group now includes the event name — a dispatch before a release can no longer be
   cancelled by the nightly run, or the reverse. That last one was not hypothetical: a documentation push
   cancelled an instrumented run twenty minutes in, and the cancelled job's summary looked exactly like the
-  infrastructure failure this whole thread is about. What remains open is the emulator's reliability
-  itself, which the nightly run now measures (N30).
+  infrastructure failure this whole thread is about.
+- **CI: the instrumented suite runs green on the hosted runner.** It never had: the emulator took sixteen and
+  a half minutes to boot, spent the run `offline`, and died before a single test ran, so the job failed with
+  no report at all — three times with three signatures, the last of which is what gated it. The fix was the
+  image rather than the flags: an **Automated Test Device** (`aosp_atd`, API 34) boots in three and a half
+  minutes, and the suite now completes with the count guard satisfied — *declared 175 instrumented tests,
+  executed 175, every one executed*. It also runs against an image with no Google services, which is the
+  constraint this app has anyway. The cost is real and recorded: the suite is tested against API 34 rather
+  than 36. The flags the job was told to try turned out to be the action's own defaults, so that lever had
+  been pulled all along — a workflow that omits a key is still choosing a value, and the value lives in the
+  pinned action.
 
 - **The app's progression is now offered rather than applied.** N22 shipped a suggestion whose own
   documentation said it "suggests; it never writes", and in two places it *was* the value one tap logged:

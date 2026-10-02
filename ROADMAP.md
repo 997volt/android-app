@@ -35,8 +35,8 @@ order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`�
 **A UI round in six remaining steps**: a Statistics screen that shows everything, then the chart
 underneath it. **N34 — the five tabs — has shipped** and is in [CHANGELOG.md](CHANGELOG.md), as are N31–N33
 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
-after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). The one open thread
-from the rename, **N30**, stays at the end of this section.
+after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
+instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
 ### N35 — The Statistics tab
 
@@ -100,53 +100,6 @@ tests, the same way Epley and the warm-up ramp are.
 A trailing simple moving average, period configurable, default seven, drawn heavier with no dots. For
 bodyweight this is the point of the whole exercise: daily weight is noise, and the seven-day mean is the
 signal.
-
-### N30 — the CI emulator thread, continued
-
-**The emulator-options lever was already pulled.** The pinned `reactivecircus/android-emulator-runner`
-at the SHA this workflow uses defaults `emulator-options` to exactly the flags this repository's local
-runs use — `-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim` — so "none of those
-are set here" was true of the *file* and false of the run: an absent key inherits that default. Reading
-the action's own `action.yml` at the pinned SHA is what settled it, and it is worth recording as the
-lesson rather than the trivia: a workflow that omits a key is still choosing a value, and the value it
-chooses lives in the pinned action, not in this repository.
-
-The flags are now set explicitly anyway, so the workflow owns them rather than inheriting them and a
-future SHA bump cannot change how the emulator boots without this file saying so. That is hardening, not
-a fix, and it is stated as such.
-
-**When it runs is now decided** (this round): **nightly, and on demand before a release**. Not on every
-push — the emulator is the one piece of infrastructure here that has failed without a test running, so a
-per-push run mostly reports on the runner, and the per-change guard is the local gate set. The instrumented
-job is ungated again as part of that, so it is exercised on a schedule rather than when someone remembers,
-and `RELEASING.md` step 5 dispatches the pipeline before a tag. The concurrency group also gained the event
-name, because the group was what allowed a documentation push to cancel an instrumented run twenty minutes
-in — and the cancelled job's summary was indistinguishable from the infrastructure failure this thread is
-about, which is how a self-inflicted cancellation got read as evidence.
-
-**Measured, and the answer was not what the options promised.** The first nightly run booted and then lost
-the emulator without running a test: `Boot completed in 990222 ms` — sixteen and a half minutes — followed
-immediately by `Failure calling service settings: Broken pipe`, `Emulator client has not yet been
-configured` and the netsim wifi stream being cancelled. Sixteen minutes to boot is not a slow start, it is
-a starved runner, and the emulator it eventually produced was already gone.
-
-So the image is now **`aosp_atd` at API 34** rather than `google_apis` at 36: an Automated Test Device is
-built for this job and carries none of the Google services this app does not use at runtime, which is a
-second reason to prefer it. It costs two API levels, and that is a real trade — the suite now runs against
-34 rather than 36 — taken because a suite that never runs tests nothing at all. Boot time and the failure
-signature on the nightly run are what will say whether it worked.
-
-**If it fails again**, the levers are about the runner rather than the flags:
-
-- a lighter system image — `google_atd` or `aosp_atd`, which exist to be automated-test devices and boot
-  far faster and leaner than `google_apis`; this is the standard answer to a hosted runner whose emulator
-  dies, and it costs an API level (ATD images stop short of the newest) and therefore changes what the
-  suite is tested against;
-- `-memory` and `-cores`, which trade emulator stability against host pressure in either direction and
-  therefore need a measurement rather than a guess.
-
-Neither is done here, and the next change to it should be one of them, tried on its own so its result
-means something.
 
 ## Later (still self-contained)
 
