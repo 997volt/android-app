@@ -285,6 +285,11 @@ class ExercisePickerViewModelTest {
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> =
             flowOf(emptyList())
         override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        override suspend fun prependSets(
+            templateExerciseId: String,
+            edits: List<TemplateSetEdit>,
+        ): DataResult<Unit> = DataResult.Success(Unit)
+
         override suspend fun addSet(
             templateExerciseId: String,
             edit: TemplateSetEdit,

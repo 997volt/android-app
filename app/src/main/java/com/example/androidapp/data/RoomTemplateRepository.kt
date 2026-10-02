@@ -1,5 +1,6 @@
 package com.example.androidapp.data
 
+import androidx.room.withTransaction
 import com.example.androidapp.domain.model.Rpe
 import java.time.DayOfWeek
 import com.example.androidapp.data.local.TemplateEntity
@@ -35,7 +36,7 @@ import kotlinx.coroutines.flow.map
  */
 @Singleton
 class RoomTemplateRepository @Inject constructor(
-    database: WorkoutDatabase,
+    private val database: WorkoutDatabase,
     private val timeSource: TimeSource,
 ) : TemplateRepository {
 
@@ -136,6 +137,42 @@ class RoomTemplateRepository @Inject constructor(
                 ),
             )
         }
+
+    override suspend fun prependSets(
+        templateExerciseId: String,
+        edits: List<TemplateSetEdit>,
+    ): DataResult<Unit> = dataResultOf {
+        if (edits.isEmpty()) return@dataResultOf
+        edits.forEach(::validate)
+        if (dao.findTemplateExercise(templateExerciseId) == null) {
+            throw NotFoundException("template exercise $templateExerciseId")
+        }
+        val now = timeSource.nowEpochMillis()
+        database.withTransaction {
+            // One statement moves the existing sets down; the ramp then takes indices 0..n-1 in the
+            // order it was computed, so the plan reads warm-ups first and work after (ROADMAP B34).
+            dao.shiftSetIndexes(templateExerciseId, by = edits.size, at = now)
+            edits.forEachIndexed { index, edit ->
+                dao.insertTemplateSet(
+                    TemplateSetEntity(
+                        id = UUID.randomUUID().toString(),
+                        templateExerciseId = templateExerciseId,
+                        setIndex = index,
+                        role = edit.role,
+                        targetWeightGrams = edit.targetWeightGrams,
+                        targetAssistanceGrams = edit.targetAssistanceGrams,
+                        targetRepsMin = edit.targetRepsMin,
+                        targetRepsMax = edit.targetRepsMax,
+                        targetRpeHalves = edit.targetRpeHalves,
+                        note = edit.note,
+                        createdAt = now,
+                        updatedAt = now,
+                        deletedAt = null,
+                    ),
+                )
+            }
+        }
+    }
 
     override suspend fun addSet(
         templateExerciseId: String,

@@ -81,6 +81,9 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
+  first and then the four warm-ups that exist to prepare for it — while its own description said it
+  wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
 - **Repeating a workout keeps its rest, note and superset grouping.** Only the exercises were copied,
   so a repeated superset arrived ungrouped — and with no group the round logic short-circuits, so the
   pair degraded into unrelated exercises resting separately, which is the behaviour supersets exist to

@@ -177,7 +177,22 @@ interface TemplateDao {
     )
     suspend fun findSetsForExercise(templateExerciseId: String): List<TemplateSetEntity>
 
+        /**
+     * Moves every set of one planned exercise down by [by], making room at the head (ROADMAP B34).
+     *
+     * One statement rather than a loop: a half-shifted plan is a plan whose order is wrong, and the
+     * order is the whole point of writing a warm-up ramp in front of the work.
+     */
     @Query(
+        """
+        UPDATE template_sets
+        SET setIndex = setIndex + :by, updatedAt = :at
+        WHERE templateExerciseId = :templateExerciseId AND deletedAt IS NULL
+        """,
+    )
+    suspend fun shiftSetIndexes(templateExerciseId: String, by: Int, at: Long): Int
+
+@Query(
         """
         SELECT COALESCE(MAX(setIndex), -1) FROM template_sets
         WHERE templateExerciseId = :templateExerciseId AND deletedAt IS NULL

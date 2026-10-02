@@ -260,6 +260,17 @@ class TemplateEditorViewModelTest {
 
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> = exercises
         override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        /** Recorded as one call, since writing the ramp in front is a single write (B34). */
+        val prependedSets = mutableListOf<Pair<String, List<TemplateSetEdit>>>()
+
+        override suspend fun prependSets(
+            templateExerciseId: String,
+            edits: List<TemplateSetEdit>,
+        ): DataResult<Unit> {
+            prependedSets += templateExerciseId to edits
+            return DataResult.Success(Unit)
+        }
+
         override suspend fun addSet(
             templateExerciseId: String,
             edit: TemplateSetEdit,
@@ -415,7 +426,8 @@ class TemplateEditorViewModelTest {
         viewModel.onAddWarmUpSets("te1")
         advanceUntilIdle()
 
-        val written = repository.addedSets.filter { it.first == "te1" }.map { it.second }
+        val written = repository.prependedSets.single { it.first == "te1" }.second
+        assertEquals("one write, in front of the plan (ROADMAP B34)", 1, repository.prependedSets.size)
         assertEquals("a four-step ramp", 4, written.size)
         assertEquals(
             "climbing towards the work, each one a warm-up",
@@ -440,7 +452,7 @@ class TemplateEditorViewModelTest {
         viewModel.onAddWarmUpSets("te1")
         advanceUntilIdle()
 
-        assertTrue("nothing written", repository.addedSets.none { it.first == "te1" })
+        assertTrue("nothing written", repository.prependedSets.none { it.first == "te1" })
     }
 
     /** One planned working set, at [weightGrams] or bodyweight. */

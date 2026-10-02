@@ -71,7 +71,16 @@ interface TemplateRepository {
 
     suspend fun removeExercise(templateExerciseId: String): DataResult<Unit>
 
-    /** Appends a planned set to a template exercise (ROADMAP N14). */
+        /**
+     * Writes [edits] **in front of** what the plan already prescribes, in the order given (ROADMAP B34).
+     *
+     * `addSet` appends, which is right for authoring a plan top to bottom and wrong for a warm-up ramp
+     * derived from a working set already there: appending it put the warm-ups *after* the work they
+     * exist to prepare for, which its own KDoc said it did not.
+     */
+    suspend fun prependSets(templateExerciseId: String, edits: List<TemplateSetEdit>): DataResult<Unit>
+
+/** Appends a planned set to a template exercise (ROADMAP N14). */
     suspend fun addSet(templateExerciseId: String, edit: TemplateSetEdit): DataResult<Unit>
 
     /** Overwrites a planned set's targets. */

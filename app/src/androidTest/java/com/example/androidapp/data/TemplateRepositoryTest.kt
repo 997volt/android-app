@@ -467,4 +467,41 @@ class TemplateRepositoryTest {
         )
         assertEquals("the plan reads as four warm-ups and the work", 5, planned.size)
     }
+
+    @Test
+    fun aWarmUpRamp_isWrittenInFrontOfTheWorkingSets() = runTest {
+        // ROADMAP B34: the generator's arithmetic was right and it wrote to the wrong end. The plan
+        // read working set first and then the warm-ups that exist to prepare for it — and the earlier
+        // test could not see it, because it only checked the warm-ups' order among themselves.
+        val template = create("Legs")
+        val exercise = plannedExercise(template)
+        repository.addSet(
+            exercise,
+            TemplateSetEdit(role = SetType.NORMAL, targetWeightGrams = 100_000L, targetRepsMax = 5),
+        )
+
+        repository.prependSets(
+            exercise,
+            (1..3).map { step ->
+                TemplateSetEdit(
+                    role = SetType.WARMUP,
+                    targetWeightGrams = step * 20_000L,
+                    targetRepsMax = 5,
+                )
+            },
+        )
+
+        val planned = repository.observeExercises(template).first().single().sets
+        assertEquals(
+            "the ramp comes first, in the order it was written",
+            listOf(20_000L, 40_000L, 60_000L),
+            planned.dropLast(1).map { it.targetWeightGrams },
+        )
+        assertEquals(
+            "and the work is still last, unchanged",
+            100_000L,
+            planned.last().targetWeightGrams,
+        )
+        assertEquals(SetType.NORMAL, planned.last().role)
+    }
 }

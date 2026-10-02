@@ -115,18 +115,21 @@ class TemplateEditorViewModel @Inject constructor(
             .mapNotNull { it.targetWeightGrams }
             .maxOrNull() ?: 0L
 
-        warmUpRamp(workingWeight).forEach { target ->
-            val written = repository.addSet(
-                templateExerciseId,
-                TemplateSetEdit(
-                    role = SetType.WARMUP,
-                    targetWeightGrams = target.weightGrams,
-                    targetRepsMin = target.reps,
-                    targetRepsMax = target.reps,
-                ),
+        val ramp = warmUpRamp(workingWeight).map { target ->
+            TemplateSetEdit(
+                role = SetType.WARMUP,
+                targetWeightGrams = target.weightGrams,
+                targetRepsMin = target.reps,
+                targetRepsMax = target.reps,
             )
-            if (written is DataResult.Failure) return@write written
         }
+        // Nothing to ramp from means no write at all, not a write of nothing: the button is hidden in
+        // that case, and a call that changes no rows would still be a call.
+        if (ramp.isEmpty()) return@write DataResult.Success(Unit)
+
+        // One call, in front of the work: appending the ramp put the warm-ups after the sets they
+        // exist to prepare for (ROADMAP B34), and one call also makes it atomic (B27's rule).
+        repository.prependSets(templateExerciseId, ramp)
         DataResult.Success(Unit)
     }
 

@@ -1323,6 +1323,11 @@ class ActiveWorkoutViewModelTest {
         override suspend fun moveExercise(templateExerciseId: String, delta: Int): DataResult<Unit> =
             notUsed()
 
+        override suspend fun prependSets(
+            templateExerciseId: String,
+            edits: List<TemplateSetEdit>,
+        ): DataResult<Unit> = DataResult.Success(Unit)
+
         override suspend fun addSet(
             templateExerciseId: String,
             edit: TemplateSetEdit,

@@ -60,15 +60,9 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33, B34 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
-- **B34 — The warm-up ramp lands after the working sets, not in front.** The KDoc says it "writes a
-  warm-up ramp in front of what the plan already prescribes", but `RoomTemplateRepository.addSet`
-  appends with `setIndex = maxSetIndex + 1` and sets are read `ORDER BY setIndex`, so a 100 kg plan
-  reads working set first and then the four warm-ups. The generator's arithmetic is right — it derives
-  the ramp while excluding existing warm-ups — it is written to the wrong end. The instrumented test
-  only checks the warm-ups' order among themselves, so it cannot see this.
 - **B35 — Three tests assert nothing, and two were the only coverage of what they name.**
   `skippingTheRest_cancelsTheAlert`, `adjustingTheRest_reschedulesTheAlert` and
   `finishingWithAComment_alsoCancelsTheRestAlert` each set up, call one function and end — no assertion

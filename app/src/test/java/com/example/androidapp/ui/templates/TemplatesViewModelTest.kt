@@ -156,6 +156,17 @@ class TemplatesViewModelTest {
 
         override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> = exercises
         override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+        /** Recorded as one call, since writing the ramp in front is a single write (B34). */
+        val prependedSets = mutableListOf<Pair<String, List<TemplateSetEdit>>>()
+
+        override suspend fun prependSets(
+            templateExerciseId: String,
+            edits: List<TemplateSetEdit>,
+        ): DataResult<Unit> {
+            prependedSets += templateExerciseId to edits
+            return DataResult.Success(Unit)
+        }
+
         override suspend fun addSet(
             templateExerciseId: String,
             edit: TemplateSetEdit,
