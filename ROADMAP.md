@@ -58,6 +58,14 @@ change.
   pushed *after* it without pushing something, which cancels it. **The queue was pushed once, on
   purpose.** That cancelled the run that was in flight — and started a fresh one on the tip, which is
   now the run this item waits on. One push, once, and then silence.
+
+  **For the record, the run that was in flight failed — on the runner, not on the work.** Its build job
+  passed green (JVM suite, lint, detekt, R8) and its instrumented job never got a device: the log shows
+  `adb -s emulator-5554 emu kill` → `ERROR | stop: Not implemented`, and the failure summary printed its
+  heading with **no failing tests** under it. That is the second run with this exact signature, and it is
+  the case `tools/ci-check-instrumented.py` exists for: a truncated run must fail rather than look green.
+  The same suite passes locally, 164 tests with no failures — so the gap is the pipeline's emulator
+  provisioning, not the code.
 - **Why every run before this one was cancelled.** Twelve in a row, each cancelled by the next push:
   nothing wrong with the pipeline, just the cancellation already accepted and recorded in
   [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
