@@ -32,37 +32,11 @@ order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`�
 
 ## Next
 
-**A UI round in six remaining steps**: a Statistics screen that shows everything, then the chart
-underneath it. **N34 — the five tabs — has shipped** and is in [CHANGELOG.md](CHANGELOG.md), as are N31–N33
-and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
+**A UI round in five remaining steps**: the chart underneath the new Statistics tab, then its readings
+list and the four chart changes. **N34 and N35 have shipped** — the five tabs, and the Statistics screen with
+its registry — and they are in [CHANGELOG.md](CHANGELOG.md), as are N31–N33 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
-
-### N35 — The Statistics tab
-
-One screen that answers "how is everything going", in the shape Waistline settled on: **one big chart
-with a picker**, not a wall of small multiples.
-
-- **Overview: three numbers for the selected range** — workouts, volume lifted, PRs. Deliberately no
-  more than three for now.
-- **Range:** 7d / 1m / 3m / 6m / 1y / All, plus a custom From–To. Persisted, and a range ending "today"
-  stays today.
-- **One picker over every metric**, in three groups — **Workout** (`TrendMetric`'s RPE, muscle feel,
-  joint pain), **Exercise** (`ExerciseTrendMetric`'s eight) and **Body** (weight, body fat and muscle,
-  plus `TapeSite`'s seven). Choosing an Exercise metric reveals a lift picker, and the last choice
-  persists.
-- **A metric registry is the piece that makes "everything" maintainable.** Twenty-one series already
-  exist across three enums, reached today from three screens with three query shapes; a registry entry
-  carries each one's id, label, group, unit, value formatter, supplying query, axis policy and whether
-  it is a line or bars. It **promotes a pattern this codebase already arrived at** rather than inventing
-  one: `ExerciseTrendMetric` already carries `isLoad` ("drawn from zero rather than on 1–10") and
-  `higherIsBetter` (N17's assisted direction), which are exactly the fields a registry needs. The three
-  enums stay, and the registry references them — this is not a scheme to delete three enums that each
-  mean something.
-- **Measurements fold in.** Their charts become picker entries; the entry and editing screen stays a
-  pushed destination, because viewing and recording are different jobs.
-- **ExerciseTrends folds in** as the same screen with the lift preselected, so "how is my bench going"
-  arrives here. The separate screen, its ViewModel and their tests are deleted.
 
 ### N36 — The readings list
 

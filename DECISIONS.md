@@ -271,6 +271,18 @@ into this file once the feature ships.
   each other: that is not hypothetical, a push once cancelled an instrumented run twenty minutes in and the
   cancelled job's summary was indistinguishable from an infrastructure failure.
 
+- **A series is described once, in the metric registry** (N35). Labels, units, formatters, groups, whether a
+  series is bars or a line, whether its axis starts at zero and which direction is better all live in one
+  place, because twenty-one series spread across three screens and three query shapes is what made "show
+  everything" expensive. **The existing enums stay and the registry references them**: each means something on
+  its own — `TrendMetric` is what a workout's ratings are read through — and a registry that replaced them
+  would be a rename dressed as a refactor.
+- **Arriving at Statistics with a lift selects estimated 1RM** (N35). "How is my bench going" is the question
+  the library and the workout detail both ask when they open a trend, and an Exercise series means nothing
+  until a lift is chosen, so landing on bodyweight would answer something nobody asked. Of the eight exercise
+  metrics, estimated 1RM is the one that answers it: the heaviest set ignores the reps, and volume rewards a
+  long session over a strong one.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

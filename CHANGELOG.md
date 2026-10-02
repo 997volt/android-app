@@ -8,6 +8,24 @@ Notable changes to Workout, newest first. Format follows
 ## [Unreleased]
 
 ### Added
+- **A Statistics tab, and one picker over every series.** It answers "how is everything going" with one
+  chart, a range and three numbers, where there used to be a workout-trends screen and a separate per-lift one
+  reached from two places. Every series the app records — the workout ratings, the eight exercise metrics, and
+  body measurements including each tape site — is described in **one registry** carrying its label, unit,
+  formatter, group, whether it is a line or bars, whether its axis starts at zero and which direction is
+  better. The three enums stay: each still means something on its own, and the registry references them.
+- **The range is remembered as what it means**, not as the dates it resolved to, so a saved "last 7 days" is
+  still the last seven days tomorrow. A custom From–To asks for its dates before it applies — a chip that
+  selected an unbounded window would make the chart look broken rather than empty — and the dates are read in
+  the calendar's own zone, because reading them in the device's would shift the day for anyone west of
+  Greenwich.
+- **The overview is three numbers, and no more**: workouts, volume and records. Records needed a query of
+  their own, because a set is a record by a rule about everything performed *before* it and nothing stores
+  that a set was one. Where a record count has not been asked for the screen shows a dash rather than a zero,
+  since "you set none" and "not counted" are different statements.
+- **The two screens it replaced are gone**, with their ViewModels and tests. **Body measurements stay a pushed
+  destination** reached from the tab, because recording an entry is a different job from reading a trend.
+
 - **Five tabs along the bottom.** Workouts · History · Statistics · Library · Settings, with Workouts
   where the app opens. Every surface used to hang off home's overflow menu, which is why "how is everything
   going" had no home of its own; the menu is now the data actions and nothing else, and the six entries that
