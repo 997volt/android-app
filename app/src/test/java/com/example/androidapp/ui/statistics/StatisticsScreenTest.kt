@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsSelected
@@ -111,6 +112,36 @@ class StatisticsScreenTest {
         composeTestRule.onNodeWithTag(TestTags.Statistics.metric(volume.id)).performClick()
 
         assertEquals(volume, chosen)
+    }
+
+    @Test
+    fun choosingCustom_asksForTheDatesBeforeItApplies() {
+        // A chip that selected an unbounded window would make the chart look broken rather than empty, so
+        // custom asks its question first and refuses to apply a window with one end.
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.CUSTOM.name)).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CUSTOM_FROM).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CUSTOM_TO).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CUSTOM_APPLY).assertIsNotEnabled()
+    }
+
+    @Test
+    fun aCustomRange_saysSoInTheChips() {
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                range = StatisticsRange(
+                    kind = RangeKind.CUSTOM,
+                    from = java.time.LocalDate.of(2026, 8, 1),
+                    to = java.time.LocalDate.of(2026, 8, 31),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.CUSTOM.name)).assertIsSelected()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.LAST_MONTH.name)).assertIsNotSelected()
     }
 
     @Test

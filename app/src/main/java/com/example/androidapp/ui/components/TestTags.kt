@@ -309,6 +309,9 @@ object TestTags {
         const val METRIC = "statistics_metric"
         const val CHART = "statistics_chart"
         const val CHOOSE_LIFT = "statistics_choose_lift"
+        const val CUSTOM_FROM = "statistics_custom_from"
+        const val CUSTOM_TO = "statistics_custom_to"
+        const val CUSTOM_APPLY = "statistics_custom_apply"
     
         /** One range chip, and one picker row, named by what they select. */
         fun range(kind: String) = "statistics_range_$kind"

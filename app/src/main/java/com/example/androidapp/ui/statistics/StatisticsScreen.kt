@@ -1,5 +1,12 @@
 package com.example.androidapp.ui.statistics
 
+import java.time.ZoneOffset
+import java.time.LocalDate
+import java.time.Instant
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,6 +71,18 @@ fun StatisticsScreen(
     onSelectMetric: (MetricKey) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var choosingDates by remember { mutableStateOf(false) }
+    if (choosingDates) {
+        CustomRangeDialog(
+            initial = state.range,
+            onDismiss = { choosingDates = false },
+            onConfirm = { chosen ->
+                choosingDates = false
+                onSelectRange(chosen)
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_statistics)) }) },
@@ -76,7 +95,11 @@ fun StatisticsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RangeChips(range = state.range, onSelectRange = onSelectRange)
+            RangeChips(
+                range = state.range,
+                onSelectRange = onSelectRange,
+                onChooseDates = { choosingDates = true },
+            )
             MetricPicker(selected = state.selection.metric, onSelectMetric = onSelectMetric)
             Overview(overview = state.overview)
 
@@ -97,22 +120,40 @@ fun StatisticsScreen(
 /**
  * The range, as chips.
  *
- * `CUSTOM` is not among them yet: choosing dates is a dialog of its own, and a chip that selected an
- * unbounded window would be a control that does not do what it says. The type and the store already carry
- * it, so the chip is a UI piece rather than a change to either.
+ * Custom asks for its dates before it applies, because the alternative is a chip that selects an unbounded
+ * window and a chart that looks broken rather than empty.
  */
 @Composable
-private fun RangeChips(range: StatisticsRange, onSelectRange: (StatisticsRange) -> Unit) {
+private fun RangeChips(
+    range: StatisticsRange,
+    onSelectRange: (StatisticsRange) -> Unit,
+    onChooseDates: () -> Unit,
+) {
     // One source at the top level, which the Compose ruleset asks for and which reads better: the chips
     // are one control, wrapped over as many rows as they need.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         RangeKind.entries
-            .filter { it != RangeKind.CUSTOM }
             .chunked(CHIPS_PER_ROW)
             .forEach { row ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { kind ->
-                        RangeChip(kind = kind, selected = range.kind == kind, onSelectRange = onSelectRange)
+                        if (kind == RangeKind.CUSTOM) {
+                            // Custom is a chip like the others, but choosing it asks a question first: the
+                            // dates. It is selected whenever the range *is* custom, so the bar still says
+                            // which window is on screen.
+                            FilterChip(
+                                selected = range.kind == RangeKind.CUSTOM,
+                                onClick = onChooseDates,
+                                label = { Text(stringResource(kind.labelRes)) },
+                                modifier = Modifier.testTag(TestTags.Statistics.range(kind.name)),
+                            )
+                        } else {
+                            RangeChip(
+                                kind = kind,
+                                selected = range.kind == kind,
+                                onSelectRange = onSelectRange,
+                            )
+                        }
                     }
                 }
             }
@@ -216,3 +257,110 @@ private fun SeriesChart(series: MetricSeries) {
 
 /** Room above and below the line, so a reading at the top edge is not mistaken for a ceiling. */
 private const val AXIS_PAD_FRACTION = 0.1
+
+/**
+ * The custom range, with its From and To (ROADMAP N35).
+ *
+ * Each date is chosen in a calendar of its own, and applying is refused until both are: a window with one
+ * end is the same as no window, and the type's tolerance for a missing end exists so an older stored value
+ * cannot break a screen, not as a state to offer.
+ *
+ * The dates are read back in UTC, which is the zone the picker reports in — converting them in the device's
+ * zone would shift the day for anyone west of Greenwich and make "From 1 August" mean 31 July.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomRangeDialog(
+    initial: StatisticsRange,
+    onDismiss: () -> Unit,
+    onConfirm: (StatisticsRange) -> Unit,
+) {
+    var from by remember { mutableStateOf(initial.from) }
+    var to by remember { mutableStateOf(initial.to) }
+    var picking by remember { mutableStateOf<Boolean?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.range_custom)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DateRow(
+                    labelRes = R.string.statistics_custom_from,
+                    date = from,
+                    testTag = TestTags.Statistics.CUSTOM_FROM,
+                    onClick = { picking = true },
+                )
+                DateRow(
+                    labelRes = R.string.statistics_custom_to,
+                    date = to,
+                    testTag = TestTags.Statistics.CUSTOM_TO,
+                    onClick = { picking = false },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(StatisticsRange(RangeKind.CUSTOM, from = from, to = to)) },
+                enabled = from != null && to != null,
+                modifier = Modifier.testTag(TestTags.Statistics.CUSTOM_APPLY),
+            ) {
+                Text(stringResource(R.string.statistics_custom_apply))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+
+    picking?.let { choosing ->
+        DatePrompt(
+            initial = (if (choosing) from else to)?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+            onDismiss = { picking = null },
+            onPick = { date ->
+                if (choosing) from = date else to = date
+                picking = null
+            },
+        )
+    }
+}
+
+/**
+ * One calendar, for one end of the range.
+ *
+ * Its own composable rather than a block inside the dialog: the dialog has a question, an answer and two
+ * dates to explain, and the calendar is a screen-sized thing that happens to be nested in it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePrompt(initial: Long?, onDismiss: () -> Unit, onPick: (LocalDate) -> Unit) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = initial)
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        onPick(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+/** One end of a custom range: what it is, what it currently says, and the way to change it. */
+@Composable
+private fun DateRow(labelRes: Int, date: LocalDate?, testTag: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.testTag(testTag)) {
+        Text(stringResource(labelRes) + ": " + (date?.toString() ?: stringResource(R.string.statistics_custom_no_date)))
+    }
+}
