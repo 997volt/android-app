@@ -105,7 +105,11 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
     }
 
     composable<Statistics> {
-        StatisticsRoute()
+        StatisticsRoute(
+            // Recording and reading are different jobs, so the measurements screen stays a destination of
+            // its own — reached from here, which is the tab that answers how everything is going (N35).
+            onOpenMeasurements = { navController.navigate(Measurements) },
+        )
     }
 
     composable<ExerciseLibrary> {

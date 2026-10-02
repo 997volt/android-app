@@ -233,8 +233,6 @@ object TestTags {
     const val TAB_LIBRARY = "tab_library"
     const val TAB_SETTINGS = "tab_settings"
 
-    /** Statistics → body measurements, until N35 folds them into the picker. */
-    const val TRENDS_MEASUREMENTS = "trends_measurements"
 
     /** The settings screen (ROADMAP N21): the screen, the current value, and each choice. */
     const val SETTINGS_SCREEN = "settings_screen"
@@ -310,6 +308,7 @@ object TestTags {
         const val CHART = "statistics_chart"
         const val CHOOSE_LIFT = "statistics_choose_lift"
         const val LIFT = "statistics_lift"
+        const val MEASUREMENTS = "statistics_measurements"
 
         /** One row of the lift picker, named by the exercise it selects. */
         fun lift(id: String) = "statistics_lift_$id"

@@ -48,6 +48,7 @@ import com.example.androidapp.ui.components.TrendChartFrame
 fun StatisticsRoute(
     modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel = hiltViewModel(),
+    onOpenMeasurements: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     StatisticsScreen(
@@ -56,6 +57,7 @@ fun StatisticsRoute(
         onSelectMetric = viewModel::onSelectMetric,
         modifier = modifier,
         onSelectExercise = viewModel::onSelectExercise,
+        onOpenMeasurements = onOpenMeasurements,
     )
 }
 
@@ -73,6 +75,14 @@ fun StatisticsScreen(
     onSelectMetric: (MetricKey) -> Unit,
     modifier: Modifier = Modifier,
     onSelectExercise: (String) -> Unit = {},
+    /**
+     * Opens body measurements (ROADMAP N35).
+     *
+     * Their charts are picker entries now, but **recording** an entry is a different job from reading a
+     * trend, so the screen stays a pushed destination — and this action is what keeps it reachable, which
+     * it stopped being the moment the trends screen that used to link to it was deleted.
+     */
+    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     var choosingDates by remember { mutableStateOf(false) }
     if (choosingDates) {
@@ -88,7 +98,7 @@ fun StatisticsScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_statistics)) }) },
+        topBar = { StatisticsTopBar(onOpenMeasurements = onOpenMeasurements) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -405,4 +415,23 @@ private fun LiftPicker(lifts: List<Exercise>, selectedId: String?, onSelectExerc
             }
         }
     }
+}
+
+/** The screen's bar: a title, and the way to the one screen it pushes. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatisticsTopBar(onOpenMeasurements: (() -> Unit)?) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.tab_statistics)) },
+        actions = {
+            if (onOpenMeasurements != null) {
+                TextButton(
+                    onClick = onOpenMeasurements,
+                    modifier = Modifier.testTag(TestTags.Statistics.MEASUREMENTS),
+                ) {
+                    Text(stringResource(R.string.measurements_title))
+                }
+            }
+        },
+    )
 }

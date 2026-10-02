@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import org.junit.Assert.assertTrue
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.Exercise
@@ -48,6 +49,7 @@ class StatisticsScreenTest {
         onSelectRange: (StatisticsRange) -> Unit = {},
         onSelectMetric: (MetricKey) -> Unit = {},
         onSelectExercise: (String) -> Unit = {},
+        onOpenMeasurements: (() -> Unit)? = null,
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -56,6 +58,7 @@ class StatisticsScreenTest {
                     onSelectRange = onSelectRange,
                     onSelectMetric = onSelectMetric,
                     onSelectExercise = onSelectExercise,
+                    onOpenMeasurements = onOpenMeasurements,
                 )
             }
         }
@@ -148,6 +151,27 @@ class StatisticsScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.CUSTOM.name)).assertIsSelected()
         composeTestRule.onNodeWithTag(TestTags.Statistics.range(RangeKind.LAST_MONTH.name)).assertIsNotSelected()
+    }
+
+    @Test
+    fun measurementsAreReachable_fromHere() {
+        // The regression this action fixes: deleting the trends screen took its measurements link with it,
+        // and the screen was registered but reachable from nowhere.
+        var opened = false
+        setScreen(onOpenMeasurements = { opened = true })
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.MEASUREMENTS).performClick()
+
+        assertTrue(opened)
+    }
+
+    @Test
+    fun withoutAWiredAction_thereIsNoMeasurementsButton() {
+        // Like every other optional action here: a preview or a test that does not exercise it gets no dead
+        // control.
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.MEASUREMENTS).assertDoesNotExist()
     }
 
     @Test
