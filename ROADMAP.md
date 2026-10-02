@@ -32,10 +32,10 @@ shipped and left the file.
 
 ## Next
 
-**N30 is the one item still needing work**, and behind it are **B33–B43** — what a review of the v1.6
-batch found, defects and improvements together. Everything else has shipped and left this file: the
-v1.5 review's corrections (B26–B32), the round after it (N26–N28), repeating the last workout (N29) and
-the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md). Past these the next round
+**One thing is marked for work — N30**, the tail of the rename. **The v1.6 review is closed**: all
+eleven of its findings (B33–B43) are fixed and have left this file, and so has everything before them —
+the v1.5 review's corrections (B26–B32), the round after it (N26–N28), repeating the last workout (N29)
+and the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md). Past N30 the next round
 is a choice rather than a queue: the rest is in *Later*, below.
 
 ### N30 — Finish the rename: the repository has no description, and nothing has validated it
@@ -53,33 +53,6 @@ change.
   *pending*. Nothing is wrong with the pipeline — this is the cancellation already accepted and recorded
   in [DECISIONS.md](DECISIONS.md) — and it closes as soon as pushes stop for twenty minutes. The commit
   that carries this note deliberately was **not pushed**, so the run in flight can finish.
-
-### The v1.6 review — the features (B33–B37)
-
-**B33–B43 are fixed**, and B34's and B41's fixes are device-verified and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
-rest are the removal and the tests that came with it. Ordered by what they cost.
-
-- **"The last workout" has no tiebreaker.** Both the repeat query and `observeHistory` order by
-  `finishedAt DESC` alone (`SessionExerciseDao.kt:55`, `WorkoutDao.kt:83`), so when two sessions share a
-  `finishedAt` — plausible after a backup import, which round-trips the value — the workout at the top
-  of Recent need not be the one Repeat picks. A secondary sort key on either side settles it.
-- **P2.4** Body measurements.
-
-**Programming** — turns a logger into a plan
-- **P3.3** Programs / mesocycles with scheduled deloads.
-- **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
-  the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
-  **N20**.
-
-Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
-as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
-
-The **accessibility rule still applies to every screen as it is written**
-([DECISIONS.md](DECISIONS.md)); the audit sweep that used to sit here is parked, so this
-section is empty until it returns or something replaces it.
-
-Design-system work (**F8**) is a rule rather than a row now: extract a component when
-a second screen needs it, not before.
 
 ## Parked — deliberately not planned
 
