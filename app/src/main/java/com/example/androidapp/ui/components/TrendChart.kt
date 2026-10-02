@@ -51,7 +51,9 @@ fun TrendChart(
     val lineColor = MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
-    val referenceColor = MaterialTheme.colorScheme.tertiary
+    // A neutral annotation rather than a tinted one: the theme's tertiary is close enough to the surface
+    // that a reference line drew but could not be seen on a device.
+    val referenceColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Canvas(modifier = modifier.clearAndSetSemantics { }) {
         val axis = TrendAxis(minValue, maxValue)
@@ -227,12 +229,15 @@ private fun DrawScope.drawReferenceLines(
     y: (Double) -> Float,
 ) {
     val color = referenceColor
+    // Dashed, because an average is a level rather than a measurement: it says where the series sits, and
+    // every reading is above or below it.
     average?.let { value ->
         drawLine(
             color = color,
             start = Offset(0f, y(value)),
             end = Offset(size.width, y(value)),
             strokeWidth = REFERENCE_STROKE_PX,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH_ON_PX, DASH_OFF_PX)),
         )
     }
     trend?.let { line ->
