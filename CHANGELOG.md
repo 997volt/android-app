@@ -109,6 +109,10 @@ Notable changes to Workout, newest first. Format follows
 - **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
   first and then the four warm-ups that exist to prepare for it — while its own description said it
   wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
+- **The repeat action is absent while a workout is open.** The start choices hide themselves when one is
+  running, which is the only sane answer — a second way to start a workout mid-session is a way to lose
+  one — and nothing held it: the existing absence test passed an empty history, which is a different
+  rule.
 - **The repeat path is exercised end to end.** Its branch was never entered by a test: the route's
   state handle carried only `templateId`, so `repeatLast` was always false, and the fake's field for
   "what the last workout held" was never assigned — every part was tested, and the path between them

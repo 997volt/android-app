@@ -313,4 +313,24 @@ class WorkoutsHomeScreenTest {
         )
         composeTestRule.onNodeWithText(expected, substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun whileAWorkoutIsOpen_neitherStartChoiceIsOffered() {
+        // ROADMAP B43's last gap. The absence test above passes an empty history, which is the *other*
+        // rule; this one has history and an open session, and asserts the pair is gone either way — a
+        // second way to start a workout while one is running is not a choice, it is a way to lose one.
+        setScreen(
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                recent = listOf(summary("session-1")),
+                activeWorkout = ActiveWorkoutInfo(
+                    startedAt = Instant.parse("2026-10-01T10:00:00Z"),
+                    exerciseCount = 2,
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.HOME_START_FROM_TEMPLATE).assertDoesNotExist()
+    }
 }
