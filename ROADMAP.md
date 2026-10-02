@@ -1,6 +1,6 @@
 # Workout — Roadmap
 
-> **v1.6** is shipped and installed. Last reviewed against the code: 2026-10-01.
+> **v1.7** is shipped and installed. Last reviewed against the code: 2026-10-01.
 >
 > This file is forward-looking only. What shipped lives in
 > [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
@@ -32,53 +32,114 @@ shipped and left the file.
 
 ## Next
 
-**One thing is marked for work — N30**, the tail of the rename. **The v1.6 review is closed**: all
-eleven of its findings (B33–B43) are fixed and have left this file, and so has everything before them —
-the v1.5 review's corrections (B26–B32), the round after it (N26–N28), repeating the last workout (N29)
-and the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md). Past N30 the next round
-is a choice rather than a queue: the rest is in *Later*, below.
+**Four things are marked, in order.** Everything before them shipped and left this file: the v1.6 review
+(B33–B43), the v1.5 corrections (B26–B32), the round after it (N26–N28), repeating the last workout
+(N29) and the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md). Past the four,
+the next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the
+rename is at the end of this section.
 
-### N30 — Finish the rename: the repository has no description, and nothing has validated it
+### B44 — Discarding a workout leaves a white screen
 
-The rename itself shipped — the app is **Workout**, the repository is `997volt/workout`, the old URL
-redirects, and the local remote points at the new one. Two loose ends, both small and neither a code
-change.
+`ActiveWorkoutRoute` closes the screen **twice**. There are two identical effects — one at
+[ActiveWorkoutScreen.kt:79](app/src/main/java/com/example/androidapp/ui/workout/ActiveWorkoutScreen.kt#L79)
+and another at `:96` — and both call `onDone`, which is `navController.popBackStack()`. When `closed`
+flips, both run and the back stack is popped **twice**: the workout leaves, and so does the entry
+beneath it, leaving the NavHost nothing to render.
 
-- **Fill in the repository's description and topics — done.** The description says what the app is and
-  what it does not do: *"Plan a workout, log what you actually did, and see the difference. Local-only:
-  no account, no server, no permissions at all."* Topics: `android`, `kotlin`, `jetpack-compose`, `room`,
-  `offline-first`, `local-first`, `workout-tracker`. Both read back from the API rather than assumed.
-- **The evidence a green CI run was wanted for is now in hand, from three directions.** What the note
-  below was really about is that the rename's label change rested on nothing but a local build. Since:
-  **CI's build job passed green** (JVM suite, lint, detekt, R8) on a run that survived; the **full
-  instrumented suite passed locally on the emulator — 164 tests, no failures** — which is the same
-  suite the pipeline's second job runs; and the label itself was read back with `aapt2 dump badging`.
-  The pipeline's *own* instrumented job was still running after twenty-two minutes, and waiting for it
-  had become self-defeating: the work could not be pushed without cancelling it, and it could not be
-  pushed *after* it without pushing something, which cancels it. **The queue was pushed once, on
-  purpose.** That cancelled the run that was in flight — and started a fresh one on the tip, which is
-  now the run this item waits on. One push, once, and then silence.
+The comments show how it happened: the first says it is "what leaves the screen once [the review] is
+dismissed (N20)", so it was added to replace the second, and the second was never deleted.
 
-  **For the record, the run that was in flight failed — on the runner, not on the work.** Its build job
-  passed green (JVM suite, lint, detekt, R8) and its instrumented job never got a device: the log shows
-  `adb -s emulator-5554 emu kill` → `ERROR | stop: Not implemented`, and the failure summary printed its
-  heading with **no failing tests** under it. That is the second run with this exact signature, and it is
-  the case `tools/ci-check-instrumented.py` exists for: a truncated run must fail rather than look green.
-  The same suite passes locally, 164 tests with no failures — so the gap is the pipeline's emulator
-  provisioning, not the code.
+- **Scope:** every path through `closeSession()` — discard, and Finish once the review is dismissed.
+  Finish needs the extra tap, which is why discard is where it was noticed.
+- **Fix:** delete one effect, keeping a single one with its `rememberUpdatedState`, so the leave
+  callback fires exactly once.
+- **Test:** a Robolectric case that discards and asserts **home is on screen**, by `TestTags`. "The
+  callback ran once" is not observable; "home is showing" is.
+- **If it still blanks after the fix:** the remaining suspect is a back stack of one entry —
+  ActiveWorkout reached with nothing beneath it after a process-death restore — and the fix there is
+  `popBackStack(WorkoutsHome, inclusive = false)` rather than a bare pop. Reproduce before assuming.
 
-  **The step is already hardened, which is the useful part of the diagnosis.** It boots with
-  `emulator-boot-timeout: 900` and `disable-animations: true`, and the action is pinned by SHA — so the
-  earlier hardening was aimed at boots that outran a timeout, and this failure is a different one: the
-  emulator dies and the runner's own `adb emu kill` fails. The next lever is the emulator's *options*,
-  which are not set: matching what works locally (`-no-window -gpu swiftshader_indirect -no-snapshot
-  -noaudio -no-boot-anim`) is the obvious candidate, and it should be tried on its own so the result
-  means something. Untested, and recorded rather than guessed at — an untested workflow edit at the end
-  of a long session is how a pipeline gets broken for everyone.
-- **Why every run before this one was cancelled.** Twelve in a row, each cancelled by the next push:
-  nothing wrong with the pipeline, just the cancellation already accepted and recorded in
-  [DECISIONS.md](DECISIONS.md). The commits carrying these notes were deliberately **not pushed**, which
-  is what let the run under discussion survive.
+### N31 — Save a finished workout as a template
+
+The app goes plan → session (N3, N16) and history → session (N29), but never **session → plan**. After
+a good unplanned workout, the only way to keep it as a plan is rebuilding it by hand.
+
+- **Where:** the workout detail's top bar, beside the delete action, and hidden when the workout has no
+  exercises.
+- **What it copies:** the exercises in order, and their **performed sets as targets** — role, weight,
+  assistance, reps, and RPE. Warm-ups are included, because the role vocabulary has `WARMUP` and a
+  copied ramp is a real ramp; superset grouping is included so pairs survive (N24). RPE is copied
+  because a plan can carry a target RPE and that was the intent that day.
+- **What it does not copy:** the readiness note, the ratings and the workout comment — those describe
+  that day, not the plan.
+- **How:** one **transactional** repository call, `createTemplateFromSession(sessionId, name)`. Not a
+  client-side loop: `addExercise` returns `Unit` rather than the new id, so a loop would have to re-read
+  the template to find ids and could leave a half-built plan if the user backed out. Seeding a session
+  from a template is the precedent.
+- **After:** confirm and offer to open the new plan. The source workout is untouched — this is a copy,
+  so deleting the workout later must not disturb the template.
+- **Edges the tests should hold:** an empty workout offers nothing; a session whose exercise was since
+  soft-deleted copies the rest; the copy is independent in both directions; and starting the copied plan
+  prefills the same numbers.
+
+### N32 — Body measurements
+
+**Weight, with optional body-fat %, muscle %, and tape measurements.** Weight is the only required
+field; the rest are filled when they are taken, which is how people actually measure.
+
+- **One dated entry, nullable fields:** `measuredAt`, `weightGrams`, `bodyFatTenths`, `muscleTenths`,
+  and the tape sites. A waist recorded without a weight that morning must not be a second screen or a
+  fake zero.
+- **Units and storage follow what is settled.** Weight in whole grams; percentages as **tenths of a
+  percent in an `Int`**, for the same reason RPE is halves — `18.3` has no exact binary representation;
+  tape in **millimetres in a `Long`**, displayed as cm.
+- **A fixed set of tape sites for v1, every one optional:** neck, chest, waist, hips, upper arm, thigh,
+  calf. A user-defined site list is a later row, not a first one.
+- **A new sync-shaped table** (`measurements`), so it rides the export — and the codec guard means its
+  columns must reach the backup DTO in the same change.
+- **Shown as trends** on the existing chart: bodyweight first, then body fat, muscle and each site.
+  Entry and history live on a Measurements screen reached from home.
+- **What it deliberately does not do:** change volume. Bodyweight exercises count `0 kg` today — a
+  settled decision in [DECISIONS.md](DECISIONS.md) — and using a recorded bodyweight in their volume is
+  that decision's own conversation. Stated here so it is not quietly assumed.
+- **Decide at implementation:** one entry per day with later edits, or several; and whether an
+  unmeasured tape site carries forward or stays blank. It should stay blank — carrying a number forward
+  invents a measurement.
+
+### N33 — Show the progression suggestion; do not substitute it
+
+N22 shipped a suggestion, and its own KDoc says it "suggests; it never writes". In practice the
+suggestion **is** the value the one-tap **Log set** commits, in two places: with no plan,
+`prefillWithoutPlan` falls to `progressionFrom(previous)`, so the first set of an unplanned exercise
+prefills **last time plus a step**; and with a plan that names reps but no load, `proposedForPlan`
+supplies the weight. The reason is drawn as a caption, but the numbers beside it are already what one
+tap writes. A lifter who progresses by hand has to notice and undo the app's step on every first set.
+
+- **Prefill** — what one tap logs — becomes: the plan's target where it names one; otherwise what you
+  just did; otherwise **what you did last time, unchanged**; otherwise the default.
+- **Offer** — shown, not applied — becomes the progression proposal with its reason: *"Try 62.5 × 7 —
+  one more rep than last time"*, applied only when it is accepted.
+- **The change is that `SetSuggestion` carries the offer separately from the values**, because today one
+  field is both the explanation and the number.
+- **Touches:** `SetSuggestion` (a distinct offer), `suggestionForNextSet` (stop folding the proposal
+  into the returned values), `WorkoutExerciseSection` (draw the offer with an accept action rather than
+  using it as the button's numbers), and the precedence tests. `onLogSet` is unchanged — accepting the
+  offer only changes what the prefill is.
+- **Global, not program-only.** "I progress by hand" is not a property of how a workout was started, and
+  a behaviour that changed on that would be an inconsistency noticed later. **P3.3 depends on this**:
+  its "no auto-progression" is only true once the plan's numbers are the prefill and the app's step is
+  an offer.
+
+### N30 — the CI emulator-options thread
+
+The rename is done: the app is **Workout**, the repository is `997volt/workout`, the description and
+topics are filled in, and the evidence a green run was wanted for is in hand — a green build job, the
+full instrumented suite passing locally, and the label read back with `aapt2 dump badging`. One thread
+is genuinely open. The pipeline's instrumented job fails because the emulator dies and the runner's own
+`adb emu kill` errors — a different failure from the boot timeout the step was already hardened for, and
+one `tools/ci-check-instrumented.py` correctly refuses to call green. The next lever is the emulator's
+*options*, which are unset: matching what works locally (`-no-window -gpu swiftshader_indirect
+-no-snapshot -noaudio -no-boot-anim`), tried on its own so the result means something.
 
 ## Later (still self-contained)
 
@@ -88,14 +149,73 @@ This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#
 a spelled-out decision — when it is picked up, and leaves for
 [CHANGELOG.md](CHANGELOG.md) when it ships.
 
-**Insight** — why the app gets opened between workouts
-- **P2.4** Body measurements.
-
 **Programming** — turns a logger into a plan
-- **P3.3** Programs / mesocycles with scheduled deloads.
-- **P3.5** Planned-versus-completed adherence over a longer window, and a calendar view —
-  the weekly schedule itself shipped as **N16**, and session-level plan-versus-actual is
-  **N20**.
+
+**P3.3 — Programs: an ordered list of templates, each with a weekday.**
+
+A **program** is a named, ordered list of slots; a slot is a template plus an optional weekday. It is
+the container N16's pins cannot be on their own: a pin says what happens on a Tuesday, but nothing
+orders the pins against each other, so "which one is next" and "was that a skip or a rest day" have no
+answer.
+
+- **Today's plan** comes from the slot pinned to today. With no program active, home falls back to the
+  template pins it already reads.
+- **A skipped occurrence is asked about, not assumed.** When a start is attempted and a slot's
+  occurrence this week has neither a session nor a recorded skip, the app asks: *"You missed Paused
+  Squat on Tuesday. Do it now, or continue with Bench?"* — **Do it now** starts that slot; **Continue**
+  records a skip for **every** pending occurrence this week, because asking again for the next one turns
+  two misses into two interrogations. Asked at the point of starting, not at launch: an app that
+  questions you when you open it is one you stop opening.
+- **A skip is an event keyed by slot and week** (`program_skips`, storing the week start), never a
+  boolean on the slot: the same weekday recurs, so a flag would need resetting and would be wrong the
+  moment two weeks in a row were missed. Those rows are also exactly what P3.5 needs — without them,
+  "skipped" is unknowable, because a standing weekday pin carries no history.
+- **A session records the template it was started from** — one nullable `templateId` on
+  `workout_sessions`, written only when the session is *created* from a template, so a resumed session
+  never rewrites it. That is how an occurrence is matched: **by template and date**, in a Monday-start
+  week taken in the session's own zone (N25 is what makes "which day was this" answerable).
+  - **It amends N16 deliberately, and the distinction is the point.** N16 rejected copying a plan's
+    *targets* onto a session because that freezes what the plan prescribes. Recording *where a session
+    came from* freezes nothing: the template stays living, and this is provenance rather than
+    prescription.
+  - **Matching:** one candidate slot with that template resolves; with several, an exact weekday match
+    wins, then the latest slot earlier in the week (done late), then the earliest after it (done early),
+    then the earliest unresolved. A session resolves at most one occurrence, and an occurrence is
+    resolved by at most one session — the first.
+
+**What v1 deliberately leaves out** — this list matters as much as the scope above:
+
+- **No deloads.** No `isDeload`, no weeks-of-weeks. A deload will be *authored* when it arrives, not
+  calculated.
+- **No auto-progression.** A program decides *which* template; the lifter decides the numbers. This
+  depends on **N33**, which stops the app's progression proposal from being the prefilled value.
+- **No intensity modifiers**, no percentage-of-1RM programming, no automatic anything.
+- **No dated instances.** N16 rejected them and a program is a rotation; a calendar of planned sessions
+  would reintroduce the entity that decision avoided.
+- **One active program.** Any others fall back to the template pins.
+- **A weekday-less slot is never "missed"** — it has no day to miss. It is order-only.
+- **No per-slot template substitution** mid-cycle beyond editing the program, and no load-based rotation.
+
+**Known limitations, stated rather than discovered:** an occurrence is resolved only when the workout was
+*started from* that template, so bench added by hand to an empty workout does not resolve it — matching
+by exercises was rejected because it breaks the moment a template is edited and cannot tell two slots
+apart; a second session from the same template in a week is unmatched; and editing a template changes
+every week that references it, which is N16's living-template decision inherited rather than new.
+
+**P3.5 — Adherence and a calendar.**
+
+How often what was scheduled actually happened, over weeks rather than one session, plus a calendar of
+days trained. Session-level plan-versus-actual shipped as N20; this is the aggregate over it.
+
+- **Its hard part is knowing what was skipped, and it has no answer of its own.** Today the schedule is
+  a standing rule — "these templates are pinned to Tuesday" — not a history, so "you missed last
+  Tuesday" cannot be derived from pins. **P3.3's `program_skips` rows are what make it answerable**,
+  which is why this row follows P3.3 rather than standing beside it.
+- **Shape:** a month calendar with trained days marked, and a completion ratio over a window — sessions
+  started against scheduled days.
+- **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled days count;
+  what counts as scheduled when nothing is pinned; and whether a deload week is judged by the same
+  standard as any other.
 
 Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
 as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
