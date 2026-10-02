@@ -109,6 +109,11 @@ Notable changes to Workout, newest first. Format follows
 - **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
   first and then the four warm-ups that exist to prepare for it — while its own description said it
   wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
+- **The date formatter's zone is held by a test of its own.** N25's grouping was covered thoroughly and
+  the half that turned out to be wrong — what a screen renders — was not, so the formatter now has two
+  tests that compare two renderings of the same instant rather than asserting a string: near a day
+  boundary the zone changes the day, and away from one it does not. The second is the control that stops
+  the first passing for the wrong reason.
 - **The repeat action is absent while a workout is open.** The start choices hide themselves when one is
   running, which is the only sane answer — a second way to start a workout mid-session is a way to lose
   one — and nothing held it: the existing absence test passed an empty history, which is a different

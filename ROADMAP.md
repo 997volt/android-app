@@ -56,13 +56,9 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B38 and B40–B43 are fixed**, and B34's and B41's fixes are device-verified and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B43 are fixed**, and B34's and B41's fixes are device-verified and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
-- **B39 — Test what a screen renders, not only how it groups.** N25's grouping is well covered —
-  `GroupByMonthTest` holds the Tokyo/London month boundary both ways — while no test asserts the date
-  any screen actually displays, and there is no `HistoryFormat` test at all. The grouping was right and
-  the rendering was wrong, so the thorough half was the half that did not need it.
 - **"The last workout" has no tiebreaker.** Both the repeat query and `observeHistory` order by
   `finishedAt DESC` alone (`SessionExerciseDao.kt:55`, `WorkoutDao.kt:83`), so when two sessions share a
   `finishedAt` — plausible after a backup import, which round-trips the value — the workout at the top
