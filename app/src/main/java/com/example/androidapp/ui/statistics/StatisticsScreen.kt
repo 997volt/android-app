@@ -138,7 +138,7 @@ fun StatisticsScreen(
             }
 
             state.series?.let { series ->
-                SeriesChart(series = series)
+                SeriesChart(series = series, metric = MetricRegistry.entryFor(series.key))
                 // Under the chart, and the literal answer to "see everything" — which is also the accessible
                 // counterpart to a canvas this app blanks out for screen readers (ROADMAP N36).
                 ReadingsSection(series = series, metric = MetricRegistry.entryFor(series.key))
@@ -335,19 +335,59 @@ private fun ReadingRow(label: String, value: String, testTag: String) {
 
 /** The series, drawn through the chart every other trend uses. N37 gives it a time axis. */
 @Composable
-private fun SeriesChart(series: MetricSeries) {
-    val readings = series.readings.mapNotNull { it.value }
-    if (readings.size < 2) return
+private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
+    val recorded = series.readings.mapNotNull { it.value }
+    if (recorded.size < 2) return
 
-    val span = readings.max() - readings.min()
+    val span = recorded.max() - recorded.min()
     val pad = if (span == 0.0) 1.0 else span * AXIS_PAD_FRACTION
-    TrendChartFrame(
-        values = series.readings.map { it.value },
-        minValue = readings.min() - pad,
-        maxValue = readings.max() + pad,
-        testTag = TestTags.Statistics.CHART,
-    )
+    val top = recorded.max() + pad
+    val bottom = recorded.min() - pad
+
+    Column {
+        TrendChartFrame(
+            points = projectByTime(series.readings),
+            minValue = bottom,
+            maxValue = top,
+            testTag = TestTags.Statistics.CHART,
+        )
+        // The axis in words (ROADMAP N37). A canvas cannot be read by a screen reader, and even for a
+        // reader who can see it, "when did this start and end, and what scale is it" is the first question.
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = HistoryFormat.date(firstRecordedAt(series), zone = ZoneId.systemDefault()),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.testTag(TestTags.Statistics.CHART_FIRST_DATE),
+            )
+            Text(
+                text = HistoryFormat.date(lastRecordedAt(series), zone = ZoneId.systemDefault()),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.testTag(TestTags.Statistics.CHART_LAST_DATE),
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = metric.unit.format(recorded.min()),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.testTag(TestTags.Statistics.CHART_MIN),
+            )
+            Text(
+                text = metric.unit.format(recorded.max()),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.testTag(TestTags.Statistics.CHART_MAX),
+            )
+        }
+    }
 }
+
+/** The first moment that recorded something, which is where the axis starts. */
+private fun firstRecordedAt(series: MetricSeries): Instant =
+    series.readings.first { it.value != null }.at
+
+private fun lastRecordedAt(series: MetricSeries): Instant =
+    series.readings.last { it.value != null }.at
+
+/** The ends of the axis, so the chart can be read without the readings list. */
 
 /** Room above and below the line, so a reading at the top edge is not mistaken for a ceiling. */
 private const val AXIS_PAD_FRACTION = 0.1

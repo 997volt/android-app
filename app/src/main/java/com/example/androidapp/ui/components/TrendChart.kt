@@ -14,22 +14,26 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 
 /**
- * A line over time, hand-drawn (ROADMAP N13, shared with N17).
+ * A line over time, hand-drawn (ROADMAP N13, N37).
+ *
+ * **Points arrive already placed horizontally**, as a fraction of the width, because where a reading sits is
+ * a question about time and this component draws pictures (N37). Spreading them by index is what made two
+ * workouts a day apart and two a month apart the same distance apart — a real distortion rather than a
+ * detail, and one the chart could not fix from the inside because it never saw the dates.
  *
  * Two things it deliberately does not do. It does not interpolate across a missing
- * value: a gap is "not recorded", and drawing through it would invent a measurement.
- * And it does not choose its own axis — the caller passes the bounds, because a rating
- * and a load need opposite treatment. A 1–10 rating is drawn on a *fixed* axis so a 0.2
- * change cannot look like a cliff and the three ratings can be read against each other;
- * a load is drawn from zero to the data's own maximum, because a kilogram is a quantity
- * and a shared axis with a rating would be meaningless.
+ * value: a gap is "not recorded", and drawing through it would invent a measurement. That matters more on a
+ * time axis, not less: the gap is now visible as *distance*, and a straight segment drawn across three weeks
+ * would be a claim about weeks nobody measured. And it does not choose its own axis — the caller passes the
+ * bounds, because a rating and a load need opposite treatment: a 1–10 rating is drawn on a *fixed* axis so a
+ * 0.2 change cannot look like a cliff, and a load from zero, because a kilogram is a quantity.
  *
- * Marked as decorative: the caption next to it carries the numbers, so a screen reader
- * hears the sentence rather than a description of a picture it cannot see.
+ * Marked as decorative: the labels and the caption carry the numbers, so a screen reader hears the sentence
+ * rather than a description of a picture it cannot see.
  */
 @Composable
 fun TrendChart(
-    values: List<Double?>,
+    points: List<ChartPoint>,
     minValue: Double,
     maxValue: Double,
     modifier: Modifier = Modifier,
@@ -40,7 +44,6 @@ fun TrendChart(
 
     Canvas(modifier = modifier.clearAndSetSemantics { }) {
         val axis = TrendAxis(minValue, maxValue)
-        val step = if (values.size > 1) size.width / (values.size - 1) else 0f
 
         fun y(value: Double): Float = size.height * (1f - axis.fractionOf(value).toFloat())
 
@@ -55,21 +58,24 @@ fun TrendChart(
             )
         }
 
-        values.forEachIndexed { index, value ->
-            if (value == null) return@forEachIndexed
-            val next = values.getOrNull(index + 1)
+        points.forEachIndexed { index, point ->
+            val value = point.value ?: return@forEachIndexed
+            val x = point.x * size.width
+            // A segment needs both ends recorded, so a gap is a break rather than a straight line through
+            // whatever nobody measured.
+            val next = points.getOrNull(index + 1)?.value
             if (next != null) {
                 drawLine(
                     color = lineColor,
-                    start = Offset(step * index, y(value)),
-                    end = Offset(step * (index + 1), y(next)),
+                    start = Offset(x, y(value)),
+                    end = Offset(points[index + 1].x * size.width, y(next)),
                     strokeWidth = LINE_STROKE_PX,
                 )
             }
             drawCircle(
                 color = dotColor,
                 radius = DOT_RADIUS_PX,
-                center = Offset(step * index, y(value)),
+                center = Offset(x, y(value)),
             )
         }
     }
@@ -78,14 +84,14 @@ fun TrendChart(
 /** The chart's own frame: a fixed height, with the caller deciding the width. */
 @Composable
 fun TrendChartFrame(
-    values: List<Double?>,
+    points: List<ChartPoint>,
     minValue: Double,
     maxValue: Double,
     testTag: String,
     modifier: Modifier = Modifier,
 ) {
     TrendChart(
-        values = values,
+        points = points,
         minValue = minValue,
         maxValue = maxValue,
         modifier = modifier
@@ -116,3 +122,12 @@ private const val DOT_RADIUS_PX = 4f
 private const val DASH_ON_PX = 6f
 private const val DASH_OFF_PX = 6f
 private const val CHART_HEIGHT_DP = 72
+
+/**
+ * One reading's place in the chart (ROADMAP N37).
+ *
+ * [x] is a fraction of the width and [value] is what to draw there, or null for a moment that recorded
+ * nothing — which is a point on the axis and a break in the line. Placement is the caller's, because it is a
+ * question about time and this component never sees a date.
+ */
+data class ChartPoint(val x: Float, val value: Double?)

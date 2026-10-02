@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.RangeKind
@@ -154,6 +155,36 @@ class StatisticsScreenTest {
     }
 
     @Test
+    fun theChartSaysWhenItStartsAndEnds_andOnWhatScale() {
+        // A canvas cannot be read by a screen reader, and "when did this start and end" is the first question
+        // even for a reader who can see the line (ROADMAP N37).
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_FIRST_DATE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_LAST_DATE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_MIN).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_MAX).assertExists()
+    }
+
+    @Test
+    fun oneReading_isANumberRatherThanALine() {
+        // The chart needs two points to mean anything; the axis labels would be describing a line that is not
+        // drawn, so they go with it.
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                series = MetricSeries(
+                    key = MetricKey.Body(BodyMetric.WEIGHT),
+                    readings = listOf(MetricReading(Instant.parse("2026-09-01T08:00:00Z"), 82_000.0)),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_FIRST_DATE).assertDoesNotExist()
+    }
+
+    @Test
     fun theReadingsAreCollapsed_untilTheyAreAskedFor() {
         // The chart is what the screen is for; a year of readings is a wall of numbers to anyone who has not
         // asked for one.
@@ -167,7 +198,9 @@ class StatisticsScreenTest {
     fun expanding_putsTheAverageOnTop_andTheReadingsNewestFirst() {
         setScreen()
 
-        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).performClick()
+        // The screen scrolls and the chart's labels sit above this, so the control may be below the fold:
+        // Compose dispatches a click at coordinates, and a node that is not on screen is not clickable.
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).performScrollTo().performClick()
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_AVERAGE).assertExists()
         composeTestRule.onNodeWithTag(TestTags.Statistics.reading(0)).assertExists()
