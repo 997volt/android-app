@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.navigation
 
+import com.example.androidapp.ui.measurements.MeasurementsRoute
 import com.example.androidapp.ui.settings.SettingsRoute
 import com.example.androidapp.ui.trends.ExerciseTrendsRoute
 import androidx.compose.runtime.Composable
@@ -50,6 +51,10 @@ fun AppNavHost(
 
 /** Home, the exercise library, one exercise's detail, and the app's settings. */
 private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
+    composable<Measurements> {
+        MeasurementsRoute(onBack = { navController.popBackStack() })
+    }
+
     composable<Settings> {
         SettingsRoute(onBack = { navController.popBackStack() })
     }
@@ -70,6 +75,7 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             onOpenTemplates = { navController.navigate(WorkoutTemplates) },
             onOpenTrends = { navController.navigate(WorkoutTrends) },
             onOpenSettings = { navController.navigate(Settings) },
+            onOpenMeasurements = { navController.navigate(Measurements) },
         )
     }
 

@@ -82,6 +82,7 @@ fun WorkoutsHomeRoute(
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
     onOpenSettings: () -> Unit = {},
+    onOpenMeasurements: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Not unwrapped with `by`: reading it here would rebuild the list every second.
@@ -121,6 +122,7 @@ fun WorkoutsHomeRoute(
         onOpenTemplates = onOpenTemplates,
         onOpenTrends = onOpenTrends,
         onOpenSettings = onOpenSettings,
+        onOpenMeasurements = onOpenMeasurements,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         onClearData = {
@@ -150,6 +152,7 @@ fun WorkoutsHomeScreen(
     modifier: Modifier = Modifier,
     onOpenTrends: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
+    onOpenMeasurements: (() -> Unit)? = null,
     onStartFromTemplate: () -> Unit = {},
     onStartTemplate: (String) -> Unit = {},
     onRepeatLast: () -> Unit = {},
@@ -180,6 +183,7 @@ fun WorkoutsHomeScreen(
         topBar = {
             HomeTopBar(
                 onOpenSettings = onOpenSettings,
+                onOpenMeasurements = onOpenMeasurements,
                 onOpenLibrary = onOpenLibrary,
                 onOpenHistory = onOpenHistory,
                 onOpenTemplates = onOpenTemplates,
@@ -523,6 +527,7 @@ private fun HomeTopBar(
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
+    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -551,6 +556,7 @@ private fun HomeTopBar(
                     onOpenTemplates = onOpenTemplates,
                     onOpenTrends = onOpenTrends,
                     onOpenSettings = onOpenSettings,
+                    onOpenMeasurements = onOpenMeasurements,
                     onExport = onExport,
                     onImport = onImport,
                     onClear = onClear,
@@ -628,8 +634,10 @@ private fun HomeMenuItems(
     onClear: (() -> Unit)?,
     onDismiss: () -> Unit,
     onOpenSettings: (() -> Unit)? = null,
+    onOpenMeasurements: (() -> Unit)? = null,
 ) {
     Column {
+        onOpenMeasurements?.let { open -> HomeMenuItem(R.string.measurements_title, onDismiss, open) }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.exercise_library_title)) },
             onClick = {
@@ -682,3 +690,14 @@ private fun HomeMenuItems(
     }
 }
 
+/** One menu entry, so a menu stays a list of them rather than a growing function. */
+@Composable
+private fun HomeMenuItem(label: Int, onDismiss: () -> Unit, onOpen: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(stringResource(label)) },
+        onClick = {
+            onDismiss()
+            onOpen()
+        },
+    )
+}

@@ -38,6 +38,10 @@ data class ExerciseTrends(val exerciseId: String)
 @Serializable
 data object Settings
 
+/** Body measurements (ROADMAP N32). */
+@Serializable
+data object Measurements
+
 /**
  * The in-progress workout (ROADMAP P1.2).
  *
