@@ -33,6 +33,16 @@ Notable changes to Workout, newest first. Format follows
   library since is skipped while the rest copy, and the copy stands independent of its source.
 
 ### Changed
+- **CI: the emulator job's flags are set explicitly, and the lever it was waiting for turned out to be
+  pulled already.** The job was gated behind a manual dispatch because the hosted runner's emulator kept
+  dying, and the untried prescription was to set the emulator's options to what works locally. Reading the
+  pinned `android-emulator-runner`'s own `action.yml` settled it: its default *is* exactly those flags, so
+  an absent key was inheriting them and the experiment could not have been the fix. They are set now
+  anyway, so the workflow owns the flags it depends on and a future action bump cannot change how the
+  emulator boots without this file saying so. The job stays gated, and the levers that are genuinely
+  untried — a lighter ATD system image, memory and core counts that need measuring, or a nightly schedule
+  so the pipeline notices its own regressions — are recorded in [ROADMAP.md](ROADMAP.md) (N30).
+
 - **The app's progression is now offered rather than applied.** N22 shipped a suggestion whose own
   documentation said it "suggests; it never writes", and in two places it *was* the value one tap logged:
   with no plan, the first set of an exercise prefilled last time **plus a step**, and with a plan that named

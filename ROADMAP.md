@@ -37,8 +37,8 @@ shipped and left the file.
 [CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
 everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). What comes next is therefore a choice
-rather than a queue — the rest is in *Later*, and one CI thread from the rename is
-at the end of this section.
+rather than a queue — the rest is in *Later*, and the one open thread, **N30**, is at the end of this
+section rather than a promise about the next round.
 
 ### N30 — the CI emulator thread, continued
 
