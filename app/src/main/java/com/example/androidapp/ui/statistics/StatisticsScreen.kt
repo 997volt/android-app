@@ -1,5 +1,12 @@
 package com.example.androidapp.ui.statistics
 
+import java.time.ZoneId
+import com.example.androidapp.ui.history.HistoryFormat
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.Icons
 import com.example.androidapp.domain.model.Exercise
 import java.time.ZoneOffset
 import java.time.LocalDate
@@ -130,7 +137,12 @@ fun StatisticsScreen(
                 )
             }
 
-            state.series?.let { SeriesChart(series = it) }
+            state.series?.let { series ->
+                SeriesChart(series = series)
+                // Under the chart, and the literal answer to "see everything" — which is also the accessible
+                // counterpart to a canvas this app blanks out for screen readers (ROADMAP N36).
+                ReadingsSection(series = series, metric = MetricRegistry.entryFor(series.key))
+            }
         }
     }
 }
@@ -254,6 +266,70 @@ private fun Number(labelRes: Int, value: String, testTag: String) {
     Column {
         Text(text = stringResource(labelRes), style = MaterialTheme.typography.labelMedium)
         Text(text = value, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag(testTag))
+    }
+}
+
+/**
+ * The readings, newest first, with the average on top (ROADMAP N36).
+ *
+ * Collapsed by default: the chart is what the screen is for, and a year of readings is a wall of numbers to
+ * anyone who has not asked for one. Nothing at all when there is nothing recorded — a disclosure control
+ * that opens onto emptiness is worse than no control.
+ */
+@Composable
+private fun ReadingsSection(series: MetricSeries, metric: MetricEntry) {
+    val readings = series.asReadings()
+    if (readings.isEmpty()) return
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Column {
+        TextButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier.testTag(TestTags.Statistics.READINGS_TOGGLE),
+        ) {
+            Text(stringResource(R.string.statistics_readings, readings.size))
+            Icon(
+                imageVector = if (expanded) {
+                    Icons.Filled.KeyboardArrowUp
+                } else {
+                    Icons.Filled.KeyboardArrowDown
+                },
+                // The label beside it already says what this is; a description would make TalkBack repeat it.
+                contentDescription = null,
+            )
+        }
+
+        if (expanded) {
+            series.average()?.let { average ->
+                ReadingRow(
+                    label = stringResource(R.string.statistics_average),
+                    value = metric.unit.format(average),
+                    testTag = TestTags.Statistics.READINGS_AVERAGE,
+                )
+            }
+            readings.forEachIndexed { index, reading ->
+                ReadingRow(
+                    label = HistoryFormat.date(reading.at, zone = ZoneId.systemDefault()),
+                    value = metric.unit.format(reading.value),
+                    testTag = TestTags.Statistics.reading(index),
+                )
+            }
+        }
+    }
+}
+
+/** One line of the list: what it is on the left, what it reads on the right. */
+@Composable
+private fun ReadingRow(label: String, value: String, testTag: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

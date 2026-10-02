@@ -154,6 +154,44 @@ class StatisticsScreenTest {
     }
 
     @Test
+    fun theReadingsAreCollapsed_untilTheyAreAskedFor() {
+        // The chart is what the screen is for; a year of readings is a wall of numbers to anyone who has not
+        // asked for one.
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.reading(0)).assertDoesNotExist()
+    }
+
+    @Test
+    fun expanding_putsTheAverageOnTop_andTheReadingsNewestFirst() {
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_AVERAGE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.reading(0)).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.reading(1)).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.reading(2)).assertDoesNotExist()
+    }
+
+    @Test
+    fun withNothingRecorded_thereIsNoReadingsControl() {
+        // A disclosure control that opens onto emptiness is worse than no control.
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                series = MetricSeries(
+                    key = MetricKey.Body(BodyMetric.WEIGHT),
+                    readings = listOf(MetricReading(Instant.parse("2026-09-01T08:00:00Z"), null)),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).assertDoesNotExist()
+    }
+
+    @Test
     fun measurementsAreReachable_fromHere() {
         // The regression this action fixes: deleting the trends screen took its measurements link with it,
         // and the screen was registered but reachable from nowhere.

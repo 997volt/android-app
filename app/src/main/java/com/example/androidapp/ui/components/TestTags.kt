@@ -309,6 +309,11 @@ object TestTags {
         const val CHOOSE_LIFT = "statistics_choose_lift"
         const val LIFT = "statistics_lift"
         const val MEASUREMENTS = "statistics_measurements"
+        const val READINGS_TOGGLE = "statistics_readings_toggle"
+        const val READINGS_AVERAGE = "statistics_readings_average"
+
+        /** One reading, addressed by its place in the list — newest first, so 0 is the latest. */
+        fun reading(index: Int) = "statistics_reading_$index"
 
         /** One row of the lift picker, named by the exercise it selects. */
         fun lift(id: String) = "statistics_lift_$id"
