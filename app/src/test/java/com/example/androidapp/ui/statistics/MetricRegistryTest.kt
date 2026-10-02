@@ -62,6 +62,16 @@ class MetricRegistryTest {
     }
 
     @Test
+    fun everyUnitSaysWhatItIs() {
+        // A rate without a unit is an ambiguous number, which is how "−0.483 per week" shipped: the slope was
+        // formatted correctly and the thing it was a slope *of* was missing.
+        MetricUnit.entries.forEach { unit ->
+            assertTrue("$unit has no label", unit.labelRes != 0)
+        }
+        assertEquals(MetricUnit.entries.size, MetricUnit.entries.map { it.labelRes }.distinct().size)
+    }
+
+    @Test
     fun everyEntryCanBeFoundByItsKey() {
         entries.forEach { entry ->
             assertEquals(entry, MetricRegistry.entryFor(entry.key))

@@ -317,6 +317,7 @@ private fun ReadingsSection(series: MetricSeries, metric: MetricEntry) {
                     value = stringResource(
                         R.string.statistics_per_week,
                         slopeText(trend.perWeek) { metric.unit.format(it) },
+                        stringResource(metric.unit.labelRes),
                     ),
                     testTag = TestTags.Statistics.READINGS_TREND,
                 )

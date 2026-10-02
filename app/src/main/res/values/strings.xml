@@ -171,7 +171,12 @@
     <string name="statistics_average">Average</string>
     <string name="statistics_trend">Trend</string>
     <string name="statistics_moving_average">Average of last</string>
-    <string name="statistics_per_week">%1$s per week</string>
+    <string name="statistics_per_week">%1$s %2$s per week</string>
+    <string name="unit_kilograms">kg</string>
+    <string name="unit_centimetres">cm</string>
+    <string name="unit_percent">%</string>
+    <string name="unit_reps">reps</string>
+    <string name="unit_rating">points</string>
     <string name="statistics_custom_no_date">Choose a date</string>
     <string name="tab_library">Library</string>
     <string name="tab_settings">Settings</string>

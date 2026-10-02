@@ -52,25 +52,28 @@ enum class BodyMetric { WEIGHT, BODY_FAT, MUSCLE }
  * those become something a person reads, so it delegates to the formatters that already do it rather than
  * inventing a second set.
  */
-enum class MetricUnit {
-    KILOGRAMS {
+enum class MetricUnit(
+    /** What the numbers *are*, as a string resource: a rate without a unit is an ambiguous number. */
+    @StringRes val labelRes: Int,
+) {
+    KILOGRAMS(R.string.unit_kilograms) {
         override fun format(value: Double): String = Weight.kilograms(value.toLong())
     },
-    RATING {
+    RATING(R.string.unit_rating) {
         override fun format(value: Double): String = value.asRating()
     },
-    REPS {
+    REPS(R.string.unit_reps) {
         override fun format(value: Double): String = value.toInt().toString()
     },
-    PERCENT {
+    PERCENT(R.string.unit_percent) {
         override fun format(value: Double): String = MeasurementFormat.percent(value.toInt())
     },
-    CENTIMETRES {
+    CENTIMETRES(R.string.unit_centimetres) {
         override fun format(value: Double): String = MeasurementFormat.centimetres(value.toLong())
     },
     ;
 
-    /** No unit: the unit belongs to the label's language, which is the rule the app already follows. */
+    /** The number without its unit: the unit belongs to the label's language, as everywhere else. */
     abstract fun format(value: Double): String
 }
 
