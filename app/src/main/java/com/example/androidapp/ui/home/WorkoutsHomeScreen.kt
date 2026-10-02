@@ -196,7 +196,7 @@ fun WorkoutsHomeScreen(
                 onStartWorkout = onStartWorkout,
                 onStartFromTemplate = onStartFromTemplate,
                 // No new state: the list the home screen already shows answers this.
-                canRepeat = state.recent.isNotEmpty(),
+                canRepeat = state.canRepeatLast,
                 onRepeatLast = onRepeatLast,
             )
         },

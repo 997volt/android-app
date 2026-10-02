@@ -57,6 +57,8 @@ data class WorkoutsHomeUiState(
     val today: DayOfWeek = DayOfWeek.MONDAY,
     /** Plans pinned to today, in the repository's order. */
     val todaysPlans: List<WorkoutTemplate> = emptyList(),
+    /** Whether repeating the last workout would copy something (ROADMAP B43's tail). */
+    val canRepeatLast: Boolean = false,
 ) {
     /**
      * Nothing logged and nothing running — the first-run case, which should point at
@@ -112,6 +114,9 @@ class WorkoutsHomeViewModel @Inject constructor(
         WorkoutsHomeUiState(
             isLoading = false,
             recent = history.take(RECENT_LIMIT),
+            // `history` is newest-first, so its head is the workout a repeat would copy — the same
+            // rule the repeat query applies, answered from the row the screen is already showing.
+            canRepeatLast = history.firstOrNull()?.isRepeatable == true,
             activeWorkout = workout,
             today = today,
             todaysPlans = templates.filter { it.weekday == today },

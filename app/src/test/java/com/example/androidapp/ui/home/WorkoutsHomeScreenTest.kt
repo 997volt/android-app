@@ -288,7 +288,11 @@ class WorkoutsHomeScreenTest {
     fun withAFinishedWorkout_itIsOffered_andTapsThrough() {
         var repeated = 0
         setScreen(
-            state = WorkoutsHomeUiState(isLoading = false, recent = listOf(summary("session-1"))),
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                recent = listOf(summary("session-1")),
+                canRepeatLast = true,
+            ),
             actions = Actions(onRepeatLast = { repeated++ }),
         )
 

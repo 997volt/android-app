@@ -79,7 +79,12 @@ interface WorkoutDao {
                    JOIN session_exercises se ON se.id = s.sessionExerciseId
                    WHERE se.sessionId = ws.id AND se.deletedAt IS NULL AND s.deletedAt IS NULL
                ) AS volumeGrams,
-               ws.zoneOffsetMinutes AS zoneOffsetMinutes
+               ws.zoneOffsetMinutes AS zoneOffsetMinutes,
+               (
+                   SELECT COUNT(*) FROM session_exercises se
+                   JOIN exercises e ON e.id = se.exerciseId
+                   WHERE se.sessionId = ws.id AND se.deletedAt IS NULL AND e.deletedAt IS NULL
+               ) AS repeatableExerciseCount
         FROM workout_sessions ws
         WHERE ws.finishedAt IS NOT NULL AND ws.deletedAt IS NULL
         ORDER BY ws.finishedAt DESC

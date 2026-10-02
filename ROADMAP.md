@@ -63,27 +63,6 @@ rest are the removal and the tests that came with it. Ordered by what they cost.
   `finishedAt DESC` alone (`SessionExerciseDao.kt:55`, `WorkoutDao.kt:83`), so when two sessions share a
   `finishedAt` — plausible after a backup import, which round-trips the value — the workout at the top
   of Recent need not be the one Repeat picks. A secondary sort key on either side settles it.
-- **A repeat can be offered that opens an empty session.** `canRepeat` only asks whether history is
-  non-empty, while the query also requires live exercises, so a last session whose exercises were all
-  deleted yields a button indistinguishable from *Start workout*. Contrived — finishing requires a
-  logged set — but the two conditions should agree.
-  **Attempted and reverted, with the reason:** the obvious shape adds `observeCanRepeatLast()` to the
-  port, and `RoomWorkoutRepository` is at detekt's **26-function ceiling** — the same wall `appendExercise`
-  was moved out to clear. There is no private helper left to lift. The way through is to stop asking a
-  new question: carry "does the last workout still have live exercises" on the history projection the
-  home screen already consumes — one extra column in an existing query and a defaulted field on
-  `WorkoutSummary`, no new port method and no new repository function. That is a design change, not a
-  rename, which is why it was not done in the same round as finding the ceiling.
-
-## Later (still self-contained)
-
-Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
-
-This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#` id and
-a spelled-out decision — when it is picked up, and leaves for
-[CHANGELOG.md](CHANGELOG.md) when it ships.
-
-**Insight** — why the app gets opened between workouts
 - **P2.4** Body measurements.
 
 **Programming** — turns a logger into a plan

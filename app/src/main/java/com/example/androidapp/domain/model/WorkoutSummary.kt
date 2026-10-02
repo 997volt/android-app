@@ -39,8 +39,19 @@ data class WorkoutSummary(
     val volumeGrams: Long,
     /** The zone it was performed in, or null for rows written before that was recorded (N25). */
     val zoneOffsetMinutes: Int? = null,
+    /** Exercises still in the library, which is what a repeat would copy (ROADMAP B43's tail). */
+    val repeatableExerciseCount: Int = 0,
 ) {
     /** Null while the workout is still open; history only holds finished ones. */
     val duration: Duration? get() = finishedAt?.let { Duration.between(startedAt, it) }
+
+    /**
+     * Whether repeating this workout would copy anything (ROADMAP B43's tail).
+     *
+     * A workout whose exercises have all been deleted from the library since is history, but it is not
+     * repeatable — and the action used to be offered from "history is not empty", which is a weaker
+     * question whose answer could be yes while the query's was no.
+     */
+    val isRepeatable: Boolean get() = repeatableExerciseCount > 0
 
     /** Warm-up-only workouts have no weight to speak of, but they did happen. */}

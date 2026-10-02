@@ -18,6 +18,8 @@ data class WorkoutSummaryRow(
     val volumeGrams: Long,
     /** The zone the session was performed in, or null when it predates the column (ROADMAP N25). */
     val zoneOffsetMinutes: Int?,
+    /** Exercises still in the library, which is what a repeat would copy (ROADMAP B43's tail). */
+    val repeatableExerciseCount: Int,
 )
 
 internal fun WorkoutSummaryRow.toDomain(): WorkoutSummary = WorkoutSummary(
@@ -28,4 +30,5 @@ internal fun WorkoutSummaryRow.toDomain(): WorkoutSummary = WorkoutSummary(
     setCount = setCount,
     volumeGrams = volumeGrams,
     zoneOffsetMinutes = zoneOffsetMinutes,
+    repeatableExerciseCount = repeatableExerciseCount,
 )

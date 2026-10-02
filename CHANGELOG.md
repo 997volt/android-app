@@ -109,6 +109,11 @@ Notable changes to Workout, newest first. Format follows
 - **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
   first and then the four warm-ups that exist to prepare for it — while its own description said it
   wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
+- **The repeat action is offered only when it would copy something.** It asked whether history was
+  non-empty, while the copy itself also requires exercises still in the library — so a last workout
+  whose exercises had all been deleted since offered a button indistinguishable from *Start workout*
+  that opened an empty session. Both now ask the same question, and Home answers it from a count the
+  history row already carries.
 - **The date formatter's zone is held by a test of its own.** N25's grouping was covered thoroughly and
   the half that turned out to be wrong — what a screen renders — was not, so the formatter now has two
   tests that compare two renderings of the same instant rather than asserting a string: near a day
