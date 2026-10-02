@@ -81,6 +81,10 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **Home shows a past workout's date in its own zone.** It was the one screen that dropped the
+  argument and fell back to the phone's zone, so the same workout read as two different dates on two
+  screens — differing by a day near midnight, which is exactly the case the stored offset exists for.
+  The argument was missing, not the data: the column and the accessor were both already there.
 - **Finishing a workout leaves the screen again, and the undo offers are back.** Removing the
   background rest alert took two things with it that sat beside the permission flow: the effect that
   navigates away once a workout is closed, and the call that draws the undo offer for a deleted set

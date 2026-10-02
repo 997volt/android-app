@@ -60,17 +60,9 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33 is fixed** and lives in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
-- **B33 — Home shows a past workout's date in the wrong zone.** `WorkoutsHomeScreen.kt:353` calls
-  `HistoryFormat.date(workout.startedAt)` with no zone, so it falls back to `ZoneId.systemDefault()`,
-  while the history list and the workout detail both pass the session's own offset. This is the exact
-  scenario N25 exists for — a workout done in Tokyo, read after landing — and it makes the same workout
-  read as two different dates on two screens, differing by a day near midnight. Home is the first screen
-  a past date appears on. It is a dropped argument and not missing data: `WorkoutSummary.zoneIdOrNull()`
-  and the `zoneOffsetMinutes` column are both already there, and Home consumes that same flow. It also
-  contradicts the shipped claim that every screen showing a session time uses the stored offset.
 - **B34 — The warm-up ramp lands after the working sets, not in front.** The KDoc says it "writes a
   warm-up ramp in front of what the plan already prescribes", but `RoomTemplateRepository.addSet`
   appends with `setIndex = maxSetIndex + 1` and sets are read `ORDER BY setIndex`, so a 100 kg plan
