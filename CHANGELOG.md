@@ -141,6 +141,35 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **The exported schema for version 18 was corrupted, and is regenerated.** That file listed fifteen
+  entities for eight tables — every table from before the measurements work appeared twice, byte for byte.
+  Room never writes that and nothing consumed the duplicates, so it was invisible; what makes it worth
+  fixing is that `app/schemas` is the baseline the migration tests validate against, and a baseline that is
+  wrong about its own contents is not a baseline. Regenerated from the entities, which also produced the
+  identity hash the correct table set has. Every other version in the directory was already 1:1.
+- **A target that is not a real number can no longer blank the chart.** `MetricUnit.parse` was a bare
+  `toDoubleOrNull()`, which accepts `NaN`, `Infinity` and a value large enough that the unit conversion
+  overflows to infinity. A target of `NaN` reached the axis, made both ends `NaN` — and `NaN.coerceIn(0f,
+  1f)` is still `NaN` — so every coordinate on the canvas became `NaN`, the chart drew nothing, and nothing
+  said why. Parsing now requires a finite, non-negative number, checked *after* the unit conversion as well
+  as before, which is the guard `Weight.parseKilograms` has always used; `axisBounds` discards non-finite
+  input too, so a bad value from anywhere else cannot do it either.
+- **A rating is drawn on its own scale again.** The chart's doc promised that "a 1–10 rating is drawn on a
+  fixed axis so a 0.2 change cannot look like a cliff", and the two constants that would have done it were
+  referenced nowhere — ratings were auto-fitted, so RPE readings of 7.1, 7.2 and 7.3 produced an axis 0.24
+  wide and a 0.2 wobble filled the chart. The scale now lives beside the metric in the registry, where the
+  axis policy already lives, and the axis widens past it when a reading or a target leaves 1–10, because
+  those are claims the user made and have to stay visible.
+- **A trend that is rising no longer prints as "+0".** The rate beside the chart used the metric's
+  *reading* formatter, and the whole-number units truncate: 0.2 reps a week read as "+0 reps per week" next
+  to a line going up. Rates have their own formatter now, which keeps a tenth when there is one and stays
+  clean when there is not.
+- **A target below zero is visible on a metric anchored at zero.** N39 made the axis include a target above
+  the readings; the same clipping pinned a negative target to the bottom edge where it drew nothing. The
+  axis extends below zero only when something actually sits there, so a bar chart's zero baseline is
+  unchanged in the ordinary case.
+
+
 - **Discarding a workout no longer leaves a white screen.** Closing a session went through two
   identical `LaunchedEffect(closed)` blocks in the workout route, both calling `popBackStack`, so the
   back stack was popped **twice**: the workout left, and so did the screen beneath it, leaving the

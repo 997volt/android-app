@@ -75,6 +75,54 @@ class MetricRegistryTest {
     }
 
     @Test
+    fun aNonFiniteNumber_parsesToNothing() {
+        // `toDoubleOrNull` accepts all of these, and a target of NaN reached the axis and turned every
+        // coordinate on the chart into NaN — the chart drew nothing and reported no error. `Weight` has
+        // guarded against the same thing all along; this is the same guard.
+        for (unit in MetricUnit.entries) {
+            assertThat(unit.parse("NaN")).isNull()
+            assertThat(unit.parse("Infinity")).isNull()
+            assertThat(unit.parse("-Infinity")).isNull()
+            assertThat(unit.parse("  NaN  ")).isNull()
+        }
+        // Finite on its own, infinite after the unit conversion: `1e308` is inside a Double, and ×2 or more
+        // takes it past the maximum. This is the overflow the guard exists for, and why the check runs
+        // *after* the conversion rather than only before it.
+        assertThat(MetricUnit.KILOGRAMS.parse("1e308")).isNull()
+        assertThat(MetricUnit.CENTIMETRES.parse("1e308")).isNull()
+        assertThat(MetricUnit.PERCENT.parse("1e308")).isNull()
+        assertThat(MetricUnit.RATING.parse("1e308")).isNull()
+        // A bare count stores what was typed, so finite is all that is asked of it.
+        assertThat(MetricUnit.REPS.parse("1e308")).isEqualTo(1e308)
+    }
+
+    @Test
+    fun aNegativeNumber_parsesToNothing() {
+        // No stored measurement in this app is negative — the editor shows assistance as one signed field but
+        // stores a magnitude — so a negative target would be a value nothing else can produce.
+        assertThat(MetricUnit.KILOGRAMS.parse("-20")).isNull()
+        assertThat(MetricUnit.PERCENT.parse("-1")).isNull()
+        assertThat(MetricUnit.RATING.parse("-1")).isNull()
+    }
+
+    @Test
+    fun aRateKeepsItsPrecision_soATrendIsNotPrintedAsZero() {
+        // A count is whole, but a *rate* of one need not be: 0.2 reps a week is a real trend, and the reading
+        // formatter truncated it to "+0 reps per week" while the line visibly rose.
+        assertThat(MetricUnit.REPS.format(42.0)).isEqualTo("42")
+        assertThat(MetricUnit.REPS.formatRate(0.2)).isEqualTo("0.2")
+        assertThat(MetricUnit.REPS.formatRate(-0.4)).isEqualTo("-0.4")
+        assertThat(MetricUnit.REPS.formatRate(2.0)).isEqualTo("2")
+        assertThat(MetricUnit.PERCENT.formatRate(0.5)).isEqualTo("0.5")
+        assertThat(MetricUnit.CENTIMETRES.formatRate(1.5)).isEqualTo("1.5")
+        // The units that are already fractional in display keep their own formatter.
+        assertThat(MetricUnit.KILOGRAMS.formatRate(2500.0)).isEqualTo("2.5")
+        // A rating arrives in halves, so its rate converts to points like its readings do.
+        assertThat(MetricUnit.RATING.formatRate(15.0)).isEqualTo("7.5")
+        assertThat(MetricUnit.RATING.formatRate(1.0)).isEqualTo("0.5")
+    }
+
+    @Test
     fun everyUnitSaysWhatItIs() {
         // A rate without a unit is an ambiguous number, which is how "−0.483 per week" shipped: the slope was
         // formatted correctly and the thing it was a slope *of* was missing.

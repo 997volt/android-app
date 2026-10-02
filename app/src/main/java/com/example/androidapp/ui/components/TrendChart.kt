@@ -28,8 +28,9 @@ import androidx.compose.ui.unit.dp
  * value: a gap is "not recorded", and drawing through it would invent a measurement. That matters more on a
  * time axis, not less: the gap is now visible as *distance*, and a straight segment drawn across three weeks
  * would be a claim about weeks nobody measured. And it does not choose its own axis — the caller passes the
- * bounds, because a rating and a load need opposite treatment: a 1–10 rating is drawn on a *fixed* axis so a
- * 0.2 change cannot look like a cliff, and a load from zero, because a kilogram is a quantity.
+ * bounds, and the bounds decide how much a change *looks* like: a load starts at zero because a kilogram is a
+ * quantity, while a rating works in a narrow band where a fixed axis is what stops a 0.2 change reading as a
+ * cliff. That policy belongs to the metric, so it lives in the registry beside the metric rather than here.
  *
  * Marked as decorative: the labels and the caption carry the numbers, so a screen reader hears the sentence
  * rather than a description of a picture it cannot see.
@@ -183,8 +184,6 @@ private class TrendAxis(private val min: Double, private val max: Double) {
 }
 
 /** The 1–10 rating axis: fixed, so the three ratings read against each other. */
-const val RATING_AXIS_MIN = 1.0
-const val RATING_AXIS_MAX = 10.0
 
 /** The chart's ink, in pixels: it is a fixed-size glyph, not a responsive layout. */
 private const val GRID_STROKE_PX = 1f
@@ -210,6 +209,9 @@ data class ChartPoint(val x: Float, val value: Double?)
  * length ceiling with both of them in it.
  */
 private fun DrawScope.drawBars(points: List<ChartPoint>, y: (Double) -> Float, color: Color) {
+    // An empty series would divide by zero, and `NaN.coerceAtLeast` stays `NaN` — which then becomes a
+    // `Size(NaN, …)` silently rather than throwing, so it is guarded here rather than trusted.
+    if (points.isEmpty()) return
     // A bar length is the quantity, so the bar has to start where the quantity starts — which is why a bars
     // metric's axis is anchored at zero by the registry.
     val width = (size.width / points.size).coerceAtLeast(MIN_BAR_WIDTH_PX) / BAR_WIDTH_FRACTION

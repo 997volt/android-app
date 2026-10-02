@@ -35,8 +35,10 @@ fun GoalRow(
     onSetGoal: (Double?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // `editing` is the only state here: the field's text belongs to the dialog, which is the thing that has
+    // to validate it. A copy on this row would be a second answer to "what was typed", and the one that is
+    // never read is the one that drifts.
     var editing by rememberSaveable { mutableStateOf(false) }
-    var typed by rememberSaveable { mutableStateOf("") }
 
     Row(
         modifier = modifier
@@ -50,10 +52,7 @@ fun GoalRow(
             style = MaterialTheme.typography.bodyMedium,
         )
         TextButton(
-            onClick = {
-                typed = goal?.let { metric.unit.format(it) }.orEmpty()
-                editing = true
-            },
+            onClick = { editing = true },
             modifier = Modifier.testTag(TestTags.Statistics.GOAL_SET),
         ) {
             Text(

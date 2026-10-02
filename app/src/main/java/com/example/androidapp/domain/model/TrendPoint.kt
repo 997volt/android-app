@@ -68,3 +68,13 @@ fun List<Double?>.recordedCount(): Int = count { it != null }
  * harder to test for no gain the user can see.
  */
 fun Double.asRating(): String = String.format(Locale.ROOT, "%.1f", this)
+
+/**
+ * A number that is whole when it can be, and a tenth otherwise.
+ *
+ * For a rate, where the unit is a count but the *change* is not: two reps a week reads "2", and a fifth of
+ * one reads "0.2" instead of being truncated to a zero that contradicts the trend line. The same
+ * `Locale.ROOT` reasoning as [asRating].
+ */
+fun Double.asTenthsOrWhole(): String =
+    if (this == toLong().toDouble()) toLong().toString() else String.format(Locale.ROOT, "%.1f", this)

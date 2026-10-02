@@ -37,11 +37,10 @@ average, a fitted trend and a trailing mean — and it is in [CHANGELOG.md](CHAN
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
-
-
-**Test assertions are on Truth** across the JVM suite, including the statistics tests written for N35–N40. The
-instrumented suite keeps JUnit: Truth is `testImplementation` only, which is the rule's own stated limit rather
-than an exception to it.
+**New and touched tests assert on Truth** — the statistics suite, and every JVM file reworked since the rule
+was adopted. That is not the whole suite: the rest still use JUnit and migrate as they are touched, which is
+the rule's own wording in [DECISIONS.md](DECISIONS.md). The instrumented suite keeps JUnit, because Truth is
+`testImplementation` only — the same rule's stated limit rather than an exception to it.
 
 ## Later (still self-contained)
 

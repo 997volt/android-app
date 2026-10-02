@@ -5,8 +5,10 @@ import com.example.androidapp.R
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.TapeSite
+import com.example.androidapp.domain.model.TenPointScale
 import com.example.androidapp.domain.model.TrendMetric
 import com.example.androidapp.domain.model.asRating
+import com.example.androidapp.domain.model.asTenthsOrWhole
 import com.example.androidapp.ui.measurements.MeasurementFormat
 
 /** The three groups the picker offers, in the order it offers them (ROADMAP N35). */
@@ -59,26 +61,41 @@ enum class MetricUnit(
     KILOGRAMS(R.string.unit_kilograms) {
         override fun format(value: Double): String = Weight.kilograms(value.toLong())
 
-        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(GRAMS_PER_KILOGRAM)
+        override fun parse(text: String): Double? =
+            measure(text) { it.times(GRAMS_PER_KILOGRAM) }
     },
     RATING(R.string.unit_rating) {
         override fun format(value: Double): String = value.asRating()
 
-        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(HALVES_PER_POINT)
+        // A rate arrives in *stored* units like every other value here — halves, for a rating — so it
+        // converts the same way `format` does before deciding how many decimals a rate needs.
+        override fun formatRate(value: Double): String = (value / HALVES_PER_POINT).asTenthsOrWhole()
+
+        override fun parse(text: String): Double? =
+            measure(text) { it.times(HALVES_PER_POINT) }
     },
     REPS(R.string.unit_reps) {
+        // A count is whole, so a tip is not a measurement — but a *rate* of one can be fractional, and
+        // `toInt()` would print "+0 reps per week" for a series that is visibly rising. Hence `formatRate`.
         override fun format(value: Double): String = value.toInt().toString()
+
+        override fun formatRate(value: Double): String = value.asTenthsOrWhole()
     },
     PERCENT(R.string.unit_percent) {
         override fun format(value: Double): String = MeasurementFormat.percent(value.toInt())
 
-        override fun parse(text: String): Double? = text.trim().toDoubleOrNull()?.times(TENTHS_PER_PERCENT)
+        override fun formatRate(value: Double): String = value.asTenthsOrWhole()
+
+        override fun parse(text: String): Double? =
+            measure(text) { it.times(TENTHS_PER_PERCENT) }
     },
     CENTIMETRES(R.string.unit_centimetres) {
         override fun format(value: Double): String = MeasurementFormat.centimetres(value.toLong())
 
+        override fun formatRate(value: Double): String = value.asTenthsOrWhole()
+
         override fun parse(text: String): Double? =
-            text.trim().toDoubleOrNull()?.times(MILLIMETRES_PER_CENTIMETRE)
+            measure(text) { it.times(MILLIMETRES_PER_CENTIMETRE) }
     },
     ;
 
@@ -86,14 +103,42 @@ enum class MetricUnit(
     abstract fun format(value: Double): String
 
     /**
+     * The number without its unit, for a *rate* rather than a reading.
+     *
+     * Defaults to [format], which is right for the units that are already fractional in display — kilograms,
+     * centimetres and a rating keep their precision. The whole-number units override it, because a rate is
+     * not a count: 0.2 reps a week is a real trend, and truncating it to "0" contradicts the line the user
+     * is looking at.
+     */
+    open fun formatRate(value: Double): String = format(value)
+
+    /**
      * What a typed number means in the metric's stored units (ROADMAP N39).
      *
      * The inverse of [format], and needed because a target is *typed* as "80" kilograms and *stored* as 80000
-     * grams, like every other weight in the app. Null for anything that is not a number, so a typo cannot
-     * become a target.
+     * grams, like every other weight in the app. Null for anything that is not a usable number, so a typo
+     * cannot become a target.
+     *
+     * "Not a usable number" includes `NaN`, `Infinity` and an overflow to infinity: `toDoubleOrNull` accepts
+     * all of them, and a target of `NaN` reaches the axis and makes every coordinate on the chart `NaN`, so
+     * the chart draws nothing and says nothing. This is the same hazard [Weight.parseKilograms] guards
+     * against, and the guard is the same one: finite and not negative.
      */
-    open fun parse(text: String): Double? = text.trim().toDoubleOrNull()
+    open fun parse(text: String): Double? = finite(text.trim().toDoubleOrNull())
 }
+
+/**
+ * A typed measurement in stored units, or null when it is not usable.
+ *
+ * Applied *after* the unit conversion as well as before it, because the conversion can overflow:
+ * `"1e307" × 1000` is `Infinity` even though `1e307` is finite on its own.
+ */
+private inline fun measure(text: String, convert: (Double) -> Double): Double? =
+    finite(text.trim().toDoubleOrNull())?.let { convert(it) }?.let(::finite)
+
+/** Finite and not negative: what every stored measurement in this app is. */
+private fun finite(value: Double?): Double? =
+    value?.takeIf { it.isFinite() && it >= 0.0 }
 
 /**
  * One series the Statistics screen can draw (ROADMAP N35).
@@ -112,6 +157,18 @@ data class MetricEntry(
     val higherIsBetter: Boolean = true,
     /** Whether the axis is anchored at zero, which is a property of the metric (ROADMAP N38). */
     val fromZero: Boolean = false,
+    /**
+     * An axis this metric never narrows below.
+     *
+     * A rating is the case that needs it: the scale is definitionally 1–10, so fitting the axis to the data
+     * turns a 0.2 wobble into a full-height cliff — the reading looks catastrophic and is not. A quantity
+     * needs the opposite treatment and gets it from [fromZero]. The bounds live here, beside the metric they
+     * describe, rather than in the chart, which deliberately does not choose its own axis.
+     *
+     * The axis still *widens* to include a target outside the range: a target of 12 is a claim the user made
+     * and it must be visible, even where the scale says it should not exist.
+     */
+    val fixedRange: ClosedRange<Double>? = null,
     /** True when the series means nothing until a lift is chosen. */
     val needsExercise: Boolean = false,
 )
@@ -181,15 +238,14 @@ private fun workoutEntry(metric: TrendMetric) = MetricEntry(
     },
     unit = MetricUnit.RATING,
     isBars = false,
+    // A rating is a position on a known scale, so the axis keeps the scale's ends (ROADMAP N39).
+    fixedRange = RATING_SCALE,
     // Pain is the one workout rating where more is worse.
     higherIsBetter = metric != TrendMetric.JOINT_PAIN,
 )
 
-private fun exerciseEntry(metric: ExerciseTrendMetric) = MetricEntry(
-    key = MetricKey.Exercise(metric),
-    group = MetricGroup.EXERCISE,
-    labelRes = metric.labelRes(),
-    unit = when (metric) {
+private fun exerciseEntry(metric: ExerciseTrendMetric): MetricEntry {
+    val unit = when (metric) {
         ExerciseTrendMetric.TOTAL_REPS -> MetricUnit.REPS
         ExerciseTrendMetric.RPE,
         ExerciseTrendMetric.MUSCLE_FEEL,
@@ -197,15 +253,23 @@ private fun exerciseEntry(metric: ExerciseTrendMetric) = MetricEntry(
         -> MetricUnit.RATING
 
         else -> MetricUnit.KILOGRAMS
-    },
-    // Counting is what bars are for: a volume or a rep count is a quantity, not a position on a scale.
-    isBars = metric == ExerciseTrendMetric.VOLUME || metric == ExerciseTrendMetric.TOTAL_REPS,
-    // The direction the app already knows (ROADMAP N17), plus pain, which works the same way.
-    higherIsBetter = metric.higherIsBetter && metric != ExerciseTrendMetric.JOINT_PAIN,
-    // A load starts at zero; a rating does not (ROADMAP N17, N38).
-    fromZero = metric.isLoad,
-    needsExercise = true,
-)
+    }
+    return MetricEntry(
+        key = MetricKey.Exercise(metric),
+        group = MetricGroup.EXERCISE,
+        labelRes = metric.labelRes(),
+        unit = unit,
+        // Counting is what bars are for: a volume or a rep count is a quantity, not a position on a scale.
+        isBars = metric == ExerciseTrendMetric.VOLUME || metric == ExerciseTrendMetric.TOTAL_REPS,
+        // A rating keeps the scale's ends; a load does not have ends to keep (ROADMAP N39).
+        fixedRange = if (unit == MetricUnit.RATING) RATING_SCALE else null,
+        // The direction the app already knows (ROADMAP N17), plus pain, which works the same way.
+        higherIsBetter = metric.higherIsBetter && metric != ExerciseTrendMetric.JOINT_PAIN,
+        // A load starts at zero; a rating does not (ROADMAP N17, N38).
+        fromZero = metric.isLoad,
+        needsExercise = true,
+    )
+}
 
 private fun tapeEntry(site: TapeSite) = MetricEntry(
     key = MetricKey.Tape(site),
@@ -241,3 +305,12 @@ private const val GRAMS_PER_KILOGRAM = 1000.0
 private const val MILLIMETRES_PER_CENTIMETRE = 10.0
 private const val TENTHS_PER_PERCENT = 10.0
 private const val HALVES_PER_POINT = 2.0
+
+/**
+ * Every rating in the app is 1–10.
+ *
+ * The same scale [com.example.androidapp.domain.model.TenPointScale] validates for muscle feel and joint
+ * pain, and the one RPE works in at half steps. Named once here so the axis a rating is drawn on cannot
+ * drift from the scale the editor enforces.
+ */
+private val RATING_SCALE = TenPointScale.MIN.toDouble()..TenPointScale.MAX.toDouble()

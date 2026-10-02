@@ -321,7 +321,7 @@ private fun ReadingsSection(series: MetricSeries, metric: MetricEntry) {
                     label = stringResource(R.string.statistics_trend),
                     value = stringResource(
                         R.string.statistics_per_week,
-                        slopeText(trend.perWeek) { metric.unit.format(it) },
+                        slopeText(trend.perWeek) { metric.unit.formatRate(it) },
                         stringResource(metric.unit.labelRes),
                     ),
                     testTag = TestTags.Statistics.READINGS_TREND,
@@ -360,7 +360,8 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry, goal: Double?
     if (recorded.size < 2) return
     var period by rememberSaveable { mutableStateOf(DAYS) }
 
-    val axis = axisBounds(values = recorded, fromZero = metric.fromZero, goal = goal)
+    // `fixedRange` keeps a rating on its own 1–10 scale rather than fitting the axis to a 0.2 wobble.
+    val axis = axisBounds(recorded, fromZero = metric.fromZero, goal = goal, fixedRange = metric.fixedRange)
     val firstAt = series.readings.first().at.toEpochMilli().toDouble()
     val timeSpan = series.readings.last().at.toEpochMilli().toDouble() - firstAt
 
