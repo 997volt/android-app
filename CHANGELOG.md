@@ -7,6 +7,15 @@ Notable changes to Workout, newest first. Format follows
 
 ## [Unreleased]
 
+### Added
+- **A finished workout can become a plan.** The app went plan to session and history to session, but
+  never session to plan: after a good unplanned workout the only way to keep it was rebuilding it by
+  hand. The workout detail now offers **Save as plan** — it asks for a name, copies the exercises in
+  order with their performed sets as targets, keeps the rest, the technique note and the superset
+  grouping, and offers to open the plan it just made. It copies neither the readiness note, the ratings
+  nor the workout comment, which describe that day rather than the plan. An exercise deleted from the
+  library since is skipped while the rest copy, and the copy stands independent of its source.
+
 ### Fixed
 
 - **Discarding a workout no longer leaves a white screen.** Closing a session went through two
