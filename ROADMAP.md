@@ -44,19 +44,15 @@ The rename itself shipped — the app is **Workout**, the repository is `997volt
 redirects, and the local remote points at the new one. Two loose ends, both small and neither a code
 change.
 
-- **Fill in the repository's description and topics.** Both are empty, and a one-word name carries no
-  context of its own. The description is where the specific part goes, since it can change whenever
-  the app does: *"Plan a workout, log what you actually did, and see the difference. Local-only: no
-  account, no server, no internet permission."* Topics: `android`, `kotlin`, `jetpack-compose`,
-  `room`, `offline-first`, `workout-tracker`. This is the only place the app's genuinely distinctive
-  property — that it declares no permissions at all — is visible to someone deciding whether to look.
-- **Get one green CI run over the rename.** Every run on that commit was cancelled by the next push,
-  so the label change rests on a local build: `aapt2 dump badging` reports
-  `application-label:'Workout'` with the `applicationId` unchanged, and the suite is green (443 at the
-  time of writing). That is good
-  evidence and it is not the same as the pipeline having passed, which is worth knowing before a
-  release is cut from it. Nothing needs deciding here — it is the same cancellation already accepted
-  and recorded in [DECISIONS.md](DECISIONS.md), and the next quiet stretch closes it on its own.
+- **Fill in the repository's description and topics — done.** The description says what the app is and
+  what it does not do: *"Plan a workout, log what you actually did, and see the difference. Local-only:
+  no account, no server, no permissions at all."* Topics: `android`, `kotlin`, `jetpack-compose`, `room`,
+  `offline-first`, `local-first`, `workout-tracker`. Both read back from the API rather than assumed.
+- **Get one green CI run over the rename — still open, and close to self-inflicted.** Every run since
+  the rename has been cancelled by the next push: twelve in a row at the last check, with the tip
+  *pending*. Nothing is wrong with the pipeline — this is the cancellation already accepted and recorded
+  in [DECISIONS.md](DECISIONS.md) — and it closes as soon as pushes stop for twenty minutes. The commit
+  that carries this note deliberately was **not pushed**, so the run in flight can finish.
 
 ### The v1.6 review — the features (B33–B37)
 
