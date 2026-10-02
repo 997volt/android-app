@@ -155,6 +155,20 @@ class StatisticsScreenTest {
     }
 
     @Test
+    fun theMovingAveragePeriod_isConfigurable_andSaysWhichIsOn() {
+        // Seven by default, which is the reading a daily weigh-in wants: the mean of the last week against the
+        // noise of the days (N40).
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.MOVING_AVERAGE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Statistics.movingAveragePeriod(DAYS)).assertIsSelected()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.movingAveragePeriod(14)).performScrollTo().performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.movingAveragePeriod(14)).assertIsSelected()
+    }
+
+    @Test
     fun aQuantityMetric_anchorsItsAxisAtZero() {
         // The visible half of N38: a volume bar starts where volume starts, and the label says so. The bars
         // themselves are a canvas, which the app blanks out for screen readers — so this is the assertion

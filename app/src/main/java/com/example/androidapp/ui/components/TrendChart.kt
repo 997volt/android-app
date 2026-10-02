@@ -45,6 +45,8 @@ fun TrendChart(
     /** A horizontal line at the average, and the fitted trend (ROADMAP N39). */
     average: Double? = null,
     trend: ChartLine? = null,
+    /** The trailing mean, drawn heavier and without dots (ROADMAP N40). */
+    movingAverage: List<ChartPoint> = emptyList(),
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
@@ -56,26 +58,8 @@ fun TrendChart(
 
         fun y(value: Double): Float = size.height * (1f - axis.fractionOf(value).toFloat())
 
-        // The reference lines first, so the data is drawn over them: a trend line is a reading of the series,
-        // not a thing to hide it behind.
-        average?.let { value ->
-            drawLine(
-                color = referenceColor,
-                start = Offset(0f, y(value)),
-                end = Offset(size.width, y(value)),
-                strokeWidth = REFERENCE_STROKE_PX,
-            )
-        }
-        trend?.let { line ->
-            drawLine(
-                color = referenceColor,
-                start = Offset(0f, y(line.start)),
-                end = Offset(size.width, y(line.end)),
-                strokeWidth = REFERENCE_STROKE_PX,
-            )
-        }
-
-        // The top and bottom of the axis, so an empty stretch still reads as a scale.
+        // The top and bottom of the axis, so an empty stretch still reads as a scale. These were deleted by
+        // the extraction that moved the reference lines out — the unused-import report is what caught it.
         listOf(minValue, maxValue).forEach { value ->
             drawLine(
                 color = gridColor,
@@ -86,7 +70,27 @@ fun TrendChart(
             )
         }
 
+        drawReferenceLines(
+            referenceColor = referenceColor,
+            average = average,
+            trend = trend,
+            movingAverage = movingAverage,
+            y = ::y,
+        )
+
         if (bars) {
+            // The mean first, under the readings: it summarises them, and the data is what is being read.
+            movingAverage.zipWithNext { from, to ->
+                val fromValue = from.value ?: return@zipWithNext
+                val toValue = to.value ?: return@zipWithNext
+                drawLine(
+                    color = referenceColor,
+                    start = Offset(from.x * size.width, y(fromValue)),
+                    end = Offset(to.x * size.width, y(toValue)),
+                    strokeWidth = MEAN_STROKE_PX,
+                )
+            }
+
             drawBars(points = points, y = ::y, color = dotColor)
             return@Canvas
         }
@@ -125,6 +129,7 @@ fun TrendChartFrame(
     bars: Boolean = false,
     average: Double? = null,
     trend: ChartLine? = null,
+    movingAverage: List<ChartPoint> = emptyList(),
 ) {
     TrendChart(
         points = points,
@@ -133,6 +138,7 @@ fun TrendChartFrame(
         bars = bars,
         average = average,
         trend = trend,
+        movingAverage = movingAverage,
         modifier = modifier
             .fillMaxWidth()
             .height(CHART_HEIGHT_DP.dp)
@@ -146,6 +152,9 @@ data class ChartLine(val start: Double, val end: Double)
 
 /** Thinner than the data, because a fitted line is a summary rather than a measurement. */
 private const val REFERENCE_STROKE_PX = 2f
+
+/** Heavier than a fitted line: the mean is what a noisy daily reading is read through. */
+private const val MEAN_STROKE_PX = 4f
 
 /** A bar is a share of the width, not a sliver: two fifths of the space each bar has. */
 private const val BAR_WIDTH_FRACTION = 2.5f
@@ -200,6 +209,48 @@ private fun DrawScope.drawBars(points: List<ChartPoint>, y: (Double) -> Float, c
             color = color,
             topLeft = Offset(point.x * size.width - width / 2f, minOf(y(value), baseline)),
             size = Size(width, kotlin.math.abs(baseline - y(value))),
+        )
+    }
+}
+
+/**
+ * The average, the fitted trend and the trailing mean (ROADMAP N39, N40).
+ *
+ * Drawn before the readings, so the data sits over its own summaries, and together because they are the same
+ * kind of thing: a line about the series rather than a reading in it.
+ */
+private fun DrawScope.drawReferenceLines(
+    referenceColor: Color,
+    average: Double?,
+    trend: ChartLine?,
+    movingAverage: List<ChartPoint>,
+    y: (Double) -> Float,
+) {
+    val color = referenceColor
+    average?.let { value ->
+        drawLine(
+            color = color,
+            start = Offset(0f, y(value)),
+            end = Offset(size.width, y(value)),
+            strokeWidth = REFERENCE_STROKE_PX,
+        )
+    }
+    trend?.let { line ->
+        drawLine(
+            color = color,
+            start = Offset(0f, y(line.start)),
+            end = Offset(size.width, y(line.end)),
+            strokeWidth = REFERENCE_STROKE_PX,
+        )
+    }
+    movingAverage.zipWithNext { from, to ->
+        val fromValue = from.value ?: return@zipWithNext
+        val toValue = to.value ?: return@zipWithNext
+        drawLine(
+            color = color,
+            start = Offset(from.x * size.width, y(fromValue)),
+            end = Offset(to.x * size.width, y(toValue)),
+            strokeWidth = MEAN_STROKE_PX,
         )
     }
 }

@@ -170,6 +170,7 @@
     <string name="statistics_readings">Readings (%1$d)</string>
     <string name="statistics_average">Average</string>
     <string name="statistics_trend">Trend</string>
+    <string name="statistics_moving_average">Average of last</string>
     <string name="statistics_per_week">%1$s per week</string>
     <string name="statistics_custom_no_date">Choose a date</string>
     <string name="tab_library">Library</string>

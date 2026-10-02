@@ -1,6 +1,7 @@
 package com.example.androidapp.ui.statistics
 
 import com.example.androidapp.ui.components.ChartLine
+import com.example.androidapp.ui.components.ChartPoint
 import java.time.ZoneId
 import com.example.androidapp.ui.history.HistoryFormat
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -351,6 +352,7 @@ private fun ReadingRow(label: String, value: String, testTag: String) {
 private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
     val recorded = series.readings.mapNotNull { it.value }
     if (recorded.size < 2) return
+    var period by rememberSaveable { mutableStateOf(DAYS) }
 
     val axis = axisBounds(values = recorded, fromZero = metric.fromZero)
     val firstAt = series.readings.first().at.toEpochMilli().toDouble()
@@ -358,8 +360,15 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
 
     Column {
         val trend = series.trend()
+        val projected = projectByTime(series.readings)
+        // The mean is a subset of the same readings, so it shares their places on the axis rather than being
+        // projected again — two projections of the same instants would be two chances to disagree.
+        val xByInstant = series.readings.mapIndexed { index, reading -> reading.at to projected[index].x }.toMap()
+        val mean = series.movingAverage(period).mapNotNull { reading ->
+            xByInstant[reading.at]?.let { x -> ChartPoint(x = x, value = reading.value) }
+        }
         TrendChartFrame(
-            points = projectByTime(series.readings),
+            points = projected,
             minValue = axis.min,
             maxValue = axis.max,
             testTag = TestTags.Statistics.CHART,
@@ -367,6 +376,7 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
             average = series.average(),
             // The line is evaluated across the same elapsed time the points are placed by (N37), so it leans
             // the way the readings do rather than the way the index would.
+            movingAverage = mean,
             trend = trend?.let { fitted ->
                 ChartLine(
                     start = fitted.valueAt(fraction = 0.0, first = firstAt, span = timeSpan),
@@ -374,6 +384,8 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
                 )
             },
         )
+        MovingAveragePicker(period = period, onSelect = { period = it })
+
         // The axis in words (ROADMAP N37). A canvas cannot be read by a screen reader, and even for a
         // reader who can see it, "when did this start and end, and what scale is it" is the first question.
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -572,4 +584,32 @@ private fun StatisticsTopBar(onOpenMeasurements: (() -> Unit)?) {
             }
         },
     )
+}
+
+/**
+ * The period the trailing mean is taken over (ROADMAP N40).
+ *
+ * Readings rather than days, stated on the control rather than only in the code: a day window would often hold
+ * one reading for a lift trained twice a week, and the mean of one reading is that reading.
+ */
+@Composable
+private fun MovingAveragePicker(period: Int, onSelect: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.statistics_moving_average),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.testTag(TestTags.Statistics.MOVING_AVERAGE),
+        )
+        MOVING_AVERAGE_PERIODS.forEach { option ->
+            FilterChip(
+                selected = period == option,
+                onClick = { onSelect(option) },
+                label = { Text(option.toString()) },
+                modifier = Modifier.testTag(TestTags.Statistics.movingAveragePeriod(option)),
+            )
+        }
+    }
 }
