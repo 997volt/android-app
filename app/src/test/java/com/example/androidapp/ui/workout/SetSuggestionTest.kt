@@ -5,7 +5,6 @@ import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.Weight
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -145,10 +144,12 @@ class SetSuggestionTest {
             planned = PlannedTarget(reps = 2, weightGrams = null),
         )
 
-        assertEquals("a step heavier", 102_500L, suggestion.weightGrams)
+        // N33: the prefill is what you did last time, unchanged — the step is an offer beside it, so a
+        // lifter who progresses by hand is not undoing the app's arithmetic on every first set.
+        assertEquals("last time's bar, unchanged", 100_000L, suggestion.weightGrams)
         assertEquals("at the reps the plan asked for", 2, suggestion.reps)
-        // The plan sized the reps, so the reason explains the load — and a step is worth saying.
-        assertEquals(ProgressionReason.MORE_WEIGHT, suggestion.reason)
+        assertEquals("and the step is proposed", 102_500L, suggestion.offer?.weightGrams)
+        assertEquals(ProgressionReason.MORE_WEIGHT, suggestion.offer?.reason)
     }
 
     @Test
@@ -172,9 +173,9 @@ class SetSuggestionTest {
 
         assertEquals("the same bar as last time", 90_000L, suggestion.weightGrams)
         assertEquals("the reps are the plan's to decide", 5, suggestion.reps)
-        assertNull(
-            "and there is nothing to explain: the plan already sized the set",
-            suggestion.reason,
-        )
+        // The proposal is a rep, and it is still only a proposal (N33).
+        assertEquals("one more rep offered, not applied", 3, suggestion.offer?.reps)
+        assertEquals(90_000L, suggestion.offer?.weightGrams)
+        assertEquals(ProgressionReason.MORE_REPS, suggestion.offer?.reason)
     }
 }

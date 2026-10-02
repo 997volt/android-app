@@ -309,7 +309,7 @@ private fun ExerciseSets(
         // exists to prevent. The role picker beside it is what makes a warm-up one tap
         // instead of log-then-edit three times (ROADMAP N19).
         if (!row.isFinished) {
-            row.suggestion.reason?.let { reason ->
+            row.suggestion.offer?.reason?.let { reason ->
                 Text(
                     text = stringResource(reason.explanationRes()),
                     style = MaterialTheme.typography.bodySmall,

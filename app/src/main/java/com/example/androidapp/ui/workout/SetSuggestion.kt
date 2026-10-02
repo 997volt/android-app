@@ -10,20 +10,40 @@ import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.TemplateExercise
 
-/** The values a new set will be logged with, before the user adjusts them. */
+/**
+ * The values a new set will be logged with, before the user adjusts them.
+ *
+ * These are what one tap of **Log set** commits, so the rule for choosing them is "what did I do, or
+ * what does the plan say" — never "what does the app think I should do next" (ROADMAP N33). The app's
+ * proposal travels in [offer], shown and applied only when it is accepted.
+ */
 data class SetSuggestion(
     val reps: Int,
     val weightGrams: Long,
     /** The assistance to prefill, or 0 for none (ROADMAP N15). */
     val assistanceGrams: Long = 0,
     /**
-     * Why this number, when it came from progression (ROADMAP N22), or null when it is
-     * simply the plan or a repeat of the set just logged.
+     * The progression the app proposes, or null (ROADMAP N33).
      *
-     * Null is not "no reason" — it is "nothing to explain", which is the common case and
-     * must not put a line on the screen.
+     * Separate from the values above rather than folded into them, which is what this field exists to
+     * stop: a proposal that *is* the prefill is a suggestion only until the user notices it, because the
+     * next tap commits it. Null means there is nothing to propose — the plan already said, or there is
+     * no last time — and never "no reason", which is [SetOffer.reason]'s job.
      */
-    val reason: ProgressionReason? = null,
+    val offer: SetOffer? = null,
+)
+
+/**
+ * A progression the app proposes, with why (ROADMAP N22, N33).
+ *
+ * Shown beside the set and applied only when accepted, so a lifter who progresses by hand is no longer
+ * undoing the app's step on every first set.
+ */
+data class SetOffer(
+    val reps: Int,
+    val weightGrams: Long,
+    val assistanceGrams: Long,
+    val reason: ProgressionReason?,
 )
 
 /**
@@ -41,15 +61,14 @@ data class PlannedTarget(
 )
 
 /**
- * Chooses what to prefill the next set with (ROADMAP P1.3, N14).
+ * Chooses what to prefill the next set with, and what to propose beside it (ROADMAP P1.3, N14, N33).
  *
- * The ordering is the whole point of the feature. A plan's target for *this* set wins
- * where it says something — that is what a plan is for, and a ramp of 100/105/110 kg
- * only works if the second and third sets take their numbers from the plan rather than
- * from the set before them. Where the plan is silent, the older rule applies:
- * repeating what you *just* did is almost always right within a session, and what you
- * did last time is the right starting point for the first set. Only with no other
- * source does it fall back to a default.
+ * **The prefill is history, not a proposal.** A plan's target for *this* set wins where it says
+ * something — a ramp of 100/105/110 kg only works if the second and third sets take their numbers from
+ * the plan — then what you just did in this session, then **what you did last time, unchanged**, and only
+ * then a default. The app's own idea of the next step travels in [SetSuggestion.offer] and is applied
+ * only when it is accepted; folding it in here is what made a suggestion into a decision, because one tap
+ * committed it.
  *
  * Pure, so the precedence is covered by fast JVM tests rather than by tapping.
  */
@@ -58,44 +77,46 @@ fun suggestionForNextSet(
     previous: PreviousPerformance?,
     planned: PlannedTarget? = null,
 ): SetSuggestion {
-    val withoutPlan = prefillWithoutPlan(loggedSets, previous)
+    // "What you just did" beats "what you did last time": within a session the set before is the best
+    // evidence there is.
+    val logged = loggedSets.lastOrNull()
+    val lastTime = previous?.sets?.lastOrNull()
+    val prefill = when {
+        logged != null -> SetSuggestion(logged.reps, logged.weightGrams, logged.assistanceGrams)
+        lastTime != null -> SetSuggestion(
+            reps = lastTime.reps,
+            weightGrams = lastTime.weightGrams,
+            assistanceGrams = lastTime.assistanceGrams,
+        )
 
-    if (planned == null) return withoutPlan
+        else -> SetSuggestion(reps = DEFAULT_REPS, weightGrams = Weight.DEFAULT_GRAMS)
+    }
 
-    // A plan's load is *one* number: `-20` is 20 kg of help and no added weight, and
-    // `100` is 100 kg and no help. Taking the half it names and the other half from
-    // the fallback would build a set that is both — which would count the default
-    // 20 kg as volume on an assisted set, the exact corruption a signed weight was
-    // rejected for (ROADMAP N15).
-    val plannedLoad = plannedLoadFor(planned)
+    // A plan's load is *one* number: `-20` is 20 kg of help and no added weight, and `100` is 100 kg and
+    // no help. Taking the half it names and the other half from the fallback would build a set that is
+    // both — which would count the default 20 kg as volume on an assisted set, the exact corruption a
+    // signed weight was rejected for (ROADMAP N15).
+    val plannedLoad = planned?.let { plannedLoadFor(it) }
 
-    // A plan that writes reps but no load leaves the load to this rule as well (N22): the
-    // prescription is what to *aim* for, and whether that means one more rep or one more
-    // step is exactly what the history answers.
-    val proposedForPlan = if (plannedLoad == null && previous.hasSets()) {
-        progressionFrom(
+    // What to propose. A plan that names the load has already decided, so there is nothing to offer; a
+    // plan that writes reps but no load leaves the load open, and the history is what answers.
+    val proposal = when {
+        !previous.hasSets() -> null
+        planned != null && plannedLoad == null -> progressionFrom(
             previous = previous!!,
             target = PlannedSetSpec(role = SetType.NORMAL, minReps = null, maxReps = planned.reps),
         )
-    } else {
-        null
+
+        planned == null -> progressionFrom(previous!!)
+        else -> null
     }
 
     return SetSuggestion(
         // The upper bound is the one that matters in a written plan (`max 2`).
-        reps = planned.reps ?: withoutPlan.reps,
-        weightGrams = plannedLoad?.weightGrams ?: proposedForPlan?.weightGrams ?: withoutPlan.weightGrams,
-        assistanceGrams = plannedLoad?.assistanceGrams
-            ?: proposedForPlan?.assistanceGrams
-            ?: withoutPlan.assistanceGrams,
-        // The reason explains the *load* here, and only when it is about the load: the plan
-        // already decides the reps, so "one more rep than last time" beside a set the plan sized
-        // would be a sentence about the wrong number. Null is the established "nothing to
-        // explain" — found by B24's test, which is how the plan branch came to be passing the
-        // rule's value away.
-        reason = proposedForPlan?.reason?.takeIf { it != ProgressionReason.MORE_REPS }
-            ?: plannedLoad?.let { null }
-            ?: withoutPlan.reason?.takeIf { planned.reps == null },
+        reps = planned?.reps ?: prefill.reps,
+        weightGrams = plannedLoad?.weightGrams ?: prefill.weightGrams,
+        assistanceGrams = plannedLoad?.assistanceGrams ?: prefill.assistanceGrams,
+        offer = proposal,
     )
 }
 
@@ -130,15 +151,15 @@ const val DEFAULT_REPS = 8
 private fun PreviousPerformance?.hasSets(): Boolean = this != null && sets.isNotEmpty()
 
 /**
- * The next step from the last session, as a prefill (ROADMAP N22).
+ * The next step from the last session, as an offer (ROADMAP N22, N33).
  *
- * One place, because the prefill asks the same question in two situations: with no plan at
- * all, and with a plan that writes reps but no load.
+ * One place, because the offer is the same question in two situations: with no plan at all, and with a
+ * plan that writes reps but no load.
  */
 private fun progressionFrom(
     previous: PreviousPerformance,
     target: PlannedSetSpec? = null,
-): SetSuggestion {
+): SetOffer {
     val proposed = suggestProgression(
         lastTime = previous.sets.map {
             PerformedSetSpec(
@@ -150,27 +171,12 @@ private fun progressionFrom(
         },
         target = target,
     )
-    return SetSuggestion(
+    return SetOffer(
         reps = proposed.reps,
         weightGrams = proposed.weightGrams,
         assistanceGrams = proposed.assistanceGrams,
         reason = proposed.reason,
     )
-}
-
-/** What to prefill when the plan has nothing to say (or there is none). */
-private fun prefillWithoutPlan(
-    loggedSets: List<SetRow>,
-    previous: PreviousPerformance?,
-): SetSuggestion = when {
-    // Repeating what you just did is almost always right within a session.
-    loggedSets.isNotEmpty() -> loggedSets.last().let {
-        SetSuggestion(it.reps, it.weightGrams, it.assistanceGrams)
-    }
-
-    previous.hasSets() -> progressionFrom(previous!!)
-
-    else -> SetSuggestion(reps = DEFAULT_REPS, weightGrams = Weight.DEFAULT_GRAMS)
 }
 
 /**

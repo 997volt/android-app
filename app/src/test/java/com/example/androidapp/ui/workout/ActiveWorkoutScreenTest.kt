@@ -389,7 +389,13 @@ class ActiveWorkoutScreenTest {
                         suggestion = SetSuggestion(
                             reps = 9,
                             weightGrams = 20_000L,
-                            reason = ProgressionReason.MORE_REPS,
+                            // The caption explains an offer (N33), so an offer is what makes one appear.
+                            offer = SetOffer(
+                                reps = 9,
+                                weightGrams = 20_000L,
+                                assistanceGrams = 0L,
+                                reason = ProgressionReason.MORE_REPS,
+                            ),
                         ),
                     )
                 },

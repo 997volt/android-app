@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.PersonalRecords
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.androidapp.domain.repository.SettingsRepository
@@ -725,8 +726,14 @@ class ActiveWorkoutViewModelTest {
         settle()
 
         val row = viewModel.uiState.value.exercises.single()
-        assertEquals("N22: one more rep at the same load", 6, row.suggestion.reps)
+        // N33 changed what this asserts, on purpose: the prefill is last time *unchanged*, and the step
+        // the app proposes is offered beside it. Before, this number was what one tap logged, so a
+        // lifter who progresses by hand had to undo the app's arithmetic on every first set.
+        assertEquals("the same reps as last time", 5, row.suggestion.reps)
         assertEquals(100_000, row.suggestion.weightGrams)
+        assertEquals("and one more rep is offered", 6, row.suggestion.offer?.reps)
+        assertEquals(100_000L, row.suggestion.offer?.weightGrams)
+        assertEquals(ProgressionReason.MORE_REPS, row.suggestion.offer?.reason)
         assertEquals("last time is still shown as itself, not as the target", 100_000L, row.lastTime?.weightGrams)
     }
 
