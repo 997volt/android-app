@@ -159,6 +159,9 @@ private fun NavGraphBuilder.historyDestinations(navController: NavHostController
             onOpenExerciseTrends = { exerciseId ->
                 navController.navigate(ExerciseTrends(exerciseId))
             },
+            // Saving a workout as a plan offers to go straight to it (ROADMAP N31) — to the editor,
+            // not the list, because the point of the offer is the plan that was just made.
+            onOpenTemplate = { templateId -> navController.navigate(TemplateEditor(templateId)) },
         )
     }
 }

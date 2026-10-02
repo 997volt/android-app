@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.history
 
+import androidx.compose.material3.OutlinedTextField
 import com.example.androidapp.domain.model.zoneIdOrNull
 import com.example.androidapp.domain.model.SetType
 import androidx.compose.foundation.clickable
@@ -63,9 +64,11 @@ fun WorkoutDetailRoute(
     modifier: Modifier = Modifier,
     viewModel: WorkoutDetailViewModel = hiltViewModel(),
     onOpenExerciseTrends: (String) -> Unit = {},
+    onOpenTemplate: (String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val deleted by viewModel.deleted.collectAsStateWithLifecycle()
+    val savedTemplate by viewModel.savedTemplate.collectAsStateWithLifecycle()
 
     // Deleting the workout leaves nothing to look at, so the screen closes itself
     // rather than sitting on "no longer stored".
@@ -83,6 +86,69 @@ fun WorkoutDetailRoute(
         onDeleteWorkout = viewModel::onDeleteWorkout,
         onBack = onBack,
         modifier = modifier,
+        savedTemplate = savedTemplate,
+        onSaveAsTemplate = viewModel::onSaveAsTemplate,
+        onDismissSavedTemplate = viewModel::onDismissSavedTemplate,
+        onOpenTemplate = onOpenTemplate,
+    )
+}
+
+/** Asks for the plan's name, since a copy called "Untitled" is a copy nobody finds again (N31). */
+@Composable
+private fun SaveAsPlanDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_save_as_plan)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.detail_plan_name)) },
+                modifier = Modifier.testTag(TestTags.DETAIL_PLAN_NAME),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                // A blank name is refused by the repository too; disabling the button says so before
+                // the tap rather than after it.
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(TestTags.DETAIL_PLAN_CONFIRM),
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** Confirms the copy and offers to go to it (ROADMAP N31). */
+@Composable
+private fun SavedAsPlanDialog(
+    onDismiss: () -> Unit,
+    onOpen: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_saved_as_plan)) },
+        confirmButton = {
+            TextButton(
+                onClick = onOpen,
+                modifier = Modifier.testTag(TestTags.DETAIL_OPEN_NEW_PLAN),
+            ) {
+                Text(stringResource(R.string.detail_open_plan))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
     )
 }
 
@@ -97,6 +163,11 @@ fun WorkoutDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenExerciseTrends: (String) -> Unit = {},
+    /** ROADMAP N31: the plan this workout was saved as, or null while there is nothing to offer. */
+    savedTemplate: String? = null,
+    onSaveAsTemplate: (String) -> Unit = {},
+    onDismissSavedTemplate: () -> Unit = {},
+    onOpenTemplate: (String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     state.error?.let { error ->
@@ -106,6 +177,19 @@ fun WorkoutDetailScreen(
 
     var editing by remember { mutableStateOf<HistorySet?>(null) }
     var confirmingDelete by remember { mutableStateOf(false) }
+    var savingAsPlan by remember { mutableStateOf(false) }
+
+    PlanDialogs(
+        savingAsPlan = savingAsPlan,
+        savedTemplate = savedTemplate,
+        onConfirmName = { name ->
+            savingAsPlan = false
+            onSaveAsTemplate(name)
+        },
+        onDismissName = { savingAsPlan = false },
+        onDismissOffer = onDismissSavedTemplate,
+        onOpenTemplate = onOpenTemplate,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -115,6 +199,9 @@ fun WorkoutDetailScreen(
                 session = state.session,
                 onDelete = { confirmingDelete = true },
                 onBack = onBack,
+                // Offered only when there is something to copy; the rule is enforced again by the
+                // repository, which refuses an empty workout rather than making an empty plan.
+                onSaveAsPlan = if (state.exercises.isEmpty()) null else { { savingAsPlan = true } },
             )
         },
     ) { innerPadding ->
@@ -149,6 +236,8 @@ private fun DetailTopBar(
     session: WorkoutSession?,
     onDelete: () -> Unit,
     onBack: () -> Unit,
+    /** Null when the workout has nothing to copy (ROADMAP N31). */
+    onSaveAsPlan: (() -> Unit)? = null,
 ) {
     TopAppBar(
         title = {
@@ -168,6 +257,14 @@ private fun DetailTopBar(
             }
         },
         actions = {
+            onSaveAsPlan?.let { save ->
+                TextButton(
+                    onClick = save,
+                    modifier = Modifier.testTag(TestTags.DETAIL_SAVE_AS_PLAN),
+                ) {
+                    Text(stringResource(R.string.detail_save_as_plan))
+                }
+            }
             // Only offer deletion once there is something to delete.
             if (session != null) {
                 IconButton(onClick = onDelete) {
@@ -478,4 +575,28 @@ private fun EditSetDialog(
             onDismiss()
         },
     )
+}
+
+/** The two dialogs this screen can show around saving a plan, together (ROADMAP N31). */
+@Composable
+private fun PlanDialogs(
+    savingAsPlan: Boolean,
+    savedTemplate: String?,
+    onConfirmName: (String) -> Unit,
+    onDismissName: () -> Unit,
+    onDismissOffer: () -> Unit,
+    onOpenTemplate: (String) -> Unit,
+) {
+    if (savingAsPlan) {
+        SaveAsPlanDialog(onDismiss = onDismissName, onConfirm = onConfirmName)
+    }
+    savedTemplate?.let { templateId ->
+        SavedAsPlanDialog(
+            onDismiss = onDismissOffer,
+            onOpen = {
+                onDismissOffer()
+                onOpenTemplate(templateId)
+            },
+        )
+    }
 }

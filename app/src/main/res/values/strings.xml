@@ -144,6 +144,10 @@
     <string name="template_delete_confirm_text">The plan goes away. Workouts you already did with it stay in your history.</string>
     <string name="home_start_from_template">Start from template</string>
     <string name="home_repeat_last">Repeat last workout</string>
+    <string name="detail_save_as_plan">Save as plan</string>
+    <string name="detail_plan_name">Plan name</string>
+    <string name="detail_saved_as_plan">Saved as a plan</string>
+    <string name="detail_open_plan">Open plan</string>
     <string name="home_templates">Workout templates</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
