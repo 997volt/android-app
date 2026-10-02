@@ -1,5 +1,11 @@
 package com.example.androidapp.ui.history
 
+import java.time.DayOfWeek
+import com.example.androidapp.domain.repository.TemplateSetEdit
+import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.model.WorkoutTemplate
+import com.example.androidapp.domain.model.TemplateSet
+import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.PersonalRecords
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,10 +73,31 @@ class WorkoutDetailViewModelTest {
         backgroundScope.launch(dispatcher) { viewModel.uiState.collect {} }
     }
 
-    private fun viewModelFor() = WorkoutDetailViewModel(
-        workoutRepository = repository,
-        savedStateHandle = SavedStateHandle(mapOf("sessionId" to SESSION_ID)),
-    )
+    @Test
+    fun savingAsATemplate_passesTheName_andOffersTheNewPlan() = runTest(dispatcher) {
+        // ROADMAP N31: this ViewModel's part is to hand the name over and surface what came back —
+        // the copy itself is the repository's transaction, tested against a real database.
+        val templates = FakeTemplateRepository(savedId = "plan-1")
+        val viewModel = viewModelFor(templates)
+        observe(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onSaveAsTemplate("  Push day  ")
+        advanceUntilIdle()
+
+        assertEquals(listOf(SESSION_ID to "  Push day  "), templates.copied)
+        assertEquals("plan-1", viewModel.savedTemplate.value)
+
+        viewModel.onDismissSavedTemplate()
+        assertNull("the offer is dismissed once taken", viewModel.savedTemplate.value)
+    }
+
+    private fun viewModelFor(templates: FakeTemplateRepository = FakeTemplateRepository()) =
+        WorkoutDetailViewModel(
+            workoutRepository = repository,
+            templateRepository = templates,
+            savedStateHandle = SavedStateHandle(mapOf("sessionId" to SESSION_ID)),
+        )
 
     @Test
     fun everyColumnOfASet_reachesTheScreen() = runTest(dispatcher) {
@@ -251,4 +279,66 @@ class WorkoutDetailViewModelTest {
     private companion object {
         const val SESSION_ID = "s1"
     }
+}
+
+/**
+ * A plan store that records what a copy asked for (ROADMAP N31).
+ *
+ * Top level rather than nested in the test class: it is a helper, and the tests only need to see what
+ * was written and what came back.
+ */
+private class FakeTemplateRepository(
+    private val savedId: String = "t1",
+) : TemplateRepository {
+
+    /** Every copy asked for, as the session it came from and the name it was given. */
+    val copied = mutableListOf<Pair<String, String>>()
+
+    override suspend fun createTemplateFromSession(
+        sessionId: String,
+        name: String,
+    ): DataResult<String> {
+        copied += sessionId to name
+        return DataResult.Success(savedId)
+    }
+
+    override suspend fun createTemplate(name: String): DataResult<String> = unused()
+    override suspend fun renameTemplate(templateId: String, name: String): DataResult<Unit> = unused()
+    override suspend fun deleteTemplate(templateId: String): DataResult<Unit> = unused()
+    override suspend fun setWeekday(templateId: String, weekday: DayOfWeek?): DataResult<Unit> = unused()
+    override suspend fun setSupersetGroup(
+        templateExerciseIds: List<String>,
+        group: Int?,
+    ): DataResult<Unit> = unused()
+
+    override suspend fun addExercise(templateId: String, exerciseId: String): DataResult<Unit> = unused()
+    override suspend fun removeExercise(templateExerciseId: String): DataResult<Unit> = unused()
+
+    override suspend fun prependSets(
+        templateExerciseId: String,
+        edits: List<TemplateSetEdit>,
+    ): DataResult<Unit> = unused()
+
+    override suspend fun addSet(templateExerciseId: String, edit: TemplateSetEdit): DataResult<Unit> =
+        unused()
+
+    override suspend fun updateSet(templateSetId: String, edit: TemplateSetEdit): DataResult<Unit> =
+        unused()
+
+    override suspend fun removeSet(templateSetId: String): DataResult<Unit> = unused()
+    override suspend fun duplicateSets(templateExerciseId: String): DataResult<Unit> = unused()
+    override suspend fun moveExercise(templateExerciseId: String, delta: Int): DataResult<Unit> =
+        unused()
+    override suspend fun setExercisePlan(
+        templateExerciseId: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+    ): DataResult<Unit> = unused()
+
+    override fun observeTemplates(): Flow<List<WorkoutTemplate>> = flowOf(emptyList())
+    override fun observeTemplate(templateId: String): Flow<WorkoutTemplate?> = flowOf(null)
+    override fun observeExercises(templateId: String): Flow<List<TemplateExercise>> = flowOf(emptyList())
+    override fun observeSets(templateId: String): Flow<List<TemplateSet>> = flowOf(emptyList())
+
+    private fun unused(): Nothing = error("this fake does not write")
 }

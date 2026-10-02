@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.history
 
+import kotlinx.coroutines.flow.asStateFlow
+import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.model.SetType
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -100,12 +102,48 @@ data class WorkoutDetailUiState(
 @HiltViewModel
 class WorkoutDetailViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
+    /** Saving a finished workout as a plan is a template write (ROADMAP N31). */
+    private val templateRepository: TemplateRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val sessionId: String = savedStateHandle.toRoute<WorkoutDetail>().sessionId
 
     private val lastError = MutableStateFlow<DataError?>(null)
+
+    private val _savedTemplate = MutableStateFlow<String?>(null)
+
+    /**
+     * The plan this workout was just saved as, for the screen to offer opening (ROADMAP N31).
+     *
+     * Null until it happens and cleared when dismissed, so the offer is a consequence of the action
+     * rather than a state the screen has to reason about.
+     */
+    val savedTemplate: StateFlow<String?> = _savedTemplate.asStateFlow()
+
+    /**
+     * Saves this workout as a plan (ROADMAP N31).
+     *
+     * One repository call that copies the exercises and their performed sets as targets; the screens
+     * only ask for a name and report what came back. The workout itself is untouched, and the copy is
+     * independent of it in both directions.
+     */
+    fun onSaveAsTemplate(name: String) {
+        viewModelScope.launch {
+            when (val result = templateRepository.createTemplateFromSession(sessionId, name)) {
+                is DataResult.Success -> {
+                    lastError.value = null
+                    _savedTemplate.value = result.data
+                }
+                is DataResult.Failure -> lastError.value = result.error
+            }
+        }
+    }
+
+    /** Called once the offer to open the new plan has been taken or dismissed. */
+    fun onDismissSavedTemplate() {
+        _savedTemplate.value = null
+    }
 
     /** True once the workout is gone, so the screen can leave rather than sit on a blank page. */
     private val _deleted = MutableStateFlow(false)
