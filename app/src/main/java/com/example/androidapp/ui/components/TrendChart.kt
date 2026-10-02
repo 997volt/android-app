@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.components
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,8 @@ fun TrendChart(
     minValue: Double,
     maxValue: Double,
     modifier: Modifier = Modifier,
+    /** Bars for a count-like series, a line for a continuous one (ROADMAP N38). */
+    bars: Boolean = false,
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
@@ -56,6 +59,22 @@ fun TrendChart(
                 strokeWidth = GRID_STROKE_PX,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH_ON_PX, DASH_OFF_PX)),
             )
+        }
+
+        if (bars) {
+            // From the baseline up: a bar length is the quantity, so the bar has to start where the quantity
+            // starts — which is why a bars metric's axis is anchored at zero by the registry (ROADMAP N38).
+            val width = (size.width / points.size).coerceAtLeast(MIN_BAR_WIDTH_PX) / BAR_WIDTH_FRACTION
+            val baseline = y(0.0).coerceIn(0f, size.height)
+            points.forEach { point ->
+                val value = point.value ?: return@forEach
+                drawRect(
+                    color = dotColor,
+                    topLeft = Offset(point.x * size.width - width / 2f, minOf(y(value), baseline)),
+                    size = Size(width, kotlin.math.abs(baseline - y(value))),
+                )
+            }
+            return@Canvas
         }
 
         points.forEachIndexed { index, point ->
@@ -89,11 +108,13 @@ fun TrendChartFrame(
     maxValue: Double,
     testTag: String,
     modifier: Modifier = Modifier,
+    bars: Boolean = false,
 ) {
     TrendChart(
         points = points,
         minValue = minValue,
         maxValue = maxValue,
+        bars = bars,
         modifier = modifier
             .fillMaxWidth()
             .height(CHART_HEIGHT_DP.dp)
@@ -101,6 +122,12 @@ fun TrendChartFrame(
             .testTag(testTag),
     )
 }
+
+/** A bar is a share of the width, not a sliver: two fifths of the space each bar has. */
+private const val BAR_WIDTH_FRACTION = 2.5f
+
+/** Below this a bar is invisible on a phone, however many readings there are. */
+private const val MIN_BAR_WIDTH_PX = 2f
 
 /** The middle of a flat axis: a series whose values are all equal draws down the centre. */
 private const val MID_AXIS = 0.5

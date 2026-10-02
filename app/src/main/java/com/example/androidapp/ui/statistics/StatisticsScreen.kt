@@ -339,17 +339,15 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
     val recorded = series.readings.mapNotNull { it.value }
     if (recorded.size < 2) return
 
-    val span = recorded.max() - recorded.min()
-    val pad = if (span == 0.0) 1.0 else span * AXIS_PAD_FRACTION
-    val top = recorded.max() + pad
-    val bottom = recorded.min() - pad
+    val axis = axisBounds(values = recorded, fromZero = metric.fromZero)
 
     Column {
         TrendChartFrame(
             points = projectByTime(series.readings),
-            minValue = bottom,
-            maxValue = top,
+            minValue = axis.min,
+            maxValue = axis.max,
             testTag = TestTags.Statistics.CHART,
+            bars = metric.isBars,
         )
         // The axis in words (ROADMAP N37). A canvas cannot be read by a screen reader, and even for a
         // reader who can see it, "when did this start and end, and what scale is it" is the first question.
@@ -367,12 +365,12 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = metric.unit.format(recorded.min()),
+                text = metric.unit.format(axis.min),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_MIN),
             )
             Text(
-                text = metric.unit.format(recorded.max()),
+                text = metric.unit.format(axis.max),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.testTag(TestTags.Statistics.CHART_MAX),
             )
@@ -389,8 +387,7 @@ private fun lastRecordedAt(series: MetricSeries): Instant =
 
 /** The ends of the axis, so the chart can be read without the readings list. */
 
-/** Room above and below the line, so a reading at the top edge is not mistaken for a ceiling. */
-private const val AXIS_PAD_FRACTION = 0.1
+
 
 /**
  * The custom range, with its From and To (ROADMAP N35).

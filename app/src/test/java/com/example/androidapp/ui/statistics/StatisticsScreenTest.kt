@@ -155,6 +155,28 @@ class StatisticsScreenTest {
     }
 
     @Test
+    fun aQuantityMetric_anchorsItsAxisAtZero() {
+        // The visible half of N38: a volume bar starts where volume starts, and the label says so. The bars
+        // themselves are a canvas, which the app blanks out for screen readers — so this is the assertion
+        // that can see the policy at all.
+        setScreen(
+            state = StatisticsUiState(
+                isLoading = false,
+                selection = StatisticsSelection(metric = MetricKey.Exercise(ExerciseTrendMetric.VOLUME)),
+                series = MetricSeries(
+                    key = MetricKey.Exercise(ExerciseTrendMetric.VOLUME),
+                    readings = listOf(
+                        MetricReading(Instant.parse("2026-09-01T08:00:00Z"), 4_000_000.0),
+                        MetricReading(Instant.parse("2026-09-15T08:00:00Z"), 4_500_000.0),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.CHART_MIN).assertTextEquals("0")
+    }
+
+    @Test
     fun theChartSaysWhenItStartsAndEnds_andOnWhatScale() {
         // A canvas cannot be read by a screen reader, and "when did this start and end" is the first question
         // even for a reader who can see the line (ROADMAP N37).
