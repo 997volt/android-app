@@ -37,13 +37,22 @@ average, a fitted trend and a trailing mean — and it is in [CHANGELOG.md](CHAN
 after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
 instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
 
-### N39 — The plan's target on the chart
 
-The per-metric target shipped with the chart round: a value the user sets for any series, stored in that
-metric's own units and drawn as a dotted line. **A target from the training plan is what remains**, and it is a
-different shape of work rather than more of the same: the plan is not one of the statistics screen's sources, so
-this needs the plan available to a screen that currently knows nothing about it, plus a rule for what to do when
-a lift is in two plans at once or in none.
+### Test assertions move to Truth (no feature id — it is a rework of existing tests)
+
+A rule in DECISIONS.md says new and touched tests assert with Truth and assert Flow sequences with Turbine;
+**78 of 81 test files use JUnit's `assertEquals`**, including the statistics suite written for N35–N40. The
+decision was to convert those, and it is unfinished: `ChartAxisTest` is done as the worked example, and ten
+statistics test files remain.
+
+**Do it one file at a time, compiling between each.** A scripted rewrite was tried and reverted: it mistook a
+trailing comma for a tolerance argument and rewrote two-argument assertions as `isWithin(...).of(...)`, and it
+turned a string expectation into a message. The traps, now known: a trailing comma is not an argument; a
+two-argument `assertEquals` with a string first argument is *expected/actual*, not *message/actual*; a message is
+only possible where an expected/actual pair follows it; and a single un-convertible call must not end the pass
+over a file. JUnit's `assertEquals(expected, actual)` is Truth's `assertThat(actual).isEqualTo(expected)`;
+`assertEquals(expected, actual, delta)` is `assertThat(actual).isWithin(delta).of(expected)`; lists compare with
+`isEqualTo(listOf(...))`, and Truth spells "at least" `isAtLeast`.
 
 ## Later (still self-contained)
 
@@ -132,6 +141,13 @@ Design-system work (**F8**) is a rule rather than a row now: extract a component
 a second screen needs it, not before.
 
 ## Parked — deliberately not planned
+
+### N39 — the plan's target, parked by decision
+
+The per-metric target shipped; **the plan's target was scoped out** when the feature was built, so it is parked
+rather than planned. It is a different shape of work: the training plan is not one of the statistics screen's
+sources, so it means making the plan available to a screen that knows nothing about it, plus a rule for a lift
+that is in two plans at once or in none.
 
 Each is a product in its own right, contradicts "local-only", or both. Parking is a
 decision, not a backlog. Every row names what would change it.
