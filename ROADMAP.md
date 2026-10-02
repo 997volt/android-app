@@ -32,32 +32,12 @@ shipped and left the file.
 
 ## Next
 
-**Four things are marked, in order.** Everything before them shipped and left this file: the v1.6 review
-(B33–B43), the v1.5 corrections (B26–B32), the round after it (N26–N28), repeating the last workout
-(N29) and the session timezone (N25). What they did is in [CHANGELOG.md](CHANGELOG.md). Past the four,
-the next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the
-rename is at the end of this section.
-
-### B44 — Discarding a workout leaves a white screen
-
-`ActiveWorkoutRoute` closes the screen **twice**. There are two identical effects — one at
-[ActiveWorkoutScreen.kt:79](app/src/main/java/com/example/androidapp/ui/workout/ActiveWorkoutScreen.kt#L79)
-and another at `:96` — and both call `onDone`, which is `navController.popBackStack()`. When `closed`
-flips, both run and the back stack is popped **twice**: the workout leaves, and so does the entry
-beneath it, leaving the NavHost nothing to render.
-
-The comments show how it happened: the first says it is "what leaves the screen once [the review] is
-dismissed (N20)", so it was added to replace the second, and the second was never deleted.
-
-- **Scope:** every path through `closeSession()` — discard, and Finish once the review is dismissed.
-  Finish needs the extra tap, which is why discard is where it was noticed.
-- **Fix:** delete one effect, keeping a single one with its `rememberUpdatedState`, so the leave
-  callback fires exactly once.
-- **Test:** a Robolectric case that discards and asserts **home is on screen**, by `TestTags`. "The
-  callback ran once" is not observable; "home is showing" is.
-- **If it still blanks after the fix:** the remaining suspect is a back stack of one entry —
-  ActiveWorkout reached with nothing beneath it after a process-death restore — and the fix there is
-  `popBackStack(WorkoutsHome, inclusive = false)` rather than a bare pop. Reproduce before assuming.
+**Three things are marked, in order.** **B44 — the white screen after a discard — is fixed** and lives in
+[CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
+everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
+after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). Past the three, the
+next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the rename is
+at the end of this section.
 
 ### N31 — Save a finished workout as a template
 

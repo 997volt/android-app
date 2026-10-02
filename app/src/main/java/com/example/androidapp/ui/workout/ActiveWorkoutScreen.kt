@@ -72,11 +72,10 @@ fun ActiveWorkoutRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val closed by viewModel.closed.collectAsStateWithLifecycle()
+
     // Finishing closes the session; the review still has to be read, so this is what leaves
-    // the screen once it is dismissed (N20). Read through a remembered state so the effect does
-    // not restart on every recomposition.
-    val leave by rememberUpdatedState(onDone)
-    LaunchedEffect(closed) { if (closed) leave() }
+    // the screen once it is dismissed (N20).
+    LeaveWhenClosed(closed = closed, onLeave = onDone)
 
     // Kept as a State object rather than unwrapped with `by`: reading it here would
     // recompose this composable — and everything below it — once a second, which is
@@ -87,15 +86,6 @@ fun ActiveWorkoutRoute(
     RestCueAndScreenOn(clock, restCueEnabled, keepScreenOn)
     val summary by viewModel.summary.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
-
-    // rememberUpdatedState, because the effect below restarts on `closed`:
-    // reading the lambda parameter directly would capture whichever `onDone` was
-    // current when the effect last started.
-    val currentOnDone by rememberUpdatedState(onDone)
-
-    LaunchedEffect(closed) {
-        if (closed) currentOnDone()
-    }
 
     ActiveWorkoutScreen(
         state = state,
@@ -129,6 +119,25 @@ fun ActiveWorkoutRoute(
         onBack = onBack,
         modifier = modifier,
     )
+}
+
+/**
+ * Leaves a screen the first time [closed] turns true — once, not twice (ROADMAP B44).
+ *
+ * This was two `LaunchedEffect(closed)` blocks in the route above, each calling the leave
+ * callback. Both ran in the same frame, so closing a session popped the back stack twice: the
+ * workout left, and so did the screen beneath it, leaving the navigation host with nothing to
+ * render — the white screen that followed a discard. The duplication was invisible while both
+ * effects were anonymous; one effect, named, is the fix.
+ *
+ * It reads the latest [onLeave] through a remembered state because the effect restarts on
+ * `closed`: reading the lambda directly would capture whichever one was current when the effect
+ * last started.
+ */
+@Composable
+fun LeaveWhenClosed(closed: Boolean, onLeave: () -> Unit) {
+    val leave by rememberUpdatedState(onLeave)
+    LaunchedEffect(closed) { if (closed) leave() }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

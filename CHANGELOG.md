@@ -5,6 +5,22 @@ Notable changes to Workout, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
+## [Unreleased]
+
+### Fixed
+
+- **Discarding a workout no longer leaves a white screen.** Closing a session went through two
+  identical `LaunchedEffect(closed)` blocks in the workout route, both calling `popBackStack`, so the
+  back stack was popped **twice**: the workout left, and so did the screen beneath it, leaving the
+  navigation host with nothing to render. Discard is where it was noticed, but Finish had it too, one
+  tap later, because both close through the same path. The effect is now a single named composable,
+  `LeaveWhenClosed`, which is also what puts it under test — three Robolectric cases hold that an open
+  screen is not left, that closing leaves exactly once, and that a screen which stays closed does not
+  leave again when it recomposes. What they cannot see is a second call site in the route, because
+  that is removed by construction rather than caught. **Verified on the emulator both ways:** with the
+  fix reverted, Discard reproduces the report exactly — the accessibility tree comes back empty and
+  the screenshot is 94.6% a single flat colour — and with the fix the same sequence lands on home.
+
 ## [1.7] — 2026-10-02 (versionCode 8)
 
 
