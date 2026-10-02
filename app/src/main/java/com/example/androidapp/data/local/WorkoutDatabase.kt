@@ -23,14 +23,17 @@ import androidx.room.TypeConverters
         TemplateEntity::class,
         TemplateExerciseEntity::class,
         TemplateSetEntity::class,
+        MeasurementEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class WorkoutDatabase : RoomDatabase() {
 
     abstract fun exerciseDao(): ExerciseDao
+
+    abstract fun measurementDao(): MeasurementDao
 
     abstract fun sessionExerciseDao(): SessionExerciseDao
 

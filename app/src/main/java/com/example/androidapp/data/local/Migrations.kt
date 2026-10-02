@@ -430,6 +430,38 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
     }
 }
 
+/**
+ * Body measurements (ROADMAP N32).
+ *
+ * A new table rather than a column somewhere: a measurement is its own fact, dated, with weight the
+ * only value that is always there. The SQL is Room's own, copied from the exported schema rather than
+ * hand-written as an equivalent.
+ */
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `measurements` (`id` TEXT NOT NULL,
+            `measuredAt` INTEGER NOT NULL,
+            `weightGrams` INTEGER NOT NULL,
+            `bodyFatTenths` INTEGER,
+            `muscleTenths` INTEGER,
+            `neckMm` INTEGER,
+            `chestMm` INTEGER,
+            `waistMm` INTEGER,
+            `hipsMm` INTEGER,
+            `upperArmMm` INTEGER,
+            `thighMm` INTEGER,
+            `calfMm` INTEGER,
+            `createdAt` INTEGER NOT NULL,
+            `updatedAt` INTEGER NOT NULL,
+            `deletedAt` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+    }
+}
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -448,4 +480,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_14_15,
     MIGRATION_15_16,
     MIGRATION_16_17,
+    MIGRATION_17_18,
 )
