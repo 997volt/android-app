@@ -242,6 +242,17 @@ into this file once the feature ships.
   device looks like it too. The channel id survives in `AndroidApp` for exactly one purpose, and its
   comment says so.
 
+- **A measurement is one entry per day, edited rather than added to** (N32). The roadmap left this to
+  implementation and named the two candidates. Several per day was rejected because it makes the chart
+  noisy and, worse, makes "what did I weigh today" a question with more than one answer — and the second
+  reading of a day is nearly always a correction of the first rather than a second measurement. So the
+  day is the key: saving onto a day that already has an entry edits it. **The day is the local day it was
+  taken**, converted from the timestamp at the edge, which is the same rule N25 established for a
+  session's time — a measurement belongs to the day it happened where it happened.
+- **An unmeasured tape site stays blank** (N32). It does not carry the previous value forward. A carried
+  number is indistinguishable from a measurement and would draw a flat line through a site nobody
+  measured that day, which is an invented fact rather than a missing one.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
