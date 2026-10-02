@@ -42,6 +42,41 @@ was adopted. That is not the whole suite: the rest still use JUnit and migrate a
 the rule's own wording in [DECISIONS.md](DECISIONS.md). The instrumented suite keeps JUnit, because Truth is
 `testImplementation` only — the same rule's stated limit rather than an exception to it.
 
+**One row is open: B47**, the dead code the statistics round left behind — with one question in it that is a
+decision rather than a cleanup, which is why it is a row instead of a commit.
+
+### B47 — Dead code the deleted trends screens left behind, and one rule question
+
+The review of the statistics round found 19 test tags and four members that nothing calls. Not urgent, and
+deliberately left for whoever wants it rather than decided in the review that found it.
+
+**The tags name controls that no longer exist.** N35 folded the per-exercise trends screen into Statistics and
+deleted it; the tags went with the screen and the constants did not. Twelve constants have no reference
+anywhere but their own declaration — `TRENDS_TITLE`, `TRENDS_EMPTY`, `TRENDS_WINDOW`, `TRENDS_READ_ERROR`,
+`EXERCISE_TRENDS_EMPTY`, `EXERCISE_TRENDS_ERROR`, `EXERCISE_TRENDS_DIRECTION` — and with them the tag
+functions that address them, 19 members of `TestTags` in all out of 160. This is the one half that is not a
+judgement call: they address nothing, and they cannot come back without the screen coming back.
+
+Two of them, `HOME_TRENDS` and `HOME_SETTINGS`, survive only as `assertDoesNotExist` assertions in
+`WorkoutsHomeScreenTest` — tests that assert the absence of things that are already absent, so they pass
+whatever the code does. Removing the constants means removing those assertions too, which makes this one
+change that touches a test as well as production.
+
+**Four members** have no caller in production. `MetricSeries.recorded` and `TrendSlope.points` have **no
+reference anywhere at all**, not even a test. `List<Double?>.recordedCount()` and
+`List<ExerciseTrendPoint>.recordedCount(metric)` are reached only by the test that tests them.
+
+**And that last pair is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md) says both "delete an API
+the moment nothing calls it" and that no-dead-weight is "strict about APIs that exist to be tested, and
+lenient about…" something the sentence does not finish in a way that settles this. So does a test count as a
+caller? It has been left open on purpose rather than decided by a cleanup, because the answer changes what the
+rule means for every future change. **Whichever way it is settled belongs in DECISIONS.md**, and then this row
+is a five-minute deletion.
+
+One correction while writing this down: `MetricEntry.higherIsBetter` was reported as dead in the review and is
+**not** — it is read in two places in `main`. Recorded here only so the next reader does not go looking for
+it.
+
 ## Later (still self-contained)
 
 Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
