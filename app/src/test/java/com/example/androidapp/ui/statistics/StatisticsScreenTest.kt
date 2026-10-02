@@ -231,6 +231,16 @@ class StatisticsScreenTest {
     }
 
     @Test
+    fun expanding_showsTheTrendBesideTheAverage() {
+        // The row N36 deliberately left out, arriving with the line that gives it a number (N39).
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TOGGLE).performScrollTo().performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.READINGS_TREND).assertExists()
+    }
+
+    @Test
     fun withNothingRecorded_thereIsNoReadingsControl() {
         // A disclosure control that opens onto emptiness is worse than no control.
         setScreen(

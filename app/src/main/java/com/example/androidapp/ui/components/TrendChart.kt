@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.components
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,15 +42,38 @@ fun TrendChart(
     modifier: Modifier = Modifier,
     /** Bars for a count-like series, a line for a continuous one (ROADMAP N38). */
     bars: Boolean = false,
+    /** A horizontal line at the average, and the fitted trend (ROADMAP N39). */
+    average: Double? = null,
+    trend: ChartLine? = null,
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val referenceColor = MaterialTheme.colorScheme.tertiary
 
     Canvas(modifier = modifier.clearAndSetSemantics { }) {
         val axis = TrendAxis(minValue, maxValue)
 
         fun y(value: Double): Float = size.height * (1f - axis.fractionOf(value).toFloat())
+
+        // The reference lines first, so the data is drawn over them: a trend line is a reading of the series,
+        // not a thing to hide it behind.
+        average?.let { value ->
+            drawLine(
+                color = referenceColor,
+                start = Offset(0f, y(value)),
+                end = Offset(size.width, y(value)),
+                strokeWidth = REFERENCE_STROKE_PX,
+            )
+        }
+        trend?.let { line ->
+            drawLine(
+                color = referenceColor,
+                start = Offset(0f, y(line.start)),
+                end = Offset(size.width, y(line.end)),
+                strokeWidth = REFERENCE_STROKE_PX,
+            )
+        }
 
         // The top and bottom of the axis, so an empty stretch still reads as a scale.
         listOf(minValue, maxValue).forEach { value ->
@@ -62,18 +87,7 @@ fun TrendChart(
         }
 
         if (bars) {
-            // From the baseline up: a bar length is the quantity, so the bar has to start where the quantity
-            // starts — which is why a bars metric's axis is anchored at zero by the registry (ROADMAP N38).
-            val width = (size.width / points.size).coerceAtLeast(MIN_BAR_WIDTH_PX) / BAR_WIDTH_FRACTION
-            val baseline = y(0.0).coerceIn(0f, size.height)
-            points.forEach { point ->
-                val value = point.value ?: return@forEach
-                drawRect(
-                    color = dotColor,
-                    topLeft = Offset(point.x * size.width - width / 2f, minOf(y(value), baseline)),
-                    size = Size(width, kotlin.math.abs(baseline - y(value))),
-                )
-            }
+            drawBars(points = points, y = ::y, color = dotColor)
             return@Canvas
         }
 
@@ -109,12 +123,16 @@ fun TrendChartFrame(
     testTag: String,
     modifier: Modifier = Modifier,
     bars: Boolean = false,
+    average: Double? = null,
+    trend: ChartLine? = null,
 ) {
     TrendChart(
         points = points,
         minValue = minValue,
         maxValue = maxValue,
         bars = bars,
+        average = average,
+        trend = trend,
         modifier = modifier
             .fillMaxWidth()
             .height(CHART_HEIGHT_DP.dp)
@@ -122,6 +140,12 @@ fun TrendChartFrame(
             .testTag(testTag),
     )
 }
+
+/** A trend line drawn across the whole width: its value at the first reading and at the last. */
+data class ChartLine(val start: Double, val end: Double)
+
+/** Thinner than the data, because a fitted line is a summary rather than a measurement. */
+private const val REFERENCE_STROKE_PX = 2f
 
 /** A bar is a share of the width, not a sliver: two fifths of the space each bar has. */
 private const val BAR_WIDTH_FRACTION = 2.5f
@@ -158,3 +182,24 @@ private const val CHART_HEIGHT_DP = 72
  * question about time and this component never sees a date.
  */
 data class ChartPoint(val x: Float, val value: Double?)
+
+/**
+ * Bars from the baseline up (ROADMAP N38).
+ *
+ * A separate function because it is the other way of drawing the same points, and because the chart was at its
+ * length ceiling with both of them in it.
+ */
+private fun DrawScope.drawBars(points: List<ChartPoint>, y: (Double) -> Float, color: Color) {
+    // A bar length is the quantity, so the bar has to start where the quantity starts — which is why a bars
+    // metric's axis is anchored at zero by the registry.
+    val width = (size.width / points.size).coerceAtLeast(MIN_BAR_WIDTH_PX) / BAR_WIDTH_FRACTION
+    val baseline = y(0.0).coerceIn(0f, size.height)
+    points.forEach { point ->
+        val value = point.value ?: return@forEach
+        drawRect(
+            color = color,
+            topLeft = Offset(point.x * size.width - width / 2f, minOf(y(value), baseline)),
+            size = Size(width, kotlin.math.abs(baseline - y(value))),
+        )
+    }
+}

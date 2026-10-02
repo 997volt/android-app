@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.ui.components.ChartLine
 import java.time.ZoneId
 import com.example.androidapp.ui.history.HistoryFormat
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -307,6 +308,18 @@ private fun ReadingsSection(series: MetricSeries, metric: MetricEntry) {
                     testTag = TestTags.Statistics.READINGS_AVERAGE,
                 )
             }
+            // The Trend row the roadmap puts beside the average (N36, N39). It arrives with the fitted line
+            // rather than before it: a slope is a reading of the series, and there was nothing to read.
+            series.trend()?.let { trend ->
+                ReadingRow(
+                    label = stringResource(R.string.statistics_trend),
+                    value = stringResource(
+                        R.string.statistics_per_week,
+                        slopeText(trend.perWeek) { metric.unit.format(it) },
+                    ),
+                    testTag = TestTags.Statistics.READINGS_TREND,
+                )
+            }
             readings.forEachIndexed { index, reading ->
                 ReadingRow(
                     label = HistoryFormat.date(reading.at, zone = ZoneId.systemDefault()),
@@ -340,14 +353,26 @@ private fun SeriesChart(series: MetricSeries, metric: MetricEntry) {
     if (recorded.size < 2) return
 
     val axis = axisBounds(values = recorded, fromZero = metric.fromZero)
+    val firstAt = series.readings.first().at.toEpochMilli().toDouble()
+    val timeSpan = series.readings.last().at.toEpochMilli().toDouble() - firstAt
 
     Column {
+        val trend = series.trend()
         TrendChartFrame(
             points = projectByTime(series.readings),
             minValue = axis.min,
             maxValue = axis.max,
             testTag = TestTags.Statistics.CHART,
             bars = metric.isBars,
+            average = series.average(),
+            // The line is evaluated across the same elapsed time the points are placed by (N37), so it leans
+            // the way the readings do rather than the way the index would.
+            trend = trend?.let { fitted ->
+                ChartLine(
+                    start = fitted.valueAt(fraction = 0.0, first = firstAt, span = timeSpan),
+                    end = fitted.valueAt(fraction = 1.0, first = firstAt, span = timeSpan),
+                )
+            },
         )
         // The axis in words (ROADMAP N37). A canvas cannot be read by a screen reader, and even for a
         // reader who can see it, "when did this start and end, and what scale is it" is the first question.

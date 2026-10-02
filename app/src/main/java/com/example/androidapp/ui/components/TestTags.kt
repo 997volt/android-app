@@ -315,6 +315,7 @@ object TestTags {
         const val MEASUREMENTS = "statistics_measurements"
         const val READINGS_TOGGLE = "statistics_readings_toggle"
         const val READINGS_AVERAGE = "statistics_readings_average"
+        const val READINGS_TREND = "statistics_readings_trend"
 
         /** One reading, addressed by its place in the list — newest first, so 0 is the latest. */
         fun reading(index: Int) = "statistics_reading_$index"
