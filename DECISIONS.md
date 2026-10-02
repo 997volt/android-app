@@ -253,6 +253,14 @@ into this file once the feature ships.
   number is indistinguishable from a measurement and would draw a flat line through a site nobody
   measured that day, which is an invented fact rather than a missing one.
 
+- **One tap logs what happened; the app's idea of what should happen is an offer** (N33). The suggestion
+  and the prefill are different things and are now different fields: the prefill is the plan's target, what
+  you just did, or last time unchanged, while the progression proposal is shown with its reason and applied
+  only when accepted. They were one value before, which is what made a suggestion into a decision — a
+  proposal that *is* the prefill is committed by the next tap whether or not anyone agreed to it. The rule
+  is global, not program-only: how a workout was started says nothing about whether its lifter progresses by
+  hand.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

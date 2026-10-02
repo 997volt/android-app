@@ -32,37 +32,13 @@ shipped and left the file.
 
 ## Next
 
-**One thing is marked** — N33, with N31 and N32 now shipped and in
+**Nothing is marked as next.** N31, N32 and N33 have all shipped and are in
 [CHANGELOG.md](CHANGELOG.md). **B44 — the white screen after a discard — is fixed** and lives in
 [CHANGELOG.md](CHANGELOG.md) under *Unreleased*; it is kept out of this file by the same rule as
 everything before it, which shipped: the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
-after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). Past that, the
-next round is a choice rather than a queue — the rest is in *Later*, and one CI thread from the rename is
+after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). What comes next is therefore a choice
+rather than a queue — the rest is in *Later*, and one CI thread from the rename is
 at the end of this section.
-
-### N33 — Show the progression suggestion; do not substitute it
-
-N22 shipped a suggestion, and its own KDoc says it "suggests; it never writes". In practice the
-suggestion **is** the value the one-tap **Log set** commits, in two places: with no plan,
-`prefillWithoutPlan` falls to `progressionFrom(previous)`, so the first set of an unplanned exercise
-prefills **last time plus a step**; and with a plan that names reps but no load, `proposedForPlan`
-supplies the weight. The reason is drawn as a caption, but the numbers beside it are already what one
-tap writes. A lifter who progresses by hand has to notice and undo the app's step on every first set.
-
-- **Prefill** — what one tap logs — becomes: the plan's target where it names one; otherwise what you
-  just did; otherwise **what you did last time, unchanged**; otherwise the default.
-- **Offer** — shown, not applied — becomes the progression proposal with its reason: *"Try 62.5 × 7 —
-  one more rep than last time"*, applied only when it is accepted.
-- **The change is that `SetSuggestion` carries the offer separately from the values**, because today one
-  field is both the explanation and the number.
-- **Touches:** `SetSuggestion` (a distinct offer), `suggestionForNextSet` (stop folding the proposal
-  into the returned values), `WorkoutExerciseSection` (draw the offer with an accept action rather than
-  using it as the button's numbers), and the precedence tests. `onLogSet` is unchanged — accepting the
-  offer only changes what the prefill is.
-- **Global, not program-only.** "I progress by hand" is not a property of how a workout was started, and
-  a behaviour that changed on that would be an inconsistency noticed later. **P3.3 depends on this**:
-  its "no auto-progression" is only true once the plan's numbers are the prefill and the app's step is
-  an offer.
 
 ### N30 — the CI emulator-options thread
 

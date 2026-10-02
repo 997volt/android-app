@@ -32,6 +32,17 @@ Notable changes to Workout, newest first. Format follows
   nor the workout comment, which describe that day rather than the plan. An exercise deleted from the
   library since is skipped while the rest copy, and the copy stands independent of its source.
 
+### Changed
+- **The app's progression is now offered rather than applied.** N22 shipped a suggestion whose own
+  documentation said it "suggests; it never writes", and in two places it *was* the value one tap logged:
+  with no plan, the first set of an exercise prefilled last time **plus a step**, and with a plan that named
+  reps but no load, the weight came from the same proposal. A lifter who progresses by hand had to notice
+  the app's arithmetic and undo it on every first set. What one tap logs is now the plan's target where it
+  names one, then what you just did, then **what you did last time, unchanged**, then the default; the
+  proposal is shown beside it with its reason and a **Use it** action, applied only when accepted. The rule
+  is global rather than program-only, because "I progress by hand" is not a property of how a workout was
+  started.
+
 ### Fixed
 
 - **Discarding a workout no longer leaves a white screen.** Closing a session went through two
