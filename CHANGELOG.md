@@ -109,6 +109,11 @@ Notable changes to Workout, newest first. Format follows
 - **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
   first and then the four warm-ups that exist to prepare for it — while its own description said it
   wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
+- **The repeat path is exercised end to end.** Its branch was never entered by a test: the route's
+  state handle carried only `templateId`, so `repeatLast` was always false, and the fake's field for
+  "what the last workout held" was never assigned — every part was tested, and the path between them
+  was not. Two tests now enter it in both directions, so "it repeats" cannot be passing because the
+  fake seeds something regardless.
 - **Repeating a workout keeps its rest, note and superset grouping.** Only the exercises were copied,
   so a repeated superset arrived ungrouped — and with no group the round logic short-circuits, so the
   pair degraded into unrelated exercises resting separately, which is the behaviour supersets exist to

@@ -100,19 +100,22 @@ class ActiveWorkoutViewModelTest {
      * `toRoute` reads each argument by its serial name, so the key here is the
      * route property's name rather than the route class.
      */
-    private fun activeWorkoutRoute(templateId: String? = null) =
-        SavedStateHandle(mapOf("templateId" to templateId))
+    private fun activeWorkoutRoute(
+        templateId: String? = null,
+        repeatLast: Boolean = false,
+    ) = SavedStateHandle(mapOf("templateId" to templateId, "repeatLast" to repeatLast))
 
     private fun viewModelFor(
         repository: FakeWorkoutRepository,
         templateId: String? = null,
         templates: FakeTemplateRepository = FakeTemplateRepository(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
+        repeatLast: Boolean = false,
     ) = ActiveWorkoutViewModel(
         repository,
         clock,
         templates,
-        activeWorkoutRoute(templateId),
+        activeWorkoutRoute(templateId, repeatLast),
         settings,
     )
 
@@ -1768,6 +1771,37 @@ class ActiveWorkoutViewModelTest {
         assertNotNull(moment)
         assertEquals(22_500L, moment!!.weightGrams)
         assertEquals("the session's bar, not the older history", 20_000L, moment.previousBestGrams)
+    }
+
+    @Test
+    fun repeatLast_opensTheSessionHoldingTheLastWorkoutsExercises() = runTest(dispatcher) {
+        // ROADMAP B43: the SavedStateHandle never set `repeatLast`, so this branch was never entered by
+        // any test and the fake's `repeatedExerciseIds` was never assigned — the whole path went
+        // unexercised while each of its parts was tested separately.
+        val repository = FakeWorkoutRepository()
+        repository.repeatedExerciseIds = listOf("back-squat", "bench-press")
+        val viewModel = viewModelFor(repository, repeatLast = true)
+        observe(viewModel)
+        settle()
+
+        assertEquals(
+            "the repeated workout's exercises arrive, in order",
+            listOf("back-squat", "bench-press"),
+            viewModel.uiState.value.exercises.map { it.exerciseId },
+        )
+    }
+
+    @Test
+    fun startingNormally_doesNotRepeatTheLastWorkout() = runTest(dispatcher) {
+        // The other direction: the flag decides, so the test above cannot be passing because the fake
+        // seeds something regardless.
+        val repository = FakeWorkoutRepository()
+        repository.repeatedExerciseIds = listOf("back-squat")
+        val viewModel = viewModelFor(repository, repeatLast = false)
+        observe(viewModel)
+        settle()
+
+        assertTrue("an ordinary start is empty", viewModel.uiState.value.exercises.isEmpty())
     }
 }
 
