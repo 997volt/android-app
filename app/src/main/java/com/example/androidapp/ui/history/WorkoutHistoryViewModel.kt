@@ -41,7 +41,11 @@ class WorkoutHistoryViewModel @Inject constructor(
 
     val uiState: StateFlow<WorkoutHistoryUiState> = workoutRepository.observeHistory()
         .map { workouts ->
-            WorkoutHistoryUiState(isLoading = false, groups = groupByMonth(workouts))
+            WorkoutHistoryUiState(
+                isLoading = false,
+                // Each session brings its own zone; this is the fallback for the ones that cannot.
+                groups = groupByMonth(workouts, ZoneId.systemDefault()),
+            )
         }
         .stateIn(
             scope = viewModelScope,
@@ -63,7 +67,8 @@ class WorkoutHistoryViewModel @Inject constructor(
  */
 internal fun groupByMonth(
     workouts: List<WorkoutSummary>,
-    zone: ZoneId = ZoneId.systemDefault(),
+    /** The fallback for rows that predate the offset column; required for the same reason (B38). */
+    zone: ZoneId,
 ): List<HistoryGroup> = workouts
     // Each session is grouped by the month **it** was performed in, not the month it is where you
     // are reading this: a workout done in Tokyo on the 1st belongs to that month, and the app was

@@ -81,6 +81,11 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **A date can no longer be rendered without saying which zone it is in.** The three formatters
+  defaulted their zone to the phone's, which is precisely what let the Home bug ship: omitting the
+  argument was the default and looked like ordinary code, so the compiler had nothing to object to.
+  The zone is now required, and every call site names it — a session's own offset, or the reading zone
+  for rows recorded before offsets existed. It is a small change that retires the whole class.
 - **The comments the removed rest alert left behind.** Six places still described permissions and
   behaviour the app no longer has — including `AndroidManifest.xml`, the very file whose emptiness the
   no-permissions promise rests on, and `AGENTS.md` naming a test fake that was deleted with the alert.

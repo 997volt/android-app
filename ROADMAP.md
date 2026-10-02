@@ -60,7 +60,7 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B36 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B36, B38 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
 - **B37 — A stranded "Rest timer" notification channel, with no cleanup and no note.** The deleted code
@@ -73,11 +73,6 @@ rest are the removal and the tests that came with it. Ordered by what they cost.
 
 ### The improvements the same review suggested (B38–B40)
 
-- **B38 — Make the zone parameter required, so this class of bug cannot compile.** All three date and
-  time formatters default their zone to `ZoneId.systemDefault()`, which is precisely what let B33 ship
-  silently: omitting the argument is the default and looks like ordinary code. Making it required turns
-  every future omission into a compile error, which is the difference between a test maybe catching it
-  and the compiler always catching it. Small, and it retires the whole class.
 - **B39 — Test what a screen renders, not only how it groups.** N25's grouping is well covered —
   `GroupByMonthTest` holds the Tokyo/London month boundary both ways — while no test asserts the date
   any screen actually displays, and there is no `HistoryFormat` test at all. The grouping was right and

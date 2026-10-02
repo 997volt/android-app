@@ -24,6 +24,7 @@ object WorkoutFormat {
     fun elapsed(duration: Duration): String = DurationFormat.of(duration)
 
     /** Wall-clock time of day, e.g. `07:42`. */
-    fun clockTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String =
+    /** [zone] is required for the reason in `HistoryFormat.date` (ROADMAP B38). */
+    fun clockTime(instant: Instant, zone: ZoneId): String =
         DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT).withZone(zone).format(instant)
 }

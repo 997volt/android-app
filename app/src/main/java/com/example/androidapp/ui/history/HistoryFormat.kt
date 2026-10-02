@@ -22,7 +22,12 @@ object HistoryFormat {
 
     fun date(
         instant: Instant,
-        zone: ZoneId = ZoneId.systemDefault(),
+        /**
+         * **Required, deliberately** (ROADMAP B38). A default of the system zone is what let B33 ship:
+         * omitting the argument was the default, and looked like ordinary code. The caller must now
+         * name the zone — a session's own offset, or the reading zone for rows that predate it.
+         */
+        zone: ZoneId,
         locale: Locale = Locale.getDefault(),
     ): String = DateTimeFormatter
         .ofLocalizedDate(FormatStyle.MEDIUM)
