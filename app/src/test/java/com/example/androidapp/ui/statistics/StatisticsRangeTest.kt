@@ -1,5 +1,8 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.model.window
+import com.example.androidapp.domain.model.StatisticsRange
+import com.example.androidapp.domain.model.RangeKind
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

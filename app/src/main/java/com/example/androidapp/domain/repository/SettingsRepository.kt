@@ -1,5 +1,6 @@
 package com.example.androidapp.domain.repository
 
+import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.DataResult
 import kotlinx.coroutines.flow.Flow
 
@@ -44,6 +45,16 @@ interface SettingsRepository {
     fun observeKeepScreenOn(): Flow<Boolean>
 
     suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit>
+    /**
+     * The window the Statistics screen is showing (ROADMAP N35).
+     *
+     * A preference rather than screen state: coming back to the tab should find the range that was chosen,
+     * and "the last 7 days" has to keep meaning seven days from whenever it is read — which is why what is
+     * stored is the range's *kind*, not the dates it resolved to.
+     */
+    fun observeStatisticsRange(): Flow<StatisticsRange>
+
+    suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit>
 
     companion object {
         /**

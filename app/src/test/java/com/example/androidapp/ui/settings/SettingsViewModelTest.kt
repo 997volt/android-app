@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.settings
 
+import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.RestTimer
@@ -105,6 +106,11 @@ private class FakeSettingsRepository(
     override fun observeKeepScreenOn(): Flow<Boolean> = flowOf(true)
 
     override suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
+
+    override fun observeStatisticsRange(): Flow<StatisticsRange> = flowOf(StatisticsRange())
+
+    override suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit> =
         DataResult.Success(Unit)
 
 }

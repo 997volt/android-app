@@ -1,7 +1,5 @@
-package com.example.androidapp.ui.statistics
+package com.example.androidapp.domain.model
 
-import com.example.androidapp.R
-import androidx.annotation.StringRes
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,18 +20,6 @@ enum class RangeKind {
     CUSTOM,
     ;
 
-    /** The picker's label, here rather than in the screen so every kind is shown by construction. */
-    @get:StringRes
-    val labelRes: Int
-        get() = when (this) {
-            LAST_7_DAYS -> R.string.range_7_days
-            LAST_MONTH -> R.string.range_month
-            LAST_3_MONTHS -> R.string.range_3_months
-            LAST_6_MONTHS -> R.string.range_6_months
-            LAST_YEAR -> R.string.range_year
-            ALL -> R.string.range_all
-            CUSTOM -> R.string.range_custom
-        }
 }
 
 /**
@@ -88,16 +74,6 @@ fun StatisticsRange.window(today: LocalDate, zone: ZoneId = ZoneId.systemDefault
         RangeKind.LAST_6_MONTHS -> fromDate(today.minusMonths(SIX_MONTHS), today, ::startOf)
         RangeKind.LAST_YEAR -> fromDate(today.minusYears(ONE_YEAR), today, ::startOf)
     }
-}
-
-/** The readings inside the window, gaps and all: a moment with no value is still a moment. */
-fun StatisticsRange.inWindow(
-    readings: List<MetricReading>,
-    today: LocalDate,
-    zone: ZoneId = ZoneId.systemDefault(),
-): List<MetricReading> {
-    val window = window(today, zone) ?: return readings
-    return readings.filter { it.at in window }
 }
 
 private fun daysBack(today: LocalDate, days: Long, startOf: (LocalDate) -> Instant) =

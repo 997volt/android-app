@@ -1,5 +1,8 @@
 package com.example.androidapp.data
 
+import java.time.LocalDate
+import com.example.androidapp.domain.model.StatisticsRange
+import com.example.androidapp.domain.model.RangeKind
 import androidx.core.content.edit
 import android.content.Context
 import android.content.SharedPreferences
@@ -68,6 +71,60 @@ class PreferencesSettingsRepository @Inject constructor(
         awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }.conflate().distinctUntilChanged()
 
+    override fun observeStatisticsRange(): Flow<StatisticsRange> = callbackFlow {
+        trySend(currentStatisticsRange())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
+            // All three keys make up one value, so any of them changing is the range changing.
+            if (changed == null || changed in RANGE_KEYS) trySend(currentStatisticsRange())
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.conflate().distinctUntilChanged()
+
+    override suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit> {
+        preferences.edit(commit = true) {
+            putString(KEY_RANGE_KIND, range.kind.name)
+            if (range.kind == RangeKind.CUSTOM) {
+                // Absent rather than a sentinel value: an end nobody chose is not a date, and a sentinel
+                // would be a date-shaped thing that has to be remembered not to mean anything.
+                range.from?.let { putLong(KEY_RANGE_FROM, it.toEpochDay()) } ?: remove(KEY_RANGE_FROM)
+                range.to?.let { putLong(KEY_RANGE_TO, it.toEpochDay()) } ?: remove(KEY_RANGE_TO)
+            } else {
+                // Dates are kept only where they mean something: a stale From–To left on a rolling range
+                // would be a second source of truth waiting to disagree with the kind.
+                remove(KEY_RANGE_FROM)
+                remove(KEY_RANGE_TO)
+            }
+        }
+        return if (currentStatisticsRange() == range) {
+            DataResult.Success(Unit)
+        } else {
+            DataResult.Failure(DataError.Storage(IllegalStateException("the range was not stored")))
+        }
+    }
+
+    /**
+     * The stored range, defaulted.
+     *
+     * An unknown kind — a name written by a build that had one this build does not — falls back to the
+     * default rather than throwing. A preference is not worth a broken screen, and storing the enum **by
+     * name** is what makes that possible: an ordinal would have been read back as a different range.
+     */
+    private fun currentStatisticsRange(): StatisticsRange {
+        val kind = preferences.getString(KEY_RANGE_KIND, null)
+            ?.let { name -> RangeKind.entries.firstOrNull { it.name == name } }
+            ?: RangeKind.LAST_7_DAYS
+
+        fun date(key: String): LocalDate? =
+            if (preferences.contains(key)) LocalDate.ofEpochDay(preferences.getLong(key, 0L)) else null
+
+        return StatisticsRange(
+            kind = kind,
+            from = if (kind == RangeKind.CUSTOM) date(KEY_RANGE_FROM) else null,
+            to = if (kind == RangeKind.CUSTOM) date(KEY_RANGE_TO) else null,
+        )
+    }
+
     private fun writeFlag(key: String, value: Boolean): DataResult<Unit> {
         preferences.edit(commit = true) { putBoolean(key, value) }
         return if (preferences.getBoolean(key, !value) == value) {
@@ -108,5 +165,11 @@ class PreferencesSettingsRepository @Inject constructor(
         const val KEY_DEFAULT_REST_SECONDS = "default_rest_seconds"
         const val KEY_REST_CUE_ENABLED = "rest_cue_enabled"
         const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
+        const val KEY_RANGE_KIND = "statistics_range_kind"
+        const val KEY_RANGE_FROM = "statistics_range_from"
+        const val KEY_RANGE_TO = "statistics_range_to"
+
+        /** The three keys that together are one value. */
+        val RANGE_KEYS = setOf(KEY_RANGE_KIND, KEY_RANGE_FROM, KEY_RANGE_TO)
     }
 }

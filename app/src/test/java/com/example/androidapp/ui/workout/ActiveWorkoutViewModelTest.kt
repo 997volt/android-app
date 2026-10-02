@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.workout
 
+import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.PersonalRecords
 import kotlinx.coroutines.flow.asStateFlow
@@ -1883,6 +1884,11 @@ private class FakeSettingsRepository(
     override fun observeKeepScreenOn(): Flow<Boolean> = flowOf(true)
 
     override suspend fun setKeepScreenOn(enabled: Boolean): DataResult<Unit> =
+        DataResult.Success(Unit)
+
+    override fun observeStatisticsRange(): Flow<StatisticsRange> = flowOf(StatisticsRange())
+
+    override suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit> =
         DataResult.Success(Unit)
 
 }

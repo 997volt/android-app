@@ -1,5 +1,7 @@
 package com.example.androidapp.ui.statistics
 
+import com.example.androidapp.domain.model.StatisticsRange
+import com.example.androidapp.domain.model.RangeKind
 import com.example.androidapp.domain.model.WorkoutSummary
 import java.time.LocalDate
 import java.time.ZoneId
