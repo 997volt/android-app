@@ -60,17 +60,9 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B35 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B36 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
 
-- **B36 — The manifest still describes the permissions it no longer declares.** The comment block at
-  `AndroidManifest.xml:5-13` explains `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`, both deleted by
-  N26, and it is the last mention of either anywhere in `app/src`. Harmless to the build and misleading
-  about the claim the file now carries, since this is the very file whose emptiness the no-permissions
-  promise rests on. The same change left stale comments in `DataTransferActions.kt:28` (which still says
-  "its only declared permission stays the optional rest alert", directly contradicting the README),
-  `ActiveWorkoutScreen.kt:91`, `ActiveWorkoutViewModel.kt:798`, `RoomWorkoutRepository.kt:217` and
-  `SettingsRepository.kt:52`; `AGENTS.md` still names `FakeRestNotifier`, a class that no longer exists.
 - **B37 — A stranded "Rest timer" notification channel, with no cleanup and no note.** The deleted code
   created channel id `rest_timer`, and it created it *before* checking whether notifications were
   enabled — so it exists on any device that ran a pre-N26 build and had the alert fire. Android keeps a
