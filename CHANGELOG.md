@@ -81,6 +81,11 @@ Notable changes to Workout, newest first. Format follows
 
 ### Fixed
 
+- **The last trace of the rest alert is gone from the device too.** Android keeps a notification
+  channel across updates until uninstall, so a phone that ran a build before the alert was removed
+  still listed "Rest timer" in its notification settings — for an app that posts nothing and declares
+  no permissions. It is deleted on launch: one idempotent call, no permission needed, and the decision
+  is recorded in [DECISIONS.md](DECISIONS.md).
 - **A date can no longer be rendered without saying which zone it is in.** The three formatters
   defaulted their zone to the phone's, which is precisely what let the Home bug ship: omitting the
   argument was the default and looked like ordinary code, so the compiler had nothing to object to.

@@ -233,6 +233,15 @@ into this file once the feature ships.
   does it costs the property N26 was for. If a stronger cue is ever wanted, the trade is a permission
   and it should be taken deliberately rather than as a side effect.
 
+- **A removed feature still cleans up after itself** (B37, B40). The rest alert is gone and its
+  notification channel is not: Android keeps one across updates until uninstall, so a device that ran
+  a pre-N26 build still lists "Rest timer" in its notification settings. Deleting it costs one
+  idempotent call that needs **no permission**, so the app does it on every launch and the channel
+  goes. The alternative — documenting it as accepted — was rejected because it leaves a trace of a
+  deleted feature on a user's device to save four lines, and because "we removed it" should mean the
+  device looks like it too. The channel id survives in `AndroidApp` for exactly one purpose, and its
+  comment says so.
+
 ## Rules that apply to every change
 
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control

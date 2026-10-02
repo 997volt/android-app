@@ -60,28 +60,13 @@ change.
 
 ### The v1.6 review — the features (B33–B37)
 
-**B33–B36, B38 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
+**B33–B38, B40 and B41 are fixed** and live in [CHANGELOG.md](CHANGELOG.md); the rest are open. The batch that shipped N25–N29 was reviewed function by function. Two defects are user-visible, the
 rest are the removal and the tests that came with it. Ordered by what they cost.
-
-- **B37 — A stranded "Rest timer" notification channel, with no cleanup and no note.** The deleted code
-  created channel id `rest_timer`, and it created it *before* checking whether notifications were
-  enabled — so it exists on any device that ran a pre-N26 build and had the alert fire. Android keeps a
-  channel across updates until uninstall, and nothing references `NotificationManager` any more, so
-  those devices keep a meaningless entry in system settings that no code can remove. That may be
-  perfectly acceptable; what makes it a finding is that it is undocumented, which leaves it
-  indistinguishable from an oversight. One line in the changelog, or a one-line cleanup at startup.
-
-### The improvements the same review suggested (B38–B40)
 
 - **B39 — Test what a screen renders, not only how it groups.** N25's grouping is well covered —
   `GroupByMonthTest` holds the Tokyo/London month boundary both ways — while no test asserts the date
   any screen actually displays, and there is no `HistoryFormat` test at all. The grouping was right and
   the rendering was wrong, so the thorough half was the half that did not need it.
-- **B40 — Record the channel question rather than leaving it implicit.** Either delete `rest_timer` on
-  the first launch after the upgrade, or say in [DECISIONS.md](DECISIONS.md) that a leftover channel is
-  accepted. Smallest of the three and the one most likely to be forgotten, which is why it is written
-  down rather than remembered.
-
 - **B42 — Two pieces of documentation that no longer match the code.** The original `appendExercise`
   KDoc sits orphaned at `RoomWorkoutRepository.kt:140-144`, detached above `removeExercise` while the
   function it describes now lives at `:424`; and `WorkoutRepository.kt:79-83` says an open session is

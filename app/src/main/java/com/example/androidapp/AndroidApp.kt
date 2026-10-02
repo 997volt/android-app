@@ -1,6 +1,7 @@
 package com.example.androidapp
 
 import android.app.Application
+import android.app.NotificationManager
 import android.os.Build
 import android.util.Log
 import com.example.androidapp.domain.TimeSource
@@ -22,7 +23,27 @@ class AndroidApp : Application() {
     override fun onCreate() {
         super.onCreate()
         installCrashRecorder()
+        forgetTheRestAlertChannel()
     }
+
+    /**
+     * Removes the notification channel the deleted rest alert used to create (ROADMAP B37).
+     *
+     * Android keeps a channel across updates until uninstall, so a device that ran a build before N26
+     * still lists "Rest timer" in its notification settings — for an app that now declares no
+     * permissions and posts nothing. The code that created it is gone; the channel is not, because
+     * deleting data on someone's device is not something a removed feature gets to leave behind.
+     *
+     * **Costs nothing and asks for nothing**: deleting a channel needs no permission, and the call is a
+     * no-op on a device that never had one, which is every install since. It is done on every launch
+     * rather than once behind a flag, because a flag to save a no-op is more code than the no-op.
+     */
+    private fun forgetTheRestAlertChannel() {
+        getSystemService(NotificationManager::class.java)
+            ?.deleteNotificationChannel(REST_ALERT_CHANNEL_ID)
+    }
+
+
 
     /**
      * Records uncaught exceptions to a file in app-private storage (ROADMAP F11).
@@ -58,5 +79,8 @@ class AndroidApp : Application() {
     private companion object {
         const val TAG = "AndroidApp"
         const val CRASH_DIR = "crash-logs"
+
+        /** The id the deleted rest-alert builder used; kept only so it can be forgotten (B37). */
+        const val REST_ALERT_CHANNEL_ID = "rest_timer"
     }
 }
