@@ -283,6 +283,9 @@ object TestTags {
 
         fun use(id: String) = "program_use_$id"
 
+        /** The authored order of the programs themselves (ROADMAP P3.12). */
+        fun moveProgram(id: String, up: Boolean) = "program_move_${if (up) "up" else "down"}_$id"
+
         fun slot(id: String) = "program_slot_$id"
 
         fun move(id: String, up: Boolean) = "program_slot_move_${if (up) "up" else "down"}_$id"

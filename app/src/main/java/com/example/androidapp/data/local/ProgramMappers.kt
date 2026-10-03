@@ -19,6 +19,7 @@ internal fun ProgramSummaryRow.toDomain(): WorkoutProgram = WorkoutProgram(
     name = name,
     slotCount = slotCount,
     isActive = isActive,
+    position = position,
 )
 
 internal fun ProgramSlotDetail.toDomain(): ProgramSlot = ProgramSlot(

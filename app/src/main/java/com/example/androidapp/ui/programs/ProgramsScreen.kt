@@ -2,13 +2,16 @@ package com.example.androidapp.ui.programs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -74,6 +78,7 @@ fun ProgramsRoute(
         onCreateProgram = viewModel::onCreateProgram,
         onOpenProgram = onOpenProgram,
         onSetActive = viewModel::onSetActive,
+        onMoveProgram = viewModel::onMoveProgram,
         onDismissMessage = viewModel::onErrorShown,
         onBack = onBack,
         modifier = modifier,
@@ -89,6 +94,7 @@ fun ProgramsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onSetActive: (String) -> Unit = {},
+    onMoveProgram: (String, Int) -> Unit = { _, _ -> },
     onDismissMessage: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -134,6 +140,7 @@ fun ProgramsScreen(
             state = state,
             onOpenProgram = onOpenProgram,
             onSetActive = onSetActive,
+            onMoveProgram = onMoveProgram,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -144,6 +151,7 @@ private fun ProgramsContent(
     state: ProgramsUiState,
     onOpenProgram: (String) -> Unit,
     onSetActive: (String) -> Unit,
+    onMoveProgram: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -163,11 +171,15 @@ private fun ProgramsContent(
             // Leaves room for the extended FAB so it cannot cover the last row.
             contentPadding = PaddingValues(bottom = 96.dp),
         ) {
-            items(items = state.programs, key = { it.id }) { program ->
+            itemsIndexed(items = state.programs, key = { _, program -> program.id }) { index, program ->
                 ProgramRow(
                     program = program,
+                    isFirst = index == 0,
+                    isLast = index == state.programs.lastIndex,
                     onOpen = { onOpenProgram(program.id) },
                     onUse = { onSetActive(program.id) },
+                    onMoveUp = { onMoveProgram(program.id, -1) },
+                    onMoveDown = { onMoveProgram(program.id, 1) },
                 )
                 HorizontalDivider()
             }
@@ -178,8 +190,12 @@ private fun ProgramsContent(
 @Composable
 private fun ProgramRow(
     program: WorkoutProgram,
+    isFirst: Boolean,
+    isLast: Boolean,
     onOpen: () -> Unit,
     onUse: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ListItem(
@@ -194,20 +210,44 @@ private fun ProgramRow(
             )
         },
         trailingContent = {
-            if (program.isActive) {
-                // A label rather than a button: the active program is a state to read, and
-                // "Use" on the one already in use would be a control that does nothing.
-                Text(
-                    text = stringResource(R.string.program_in_use),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                TextButton(
-                    onClick = onUse,
-                    modifier = Modifier.testTag(TestTags.Programs.use(program.id)),
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // The authored order (P3.12): which active program comes first is moved here,
+                // rather than left to a name or a creation time.
+                IconButton(
+                    onClick = onMoveUp,
+                    enabled = !isFirst,
+                    modifier = Modifier.testTag(TestTags.Programs.moveProgram(program.id, up = true)),
                 ) {
-                    Text(stringResource(R.string.program_use))
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.program_move_program_up, program.name),
+                    )
+                }
+                IconButton(
+                    onClick = onMoveDown,
+                    enabled = !isLast,
+                    modifier = Modifier.testTag(TestTags.Programs.moveProgram(program.id, up = false)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.program_move_program_down, program.name),
+                    )
+                }
+                if (program.isActive) {
+                    // A label rather than a button: following is a state to read, and a second
+                    // program may carry it too (P3.12). It is turned off in the editor.
+                    Text(
+                        text = stringResource(R.string.program_in_use),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    TextButton(
+                        onClick = onUse,
+                        modifier = Modifier.testTag(TestTags.Programs.use(program.id)),
+                    ) {
+                        Text(stringResource(R.string.program_use))
+                    }
                 }
             }
         },

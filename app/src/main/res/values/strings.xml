@@ -440,12 +440,14 @@
     <string name="program_name_label">Name</string>
     <string name="program_save_name">Save name</string>
     <string name="program_active">Active program</string>
-    <string name="program_active_hint">Home follows this program’s days. With none active it falls back to each plan’s own weekday.</string>
+    <string name="program_active_hint">Home follows this program’s days. More than one can be active at once; with none active it falls back to each plan’s own weekday.</string>
     <string name="program_no_slots">No workouts yet</string>
     <string name="program_no_slots_hint">Add the workouts you train, in order, and give each one a day.</string>
     <string name="program_add_slot">Add workout</string>
     <string name="program_move_up">Move %1$s up</string>
     <string name="program_move_down">Move %1$s down</string>
+    <string name="program_move_program_up">Move %1$s up the list</string>
+    <string name="program_move_program_down">Move %1$s down the list</string>
     <string name="program_remove_slot">Remove %1$s</string>
     <string name="program_delete">Delete program</string>
     <string name="program_delete_confirm_title">Delete this program?</string>

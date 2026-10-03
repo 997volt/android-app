@@ -193,7 +193,7 @@ class ProgramStartGateViewModelTest {
 
         override fun observeProgram(programId: String): Flow<WorkoutProgram?> = flowOf(null)
 
-        override fun observeActiveProgram(): Flow<WorkoutProgram?> = flowOf(null)
+        override fun observeActivePrograms(): Flow<List<WorkoutProgram>> = flowOf(emptyList())
 
         override fun observeSlots(programId: String): Flow<List<ProgramSlot>> = flowOf(emptyList())
 
@@ -227,11 +227,14 @@ class ProgramStartGateViewModelTest {
         override suspend fun deleteProgram(programId: String): DataResult<Unit> =
             error("these tests do not delete a program")
 
-        override suspend fun setActiveProgram(programId: String): DataResult<Unit> =
+        override suspend fun activateProgram(programId: String): DataResult<Unit> =
             error("these tests do not activate a program")
 
-        override suspend fun clearActiveProgram(): DataResult<Unit> =
+        override suspend fun deactivateProgram(programId: String): DataResult<Unit> =
             error("these tests do not deactivate a program")
+
+        override suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit> =
+            error("these tests do not move a program")
 
         override suspend fun addSlot(
             programId: String,

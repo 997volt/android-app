@@ -19,18 +19,19 @@ import kotlinx.coroutines.flow.Flow
  */
 interface ProgramRepository {
 
-    /** Every live program, active first then name-ordered, with its slot count. */
+    /** Every live program, in the authored order, with its slot count. */
     fun observePrograms(): Flow<List<WorkoutProgram>>
 
-    /** One program, re-emitting when it is renamed or made active. */
+    /** One program, re-emitting when it is renamed, reordered or activated. */
     fun observeProgram(programId: String): Flow<WorkoutProgram?>
 
     /**
-     * The program the home screen follows, or null when none is active (P3.3).
+     * Every program home follows, in the authored order (ROADMAP P3.12).
      *
-     * Null is the state home falls back to the template pins from.
+     * A list because more than one may be active. Empty is the state home falls back to the
+     * template pins from, and the state in which adherence has no schedule to score.
      */
-    fun observeActiveProgram(): Flow<WorkoutProgram?>
+    fun observeActivePrograms(): Flow<List<WorkoutProgram>>
 
     /** A program's slots in its own order, each carrying its template's name. */
     fun observeSlots(programId: String): Flow<List<ProgramSlot>>
@@ -49,11 +50,19 @@ interface ProgramRepository {
     /** Soft-deletes the program; its rows stay for an export to carry. */
     suspend fun deleteProgram(programId: String): DataResult<Unit>
 
-    /** Makes this the one active program, taking any other out of use (P3.3). */
-    suspend fun setActiveProgram(programId: String): DataResult<Unit>
+    /**
+     * Starts following this program, **without** stopping any other (ROADMAP P3.12).
+     *
+     * P3.3's "one active program only" is deliberately amended: a lifting block and a
+     * conditioning one are two schedules at once, and the union is what every reader takes.
+     */
+    suspend fun activateProgram(programId: String): DataResult<Unit>
 
-    /** Stops following a program, so the home screen falls back to the pins (P3.3). */
-    suspend fun clearActiveProgram(): DataResult<Unit>
+    /** Stops following this program, leaving the others active (P3.12). */
+    suspend fun deactivateProgram(programId: String): DataResult<Unit>
+
+    /** Moves a program one place: [delta] -1 for up, +1 for down. Past either end is a no-op. */
+    suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit>
 
     /**
      * Appends a slot for [templateId], on [weekday] or order-only when it is null.
@@ -76,11 +85,13 @@ interface ProgramRepository {
     suspend fun removeSlot(slotId: String): DataResult<Unit>
 
     /**
-     * The occurrences of the active program's current week that were missed (P3.3).
+     * The occurrences of every active program's current week that were missed (P3.3, unioned
+     * by P3.12).
      *
      * [today] and [zone] are the *device's* day and zone, which is what "this week" means
      * when the question is asked now; each session's own week still comes from its own
      * zone (N25). Empty when no program is active — there is then nothing to be late for.
+     * With several active, the misses are merged and ordered earliest first.
      */
     suspend fun pendingOccurrences(today: LocalDate, zone: ZoneId): DataResult<List<PendingOccurrence>>
 
@@ -94,8 +105,8 @@ interface ProgramRepository {
     suspend fun skipOccurrences(slotIds: List<String>, weekStart: LocalDate): DataResult<Unit>
 
     /**
-     * One month of adherence: what the active program scheduled, what happened, and the days
-     * trained (ROADMAP P3.5).
+     * One month of adherence: what the active programs scheduled, what happened, and the days
+     * trained (ROADMAP P3.5, unioned by P3.12).
      *
      * [month] is the calendar month the grid shows; [today] and [zone] are the *device's* own day
      * and zone, which is what "elapsed" means when that month is the current one. A session's own

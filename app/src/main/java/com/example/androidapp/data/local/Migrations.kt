@@ -507,6 +507,25 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
     }
 }
 
+/**
+ * v20 -> v21: a program gains an authored order (ROADMAP P3.12).
+ *
+ * `position` arrives NOT NULL with a default of 0 so the ALTER can run against a table that
+ * already holds programs, and the rows already there are then given their implicit `rowid` as
+ * the position. That is the only order the old rows carry — the list used to sort active-first
+ * then by name — and stamping them all 0 would silently reshuffle them into alphabetical order
+ * the moment the user reordered one.
+ *
+ * The `isActive` column is deliberately untouched: it simply stops meaning "the only one".
+ * Nothing is deactivated, so a lifter who followed a program still follows it.
+ */
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(ADD_PROGRAM_POSITION)
+        db.execSQL("UPDATE `programs` SET `position` = `rowid`")
+    }
+}
+
 private const val CREATE_PROGRAMS =
     "CREATE TABLE IF NOT EXISTS `programs` (" +
         "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, " +
@@ -550,6 +569,9 @@ private const val CREATE_PROGRAM_SKIPS_WEEK_INDEX =
 private const val ADD_SESSION_TEMPLATE_ID =
     "ALTER TABLE `workout_sessions` ADD COLUMN `templateId` TEXT"
 
+private const val ADD_PROGRAM_POSITION =
+    "ALTER TABLE `programs` ADD COLUMN `position` INTEGER NOT NULL DEFAULT 0"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_2_3,
@@ -570,4 +592,5 @@ val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_17_18,
     MIGRATION_18_19,
     MIGRATION_19_20,
+    MIGRATION_20_21,
 )

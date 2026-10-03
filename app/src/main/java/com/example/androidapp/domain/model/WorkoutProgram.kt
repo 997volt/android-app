@@ -10,14 +10,20 @@ import java.time.DayOfWeek
  * "was that a skip or a rest day" have no answer. A program supplies the order; a slot
  * supplies the day.
  *
- * [isActive] is the "one active program only" rule: when no live program is active, the
- * home screen falls back to the template pins it already reads.
+ * [isActive] means home follows this program, and **more than one program may be active**
+ * (ROADMAP P3.12, amending P3.3): home's today plan, the missed-day question and adherence
+ * all read the *union* of the active programs. When no live program is active, the home
+ * screen falls back to the template pins it already reads.
+ *
+ * [position] is the authored order, low first: which active program comes first is a choice,
+ * not an accident of its name or when it was created (P3.12).
  */
 data class WorkoutProgram(
     val id: String,
     val name: String,
     val slotCount: Int = 0,
     val isActive: Boolean = false,
+    val position: Int = 0,
 )
 
 /**

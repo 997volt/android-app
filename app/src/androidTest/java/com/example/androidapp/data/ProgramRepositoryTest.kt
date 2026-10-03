@@ -73,7 +73,7 @@ class ProgramRepositoryTest {
         val program = repository.observeProgram(created.data).first()
         assertEquals("Upper/Lower", program?.name)
         assertEquals(false, program?.isActive)
-        assertNull(repository.observeActiveProgram().first())
+        assertTrue(repository.observeActivePrograms().first().isEmpty())
     }
 
     @Test
@@ -119,37 +119,99 @@ class ProgramRepositoryTest {
     }
 
     @Test
-    fun onlyOneProgram_isActive_atATime() = runTest {
+    fun moreThanOneProgram_canBeActive_atOnce() = runTest {
+        // P3.12 amends P3.3's "at most one": a lifting block and a conditioning one are two
+        // schedules at once, and both are followed until one is turned off.
         val first = create("Upper/Lower")
         val second = create("PPL")
 
-        repository.setActiveProgram(first)
-        assertEquals(first, repository.observeActiveProgram().first()?.id)
+        repository.activateProgram(first)
+        repository.activateProgram(second)
 
-        repository.setActiveProgram(second)
-        assertEquals(second, repository.observeActiveProgram().first()?.id)
-        assertEquals(1, repository.observePrograms().first().count { it.isActive })
+        assertEquals(
+            listOf(first, second),
+            repository.observeActivePrograms().first().map { it.id },
+        )
+        assertEquals(2, repository.observePrograms().first().count { it.isActive })
+    }
+
+    @Test
+    fun deactivatingAProgram_stopsFollowingOnlyThatOne() = runTest {
+        val first = create("Upper/Lower")
+        val second = create("PPL")
+        repository.activateProgram(first)
+        repository.activateProgram(second)
+
+        repository.deactivateProgram(first)
+
+        assertEquals(listOf(second), repository.observeActivePrograms().first().map { it.id })
+
+        repository.deactivateProgram(second)
+        assertTrue(repository.observeActivePrograms().first().isEmpty())
+    }
+
+    @Test
+    fun programs_keepTheAuthoredOrder_andMovingSwapsTwo() = runTest {
+        // The order is authored rather than alphabetical or by creation time, so it has to
+        // survive a move (ROADMAP P3.12).
+        val first = create("Alpha")
+        val second = create("Beta")
+        val third = create("Gamma")
+
+        assertEquals(
+            listOf("Alpha", "Beta", "Gamma"),
+            repository.observePrograms().first().map { it.name },
+        )
+
+        repository.moveProgram(third, delta = -1)
+
+        assertEquals(
+            listOf(first, third, second),
+            repository.observePrograms().first().map { it.id },
+        )
+    }
+
+    @Test
+    fun theMissedDayQuestion_walksEveryActiveProgram() = runTest {
+        // Two schedules, each with yesterday's slot undone: the union is what the prompt lists,
+        // earliest first (ROADMAP P3.12).
+        val lifting = create("Upper/Lower")
+        val conditioning = create("Conditioning")
+        repository.addSlot(lifting, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        repository.addSlot(conditioning, createTemplate("Intervals"), DayOfWeek.TUESDAY)
+        repository.activateProgram(lifting)
+        repository.activateProgram(conditioning)
+
+        val pending = repository.pendingOccurrences(today, utc).getOrNull()
+
+        assertEquals(
+            setOf(
+                repository.observeSlots(lifting).first().single().id,
+                repository.observeSlots(conditioning).first().single().id,
+            ),
+            pending?.map { it.slotId }?.toSet(),
+        )
     }
 
     @Test
     fun clearingTheActiveProgram_leavesThePinsToAnswer() = runTest {
         val program = create("Upper/Lower")
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
 
-        repository.clearActiveProgram()
+        repository.deactivateProgram(program)
 
-        assertNull(repository.observeActiveProgram().first())
+        assertTrue(repository.observeActivePrograms().first().isEmpty())
     }
 
     @Test
     fun deletingTheActiveProgram_leavesNoneActive() = runTest {
         val program = create("Upper/Lower")
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
 
         repository.deleteProgram(program)
 
         assertTrue(repository.observePrograms().first().isEmpty())
-        assertNull(repository.observeActiveProgram().first())
+        assertTrue(repository.observeActivePrograms().first().isEmpty())
     }
 
     @Test
@@ -168,7 +230,7 @@ class ProgramRepositoryTest {
         val program = create("Upper/Lower")
         val template = createTemplate("Heavy lower")
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
         val slotId = slot(program).id
 
         assertEquals(
@@ -201,7 +263,7 @@ class ProgramRepositoryTest {
         val program = create("Upper/Lower")
         val template = createTemplate("Heavy lower")
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
         val slotId = slot(program).id
 
         repository.skipOccurrences(listOf(slotId), monday)
@@ -227,7 +289,7 @@ class ProgramRepositoryTest {
         val program = create("Upper/Lower")
         val template = createTemplate("Heavy lower")
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
         insertSession(id = "done", date = "2026-10-06T09:00:00Z", finished = true, templateId = template)
         insertSession(id = "abandoned", date = "2026-10-13T09:00:00Z", finished = false, templateId = template)
 
@@ -258,7 +320,7 @@ class ProgramRepositoryTest {
         val program = create("Upper/Lower")
         val template = createTemplate("Heavy lower")
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
-        repository.setActiveProgram(program)
+        repository.activateProgram(program)
         repository.skipOccurrences(listOf(slot(program).id), monday)
 
         val report = repository.monthAdherence(
@@ -269,6 +331,31 @@ class ProgramRepositoryTest {
 
         assertEquals(1, report!!.adherence.skipped)
         assertEquals(0, report.adherence.missed)
+    }
+
+    @Test
+    fun adherence_scoresTheUnionOfEveryActiveProgram() = runTest {
+        // Two schedules at once (P3.12): the month's counts add up across them, and the days they
+        // fall on are the union too.
+        val lifting = create("Upper/Lower")
+        val conditioning = create("Conditioning")
+        repository.addSlot(lifting, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        repository.addSlot(conditioning, createTemplate("Intervals"), DayOfWeek.THURSDAY)
+        repository.activateProgram(lifting)
+        repository.activateProgram(conditioning)
+
+        val report = repository.monthAdherence(
+            month = YearMonth.of(2026, 10),
+            today = LocalDate.of(2026, 10, 8),
+            zone = utc,
+        ).getOrNull()
+
+        assertTrue(report!!.hasActiveProgram)
+        // Both programs' elapsed days were missed: Tuesday the 6th and Thursday the 1st.
+        assertEquals(2, report.adherence.missed)
+        // And the grid draws the union: both programs' scheduled weekdays are in the month.
+        assertTrue(report.adherence.scheduledDays.contains(LocalDate.of(2026, 10, 6)))
+        assertTrue(report.adherence.scheduledDays.contains(LocalDate.of(2026, 10, 8)))
     }
 
     @Test

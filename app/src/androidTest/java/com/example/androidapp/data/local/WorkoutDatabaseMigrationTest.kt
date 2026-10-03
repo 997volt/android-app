@@ -912,4 +912,43 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration20To21_givesProgramsAnOrder_keepingEveryActiveOne() {
+        // ROADMAP P3.12. Two things need proving. The new column arrives with a usable order —
+        // the rows there get their `rowid`, which is the only order they carry — and **both**
+        // programs that were active stay active: the upgrade must not quietly deactivate one to
+        // keep the old "at most one" rule true.
+        helper.createDatabase(TEST_DB, 20).apply {
+            execSQL(
+                """
+                INSERT INTO programs (id, name, isActive, createdAt, updatedAt, deletedAt)
+                VALUES ('p1', 'Upper/Lower', 1, 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO programs (id, name, isActive, createdAt, updatedAt, deletedAt)
+                VALUES ('p2', 'Conditioning', 1, 200, 200, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 21, true, MIGRATION_20_21)
+
+        migrated.query("SELECT id, isActive, position FROM programs ORDER BY position").use { cursor ->
+            assertTrue("the first program survived", cursor.moveToFirst())
+            assertEquals("p1", cursor.getString(0))
+            assertEquals("its active flag is untouched", 1, cursor.getInt(1))
+            assertEquals("and it keeps its place", 1L, cursor.getLong(2))
+            assertTrue("and so did the second", cursor.moveToNext())
+            assertEquals("p2", cursor.getString(0))
+            assertEquals("which is still active too", 1, cursor.getInt(1))
+            assertEquals(2L, cursor.getLong(2))
+            assertFalse("exactly the two rows that were there", cursor.moveToNext())
+        }
+
+        migrated.close()
+    }
 }

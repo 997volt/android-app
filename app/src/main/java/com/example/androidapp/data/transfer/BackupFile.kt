@@ -269,12 +269,19 @@ data class TemplateSetDto(
     val deletedAt: Long? = null,
 )
 
-/** A program (ROADMAP P3.3): a name, and whether the home screen follows it. */
+/** A program (ROADMAP P3.3, P3.12): a name, whether home follows it, and its place in the order. */
 @Serializable
 data class ProgramDto(
     val id: String,
     val name: String,
     val isActive: Boolean = false,
+    /**
+     * The authored order, low first (ROADMAP P3.12).
+     *
+     * Defaulted so a file written before programs could be ordered still decodes; the rows it
+     * carries then tie on 0 and fall back to name order, which is what they were.
+     */
+    val position: Int = 0,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

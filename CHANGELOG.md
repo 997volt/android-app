@@ -10,6 +10,21 @@ alternatives rejected, the measurements, the argument — lives in
 [DECISIONS.md](DECISIONS.md) and [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md), and is not
 repeated here.
 
+## [Unreleased]
+
+### Added
+
+- **More than one program can be active at once, and a program's place is authored** (P3.12,
+  amending P3.3; schema v21). `programs.isActive` is no longer exclusive, so a lifting block and
+  a conditioning one are two schedules at once rather than one edited to hold both. Home's today
+  plan is the **union** of every active program's slots for the day, the missed-day question
+  walks every active program's pending occurrences, and adherence scores them together — the
+  per-program breakdown is deliberately left to P3.14. `programs.position` gives the list and
+  the union an order moved by hand (`programs` are reordered in the list), so which active
+  program comes first is a decision rather than an accident of its name or when it was created.
+  The upgrades are additive: the rows already there take their `rowid` as the position, and a
+  program that was active stays active.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

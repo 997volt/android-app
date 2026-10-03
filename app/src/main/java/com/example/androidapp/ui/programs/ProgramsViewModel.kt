@@ -64,10 +64,17 @@ class ProgramsViewModel @Inject constructor(
         }
     }
 
-    /** Makes this the one program the home screen follows (P3.3). */
+    /** Starts following this program, without stopping any other (P3.12). */
     fun onSetActive(programId: String) {
         viewModelScope.launch {
-            error.value = (repository.setActiveProgram(programId) as? DataResult.Failure)?.error
+            error.value = (repository.activateProgram(programId) as? DataResult.Failure)?.error
+        }
+    }
+
+    /** [delta] -1 moves the program up, +1 down (P3.12). */
+    fun onMoveProgram(programId: String, delta: Int) {
+        viewModelScope.launch {
+            error.value = (repository.moveProgram(programId, delta) as? DataResult.Failure)?.error
         }
     }
 

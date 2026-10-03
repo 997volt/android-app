@@ -180,6 +180,9 @@ class BackupCodecRoundTripTest {
             id = "p1",
             name = "Upper/Lower",
             isActive = true,
+            // The column P3.12 added: an authored order must survive a restore, or the union
+            // comes back in a different order than the user put it in.
+            position = 3,
             createdAt = 1_600_000_000_000L,
             updatedAt = 1_600_000_000_001L,
             deletedAt = null,

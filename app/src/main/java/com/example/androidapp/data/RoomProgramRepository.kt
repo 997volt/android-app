@@ -54,8 +54,8 @@ class RoomProgramRepository @Inject constructor(
     override fun observeProgram(programId: String): Flow<WorkoutProgram?> =
         dao.observeProgram(programId).map { it?.toDomain() }
 
-    override fun observeActiveProgram(): Flow<WorkoutProgram?> =
-        dao.observeActiveProgram().map { it?.toDomain() }
+    override fun observeActivePrograms(): Flow<List<WorkoutProgram>> =
+        dao.observeActivePrograms().map { rows -> rows.map { it.toDomain() } }
 
     override fun observeSlots(programId: String): Flow<List<ProgramSlot>> =
         dao.observeSlotDetails(programId).map { rows -> rows.map { it.toDomain() } }
@@ -71,6 +71,9 @@ class RoomProgramRepository @Inject constructor(
                 // Following a program is a deliberate choice made in its editor, not a
                 // side effect of creating one.
                 isActive = false,
+                // Appended, so the authored order is the order they were created in until
+                // the user moves one (P3.12).
+                position = dao.maxProgramPosition() + 1,
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,
@@ -95,14 +98,35 @@ class RoomProgramRepository @Inject constructor(
         }
     }
 
-    override suspend fun setActiveProgram(programId: String): DataResult<Unit> = dataResultOf {
-        // One transaction, so "exactly one is active" cannot be observed half-applied.
-        val updated = dao.setActiveProgram(id = programId, at = timeSource.nowEpochMillis())
-        if (updated == 0) throw NotFoundException("program $programId")
+    override suspend fun activateProgram(programId: String): DataResult<Unit> = dataResultOf {
+        // No transaction and no clearing: more than one program may be active (P3.12), and
+        // "which others are followed" is not this write's business.
+        if (dao.setProgramActive(programId, isActive = true, at = timeSource.nowEpochMillis()) == 0) {
+            throw NotFoundException("program $programId")
+        }
     }
 
-    override suspend fun clearActiveProgram(): DataResult<Unit> = dataResultOf {
-        dao.clearActiveProgram(at = timeSource.nowEpochMillis())
+    override suspend fun deactivateProgram(programId: String): DataResult<Unit> = dataResultOf {
+        if (dao.setProgramActive(programId, isActive = false, at = timeSource.nowEpochMillis()) == 0) {
+            throw NotFoundException("program $programId")
+        }
+    }
+
+    override suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit> = dataResultOf {
+        val row = dao.findProgram(programId) ?: throw NotFoundException("program $programId")
+        val ordered = dao.findPrograms()
+        val index = ordered.indexOfFirst { it.id == programId }
+        val neighbour = ordered.getOrNull(index + delta)
+        // At the top or the bottom: nothing to do, and not an error.
+        if (index >= 0 && neighbour != null) {
+            dao.swapProgramPositions(
+                firstId = row.id,
+                firstPosition = neighbour.position,
+                secondId = neighbour.id,
+                secondPosition = row.position,
+                at = timeSource.nowEpochMillis(),
+            )
+        }
     }
 
     override suspend fun addSlot(
@@ -168,9 +192,8 @@ class RoomProgramRepository @Inject constructor(
         today: LocalDate,
         zone: ZoneId,
     ): DataResult<List<PendingOccurrence>> = dataResultOf {
-        val active = dao.findActiveProgram() ?: return@dataResultOf emptyList()
-        val slots = dao.findSlotDetails(active.id).map { it.toDomain() }
-        if (slots.none { it.weekday != null }) return@dataResultOf emptyList()
+        val active = dao.findActivePrograms()
+        if (active.isEmpty()) return@dataResultOf emptyList()
 
         val weekStart = ProgramSchedule.weekStartOf(today)
         // A day of slack at each end: a session's week is taken in its own zone (N25), so a
@@ -184,7 +207,20 @@ class RoomProgramRepository @Inject constructor(
             RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
         }
 
-        ProgramSchedule.pendingOccurrences(slots, sessions, skips, today)
+        // The union of every active program's misses (P3.12). Each program is resolved on its
+        // own slots — a session settles an occurrence by its template, so the same session list
+        // answers for all of them — and the misses are merged earliest first, with the programs'
+        // own order breaking a tie on the same day.
+        val pending = mutableListOf<PendingOccurrence>()
+        active.forEach { program ->
+            pending += ProgramSchedule.pendingOccurrences(
+                slots = dao.findSlotDetails(program.id).map { it.toDomain() },
+                sessions = sessions,
+                skips = skips,
+                today = today,
+            )
+        }
+        pending.sortedBy { it.date }
     }
 
     override suspend fun skipOccurrences(
@@ -229,8 +265,8 @@ class RoomProgramRepository @Inject constructor(
         val to = lastWeek.plusDays(DAYS_IN_WEEK + SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
         val sessions = dao.finishedSessionsBetween(from, to).map { it.toAdherenceSession(zone) }
 
-        val active = dao.findActiveProgram()
-        if (active == null) {
+        val active = dao.findActivePrograms()
+        if (active.isEmpty()) {
             // A trained day needs no schedule, so the calendar is still drawn; there is simply
             // nothing to score it against.
             return@dataResultOf AdherenceReport(
@@ -245,7 +281,13 @@ class RoomProgramRepository @Inject constructor(
             )
         }
 
-        val slots = dao.findSlotDetails(active.id).map { it.toDomain() }
+        // The union of every active program's slots (P3.12), in the authored order. Adherence
+        // counts occurrences rather than days, so the programs' counts simply add up; the
+        // per-program breakdown is a later row (P3.14).
+        val slots = mutableListOf<ProgramSlot>()
+        active.forEach { program ->
+            slots += dao.findSlotDetails(program.id).map { it.toDomain() }
+        }
         val skips = dao.findSkipsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay()).map {
             RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
         }

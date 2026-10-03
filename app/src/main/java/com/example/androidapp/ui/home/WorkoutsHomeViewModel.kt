@@ -73,8 +73,8 @@ data class WorkoutsHomeUiState(
     /** The device's weekday, for the "Today" heading (ROADMAP N16). */
     val today: DayOfWeek = DayOfWeek.MONDAY,
     /**
-     * What is scheduled today: the active program's slots for this weekday, or — with no
-     * program active — the plans pinned to it (ROADMAP P3.3, falling back to N16).
+     * What is scheduled today: the union of the active programs' slots for this weekday, or —
+     * with no program active — the plans pinned to it (ROADMAP P3.3, unioned by P3.12).
      */
     val todaysPlan: List<TodayPlan> = emptyList(),
     /** Whether repeating the last workout would copy something (ROADMAP B43's tail). */
@@ -128,25 +128,38 @@ class WorkoutsHomeViewModel @Inject constructor(
         .dayOfWeek
 
     /**
-     * The active program, and its slots (ROADMAP P3.3).
+     * Every program home follows, in the authored order (ROADMAP P3.12).
      *
-     * A program's slots are read only while one is active, so a shelf full of programs costs
-     * the home screen nothing. With none active the plan falls back to the pins below.
+     * A list rather than one row: more than one program may be active, and the union of their
+     * slots is today's plan. Empty is the state the pins below answer in.
      */
-    private val activeProgram: Flow<WorkoutProgram?> = programRepository.observeActiveProgram()
+    private val activePrograms: Flow<List<WorkoutProgram>> = programRepository.observeActivePrograms()
 
-    private val activeProgramSlots: Flow<List<ProgramSlot>> = activeProgram
-        .flatMapLatest { program ->
-            if (program == null) flowOf(emptyList()) else programRepository.observeSlots(program.id)
+    /**
+     * The active programs' slots, concatenated in program order (ROADMAP P3.12).
+     *
+     * Read only while at least one program is active, so a shelf full of programs costs the
+     * home screen nothing. The order is the programs' authored order, each program's own slots
+     * in their own order; [todaysPlanFor] re-states that ordering rather than trusting it.
+     */
+    private val activeProgramSlots: Flow<List<ProgramSlot>> = activePrograms
+        .flatMapLatest { programs ->
+            if (programs.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                combine(programs.map { program -> programRepository.observeSlots(program.id) }) { perProgram ->
+                    perProgram.toList().flatten()
+                }
+            }
         }
 
     val uiState: StateFlow<WorkoutsHomeUiState> = combine(
         workoutRepository.observeHistory(),
         activeWorkout,
         templateRepository.observeTemplates(),
-        activeProgram,
+        activePrograms,
         activeProgramSlots,
-    ) { history, workout, templates, program, slots ->
+    ) { history, workout, templates, programs, slots ->
         WorkoutsHomeUiState(
             isLoading = false,
             recent = history.take(RECENT_LIMIT),
@@ -156,7 +169,7 @@ class WorkoutsHomeViewModel @Inject constructor(
             activeWorkout = workout,
             today = today,
             todaysPlan = todaysPlanFor(
-                program = program,
+                programs = programs,
                 slots = slots,
                 templates = templates,
                 day = today,
@@ -203,20 +216,25 @@ class WorkoutsHomeViewModel @Inject constructor(
 }
 
 /**
- * What is scheduled for [day] (ROADMAP P3.3).
+ * What is scheduled for [day] (ROADMAP P3.3, unioned by P3.12).
  *
- * With a program active the program is the schedule, even on a day it schedules nothing —
- * an empty day is rest, not a fallback. Only **no active program** returns the N16 pins,
- * which is the rule the roadmap states and the reason the pins stay editable.
+ * With anything active the union of the active programs is the schedule, even on a day they
+ * schedule nothing — an empty day is rest, not a fallback. Only **no active program** returns
+ * the N16 pins, which is the rule the roadmap states and the reason the pins stay editable.
  *
- * File-level and pure so the fallback can be tested without a database or a ViewModel.
+ * File-level and pure so the union and the fallback can be tested without a database or a
+ * ViewModel.
  */
 internal fun todaysPlanFor(
-    program: WorkoutProgram?,
+    programs: List<WorkoutProgram>,
     slots: List<ProgramSlot>,
     templates: List<WorkoutTemplate>,
     day: DayOfWeek,
-): List<TodayPlan> = if (program != null) slots.scheduledFor(day) else templates.pinnedFor(day)
+): List<TodayPlan> = if (programs.isNotEmpty()) {
+    slots.scheduledFor(day, programs)
+} else {
+    templates.pinnedFor(day)
+}
 
 /**
  * The plans pinned to [day], as home rows — the fallback when no program is active
@@ -233,21 +251,31 @@ private fun List<WorkoutTemplate>.pinnedFor(day: DayOfWeek): List<TodayPlan> =
     }
 
 /**
- * A program's slots that fall on [day], in the program's own order (ROADMAP P3.3).
+ * The active programs' slots that fall on [day], in the union's order (ROADMAP P3.12).
  *
- * The row's identity is the slot's, not the template's: a program may schedule the same
+ * Ordered by the **program's authored position first, the slot's position second**: two
+ * programs each number their slots from zero, so ordering by the slot alone would interleave
+ * them. The row's identity is the slot's, not the template's: a program may schedule the same
  * workout twice, and two rows keyed by one template would collide.
  */
-private fun List<ProgramSlot>.scheduledFor(day: DayOfWeek): List<TodayPlan> =
-    filter { it.weekday == day }
-        // The repository already orders by position; sorting here too means the rule is the
-        // function's rather than its caller's.
-        .sortedBy { it.position }
-        .map { slot ->
-        TodayPlan(
-            id = slot.id,
-            templateId = slot.templateId,
-            name = slot.templateName,
-            exerciseCount = slot.exerciseCount,
+private fun List<ProgramSlot>.scheduledFor(
+    day: DayOfWeek,
+    programs: List<WorkoutProgram>,
+): List<TodayPlan> {
+    val programOrder = programs.withIndex().associate { (index, program) -> program.id to index }
+    return filter { it.weekday == day }
+        .sortedWith(
+            compareBy(
+                { programOrder[it.programId] ?: Int.MAX_VALUE },
+                { it.position },
+            ),
         )
-    }
+        .map { slot ->
+            TodayPlan(
+                id = slot.id,
+                templateId = slot.templateId,
+                name = slot.templateName,
+                exerciseCount = slot.exerciseCount,
+            )
+        }
+}

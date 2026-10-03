@@ -17,7 +17,7 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Nine rows, planned together: they are everything the last two rounds deferred, and each one
+Eight rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
@@ -95,23 +95,6 @@ the template (N16, inherited by P3.3).
   day already trained.
 - **Adherence scores it against the slot** (P3.14): the day was scheduled, and it was done,
   whatever it was done with.
-
-**P3.12 — More than one active program.**
-
-One active program is P3.3's rule and stays the default; what it forbids is running two
-schedules at once — a lifting block and a conditioning one — which today means editing one or
-giving the other up.
-
-- **It amends P3.3 deliberately**: `programs.isActive` stops being exclusive, home's today plan
-  becomes the union of every active program's slots for the day, and the rule moves to
-  [DECISIONS.md](DECISIONS.md) when this ships.
-- **Everything downstream reads the union**: the missed-day question walks every active
-  program's pending occurrences, and adherence scores them together while the breakdown (P3.14)
-  can separate them.
-- **A program gains an explicit position**, so which one comes first is authored rather than
-  alphabetical or by creation time.
-- **A program stays the unit of editing, deloads and substitutions** (P3.10, P3.11): a skip is
-  still a slot and a week, so none of P3.3's events changes shape.
 
 **Adherence** — how often the plan happened
 

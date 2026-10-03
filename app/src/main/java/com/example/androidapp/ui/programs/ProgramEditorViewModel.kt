@@ -78,13 +78,13 @@ class ProgramEditorViewModel @Inject constructor(
     fun onRename(name: String) = write { repository.renameProgram(programId, name) }
 
     /**
-     * Turns the schedule on or off (P3.3).
+     * Starts or stops following this program (P3.3, amended by P3.12).
      *
-     * Off clears whichever program is active, which is the only way to follow none — the
-     * state the home screen falls back to the template pins from.
+     * Off stops following **this** one and leaves the others alone; more than one may be
+     * active, so there is no longer a "follow none" side effect to turning one off.
      */
     fun onSetActive(active: Boolean) = write {
-        if (active) repository.setActiveProgram(programId) else repository.clearActiveProgram()
+        if (active) repository.activateProgram(programId) else repository.deactivateProgram(programId)
     }
 
     fun onAddSlot(templateId: String) = write { repository.addSlot(programId, templateId) }

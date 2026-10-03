@@ -254,10 +254,19 @@ the rule; that one argues it.
   occurrence, and an occurrence is resolved by at most one session — the first. Matching by
   exercises was rejected: it breaks the moment a template is edited and cannot tell two slots
   apart. ([evidence](DECISIONS-EVIDENCE.md#p33))
-- **One active program, and it is a flag on the row** (P3.3). `programs.isActive` is set in one
-  transaction that clears the others, so "at most one" is a property of a single statement
-  rather than an invariant two stores have to agree on. A program is training data and rides in
-  the backup; the flag keeps that answer there rather than splitting it into a preference.
+- **More than one program may be active, and the flag is a plain flag on the row** (P3.12,
+  amending P3.3). Home's today plan, the missed-day question and adherence all read the **union**
+  of the active programs' slots, so a lifting block and a conditioning one run at once. P3.3 set
+  `isActive` in one transaction that cleared the others, which made "at most one" true by
+  construction; that rule is deliberately gone, because forbidding two schedules left editing one
+  program to hold both as the only alternative, and the union is the smaller change. A program is
+  still training data and rides in the backup, so the answer stays on the row rather than
+  splitting into a preference.
+- **A program's place is authored** (P3.12). `programs.position` orders the list and the union,
+  moved by hand rather than derived from a name or a creation time, so which active program comes
+  first is a decision the lifter made. The rows already on disk take their `rowid` as the
+  position, which is the only order they carried; a name tie-break would have reshuffled them
+  the moment one was moved.
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's

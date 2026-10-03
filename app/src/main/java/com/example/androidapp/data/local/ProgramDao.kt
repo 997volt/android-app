@@ -24,61 +24,88 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ProgramDao {
 
-    /** Every live program, active first then name-ordered. */
+    /** Every live program, in the authored order (ROADMAP P3.12). */
     @Query(
         """
         SELECT p.id AS id,
                p.name AS name,
                p.isActive AS isActive,
+               p.position AS position,
                (
                    SELECT COUNT(*) FROM program_slots ps
                    WHERE ps.programId = p.id AND ps.deletedAt IS NULL
                ) AS slotCount
         FROM programs p
         WHERE p.deletedAt IS NULL
-        ORDER BY p.isActive DESC, p.name ASC
+        ORDER BY p.position ASC, p.name ASC
         """,
     )
     fun observePrograms(): Flow<List<ProgramSummaryRow>>
 
-    /** The one program the home screen follows, or null when none is active (P3.3). */
+    /** The same list, one shot — what reordering needs (ROADMAP P3.12). */
     @Query(
         """
         SELECT p.id AS id,
                p.name AS name,
                p.isActive AS isActive,
+               p.position AS position,
+               (
+                   SELECT COUNT(*) FROM program_slots ps
+                   WHERE ps.programId = p.id AND ps.deletedAt IS NULL
+               ) AS slotCount
+        FROM programs p
+        WHERE p.deletedAt IS NULL
+        ORDER BY p.position ASC, p.name ASC
+        """,
+    )
+    suspend fun findPrograms(): List<ProgramSummaryRow>
+
+    /**
+     * Every active program, in the authored order (ROADMAP P3.12).
+     *
+     * A list rather than one row: more than one program may be followed at once, and the
+     * union of their slots is what home, the missed-day question and adherence read.
+     */
+    @Query(
+        """
+        SELECT p.id AS id,
+               p.name AS name,
+               p.isActive AS isActive,
+               p.position AS position,
                (
                    SELECT COUNT(*) FROM program_slots ps
                    WHERE ps.programId = p.id AND ps.deletedAt IS NULL
                ) AS slotCount
         FROM programs p
         WHERE p.isActive = 1 AND p.deletedAt IS NULL
-        LIMIT 1
+        ORDER BY p.position ASC, p.name ASC
         """,
     )
-    fun observeActiveProgram(): Flow<ProgramSummaryRow?>
+    fun observeActivePrograms(): Flow<List<ProgramSummaryRow>>
 
     @Query(
         """
         SELECT p.id AS id,
                p.name AS name,
                p.isActive AS isActive,
+               p.position AS position,
                (
                    SELECT COUNT(*) FROM program_slots ps
                    WHERE ps.programId = p.id AND ps.deletedAt IS NULL
                ) AS slotCount
         FROM programs p
         WHERE p.isActive = 1 AND p.deletedAt IS NULL
-        LIMIT 1
+        ORDER BY p.position ASC, p.name ASC
         """,
     )
-    suspend fun findActiveProgram(): ProgramSummaryRow?
+    suspend fun findActivePrograms(): List<ProgramSummaryRow>
 
     @Query(
         """
         SELECT p.id AS id,
                p.name AS name,
                p.isActive AS isActive,
+               p.position AS position,
                (
                    SELECT COUNT(*) FROM program_slots ps
                    WHERE ps.programId = p.id AND ps.deletedAt IS NULL
@@ -178,23 +205,46 @@ interface ProgramDao {
     )
     suspend fun softDeleteProgram(id: String, at: Long): Int
 
-    @Query("UPDATE programs SET isActive = 0, updatedAt = :at WHERE isActive = 1 AND deletedAt IS NULL")
-    suspend fun clearActiveProgram(at: Long): Int
-
-    @Query("UPDATE programs SET isActive = 1, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
-    suspend fun markProgramActive(id: String, at: Long): Int
-
     /**
-     * Makes [id] the one active program, in one transaction.
+     * Starts or stops following [id] **without** touching any other program (ROADMAP P3.12).
      *
-     * Clearing everything first is what makes "one active program only" true by
-     * construction rather than by every caller remembering to deactivate the last one.
-     * The rows updated are the activated program's, so 0 means it is gone.
+     * Activation used to be one transaction that cleared the others, which made "at most one
+     * active" true by construction; that rule is deliberately gone, so this is a plain write
+     * and the rows updated answer whether the program is still there.
      */
+    @Query(
+        """
+        UPDATE programs
+        SET isActive = :isActive, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setProgramActive(id: String, isActive: Boolean, at: Long): Int
+
+    /** Next free program position; -1 on an empty list, so callers add 1. */
+    @Query("SELECT COALESCE(MAX(position), -1) FROM programs")
+    suspend fun maxProgramPosition(): Int
+
+    @Query(
+        """
+        UPDATE programs
+        SET position = :position, updatedAt = :at
+        WHERE id = :id AND deletedAt IS NULL
+        """,
+    )
+    suspend fun setProgramPosition(id: String, position: Int, at: Long): Int
+
+    /** Swaps two programs in one transaction, so a reorder cannot half-move (P3.12). */
     @Transaction
-    suspend fun setActiveProgram(id: String, at: Long): Int {
-        clearActiveProgram(at)
-        return markProgramActive(id, at)
+    suspend fun swapProgramPositions(
+        firstId: String,
+        firstPosition: Int,
+        secondId: String,
+        secondPosition: Int,
+        at: Long,
+    ) {
+        setProgramPosition(id = firstId, position = firstPosition, at = at)
+        setProgramPosition(id = secondId, position = secondPosition, at = at)
     }
 
     /** Next free slot position; -1 on an empty program, so callers add 1. */

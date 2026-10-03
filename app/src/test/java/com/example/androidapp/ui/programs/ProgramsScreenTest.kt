@@ -31,6 +31,7 @@ class ProgramsScreenTest {
         onCreate: (String) -> Unit = {},
         onOpen: (String) -> Unit = {},
         onSetActive: (String) -> Unit = {},
+        onMoveProgram: (String, Int) -> Unit = { _, _ -> },
     ) {
         composeTestRule.setContent {
             ProgramsScreen(
@@ -39,6 +40,7 @@ class ProgramsScreenTest {
                 onOpenProgram = onOpen,
                 onBack = {},
                 onSetActive = onSetActive,
+                onMoveProgram = onMoveProgram,
             )
         }
     }
@@ -100,6 +102,23 @@ class ProgramsScreenTest {
         composeTestRule.onNodeWithTag(TestTags.Programs.NEW).performClick()
 
         assertThat(created).isNotNull()
+    }
+
+    @Test
+    fun theMoveButtons_reorderThePrograms_ratherThanEditingThem() {
+        // The authored order is P3.12's whole point, so moving is asserted by the tag that fired
+        // and by the row's own click not firing with it.
+        var moved: Pair<String, Int>? = null
+        var opened: String? = null
+        setScreen(
+            onMoveProgram = { id, delta -> moved = id to delta },
+            onOpen = { opened = it },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Programs.moveProgram("p2", up = true)).performClick()
+
+        assertThat(moved).isEqualTo("p2" to -1)
+        assertThat(opened).isNull()
     }
 
     private companion object {

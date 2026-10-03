@@ -12,6 +12,8 @@ data class ProgramSummaryRow(
     val id: String,
     val name: String,
     val isActive: Boolean,
+    /** The authored order, low first (ROADMAP P3.12). */
+    val position: Int,
     val slotCount: Int,
 )
 
