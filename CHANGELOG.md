@@ -69,6 +69,17 @@ repeated here.
   asking about a day already trained — and adherence scores it against the slot: the day was
   scheduled and it was done, whatever it was done with. The new rows join the backup codec.
 
+- **A skip can be corrected by hand** (P3.13). P3.3's prompt was the only thing that ever recorded
+  a skip, and *Continue* silences a whole week in one tap, so a mis-tap was wrong forever and a
+  week the app never asked about read as misses it did not earn. Tapping a **scheduled day** on the
+  Adherence calendar now opens what that day scheduled — one row per occurrence, with its state —
+  and each row can be marked skipped or unmarked, using the same `program_skips` row. Adding looks
+  **backwards only** (a day passed over is behind you), removing is always allowed and soft-deletes,
+  and the day returns to done, missed or pending by P3.5's same definitions. A finished session is
+  not correctable — it is the record — and a deload week offers nothing to correct. The app never
+  removes a skip itself: the correction is a second, explicit writer rather than a second opinion.
+  No schema change.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

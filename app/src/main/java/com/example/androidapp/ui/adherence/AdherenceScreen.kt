@@ -1,5 +1,10 @@
 package com.example.androidapp.ui.adherence
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.example.androidapp.domain.model.DayOccurrence
+import com.example.androidapp.domain.model.OccurrenceState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -68,6 +73,9 @@ fun AdherenceRoute(
         onPreviousMonth = viewModel::onPreviousMonth,
         onNextMonth = viewModel::onNextMonth,
         onToggleDeload = viewModel::onToggleDeload,
+        onSelectDay = viewModel::onSelectDay,
+        onDismissDay = viewModel::onDismissDay,
+        onSkipToggle = viewModel::onSetSkipped,
         onBack = onBack,
         modifier = modifier,
     )
@@ -89,6 +97,9 @@ fun AdherenceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onToggleDeload: (String, LocalDate, Boolean) -> Unit = { _, _, _ -> },
+    onSelectDay: (LocalDate) -> Unit = {},
+    onDismissDay: () -> Unit = {},
+    onSkipToggle: (DayOccurrence, Boolean) -> Unit = { _, _ -> },
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -129,10 +140,109 @@ fun AdherenceScreen(
 
                 state.error != null -> CenteredMessage(text = dataErrorMessage(state.error))
 
-                else -> AdherenceBody(state = state, onToggleDeload = onToggleDeload)
+                else -> AdherenceBody(
+                    state = state,
+                    onToggleDeload = onToggleDeload,
+                    onSelectDay = onSelectDay,
+                )
             }
         }
     }
+
+    // What the tapped day scheduled, with each occurrence's state (ROADMAP P3.13).
+    state.day?.let { correction ->
+        DayCorrectionDialog(
+            correction = correction,
+            onSkipToggle = onSkipToggle,
+            onDismiss = onDismissDay,
+        )
+    }
+}
+
+/**
+ * What one day scheduled, and what can be said about it (ROADMAP P3.13).
+ *
+ * One row per occurrence, because a day can schedule two (two slots on one Tuesday) and the ratio
+ * counts occurrences rather than days (P3.5). A row the app will not correct has no control: a
+ * finished session is the record, a future day cannot be skipped, and a deload week is not scored.
+ */
+@Composable
+private fun DayCorrectionDialog(
+    correction: DayCorrection,
+    onSkipToggle: (DayOccurrence, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val zone = ZoneId.systemDefault()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = modifier.testTag(TestTags.Adherence.DAY_DIALOG),
+        title = {
+            Text(HistoryFormat.date(correction.date.atStartOfDay(zone).toInstant(), zone))
+        },
+        text = {
+            if (correction.occurrences.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.adherence_day_nothing),
+                    modifier = Modifier.testTag(TestTags.Adherence.DAY_EMPTY),
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    correction.occurrences.forEach { occurrence ->
+                        DayOccurrenceRow(occurrence = occurrence, onSkipToggle = onSkipToggle)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag(TestTags.Adherence.DAY_CLOSE),
+            ) {
+                Text(stringResource(R.string.action_close))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DayOccurrenceRow(
+    occurrence: DayOccurrence,
+    onSkipToggle: (DayOccurrence, Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(TestTags.Adherence.dayOccurrence(occurrence.slotId)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(occurrence.templateName, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = stringResource(occurrence.state.labelRes()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (occurrence.canCorrect) {
+            FilterChip(
+                selected = occurrence.state == OccurrenceState.SKIPPED,
+                onClick = { onSkipToggle(occurrence, occurrence.state != OccurrenceState.SKIPPED) },
+                label = { Text(stringResource(R.string.adherence_skipped)) },
+                modifier = Modifier.testTag(TestTags.Adherence.daySkipped(occurrence.slotId)),
+            )
+        }
+    }
+}
+
+/** How one occurrence's state reads on the correction row (ROADMAP P3.13). */
+private fun OccurrenceState.labelRes(): Int = when (this) {
+    OccurrenceState.DONE -> R.string.adherence_state_done
+    OccurrenceState.SKIPPED -> R.string.adherence_state_skipped
+    OccurrenceState.MISSED -> R.string.adherence_state_missed
+    OccurrenceState.PENDING -> R.string.adherence_state_pending
+    OccurrenceState.DELOAD -> R.string.adherence_state_deload
 }
 
 /** The month and the two ways out of it. Forward stops at the current month. */
@@ -186,6 +296,7 @@ private fun MonthHeader(
 private fun AdherenceBody(
     state: AdherenceUiState,
     onToggleDeload: (String, LocalDate, Boolean) -> Unit,
+    onSelectDay: (LocalDate) -> Unit,
 ) {
     val ratio = state.adherence.ratio
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -205,7 +316,7 @@ private fun AdherenceBody(
             RatioSummary(adherence = state.adherence, ratio = ratio)
         }
 
-        Calendar(month = state.month, adherence = state.adherence)
+        Calendar(month = state.month, adherence = state.adherence, onSelectDay = onSelectDay)
 
         DeloadWeeks(
             programs = state.programs,
@@ -284,10 +395,10 @@ private fun DeloadWeeks(
 
 /** The weekday headings and the month, kept together because neither means anything alone. */
 @Composable
-private fun Calendar(month: YearMonth, adherence: MonthAdherence) {
+private fun Calendar(month: YearMonth, adherence: MonthAdherence, onSelectDay: (LocalDate) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         WeekdayHeader()
-        CalendarGrid(month = month, adherence = adherence)
+        CalendarGrid(month = month, adherence = adherence, onSelectDay = onSelectDay)
     }
 }
 
@@ -341,12 +452,16 @@ private fun WeekdayHeader() {
 
 /** The month, one row of seven at a time. */
 @Composable
-private fun CalendarGrid(month: YearMonth, adherence: MonthAdherence) {
+private fun CalendarGrid(month: YearMonth, adherence: MonthAdherence, onSelectDay: (LocalDate) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         calendarCells(month, adherence).chunked(DAYS_IN_WEEK).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 week.forEach { day ->
-                    DayCell(day = day, modifier = Modifier.weight(1f))
+                    DayCell(
+                        day = day,
+                        onSelect = onSelectDay,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -361,7 +476,7 @@ private fun CalendarGrid(month: YearMonth, adherence: MonthAdherence) {
  * something a screen reader can report.
  */
 @Composable
-private fun DayCell(day: CalendarDay?, modifier: Modifier = Modifier) {
+private fun DayCell(day: CalendarDay?, onSelect: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
     if (day == null) {
         // A blank pad: it keeps the columns aligned and carries nothing to announce.
         Box(modifier = modifier.aspectRatio(1f))
@@ -394,6 +509,9 @@ private fun DayCell(day: CalendarDay?, modifier: Modifier = Modifier) {
                 },
             )
             .testTag(TestTags.Adherence.dayCell(day.date.toString()))
+            // A scheduled day is the way into the correction dialog; a rest day has nothing to
+            // correct, so it is not offered as a control (ROADMAP P3.13).
+            .clickable(enabled = day.scheduled) { onSelect(day.date) }
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {

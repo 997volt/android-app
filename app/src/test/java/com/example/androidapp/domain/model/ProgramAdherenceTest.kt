@@ -430,6 +430,85 @@ class ProgramAdherenceTest {
         assertThat(adherence.missed).isEqualTo(1)
     }
 
+    @Test
+    fun occurrencesOn_reportsEachOccurrenceOfTheDay_withItsState() {
+        // ROADMAP P3.13: the unit is the occurrence, exactly as the ratio's is (P3.5).
+        val occurrences = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = listOf(session("t-tue", monday.plusDays(1))),
+            skips = emptyList(),
+            date = monday.plusDays(1),
+            today = today,
+        )
+
+        assertThat(occurrences.map { it.state }).containsExactly(OccurrenceState.DONE)
+        // A finished session is the record; a skip row cannot argue with it.
+        assertThat(occurrences.single().canCorrect).isFalse()
+    }
+
+    @Test
+    fun aMissedOccurrence_canBeCorrected_andASkippedOneToo() {
+        val occurrences = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            date = monday.plusDays(1),
+            today = today,
+        )
+        assertThat(occurrences.single().state).isEqualTo(OccurrenceState.MISSED)
+        assertThat(occurrences.single().canCorrect).isTrue()
+
+        val skipped = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday)),
+            date = monday.plusDays(1),
+            today = today,
+        )
+        assertThat(skipped.single().state).isEqualTo(OccurrenceState.SKIPPED)
+        assertThat(skipped.single().canCorrect).isTrue()
+    }
+
+    @Test
+    fun addingLooksBackwardsOnly_aFutureOccurrenceCannotBeSkipped() {
+        // P3.3's rule, kept by P3.13: a day passed over is behind you.
+        val future = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("fri", DayOfWeek.FRIDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            date = monday.plusDays(4),
+            today = today,
+        )
+        assertThat(future.single().state).isEqualTo(OccurrenceState.PENDING)
+        assertThat(future.single().canCorrect).isFalse()
+
+        // Today is not behind you either, but it is the day you can still decide about.
+        val todayItself = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("thu", DayOfWeek.THURSDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            date = today,
+            today = today,
+        )
+        assertThat(todayItself.single().state).isEqualTo(OccurrenceState.PENDING)
+        assertThat(todayItself.single().canCorrect).isTrue()
+    }
+
+    @Test
+    fun aDeloadWeek_offersNothingToCorrect() {
+        val occurrences = ProgramSchedule.occurrencesOn(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            date = monday.plusDays(1),
+            today = today,
+            deloads = listOf(RecordedDeload(programId = "p1", weekStart = monday)),
+        )
+
+        assertThat(occurrences.single().state).isEqualTo(OccurrenceState.DELOAD)
+        assertThat(occurrences.single().canCorrect).isFalse()
+    }
+
     private companion object {
         /** A ratio of thirds is not exact in binary floating point. */
         const val TOLERANCE = 1e-9

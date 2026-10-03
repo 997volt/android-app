@@ -15,6 +15,7 @@ import com.example.androidapp.domain.getOrNull
 import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
+import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.repository.SlotSetEdit
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -679,6 +681,63 @@ class ProgramRepositoryTest {
         val result = repository.setSubstitution(slotId, monday, "no-such-template")
 
         assertTrue(result is DataResult.Failure)
+    }
+
+    @Test
+    fun aScheduledDay_canBeMarkedSkippedAndUnmarked() = runTest {
+        // ROADMAP P3.13: a correction is a second, explicit writer beside the prompt's whole week.
+        val program = create("Upper/Lower")
+        repository.addSlot(program, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        val slotId = slot(program).id
+        val tuesday = monday.plusDays(1)
+
+        val missed = adherence.occurrencesOn(tuesday, today, utc).getOrNull()!!.single()
+        assertEquals(OccurrenceState.MISSED, missed.state)
+        assertTrue(missed.canCorrect)
+
+        adherence.setOccurrenceSkipped(slotId, monday, skipped = true)
+        assertEquals(
+            OccurrenceState.SKIPPED,
+            adherence.occurrencesOn(tuesday, today, utc).getOrNull()!!.single().state,
+        )
+
+        adherence.setOccurrenceSkipped(slotId, monday, skipped = false)
+        assertEquals(
+            OccurrenceState.MISSED,
+            adherence.occurrencesOn(tuesday, today, utc).getOrNull()!!.single().state,
+        )
+    }
+
+    @Test
+    fun correctingASkip_movesTheMonthBetweenMissedAndSkipped() = runTest {
+        val program = create("Upper/Lower")
+        repository.addSlot(program, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        val slotId = slot(program).id
+
+        adherence.setOccurrenceSkipped(slotId, monday, skipped = true)
+        val skipped = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()!!
+        assertEquals(1, skipped.adherence.skipped)
+        assertEquals(0, skipped.adherence.missed)
+
+        adherence.setOccurrenceSkipped(slotId, monday, skipped = false)
+        val missed = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()!!
+        assertEquals(0, missed.adherence.skipped)
+        assertEquals(1, missed.adherence.missed)
+    }
+
+    @Test
+    fun aDoneOccurrence_isNotOfferedForCorrection() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        insertSessionWithSet("done", "2026-10-06T09:00:00Z", template, weightGrams = 100_000L)
+
+        val occurrence = adherence.occurrencesOn(monday.plusDays(1), today, utc).getOrNull()!!.single()
+        assertEquals(OccurrenceState.DONE, occurrence.state)
+        assertFalse("a finished session is the record", occurrence.canCorrect)
     }
 
     /** A session row, finished or abandoned, started from [templateId] or by hand. */

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
+import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -15,10 +16,14 @@ import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -48,11 +53,25 @@ data class AdherenceUiState(
     val deloadWeeks: Map<String, Set<LocalDate>> = emptyMap(),
     /** The started weeks of [month], in order, that can be marked (P3.10). */
     val markableWeeks: List<LocalDate> = emptyList(),
+    /** The day whose correction dialog is open, or null (ROADMAP P3.13). */
+    val day: DayCorrection? = null,
     val error: DataError? = null,
 ) {
     /** False on the current month: the calendar navigates back through history, never forward. */
     val canGoForward: Boolean get() = month.isBefore(currentMonth)
 }
+
+/**
+ * What one day scheduled, for the correction dialog (ROADMAP P3.13).
+ *
+ * [date] is carried beside the rows because an empty list is two different facts — nothing was
+ * scheduled, or everything scheduled was already accounted for — and the dialog words them apart
+ * by knowing which day it is about.
+ */
+data class DayCorrection(
+    val date: LocalDate,
+    val occurrences: List<DayOccurrence>,
+)
 
 /** The Monday-start weeks of [month] that have started by [today] (ROADMAP P3.10). */
 internal fun markableWeeksOf(month: YearMonth, today: LocalDate): List<LocalDate> {
@@ -90,13 +109,28 @@ class AdherenceViewModel @Inject constructor(
     /** A write failure, kept apart from a read failure so it clears on the next action. */
     private val writeError = MutableStateFlow<DataError?>(null)
 
+    /** The day whose correction dialog is open, or null (P3.13). */
+    private val selectedDay = MutableStateFlow<LocalDate?>(null)
+
     private val shownMonth = combine(shown, refresh) { month, _ -> month }
+
+    /**
+     * The open day's occurrences, re-read whenever the month is (P3.13).
+     *
+     * Keyed on the same [refresh] the month is: a skip written from the dialog changes both the
+     * dialog's own rows and the ratio behind it, and one is derived from the other's rows.
+     */
+    private val day: Flow<DayCorrection?> =
+        combine(selectedDay, refresh) { date, _ -> date }.flatMapLatest { date ->
+            if (date == null) flowOf(null) else flow { emit(loadDay(date)) }
+        }
 
     val uiState: StateFlow<AdherenceUiState> = combine(
         shownMonth.mapLatest { month -> load(month) },
         writeError,
-    ) { loaded, failure ->
-        loaded.copy(error = failure ?: loaded.error)
+        day,
+    ) { loaded, failure, openDay ->
+        loaded.copy(error = failure ?: loaded.error, day = openDay)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -136,6 +170,52 @@ class AdherenceViewModel @Inject constructor(
 
     fun onErrorShown() {
         writeError.value = null
+    }
+
+    /** Opens the correction dialog for one day of the calendar (ROADMAP P3.13). */
+    fun onSelectDay(date: LocalDate) {
+        selectedDay.value = date
+    }
+
+    fun onDismissDay() {
+        selectedDay.value = null
+    }
+
+    /**
+     * Marks or unmarks one occurrence as skipped (ROADMAP P3.13).
+     *
+     * The row that was tapped carries its own slot, week and state, so the screen does not have to
+     * know which way the toggle goes — and a row the app would not offer cannot be written, because
+     * [DayOccurrence.canCorrect] is the rule and the screen renders only those.
+     */
+    fun onSetSkipped(occurrence: DayOccurrence, skipped: Boolean) {
+        viewModelScope.launch {
+            val written = adherence.setOccurrenceSkipped(
+                slotId = occurrence.slotId,
+                weekStart = occurrence.weekStart,
+                skipped = skipped,
+            )
+            when (written) {
+                is DataResult.Success -> {
+                    writeError.value = null
+                    // Re-reads the open day and the month behind it: one is derived from the other.
+                    refresh.update { it + 1 }
+                }
+
+                is DataResult.Failure -> writeError.value = written.error
+            }
+        }
+    }
+
+    private suspend fun loadDay(date: LocalDate): DayCorrection {
+        val zone = ZoneId.systemDefault()
+        return when (val result = adherence.occurrencesOn(date, today(zone), zone)) {
+            is DataResult.Success -> DayCorrection(date = date, occurrences = result.data)
+            is DataResult.Failure -> {
+                writeError.value = result.error
+                DayCorrection(date = date, occurrences = emptyList())
+            }
+        }
     }
 
     private suspend fun load(month: YearMonth): AdherenceUiState {

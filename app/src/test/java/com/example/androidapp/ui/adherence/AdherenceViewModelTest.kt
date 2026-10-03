@@ -6,6 +6,7 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.repository.AdherenceRepository
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
@@ -204,6 +205,68 @@ class AdherenceViewModelTest {
         assertThat(viewModel.uiState.value.month).isEqualTo(october)
     }
 
+    @Test
+    fun selectingADay_readsThatDaysOccurrences() = runTest(dispatcher) {
+        // ROADMAP P3.13: the correction dialog is keyed by the day that was tapped.
+        val repository = FakeAdherenceRepository()
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+        val day = LocalDate.of(2026, 10, 6)
+        repository.day = DataResult.Success(
+            listOf(
+                DayOccurrence(
+                    slotId = "s1",
+                    templateId = "t1",
+                    templateName = "Heavy lower",
+                    date = day,
+                    weekStart = LocalDate.of(2026, 10, 5),
+                    state = OccurrenceState.MISSED,
+                    canCorrect = true,
+                ),
+            ),
+        )
+
+        viewModel.onSelectDay(day)
+        advanceUntilIdle()
+
+        assertThat(repository.daysAsked).contains(day)
+        assertThat(viewModel.uiState.value.day?.occurrences?.single()?.slotId).isEqualTo("s1")
+
+        viewModel.onDismissDay()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.day).isNull()
+    }
+
+    @Test
+    fun correctingASkip_writesIt_andReReadsTheOpenDay() = runTest(dispatcher) {
+        val repository = FakeAdherenceRepository()
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+        val day = LocalDate.of(2026, 10, 6)
+        val occurrence = DayOccurrence(
+            slotId = "s1",
+            templateId = "t1",
+            templateName = "Heavy lower",
+            date = day,
+            weekStart = LocalDate.of(2026, 10, 5),
+            state = OccurrenceState.MISSED,
+            canCorrect = true,
+        )
+        viewModel.onSelectDay(day)
+        advanceUntilIdle()
+        val readsBefore = repository.daysAsked.size
+
+        viewModel.onSetSkipped(occurrence, skipped = true)
+        advanceUntilIdle()
+
+        assertThat(repository.corrections)
+            .containsExactly(Triple("s1", LocalDate.of(2026, 10, 5), true))
+        // The dialog's rows and the ratio behind them both re-read.
+        assertThat(repository.daysAsked.size).isEqualTo(readsBefore + 1)
+    }
+
     private fun viewModel(repository: FakeAdherenceRepository) =
         AdherenceViewModel(repository, TimeSource { now })
 
@@ -241,16 +304,31 @@ class AdherenceViewModelTest {
             return DataResult.Success(Unit)
         }
 
+        /** What the open day answers with; empty unless a test sets it (P3.13). */
+        var day: DataResult<List<DayOccurrence>> = DataResult.Success(emptyList())
+
+        /** Every day the dialog asked for, in order. */
+        val daysAsked = mutableListOf<LocalDate>()
+
+        /** Every skip correction, as the slot, week and state it claimed (P3.13). */
+        val corrections = mutableListOf<Triple<String, LocalDate, Boolean>>()
+
         override suspend fun occurrencesOn(
             date: LocalDate,
             today: LocalDate,
             zone: ZoneId,
-        ): DataResult<List<DayOccurrence>> = error("these tests do not read a day")
+        ): DataResult<List<DayOccurrence>> {
+            daysAsked += date
+            return day
+        }
 
         override suspend fun setOccurrenceSkipped(
             slotId: String,
             weekStart: LocalDate,
             skipped: Boolean,
-        ): DataResult<Unit> = error("these tests do not correct a skip")
+        ): DataResult<Unit> {
+            corrections += Triple(slotId, weekStart, skipped)
+            return DataResult.Success(Unit)
+        }
     }
 }

@@ -427,5 +427,14 @@ object TestTags {
         fun dayCell(date: String) = "adherence_day_$date"
 
         fun deloadWeek(date: String, programId: String) = "adherence_deload_${date}_$programId"
+
+        /** Correcting one day's occurrences (ROADMAP P3.13). */
+        const val DAY_DIALOG = "adherence_day_dialog"
+        const val DAY_EMPTY = "adherence_day_empty"
+        const val DAY_CLOSE = "adherence_day_close"
+
+        fun dayOccurrence(slotId: String) = "adherence_occurrence_$slotId"
+
+        fun daySkipped(slotId: String) = "adherence_skipped_$slotId"
     }
 }

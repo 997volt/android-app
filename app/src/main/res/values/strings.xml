@@ -227,6 +227,13 @@
     <string name="adherence_deload_hint">A deload week is not scored — its days count as neither done, skipped nor missed — but they stay on the calendar.</string>
     <string name="adherence_deload_week">Week of %1$s</string>
     <string name="adherence_deload_mark">Deload</string>
+    <!-- Correcting one day's occurrences (ROADMAP P3.13). -->
+    <string name="adherence_day_nothing">Nothing was scheduled on this day.</string>
+    <string name="adherence_state_done">Done</string>
+    <string name="adherence_state_skipped">Skipped</string>
+    <string name="adherence_state_missed">Missed</string>
+    <string name="adherence_state_pending">Not yet</string>
+    <string name="adherence_state_deload">Deload week — not scored</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
     <string name="home_plan_start">Start</string>

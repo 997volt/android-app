@@ -11,7 +11,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
+import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
@@ -49,6 +51,9 @@ class AdherenceScreenTest {
         onNextMonth: () -> Unit = {},
         onBack: () -> Unit = {},
         onToggleDeload: (String, LocalDate, Boolean) -> Unit = { _, _, _ -> },
+        onSelectDay: (LocalDate) -> Unit = {},
+        onDismissDay: () -> Unit = {},
+        onSkipToggle: (DayOccurrence, Boolean) -> Unit = { _, _ -> },
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -58,6 +63,9 @@ class AdherenceScreenTest {
                     onNextMonth = onNextMonth,
                     onBack = onBack,
                     onToggleDeload = onToggleDeload,
+                    onSelectDay = onSelectDay,
+                    onDismissDay = onDismissDay,
+                    onSkipToggle = onSkipToggle,
                 )
             }
         }
@@ -260,5 +268,112 @@ class AdherenceScreenTest {
             .performClick()
 
         assertThat(marked).isFalse()
+    }
+
+    @Test
+    fun tappingAScheduledDay_opensItsOccurrences() {
+        // ROADMAP P3.13: a scheduled day is the way into the correction dialog.
+        val date = LocalDate.of(2026, 10, 6)
+        var selected: LocalDate? = null
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                adherence = MonthAdherence(scheduledDays = setOf(date)),
+            ),
+            onSelectDay = { selected = it },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.dayCell(date.toString()))
+            .performScrollTo()
+            .performClick()
+
+        assertThat(selected).isEqualTo(date)
+    }
+
+    @Test
+    fun aMissedOccurrence_canBeMarkedSkipped_fromTheDialog() {
+        val date = LocalDate.of(2026, 10, 6)
+        var toggled: Pair<DayOccurrence, Boolean>? = null
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                day = DayCorrection(
+                    date = date,
+                    occurrences = listOf(
+                        DayOccurrence(
+                            slotId = "s1",
+                            templateId = "t1",
+                            templateName = "Heavy lower",
+                            date = date,
+                            weekStart = LocalDate.of(2026, 10, 5),
+                            state = OccurrenceState.MISSED,
+                            canCorrect = true,
+                        ),
+                    ),
+                ),
+            ),
+            onSkipToggle = { occurrence, skipped -> toggled = occurrence to skipped },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.DAY_DIALOG).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.dayOccurrence("s1")).assertExists()
+        composeTestRule.onNodeWithText("Heavy lower").assertExists()
+        composeTestRule.onNodeWithText("Missed").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.daySkipped("s1")).performClick()
+
+        assertThat(toggled?.first?.slotId).isEqualTo("s1")
+        assertThat(toggled?.second).isTrue()
+    }
+
+    @Test
+    fun aDoneOccurrence_offersNoCorrection() {
+        val date = LocalDate.of(2026, 10, 6)
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                day = DayCorrection(
+                    date = date,
+                    occurrences = listOf(
+                        DayOccurrence(
+                            slotId = "s1",
+                            templateId = "t1",
+                            templateName = "Heavy lower",
+                            date = date,
+                            weekStart = LocalDate.of(2026, 10, 5),
+                            state = OccurrenceState.DONE,
+                            canCorrect = false,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Done").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.daySkipped("s1")).assertDoesNotExist()
+    }
+
+    @Test
+    fun aDayWithNothingScheduled_saysSo_andCanBeClosed() {
+        var dismissed = false
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                day = DayCorrection(date = LocalDate.of(2026, 10, 6), occurrences = emptyList()),
+            ),
+            onDismissDay = { dismissed = true },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.DAY_EMPTY).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.DAY_CLOSE).performClick()
+
+        assertThat(dismissed).isTrue()
     }
 }

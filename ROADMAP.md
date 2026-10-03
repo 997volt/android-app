@@ -17,28 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Four rows, planned together: they are everything the last two rounds deferred, and each one
+Three rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Adherence** — how often the plan happened
-
-**P3.13 — Correcting a skip.**
-
-P3.3's prompt is the only thing that ever records a skip, and *Continue* silences a whole week
-in one tap: a mis-tap is wrong forever, and a week the app never asked about reads as misses it
-did not earn (P3.5's stated limit).
-
-- **The lifter can add or remove a skip**, because a skip is their statement rather than the
-  app's: tapping a scheduled day opens what that day scheduled — one row per occurrence, with
-  its state — and each row can be marked skipped or unmarked, using the same `program_skips`
-  row.
-- **Adding looks backwards only**: a day passed over is behind you, so a future day cannot be
-  skipped (P3.3's rule), and the toggle appears only for today or earlier.
-- **Removing is always allowed** and soft-deletes the row, as every table here does, returning
-  the day to done, missed or pending by P3.5's same definitions.
-- **The app never removes one itself**, and *Continue* keeps writing a whole week (P3.3): a
-  correction is a second, explicit writer, not a second opinion.
 
 **P3.14 — Adherence, broken down.**
 

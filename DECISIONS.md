@@ -348,9 +348,20 @@ the rule; that one argues it.
 - **No schema change** (P3.5). Everything it reads shipped with P3.3 at v20 — `program_slots`,
   `program_skips`, and `workout_sessions`' `templateId`, `finishedAt` and `zoneOffsetMinutes` —
   and the aggregate is the same pure, JVM-tested `ProgramSchedule` the prompt uses, fed the
-  window's finished sessions. P3.3's inherited limits stand: skips exist only from P3.3 onward
-  and only for a week whose prompt was answered, an unanswered past week reads as misses, and the
+  window's finished sessions. P3.3's inherited limits stand, except where P3.13 lifts one: skips
+  exist only from P3.3 onward and only for a week whose prompt was answered **or one the lifter
+  corrected by hand**, an unanswered past week still reads as misses until it is corrected, and the
   schedule is the program as it is *now*, so editing a slot rewrites past weeks.
+- **A skip is the lifter's statement, so they can add and remove one by hand** (P3.13, amending
+  P3.5's stated limit). Tapping a scheduled day opens what that day scheduled — one row per
+  occurrence, because a day can schedule two, exactly as the ratio counts (P3.5) — and each row can
+  be marked skipped or unmarked, using the same `program_skips` row. **Adding looks backwards
+  only**: a day passed over is behind you, so only today or earlier is offered. Removing is always
+  allowed and soft-deletes, returning the day to done, missed or pending by P3.5's same
+  definitions. The app never removes a skip itself and *Continue* keeps writing a whole week: the
+  correction is a second, explicit writer rather than a second opinion. A finished session is not
+  correctable — it is the record — and a deload week offers nothing to correct, because it is not
+  scored (P3.10).
 
 ## Rules that apply to every change
 
