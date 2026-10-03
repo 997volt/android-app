@@ -59,6 +59,15 @@ repeated here.
   prescribes (P3.8). Weeks are marked and unmarked on the Adherence screen, one chip per active
   program, and only a week that has started can be marked — the app has no forward view to hang a
   future week on. The new rows join the backup codec, guarded by a round trip.
+- **A workout can be substituted for one occurrence, schema v24** (P3.11). "The rack is taken
+  today, do the dumbbell version" cannot be answered by editing the program, which changes every
+  week that references the template (N16, inherited by P3.3), so it is an **event keyed by slot and
+  week** — the shape of a skip. The pick is made **at the point of starting**, from the slot's row
+  in today's plan, and recorded before the session opens; no other week changes, which is the whole
+  point, and the scheduled workout is offered to clear a mis-pick. A session started from the
+  substitute **settles the slot's occurrence** — P3.3's matching extends to it, so the app stops
+  asking about a day already trained — and adherence scores it against the slot: the day was
+  scheduled and it was done, whatever it was done with. The new rows join the backup codec.
 
 ## [1.9] — 2026-10-03 (versionCode 10)
 

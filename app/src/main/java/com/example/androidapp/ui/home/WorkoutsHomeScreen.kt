@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -39,6 +41,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +58,7 @@ import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.zoneIdOrNull
 import java.time.ZoneId
 import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.ClearEverythingDialog
 import com.example.androidapp.ui.components.MessageSnackbar
@@ -101,16 +105,10 @@ fun WorkoutsHomeRoute(
     // Resolved at composition, not read from a captured Context: a resource looked up
     // through LocalContext is not configuration-aware (lint's point, and it is right).
     val clearedText = stringResource(R.string.clear_done)
-    // `dataErrorMessage` is a composable, so the failure is held as a value and turned
-    // into a sentence during composition rather than inside the coroutine.
-    var clearFailure by remember { mutableStateOf<DataError?>(null) }
-    val clearFailureText = clearFailure?.let { dataErrorMessage(it) }
-    LaunchedEffect(clearFailureText) {
-        if (clearFailureText != null) {
-            message = clearFailureText
-            clearFailure = null
-        }
-    }
+    // `dataErrorMessage` is a composable, so the failure is held as a value and turned into a
+    // sentence during composition rather than inside the coroutine.
+    var failure by remember { mutableStateOf<DataError?>(null) }
+    FailureMessage(failure = failure, onMessage = { message = it }, onClear = { failure = null })
 
     // Every start goes through the program's missed-day question (ROADMAP P3.3), and this is
     // the only place the navigation happens: "do it now" and "continue" differ in intent
@@ -145,6 +143,14 @@ fun WorkoutsHomeRoute(
                 ),
             )
         },
+        // Choosing a substitute records it for this slot and this week — no other week changes —
+        // and then starts it, because the pick is made at the point of starting (P3.11).
+        onSubstituteTemplate = substituteOccurrence(
+            scope = scope,
+            viewModel = viewModel,
+            requestStart = requestStart,
+            onFailure = { failure = it },
+        ),
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
         onOpenPrograms = onOpenPrograms,
@@ -154,7 +160,7 @@ fun WorkoutsHomeRoute(
             scope.launch {
                 when (val outcome = transferViewModel.clearEverything()) {
                     is ClearOutcome.Cleared -> message = clearedText
-                    is ClearOutcome.Failed -> clearFailure = outcome.error
+                    is ClearOutcome.Failed -> failure = outcome.error
                 }
             }
         },
@@ -182,8 +188,16 @@ fun WorkoutsHomeScreen(
     onClearData: (() -> Unit)? = null,
     message: String? = null,
     onDismissMessage: () -> Unit = {},
+    /**
+     * Records the workout that stands in for one occurrence, then starts it (ROADMAP P3.11).
+     *
+     * A null template restores the slot's own workout and starts nothing.
+     */
+    onSubstituteTemplate: (TodayPlan, String?) -> Unit = { _, _ -> },
 ) {
     var confirmingClear by rememberSaveable { mutableStateOf(false) }
+    // The row whose substitute picker is open, or null (P3.11).
+    var substituting by remember { mutableStateOf<TodayPlan?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     MessageSnackbar(message, snackbarHostState, onDismissMessage)
 
@@ -198,8 +212,14 @@ fun WorkoutsHomeScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    SubstitutePicker(
+        plan = substituting,
+        templates = state.templates,
+        onChoose = onSubstituteTemplate,
+        onDismiss = { substituting = null },
+    )
+
+    Scaffold(        modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeTopBar(
@@ -226,9 +246,109 @@ fun WorkoutsHomeScreen(
             onOpenWorkout = onOpenWorkout,
             onOpenHistory = onOpenHistory,
             onStartTemplate = onStartTemplate,
+            onSubstitute = { plan -> substituting = plan },
             modifier = Modifier.padding(innerPadding),
         )
     }
+}
+
+/**
+ * Turns a held write failure into the snackbar sentence once, then clears it (F7).
+ *
+ * Split out of the route, which is at the length this project allows: the sentence comes from a
+ * composable resource, so it cannot be read inside the coroutine that produced the failure.
+ */
+@Composable
+private fun FailureMessage(
+    failure: DataError?,
+    onMessage: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    // Read through `rememberUpdatedState` so the effect cannot fire a stale callback after a
+    // recomposition, which is what the lint rule below is about.
+    val currentOnMessage by rememberUpdatedState(onMessage)
+    val currentOnClear by rememberUpdatedState(onClear)
+    val text = failure?.let { dataErrorMessage(it) }
+    LaunchedEffect(text) {
+        if (text != null) {
+            currentOnMessage(text)
+            currentOnClear()
+        }
+    }
+}
+
+/**
+ * The open substitute picker, or nothing (ROADMAP P3.11).
+ *
+ * Split out of the screen, which is at the length this project allows, and because the dialog's
+ * three exits are one shape: pick a stand-in, restore the scheduled workout, or back out.
+ */
+@Composable
+private fun SubstitutePicker(
+    plan: TodayPlan?,
+    templates: List<WorkoutTemplate>,
+    onChoose: (TodayPlan, String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val current = plan ?: return
+    SubstituteDialog(
+        templates = templates,
+        onPick = { templateId ->
+            onDismiss()
+            onChoose(current, templateId)
+        },
+        onClear = {
+            onDismiss()
+            onChoose(current, null)
+        },
+        onDismiss = onDismiss,
+    )
+}
+
+/**
+ * What stands in for one occurrence this week (ROADMAP P3.11).
+ *
+ * The scheduled workout is offered first and clears the pick, because a substitution is the
+ * lifter's statement rather than the app's and a mis-pick would otherwise be permanent.
+ */
+@Composable
+private fun SubstituteDialog(
+    templates: List<WorkoutTemplate>,
+    onPick: (String) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = modifier.testTag(TestTags.HOME_SUBSTITUTE_DIALOG),
+        title = { Text(stringResource(R.string.home_substitute_title)) },
+        text = {
+            LazyColumn {
+                item(key = "scheduled") {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.home_substitute_clear)) },
+                        modifier = Modifier
+                            .testTag(TestTags.HOME_SUBSTITUTE_CLEAR)
+                            .clickable(onClick = onClear),
+                    )
+                }
+                items(items = templates, key = { it.id }) { template ->
+                    ListItem(
+                        headlineContent = { Text(template.name) },
+                        modifier = Modifier
+                            .testTag(TestTags.homeSubstituteTemplate(template.id))
+                            .clickable { onPick(template.id) },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 
@@ -244,22 +364,24 @@ private fun TodayAndRecent(
     state: WorkoutsHomeUiState,
     onOpenWorkout: (String) -> Unit,
     onStartTemplate: (TodayPlan) -> Unit,
+    onSubstitute: (TodayPlan) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 88.dp), // clear the FAB
     ) {
-        todayPlanItems(state = state, onStartTemplate = onStartTemplate)
+        todayPlanItems(state = state, onStartTemplate = onStartTemplate, onSubstitute = onSubstitute)
         nextUpItems(state = state, onStartTemplate = onStartTemplate)
         recentItems(state = state, onOpenWorkout = onOpenWorkout)
     }
 }
 
-/** Today's scheduled plans, headed by the weekday (ROADMAP N16, P3.3). */
+/** Today's scheduled plans, headed by the weekday (ROADMAP N16, P3.3, P3.11). */
 private fun LazyListScope.todayPlanItems(
     state: WorkoutsHomeUiState,
     onStartTemplate: (TodayPlan) -> Unit,
+    onSubstitute: (TodayPlan) -> Unit,
 ) {
     if (state.todaysPlan.isEmpty()) return
     item(key = "today") {
@@ -279,13 +401,25 @@ private fun LazyListScope.todayPlanItems(
                 )
             },
             trailingContent = {
-                TextButton(
-                    // The row's identity is the slot's, and the whole row travels: what starts is
-                    // the template, and the slot carries its prescription (ROADMAP P3.3, P3.8).
-                    onClick = { onStartTemplate(plan) },
-                    modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
-                ) {
-                    Text(stringResource(R.string.home_plan_start))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Only a program slot can be substituted: the event is keyed by slot and week
+                    // (P3.11), and a pinned plan has no slot to key it by.
+                    if (plan.slotId != null) {
+                        TextButton(
+                            onClick = { onSubstitute(plan) },
+                            modifier = Modifier.testTag(TestTags.homeSubstitute(plan.id)),
+                        ) {
+                            Text(stringResource(R.string.home_substitute))
+                        }
+                    }
+                    TextButton(
+                        // The row's identity is the slot's, and the whole row travels: what starts
+                        // is the template, and the slot carries its prescription (P3.3, P3.8).
+                        onClick = { onStartTemplate(plan) },
+                        modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
+                    ) {
+                        Text(stringResource(R.string.home_plan_start))
+                    }
                 }
             },
         )
@@ -375,6 +509,7 @@ private fun HomeContent(
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onStartTemplate: (TodayPlan) -> Unit,
+    onSubstitute: (TodayPlan) -> Unit,
     modifier: Modifier = Modifier,
 ) {
         when {
@@ -388,6 +523,7 @@ private fun HomeContent(
                 state = state,
                 onOpenWorkout = onOpenWorkout,
                 onStartTemplate = onStartTemplate,
+                onSubstitute = onSubstitute,
                 modifier = modifier,
             )
 

@@ -17,26 +17,9 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Five rows, planned together: they are everything the last two rounds deferred, and each one
+Four rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
-
-**Programming** — turns a logger into a plan
-
-**P3.11 — Substitute a workout for one occurrence.**
-
-An event keyed by slot and week, the shape of a skip: "the rack is taken today, do the dumbbell
-version" cannot be answered by editing the program, which changes every week that references
-the template (N16, inherited by P3.3).
-
-- **Chosen at the point of starting**, like the missed-day question: the slot's row in today's
-  plan offers *substitute*, and the pick is recorded for that slot and week before the session
-  opens. No other week changes, which is the whole point.
-- **A session started from the substitute settles the substituted occurrence** — P3.3's
-  matching by template and date extends to the substitute, or the app would keep asking about a
-  day already trained.
-- **Adherence scores it against the slot** (P3.14): the day was scheduled, and it was done,
-  whatever it was done with.
 
 **Adherence** — how often the plan happened
 

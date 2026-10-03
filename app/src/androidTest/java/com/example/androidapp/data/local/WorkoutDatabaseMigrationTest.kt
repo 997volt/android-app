@@ -1024,4 +1024,45 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration23To24_addsSubstitutions_withoutInventingOne() {
+        // ROADMAP P3.11. A program with no substitution gets no rows, which is exactly the state it
+        // was in: every occurrence trained with what the slot names.
+        helper.createDatabase(TEST_DB, 23).apply {
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Heavy lower', 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO programs (id, name, isActive, position, createdAt, updatedAt, deletedAt)
+                VALUES ('p1', 'Upper/Lower', 1, 1, 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO program_slots
+                    (id, programId, templateId, position, weekday, createdAt, updatedAt, deletedAt)
+                VALUES ('slot1', 'p1', 't1', 0, 'MONDAY', 100, 100, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 24, true, MIGRATION_23_24)
+
+        migrated.query("SELECT id FROM program_slots").use { cursor ->
+            assertTrue("the slot already there survived", cursor.moveToFirst())
+            assertEquals("slot1", cursor.getString(0))
+        }
+        migrated.query("SELECT COUNT(*) FROM program_substitutions").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("no substitution is invented by the upgrade", 0, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
 }

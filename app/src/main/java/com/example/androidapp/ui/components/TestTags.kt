@@ -249,6 +249,14 @@ object TestTags {
     const val CLEAR_EXPORT_FIRST = "clear_export_first"
     const val CLEAR_CANCEL = "clear_cancel"
 
+    /** Substituting one occurrence (ROADMAP P3.11): the action, the dialog and its rows. */
+    const val HOME_SUBSTITUTE_DIALOG = "home_substitute_dialog"
+    const val HOME_SUBSTITUTE_CLEAR = "home_substitute_clear"
+
+    fun homeSubstitute(planId: String) = "home_substitute_$planId"
+
+    fun homeSubstituteTemplate(id: String) = "home_substitute_template_$id"
+
     /** One exercise's own trends (ROADMAP N17). */
     const val EXERCISE_TRENDS = "exercise_trends"
 

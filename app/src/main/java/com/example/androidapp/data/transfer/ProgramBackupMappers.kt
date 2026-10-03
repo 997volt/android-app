@@ -6,6 +6,7 @@ import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramSlotExerciseEntity
 import com.example.androidapp.data.local.ProgramSlotSetEntity
+import com.example.androidapp.data.local.ProgramSubstitutionEntity
 
 /**
  * Entity <-> backup DTO for programs (ROADMAP P3.3).
@@ -145,6 +146,26 @@ internal fun ProgramDeloadDto.toEntity() = ProgramDeloadEntity(
     id = id,
     programId = programId,
     weekStart = weekStart,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSubstitutionEntity.toDto() = ProgramSubstitutionDto(
+    id = id,
+    slotId = slotId,
+    weekStart = weekStart,
+    templateId = templateId,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSubstitutionDto.toEntity() = ProgramSubstitutionEntity(
+    id = id,
+    slotId = slotId,
+    weekStart = weekStart,
+    templateId = templateId,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

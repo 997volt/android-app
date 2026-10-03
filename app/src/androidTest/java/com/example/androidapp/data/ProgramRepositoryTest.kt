@@ -625,6 +625,58 @@ class ProgramRepositoryTest {
         assertTrue(unmarked.deloadWeeks[program].isNullOrEmpty())
     }
 
+    @Test
+    fun aSessionStartedFromTheSubstitute_settlesTheSlot_andAdherenceScoresItDone() = runTest {
+        // ROADMAP P3.11: the picked workout is recorded for one slot and one week, and a session
+        // started from it settles the occurrence — or the app would keep asking about a day already
+        // trained.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        val substitute = createTemplate("Dumbbell version")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        val slotId = slot(program).id
+
+        repository.setSubstitution(slotId, monday, substitute)
+        insertSessionWithSet("sub", "2026-10-06T09:00:00Z", substitute, weightGrams = 60_000L)
+
+        assertTrue(repository.pendingOccurrences(today, utc).getOrNull().isNullOrEmpty())
+        val report = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        assertEquals(1, report!!.adherence.done)
+        assertEquals(0, report.adherence.missed)
+    }
+
+    @Test
+    fun clearingASubstitution_restoresTheSlotsOwnWorkout() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        val substitute = createTemplate("Dumbbell version")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        val slotId = slot(program).id
+        repository.setSubstitution(slotId, monday, substitute)
+
+        repository.setSubstitution(slotId, monday, null)
+        insertSessionWithSet("sub", "2026-10-06T09:00:00Z", substitute, weightGrams = 60_000L)
+
+        // The substitute no longer stands in, so the Tuesday is unresolved and still pending.
+        assertEquals(
+            listOf(slotId),
+            repository.pendingOccurrences(today, utc).getOrNull()?.map { it.slotId },
+        )
+    }
+
+    @Test
+    fun substitutingAWorkoutThatDoesNotExist_isRefused() = runTest {
+        val program = create("Upper/Lower")
+        repository.addSlot(program, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        val slotId = slot(program).id
+
+        val result = repository.setSubstitution(slotId, monday, "no-such-template")
+
+        assertTrue(result is DataResult.Failure)
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

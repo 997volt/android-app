@@ -12,6 +12,7 @@ import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramSlotExerciseEntity
 import com.example.androidapp.data.local.ProgramSlotSetEntity
+import com.example.androidapp.data.local.ProgramSubstitutionEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
@@ -277,6 +278,23 @@ class BackupCodecRoundTripTest {
             id = "deload1",
             programId = "p1",
             weekStart = 20_345L,
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramSubstitution_survivesTheCodec() {
+        // The row P3.11 added: without it a restored week reads as missed even though it was
+        // trained, with something else.
+        val entity = ProgramSubstitutionEntity(
+            id = "sub1",
+            slotId = "slot1",
+            weekStart = 20_345L,
+            templateId = "t2",
             createdAt = 1_600_000_000_000L,
             updatedAt = 1_600_000_000_001L,
             deletedAt = null,

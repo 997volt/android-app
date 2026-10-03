@@ -79,6 +79,19 @@ interface ProgramRepository {
     suspend fun setDeloadWeek(programId: String, weekStart: LocalDate, marked: Boolean): DataResult<Unit>
 
     /**
+     * Sets or clears the workout that stands in for one occurrence (ROADMAP P3.11).
+     *
+     * Keyed by slot and week, so **no other week changes** — which is the whole point, since
+     * editing the program would change every week that references the template (N16, inherited by
+     * P3.3). A [templateId] of null restores the slot's own workout, because a mis-pick would
+     * otherwise be permanent and the record is the lifter's statement rather than the app's.
+     *
+     * The chosen template must be a live one: a replacement pointing at nothing would be invisible
+     * on every screen the moment it was written.
+     */
+    suspend fun setSubstitution(slotId: String, weekStart: LocalDate, templateId: String?): DataResult<Unit>
+
+    /**
      * Appends a slot for [templateId], on [weekday] or order-only when it is null.
      *
      * The template must be a live one: a slot pointing at nothing would be invisible on

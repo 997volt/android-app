@@ -37,10 +37,11 @@ fun programRun(
     slots: List<ProgramSlot>,
     sessions: List<ProgramSession>,
     skips: List<RecordedSkip>,
+    substitutions: List<RecordedSubstitution> = emptyList(),
 ): ProgramRun? {
     if (slots.isEmpty()) return null
     val ordered = slots.sortedBy { it.position }
-    val resolvedBySession = ProgramSchedule.sessionAssignments(ordered, sessions)
+    val resolvedBySession = ProgramSchedule.sessionAssignments(ordered, sessions, substitutions)
         .associate { (session, occurrence) -> session.sessionId to occurrence.slotId }
 
     val events = buildList {

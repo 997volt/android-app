@@ -558,6 +558,22 @@ val MIGRATION_22_23 = object : Migration(22, 23) {
     }
 }
 
+/**
+ * v23 -> v24: the workouts that stood in for a slot's own, one week at a time (ROADMAP P3.11).
+ *
+ * One new table. A program with no substitution gets no rows, which is exactly the state it was
+ * in: every occurrence trained with what the slot names. The SQL is Room's own, copied from the
+ * exported schema rather than hand-written as an equivalent.
+ */
+val MIGRATION_23_24 = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_PROGRAM_SUBSTITUTIONS)
+        db.execSQL(CREATE_PROGRAM_SUBSTITUTIONS_SLOT_INDEX)
+        db.execSQL(CREATE_PROGRAM_SUBSTITUTIONS_WEEK_INDEX)
+        db.execSQL(CREATE_PROGRAM_SUBSTITUTIONS_TEMPLATE_INDEX)
+    }
+}
+
 private const val CREATE_PROGRAMS =
     "CREATE TABLE IF NOT EXISTS `programs` (" +
         "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, " +
@@ -646,6 +662,28 @@ private const val CREATE_PROGRAM_DELOADS_WEEK_INDEX =
     "CREATE INDEX IF NOT EXISTS `index_program_deloads_weekStart` " +
         "ON `program_deloads` (`weekStart`)"
 
+private const val CREATE_PROGRAM_SUBSTITUTIONS =
+    "CREATE TABLE IF NOT EXISTS `program_substitutions` (" +
+        "`id` TEXT NOT NULL, `slotId` TEXT NOT NULL, `weekStart` INTEGER NOT NULL, " +
+        "`templateId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+        "`deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`slotId`) REFERENCES `program_slots`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE , " +
+        "FOREIGN KEY(`templateId`) REFERENCES `templates`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+
+private const val CREATE_PROGRAM_SUBSTITUTIONS_SLOT_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_substitutions_slotId` " +
+        "ON `program_substitutions` (`slotId`)"
+
+private const val CREATE_PROGRAM_SUBSTITUTIONS_WEEK_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_substitutions_weekStart` " +
+        "ON `program_substitutions` (`weekStart`)"
+
+private const val CREATE_PROGRAM_SUBSTITUTIONS_TEMPLATE_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_substitutions_templateId` " +
+        "ON `program_substitutions` (`templateId`)"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_2_3,
@@ -669,4 +707,5 @@ val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_20_21,
     MIGRATION_21_22,
     MIGRATION_22_23,
+    MIGRATION_23_24,
 )

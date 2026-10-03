@@ -36,6 +36,9 @@ interface ProgramBackupDao {
     @Query("SELECT * FROM program_deloads")
     suspend fun allProgramDeloads(): List<ProgramDeloadEntity>
 
+    @Query("SELECT * FROM program_substitutions")
+    suspend fun allProgramSubstitutions(): List<ProgramSubstitutionEntity>
+
     @Query("SELECT id FROM programs WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedProgramIds(): List<String>
 
@@ -53,6 +56,9 @@ interface ProgramBackupDao {
 
     @Query("SELECT id FROM program_deloads WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedProgramDeloadIds(): List<String>
+
+    @Query("SELECT id FROM program_substitutions WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedProgramSubstitutionIds(): List<String>
 
     @Update
     suspend fun restorePrograms(rows: List<ProgramEntity>): Int
@@ -72,6 +78,9 @@ interface ProgramBackupDao {
     @Update
     suspend fun restoreProgramDeloads(rows: List<ProgramDeloadEntity>): Int
 
+    @Update
+    suspend fun restoreProgramSubstitutions(rows: List<ProgramSubstitutionEntity>): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPrograms(rows: List<ProgramEntity>): List<Long>
 
@@ -89,4 +98,7 @@ interface ProgramBackupDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertProgramDeloads(rows: List<ProgramDeloadEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertProgramSubstitutions(rows: List<ProgramSubstitutionEntity>): List<Long>
 }

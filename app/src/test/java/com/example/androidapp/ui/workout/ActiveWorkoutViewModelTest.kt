@@ -2016,6 +2016,12 @@ private class FakeProgramRepository : ProgramRepository {
         marked: Boolean,
     ): DataResult<Unit> = error("these tests do not mark a deload")
 
+    override suspend fun setSubstitution(
+        slotId: String,
+        weekStart: java.time.LocalDate,
+        templateId: String?,
+    ): DataResult<Unit> = error("these tests do not substitute an occurrence")
+
     /** N17's estimate a slot's percentage resolves against (ROADMAP P3.8). */
     var oneRepMax: Long? = null
 

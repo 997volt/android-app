@@ -306,6 +306,14 @@ the rule; that one argues it.
   missed-day question still asks in that week. **Nothing is scaled for you** — what a deload week
   prescribes is what the slot prescribes (P3.8) — and a week that has not started cannot be marked,
   because the app has no forward view and a deload is decided by how the block is going.
+- **A substitute is an event keyed by slot and week, and it stands in for matching** (P3.11). The
+  pick is made at the point of starting, like the missed-day question, and recorded for that slot
+  and week before the session opens; editing the program instead would change every week that
+  references the template (N16, inherited by P3.3). A session started from the substitute settles
+  the slot's occurrence, so P3.3's matching is read with the substitution and the app stops asking
+  about a day already trained, and adherence scores it against the slot — the day was scheduled and
+  it was done, whatever it was done with. Clearing is always allowed, because a mis-pick would
+  otherwise be permanent and the record is the lifter's statement rather than the app's.
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's

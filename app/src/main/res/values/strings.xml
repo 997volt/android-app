@@ -232,6 +232,10 @@
     <string name="home_plan_start">Start</string>
     <!-- Where a program's run is, for a day it schedules nothing (ROADMAP P3.9). -->
     <string name="home_next_up">Next up</string>
+    <!-- Substituting one occurrence, this week only (ROADMAP P3.11). -->
+    <string name="home_substitute">Substitute</string>
+    <string name="home_substitute_title">Train something else?</string>
+    <string name="home_substitute_clear">The scheduled workout</string>
     <plurals name="home_plan_exercises">
         <item quantity="one">%1$d exercise</item>
         <item quantity="other">%1$d exercises</item>

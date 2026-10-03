@@ -68,6 +68,9 @@ class RoomBackupRepository @Inject constructor(
                 // The weeks a program was backed off (ROADMAP P3.10): authored setup the app cannot
                 // recompute, so dropping them would read every deload week as a miss.
                 programDeloads = programBackup.allProgramDeloads().map { it.toDto() },
+                // The workouts that stood in for a slot's own (ROADMAP P3.11): without them a
+                // restored week reads as missed even though it was trained, with something else.
+                programSubstitutions = programBackup.allProgramSubstitutions().map { it.toDto() },
                 measurements = database.measurementDao().allForExport().map { it.toDto() },
                 // The user's metric targets (ROADMAP N39). They are settings rather than rows,
                 // which is exactly why they need naming here: the codec drops whatever it is not
@@ -209,6 +212,7 @@ class RoomBackupRepository @Inject constructor(
         val hiddenSlotExercises = programBackup.softDeletedProgramSlotExerciseIds().toSet()
         val hiddenSlotSets = programBackup.softDeletedProgramSlotSetIds().toSet()
         val hiddenDeloads = programBackup.softDeletedProgramDeloadIds().toSet()
+        val hiddenSubstitutions = programBackup.softDeletedProgramSubstitutionIds().toSet()
 
         val programsToRestore = file.programs.filter { it.id in hiddenPrograms }
         val slotsToRestore = file.programSlots.filter { it.id in hiddenSlots }
@@ -216,6 +220,7 @@ class RoomBackupRepository @Inject constructor(
         val slotExercisesToRestore = file.programSlotExercises.filter { it.id in hiddenSlotExercises }
         val slotSetsToRestore = file.programSlotSets.filter { it.id in hiddenSlotSets }
         val deloadsToRestore = file.programDeloads.filter { it.id in hiddenDeloads }
+        val substitutionsToRestore = file.programSubstitutions.filter { it.id in hiddenSubstitutions }
 
         programBackup.restorePrograms(programsToRestore.map { it.toEntity() })
         programBackup.restoreProgramSlots(slotsToRestore.map { it.toEntity() })
@@ -223,13 +228,15 @@ class RoomBackupRepository @Inject constructor(
         programBackup.restoreProgramSlotExercises(slotExercisesToRestore.map { it.toEntity() })
         programBackup.restoreProgramSlotSets(slotSetsToRestore.map { it.toEntity() })
         programBackup.restoreProgramDeloads(deloadsToRestore.map { it.toEntity() })
+        programBackup.restoreProgramSubstitutions(substitutionsToRestore.map { it.toEntity() })
 
         val restored = programsToRestore.count { it.deletedAt == null } +
             slotsToRestore.count { it.deletedAt == null } +
             skipsToRestore.count { it.deletedAt == null } +
             slotExercisesToRestore.count { it.deletedAt == null } +
             slotSetsToRestore.count { it.deletedAt == null } +
-            deloadsToRestore.count { it.deletedAt == null }
+            deloadsToRestore.count { it.deletedAt == null } +
+            substitutionsToRestore.count { it.deletedAt == null }
 
         // Parents before children, so a set's exercise row is there when the set goes in (P3.8).
         val added = programBackup.insertPrograms(file.programs.map { it.toEntity() })
@@ -243,6 +250,8 @@ class RoomBackupRepository @Inject constructor(
             programBackup.insertProgramSlotSets(file.programSlotSets.map { it.toEntity() })
                 .count { it != SKIPPED } +
             programBackup.insertProgramDeloads(file.programDeloads.map { it.toEntity() })
+                .count { it != SKIPPED } +
+            programBackup.insertProgramSubstitutions(file.programSubstitutions.map { it.toEntity() })
                 .count { it != SKIPPED }
 
         return Imported(added = added, restored = restored)

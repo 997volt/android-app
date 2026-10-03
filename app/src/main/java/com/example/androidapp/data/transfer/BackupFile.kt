@@ -79,6 +79,13 @@ data class BackupFile(
      */
     val programDeloads: List<ProgramDeloadDto> = emptyList(),
     /**
+     * The workouts that stood in for a slot's own, one week at a time (ROADMAP P3.11).
+     *
+     * Authored choices the app cannot recompute: without them a restored week would be read as
+     * missed even though it was trained, with something else.
+     */
+    val programSubstitutions: List<ProgramSubstitutionDto> = emptyList(),
+    /**
      * Body measurements (ROADMAP N32).
      *
      * Defaulted, like every added collection — and it must be here in the same change as the table,
@@ -335,6 +342,19 @@ data class ProgramDeloadDto(
     val programId: String,
     /** Monday of the deloaded week, as `LocalDate.toEpochDay()`. */
     val weekStart: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** One occurrence trained with a different workout (ROADMAP P3.11). */
+@Serializable
+data class ProgramSubstitutionDto(
+    val id: String,
+    val slotId: String,
+    /** Monday of the week, as `LocalDate.toEpochDay()`. */
+    val weekStart: Long,
+    val templateId: String,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

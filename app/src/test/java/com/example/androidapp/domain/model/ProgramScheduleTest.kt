@@ -238,6 +238,41 @@ class ProgramScheduleTest {
     }
 
     @Test
+    fun aSessionStartedFromASubstitute_resolvesTheSubstitutedSlot() {
+        // ROADMAP P3.11: the day was scheduled and it was trained, whatever it was trained with.
+        val slots = listOf(slot("tue", DayOfWeek.TUESDAY, templateId = "heavy"))
+
+        val resolved = ProgramSchedule.resolvedOccurrences(
+            slots = slots,
+            sessions = listOf(session("dumbbell", monday.plusDays(1))),
+            substitutions = listOf(
+                RecordedSubstitution(slotId = "tue", weekStart = monday, templateId = "dumbbell"),
+            ),
+        )
+
+        assertThat(resolved).containsExactly(SlotOccurrence("tue", monday, monday.plusDays(1)))
+    }
+
+    @Test
+    fun aSubstitutionForAnotherWeek_doesNotResolveThisOne() {
+        val slots = listOf(slot("tue", DayOfWeek.TUESDAY, templateId = "heavy"))
+
+        val resolved = ProgramSchedule.resolvedOccurrences(
+            slots = slots,
+            sessions = listOf(session("dumbbell", monday.plusDays(1))),
+            substitutions = listOf(
+                RecordedSubstitution(
+                    slotId = "tue",
+                    weekStart = monday.minusWeeks(1),
+                    templateId = "dumbbell",
+                ),
+            ),
+        )
+
+        assertThat(resolved).isEmpty()
+    }
+
+    @Test
     fun aScheduledDayAlreadyPast_withNothingDone_isPending() {
         val slots = listOf(slot("tue", DayOfWeek.TUESDAY))
 

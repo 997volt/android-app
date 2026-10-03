@@ -10,6 +10,8 @@ import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramSlotExerciseEntity
 import com.example.androidapp.data.local.ProgramSlotSetEntity
+import com.example.androidapp.data.local.ProgramSubstitutionDao
+import com.example.androidapp.data.local.ProgramSubstitutionEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toAdherenceSession
@@ -32,6 +34,7 @@ import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedDeload
 import com.example.androidapp.domain.model.RecordedSkip
+import com.example.androidapp.domain.model.RecordedSubstitution
 import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -77,6 +80,8 @@ class RoomProgramRepository @Inject constructor(
     private val runDao: ProgramRunDao = database.programRunDao()
 
     private val deloadDao: ProgramDeloadDao = database.programDeloadDao()
+
+    private val substitutionDao: ProgramSubstitutionDao = database.programSubstitutionDao()
 
     override fun observePrograms(): Flow<List<WorkoutProgram>> =
         dao.observePrograms().map { rows -> rows.map { it.toDomain() } }
@@ -388,20 +393,33 @@ class RoomProgramRepository @Inject constructor(
             if (slots.isEmpty()) {
                 flowOf(null)
             } else {
-                combine(
-                    runDao.observeFinishedSessions(slots.map { it.templateId }.distinct()),
-                    runDao.observeSkipsForSlots(slots.map { it.id }),
-                ) { sessions, skips ->
-                    // The zone is read when the data arrives rather than captured (B45); it is the
-                    // fallback only for a session recorded before N25.
-                    val zone = ZoneId.systemDefault()
-                    programRun(
-                        slots = slots,
-                        sessions = sessions.mapNotNull { it.toRunSession(zone) },
-                        skips = skips.map {
-                            RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
-                        },
-                    )
+                val slotIds = slots.map { it.id }
+                // The substitutions drive the session read: a session started from a stand-in
+                // template trains that slot, so its template has to be read too (P3.11).
+                substitutionDao.observeSubstitutionsForSlots(slotIds).flatMapLatest { substitutions ->
+                    val templates = (slots.map { it.templateId } + substitutions.map { it.templateId }).distinct()
+                    combine(
+                        runDao.observeFinishedSessions(templates),
+                        runDao.observeSkipsForSlots(slotIds),
+                    ) { sessions, skips ->
+                        // The zone is read when the data arrives rather than captured (B45); it is
+                        // the fallback only for a session recorded before N25.
+                        val zone = ZoneId.systemDefault()
+                        programRun(
+                            slots = slots,
+                            sessions = sessions.mapNotNull { it.toRunSession(zone) },
+                            skips = skips.map {
+                                RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
+                            },
+                            substitutions = substitutions.map {
+                                RecordedSubstitution(
+                                    slotId = it.slotId,
+                                    weekStart = LocalDate.ofEpochDay(it.weekStart),
+                                    templateId = it.templateId,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -424,6 +442,15 @@ class RoomProgramRepository @Inject constructor(
         val skips = dao.findSkipsForWeek(weekStart.toEpochDay()).map {
             RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
         }
+        val substitutions = substitutionDao
+            .findSubstitutionsBetween(weekStart.toEpochDay(), weekStart.toEpochDay())
+            .map {
+                RecordedSubstitution(
+                    slotId = it.slotId,
+                    weekStart = LocalDate.ofEpochDay(it.weekStart),
+                    templateId = it.templateId,
+                )
+            }
 
         // The union of every active program's misses (P3.12). Each program is resolved on its
         // own slots — a session settles an occurrence by its template, so the same session list
@@ -436,6 +463,7 @@ class RoomProgramRepository @Inject constructor(
                 sessions = sessions,
                 skips = skips,
                 today = today,
+                substitutions = substitutions,
             )
         }
         pending.sortedBy { it.date }
@@ -515,11 +543,30 @@ class RoomProgramRepository @Inject constructor(
         val skips = dao.findSkipsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay()).map {
             RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
         }
+        // A substituted occurrence is scored against its slot: the day was scheduled, and it was
+        // done, whatever it was done with (P3.11).
+        val substitutions = substitutionDao
+            .findSubstitutionsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay())
+            .map {
+                RecordedSubstitution(
+                    slotId = it.slotId,
+                    weekStart = LocalDate.ofEpochDay(it.weekStart),
+                    templateId = it.templateId,
+                )
+            }
         val activeIds = active.map { it.id }.toSet()
 
         AdherenceReport(
             hasActiveProgram = true,
-            adherence = ProgramSchedule.monthAdherence(slots, sessions, skips, deloads, month, today),
+            adherence = ProgramSchedule.monthAdherence(
+                slots = slots,
+                sessions = sessions,
+                skips = skips,
+                deloads = deloads,
+                substitutions = substitutions,
+                month = month,
+                today = today,
+            ),
             programs = active.map { it.toDomain() },
             // Only the active programs' weeks: a program no longer followed has nothing to toggle.
             deloadWeeks = deloads
@@ -555,6 +602,46 @@ class RoomProgramRepository @Inject constructor(
             // Unmarking an unmarked week is a no-op rather than a failure: the state asked for is
             // the state it is in.
             deloadDao.softDeleteDeload(programId, epochDay, now)
+        }
+    }
+
+    override suspend fun setSubstitution(
+        slotId: String,
+        weekStart: LocalDate,
+        templateId: String?,
+    ): DataResult<Unit> = dataResultOf {
+        val slot = dao.findSlot(slotId) ?: throw NotFoundException("program slot $slotId")
+        val epochDay = weekStart.toEpochDay()
+        val now = timeSource.nowEpochMillis()
+
+        // Clearing restores the slot's own workout. Doing it to a week with nothing recorded is a
+        // no-op rather than a failure: the state asked for is the state it is in.
+        if (templateId == null || templateId == slot.templateId) {
+            substitutionDao.softDeleteSubstitution(slotId, epochDay, now)
+            return@dataResultOf
+        }
+
+        // The stand-in has to be a live template, or it would be invisible on every screen the
+        // moment it was chosen — the same trap `addSlot` guards a slot against.
+        if (database.templateDao().findById(templateId) == null) {
+            throw NotFoundException("template $templateId")
+        }
+
+        val existing = substitutionDao.findSubstitution(slotId, epochDay)
+        if (existing == null) {
+            substitutionDao.insertSubstitution(
+                ProgramSubstitutionEntity(
+                    id = UUID.randomUUID().toString(),
+                    slotId = slotId,
+                    weekStart = epochDay,
+                    templateId = templateId,
+                    createdAt = now,
+                    updatedAt = now,
+                    deletedAt = null,
+                ),
+            )
+        } else {
+            substitutionDao.setSubstitutionTemplate(existing.id, templateId, now)
         }
     }
 

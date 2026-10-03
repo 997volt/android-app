@@ -51,6 +51,15 @@ data class RecordedSkip(val slotId: String, val weekStart: LocalDate)
  */
 data class RecordedDeload(val programId: String, val weekStart: LocalDate)
 
+/**
+ * One occurrence trained with a different workout (ROADMAP P3.11).
+ *
+ * Keyed by slot, week and the template that stood in, the shape of [RecordedSkip]. It exists
+ * because "the rack is taken today" cannot be answered by editing the program: that changes every
+ * week referencing the template (N16, inherited by P3.3).
+ */
+data class RecordedSubstitution(val slotId: String, val weekStart: LocalDate, val templateId: String)
+
 /** A missed occurrence the app asks about, carrying everything the prompt shows. */
 data class PendingOccurrence(
     val slotId: String,
@@ -96,7 +105,9 @@ object ProgramSchedule {
     fun resolvedOccurrences(
         slots: List<ProgramSlot>,
         sessions: List<ProgramSession>,
-    ): Set<SlotOccurrence> = sessionAssignments(slots, sessions).mapTo(mutableSetOf()) { it.second }
+        substitutions: List<RecordedSubstitution> = emptyList(),
+    ): Set<SlotOccurrence> =
+        sessionAssignments(slots, sessions, substitutions).mapTo(mutableSetOf()) { it.second }
 
     /**
      * Each session paired with the occurrence it settled, oldest session first (P3.3, P3.8).
@@ -105,10 +116,14 @@ object ProgramSchedule {
      * slot's own history is the last session that settled one of its occurrences, which is what
      * lets two slots pointing at one template progress apart. A session that settled nothing —
      * a template no slot names, or a week whose slots are all taken — is absent.
+     *
+     * A session whose template is a recorded **substitute** for a slot in that week is a candidate
+     * for it (P3.11): the day was scheduled and it was trained, whatever it was trained with.
      */
     fun sessionAssignments(
         slots: List<ProgramSlot>,
         sessions: List<ProgramSession>,
+        substitutions: List<RecordedSubstitution> = emptyList(),
     ): List<Pair<ProgramSession, SlotOccurrence>> {
         val dated = slots.filter { it.weekday != null }.sortedBy { it.position }
         val resolved = mutableSetOf<SlotOccurrence>()
@@ -117,7 +132,9 @@ object ProgramSchedule {
         sessions.sortedBy { it.startedAt }.forEach { session ->
             val weekStart = weekStartOf(session.date)
             val unresolved = dated.filter { slot ->
-                slot.templateId == session.templateId &&
+                val standsIn = RecordedSubstitution(slot.id, weekStart, session.templateId) in substitutions
+                val namesTheSession = slot.templateId == session.templateId || standsIn
+                namesTheSession &&
                     SlotOccurrence(slot.id, weekStart, occurrenceDate(weekStart, slot.weekday!!)) !in resolved
             }
             if (unresolved.isEmpty()) return@forEach
@@ -160,9 +177,10 @@ object ProgramSchedule {
         sessions: List<ProgramSession>,
         skips: List<RecordedSkip>,
         today: LocalDate,
+        substitutions: List<RecordedSubstitution> = emptyList(),
     ): List<PendingOccurrence> {
         val weekStart = weekStartOf(today)
-        val resolved = resolvedOccurrences(slots, sessions)
+        val resolved = resolvedOccurrences(slots, sessions, substitutions)
         val skipped = skips.filter { it.weekStart == weekStart }.map { it.slotId }.toSet()
 
         return slots
@@ -213,6 +231,8 @@ object ProgramSchedule {
         skips: List<RecordedSkip>,
         /** The deloaded weeks, or none — the common case, and the reason this one defaults (P3.10). */
         deloads: List<RecordedDeload> = emptyList(),
+        /** The occurrences trained with another workout, or none (P3.11). */
+        substitutions: List<RecordedSubstitution> = emptyList(),
         month: YearMonth,
         today: LocalDate,
     ): MonthAdherence {
@@ -235,7 +255,7 @@ object ProgramSchedule {
                 )
             }
         }
-        val resolved = resolvedOccurrences(slots, finished)
+        val resolved = resolvedOccurrences(slots, finished, substitutions)
         val skipped = skips.toSet()
         val deloaded = deloads.toSet()
 

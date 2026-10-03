@@ -30,8 +30,9 @@ import androidx.room.TypeConverters
         ProgramSlotExerciseEntity::class,
         ProgramSlotSetEntity::class,
         ProgramDeloadEntity::class,
+        ProgramSubstitutionEntity::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -61,6 +62,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
 
     /** The weeks a program was deliberately backed off (ROADMAP P3.10). */
     abstract fun programDeloadDao(): ProgramDeloadDao
+
+    /** The workouts that stood in for a slot's own, one week at a time (ROADMAP P3.11). */
+    abstract fun programSubstitutionDao(): ProgramSubstitutionDao
 
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao

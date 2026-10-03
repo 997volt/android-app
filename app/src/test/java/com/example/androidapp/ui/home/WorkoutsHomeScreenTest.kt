@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.model.WorkoutSummary
+import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.workout.WorkoutClock
@@ -46,6 +47,7 @@ class WorkoutsHomeScreenTest {
         val onStartFromTemplate: () -> Unit = {},
         val onRepeatLast: () -> Unit = {},
         val onStartTemplate: (TodayPlan) -> Unit = {},
+        val onSubstituteTemplate: (TodayPlan, String?) -> Unit = { _, _ -> },
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
         val onOpenPrograms: () -> Unit = {},
@@ -69,6 +71,7 @@ class WorkoutsHomeScreenTest {
                     onStartFromTemplate = actions.onStartFromTemplate,
                     onRepeatLast = actions.onRepeatLast,
                     onStartTemplate = actions.onStartTemplate,
+                    onSubstituteTemplate = actions.onSubstituteTemplate,
                     onOpenWorkout = actions.onOpenWorkout,
                     onOpenHistory = actions.onOpenHistory,
                     onOpenPrograms = actions.onOpenPrograms,
@@ -395,5 +398,55 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertDoesNotExist()
         composeTestRule.onNodeWithTag(TestTags.HOME_START_FROM_TEMPLATE).assertDoesNotExist()
+    }
+
+    @Test
+    fun theSubstituteAction_offersTheTemplates_andReportsThePick() {
+        // ROADMAP P3.11: the pick is made at the point of starting, from the row being started.
+        var picked: Pair<TodayPlan, String?>? = null
+        setScreen(
+            state = todayPlanWithTemplates,
+            actions = Actions(onSubstituteTemplate = { plan, templateId -> picked = plan to templateId }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.homeSubstitute("slot-1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.HOME_SUBSTITUTE_DIALOG).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.homeSubstituteTemplate("t2")).performClick()
+
+        assertThat(picked?.first?.slotId).isEqualTo("slot-1")
+        assertThat(picked?.second).isEqualTo("t2")
+    }
+
+    @Test
+    fun theScheduledWorkout_clearsThePick_ratherThanStandingIn() {
+        var picked: Pair<TodayPlan, String?>? = null
+        setScreen(
+            state = todayPlanWithTemplates,
+            actions = Actions(onSubstituteTemplate = { plan, templateId -> picked = plan to templateId }),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.homeSubstitute("slot-1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.HOME_SUBSTITUTE_CLEAR).performClick()
+
+        // Null is "restore the slot's own workout", and the route starts nothing for it.
+        assertThat(picked?.first?.slotId).isEqualTo("slot-1")
+        assertThat(picked?.second).isNull()
+    }
+
+    private companion object {
+        val todayPlanWithTemplates = WorkoutsHomeUiState(
+            isLoading = false,
+            today = DayOfWeek.FRIDAY,
+            todaysPlan = listOf(
+                TodayPlan(
+                    id = "slot-1",
+                    templateId = "t1",
+                    name = "Heavy lower",
+                    exerciseCount = 4,
+                    slotId = "slot-1",
+                ),
+            ),
+            templates = listOf(WorkoutTemplate(id = "t2", name = "Dumbbell version", exerciseCount = 3)),
+        )
     }
 }

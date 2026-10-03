@@ -2,9 +2,12 @@ package com.example.androidapp.ui.home
 
 import java.time.ZoneId
 import java.time.DayOfWeek
+import java.time.LocalDate
+import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.model.ProgramRun
+import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -103,6 +106,8 @@ data class WorkoutsHomeUiState(
      * and a next-up row would be a second, contradictory one.
      */
     val nextUp: List<NextUp> = emptyList(),
+    /** The templates a substitution can choose from (ROADMAP P3.11). */
+    val templates: List<WorkoutTemplate> = emptyList(),
     /** Whether repeating the last workout would copy something (ROADMAP B43's tail). */
     val canRepeatLast: Boolean = false,
 ) {
@@ -125,7 +130,7 @@ data class WorkoutsHomeUiState(
 class WorkoutsHomeViewModel @Inject constructor(
     workoutRepository: WorkoutRepository,
     templateRepository: TemplateRepository,
-    programRepository: ProgramRepository,
+    private val programRepository: ProgramRepository,
     private val timeSource: TimeSource,
 ) : ViewModel() {
 
@@ -231,6 +236,7 @@ class WorkoutsHomeViewModel @Inject constructor(
                 runs = programs.runs,
                 day = today,
             ),
+            templates = templates,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -258,6 +264,22 @@ class WorkoutsHomeViewModel @Inject constructor(
 
     private fun elapsedSince(session: WorkoutSession): String =
         WorkoutFormat.elapsed(Duration.between(session.startedAt, timeSource.now()))
+
+    /**
+     * Records that one occurrence is trained with a different workout, or clears it (ROADMAP P3.11).
+     *
+     * The week is the current one, taken from the device's own clock: the substitute is chosen at
+     * the point of starting, so "which week" means the week being started now. [templateId] null
+     * restores the slot's own workout.
+     */
+    suspend fun setSubstitution(slotId: String, templateId: String?): DataResult<Unit> =
+        programRepository.setSubstitution(
+            slotId = slotId,
+            weekStart = ProgramSchedule.weekStartOf(todayDate()),
+            templateId = templateId,
+        )
+
+    private fun todayDate(): LocalDate = timeSource.now().atZone(ZoneId.systemDefault()).toLocalDate()
 
     private val ticker: Flow<Unit> = flow {
         while (true) {

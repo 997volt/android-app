@@ -219,6 +219,12 @@ class ProgramStartGateViewModelTest {
         marked: Boolean,
     ): DataResult<Unit> = error("these tests do not mark a deload")
 
+    override suspend fun setSubstitution(
+        slotId: String,
+        weekStart: java.time.LocalDate,
+        templateId: String?,
+    ): DataResult<Unit> = error("these tests do not substitute an occurrence")
+
         override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
             error("these tests do not estimate a one-rep max")
 
