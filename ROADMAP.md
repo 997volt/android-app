@@ -17,25 +17,6 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**Nothing is open.** B47, the dead code the statistics round left behind, is removed — including
-the three `HOME_*` constants and the assertions that asserted the absence of things already
-absent. The question it raised, whether a test read counts as a caller, is settled in
-[DECISIONS.md](DECISIONS.md) (D2): an accessor whose only reader is the test asserting on it is
-dead weight. D4's tag backlog also has a gate now, so a new tag without its test fails rather
-than joining the list.
-
-N39's metric targets were the one thing that split across the line the cleanup drew: they are
-settings, and settings were not in the backup, so a restore dropped them. They ride in the file
-now and "delete everything" clears them, while the rest of settings stays a device preference.
-
-## Later (still self-contained)
-
-Post-MVP on the same local-only premise, grouped by theme and ordered by value inside each.
-This is where candidates live: one graduates to *Next* — gaining an id and a spelled-out
-decision — when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
-
-**Programming** — turns a logger into a plan
-
 **P3.3 — Programs: an ordered list of templates, each with a weekday.**
 
 A **program** is a named, ordered list of slots; a slot is a template plus an optional
@@ -70,21 +51,31 @@ a skip or a rest day" have no answer.
     after it (done early), then the earliest unresolved. A session resolves at most one
     occurrence, and an occurrence is resolved by at most one session — the first.
 
-**What v1 deliberately leaves out**, which matters as much as the scope above: no deloads (a
-deload will be *authored* when it arrives, not calculated), no auto-progression (a program
-decides *which* template; the lifter decides the numbers — this depends on **N33**), no
-intensity modifiers, no percentage-of-1RM programming, no automatic anything, no dated
-instances (N16 rejected the entity a calendar of planned sessions would reintroduce), one
-active program only (any others fall back to the template pins), a weekday-less slot is never
-"missed" because it has no day to miss and is order-only, and no per-slot template
-substitution mid-cycle beyond editing the program, nor load-based rotation.
-
 **Known limitations, stated rather than discovered:** an occurrence is resolved only when the
 workout was *started from* that template, so bench added by hand to an empty workout does not
 resolve it — matching by exercises was rejected because it breaks the moment a template is
 edited and cannot tell two slots apart; a second session from the same template in a week is
 unmatched; and editing a template changes every week that references it, which is N16's
 living-template decision inherited rather than new.
+
+**Nothing else is open.** B47, the dead code the statistics round left behind, is removed —
+including the three `HOME_*` constants and the assertions that asserted the absence of things
+already absent. The question it raised, whether a test read counts as a caller, is settled in
+[DECISIONS.md](DECISIONS.md) (D2): an accessor whose only reader is the test asserting on it is
+dead weight. D4's tag backlog also has a gate now, so a new tag without its test fails rather
+than joining the list.
+
+N39's metric targets were the one thing that split across the line the cleanup drew: they are
+settings, and settings were not in the backup, so a restore dropped them. They ride in the file
+now and "delete everything" clears them, while the rest of settings stays a device preference.
+
+## Later (still self-contained)
+
+Post-MVP on the same local-only premise, grouped by theme and ordered by value inside each.
+This is where candidates live: one graduates to *Next* — gaining an id and a spelled-out
+decision — when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
+
+**Programming** — turns a logger into a plan
 
 **P3.5 — Adherence and a calendar.**
 
@@ -101,6 +92,16 @@ aggregate over it.
 - **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled
   days count; what counts as scheduled when nothing is pinned; and whether a deload week is
   judged by the same standard as any other.
+
+**The rest of programs — what v1 deliberately leaves out.** P3.3 is picked up in *Next*, and
+the scope it does not build is the future of the same feature, deferred rather than rejected:
+no deloads (a deload will be *authored* when it arrives, not calculated), no auto-progression
+(a program decides *which* template; the lifter decides the numbers — this depends on
+**N33**), no intensity modifiers, no percentage-of-1RM programming, no automatic anything, no
+dated instances (N16 rejected the entity a calendar of planned sessions would reintroduce),
+one active program only (any others fall back to the template pins), a weekday-less slot is
+never "missed" because it has no day to miss and is order-only, and no per-slot template
+substitution mid-cycle beyond editing the program, nor load-based rotation.
 
 ## Parked — deliberately not planned
 
