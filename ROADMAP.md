@@ -1,7 +1,6 @@
 # Workout — Roadmap
 
-> **v1.8** is shipped and installed; **P3.3** and **P3.5** are implemented and unreleased. Last
-> reviewed against the code: 2026-10-03.
+> **v1.9** is shipped and installed. Last reviewed against the code: 2026-10-03.
 >
 > Forward-looking only. What shipped is [CHANGELOG.md](CHANGELOG.md), how a release is cut is
 > [RELEASING.md](RELEASING.md), and settled decisions with the rules that apply to every
