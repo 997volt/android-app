@@ -60,6 +60,7 @@ fun StatisticsRoute(
     modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel = hiltViewModel(),
     onOpenMeasurements: () -> Unit = {},
+    onOpenAdherence: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     StatisticsScreen(
@@ -70,6 +71,7 @@ fun StatisticsRoute(
         onSelectExercise = viewModel::onSelectExercise,
         onSetGoal = viewModel::onSetGoal,
         onOpenMeasurements = onOpenMeasurements,
+        onOpenAdherence = onOpenAdherence,
     )
 }
 
@@ -97,6 +99,14 @@ fun StatisticsScreen(
      * it stopped being the moment the trends screen that used to link to it was deleted.
      */
     onOpenMeasurements: (() -> Unit)? = null,
+    /**
+     * Opens adherence (ROADMAP P3.5).
+     *
+     * The aggregate over the session-level plan-versus-actual: how often the days a program
+     * scheduled actually happened, and a month of days trained. A pushed destination for the same
+     * reason measurements is one — it answers a question this tab raises, and it is not a tab.
+     */
+    onOpenAdherence: (() -> Unit)? = null,
 ) {
     var choosingDates by remember { mutableStateOf(false) }
     if (choosingDates) {
@@ -112,7 +122,12 @@ fun StatisticsScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { StatisticsTopBar(onOpenMeasurements = onOpenMeasurements) },
+        topBar = {
+            StatisticsTopBar(
+                onOpenMeasurements = onOpenMeasurements,
+                onOpenAdherence = onOpenAdherence,
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -665,13 +680,24 @@ private fun LiftPicker(lifts: List<Exercise>, selectedId: String?, onSelectExerc
     }
 }
 
-/** The screen's bar: a title, and the way to the one screen it pushes. */
+/** The screen's bar: a title, and the way to the two screens it pushes. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatisticsTopBar(onOpenMeasurements: (() -> Unit)?) {
+private fun StatisticsTopBar(
+    onOpenMeasurements: (() -> Unit)?,
+    onOpenAdherence: (() -> Unit)?,
+) {
     TopAppBar(
         title = { Text(stringResource(R.string.tab_statistics)) },
         actions = {
+            if (onOpenAdherence != null) {
+                TextButton(
+                    onClick = onOpenAdherence,
+                    modifier = Modifier.testTag(TestTags.Statistics.ADHERENCE),
+                ) {
+                    Text(stringResource(R.string.adherence_title))
+                }
+            }
             if (onOpenMeasurements != null) {
                 TextButton(
                     onClick = onOpenMeasurements,

@@ -52,6 +52,15 @@ data object Settings
 data object Measurements
 
 /**
+ * Adherence: how often the scheduled days happened, over the month the grid shows (ROADMAP P3.5).
+ *
+ * A destination of its own, reached from Statistics the way Measurements already is, because
+ * N34's five surfaces stand — one screen does not earn a sixth tab.
+ */
+@Serializable
+data object Adherence
+
+/**
  * The in-progress workout (ROADMAP P1.2).
  *
  * Carries no session id: the open session is already the single source of truth

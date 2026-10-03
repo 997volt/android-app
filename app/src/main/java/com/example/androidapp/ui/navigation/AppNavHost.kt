@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import com.example.androidapp.ui.measurements.MeasurementsRoute
+import com.example.androidapp.ui.adherence.AdherenceRoute
 import com.example.androidapp.ui.settings.SettingsRoute
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -87,6 +88,12 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
         MeasurementsRoute(onBack = { navController.popBackStack() })
     }
 
+    // Adherence is pushed from Statistics, next to Measurements: both answer a question the tab
+    // raises, and neither is a sixth tab (ROADMAP P3.5, N34).
+    composable<Adherence> {
+        AdherenceRoute(onBack = { navController.popBackStack() })
+    }
+
     composable<Settings> {
         SettingsRoute(onBack = { navController.popBackStack() })
     }
@@ -113,6 +120,9 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             // Recording and reading are different jobs, so the measurements screen stays a destination of
             // its own — reached from here, which is the tab that answers how everything is going (N35).
             onOpenMeasurements = { navController.navigate(Measurements) },
+            // The aggregate over the session-level plan-versus-actual: how often the scheduled
+            // days happened (ROADMAP P3.5).
+            onOpenAdherence = { navController.navigate(Adherence) },
         )
     }
 

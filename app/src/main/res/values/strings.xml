@@ -199,6 +199,29 @@
     <string name="measurements_upper_arm">Upper arm</string>
     <string name="measurements_thigh">Thigh</string>
     <string name="measurements_calf">Calf</string>
+
+    <!-- Adherence (ROADMAP P3.5): how often what a program scheduled actually happened, over
+         the month the calendar shows. A destination of its own reached from Statistics, rather
+         than a sixth tab (N34). -->
+    <string name="adherence_title">Adherence</string>
+    <string name="adherence_loading">Loading adherence…</string>
+    <string name="adherence_previous_month">Previous month</string>
+    <string name="adherence_next_month">Next month</string>
+    <!-- e.g. "75%". The literal percent is doubled because a lone one starts a format spec. -->
+    <string name="adherence_ratio">%1$d%%</string>
+    <!-- The denominator the percentage is taken over. Worded so no number precedes a word, which
+         lint reads as a plural candidate; the three counts beside it are what it is made of. -->
+    <string name="adherence_summary">Scheduled: %1$d</string>
+    <string name="adherence_done">Done</string>
+    <string name="adherence_skipped">Skipped</string>
+    <string name="adherence_missed">Missed</string>
+    <!-- Two different facts, deliberately worded apart: only one of them is the user's to fix. -->
+    <string name="adherence_no_program">No program is active, so there is nothing to score. The calendar still marks the days you trained.</string>
+    <string name="adherence_nothing_scheduled">Nothing was scheduled this month.</string>
+    <!-- One day cell, announced rather than only drawn. %1$s is the date. -->
+    <string name="adherence_day_trained">%1$s, trained</string>
+    <string name="adherence_day_scheduled">%1$s, scheduled</string>
+    <string name="adherence_day_rest">%1$s, rest</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
     <string name="home_plan_start">Start</string>

@@ -55,6 +55,7 @@ class StatisticsScreenTest {
         onSelectMetric: (MetricKey) -> Unit = {},
         onSelectExercise: (String) -> Unit = {},
         onOpenMeasurements: (() -> Unit)? = null,
+        onOpenAdherence: (() -> Unit)? = null,
         onSetGoal: (Double?) -> Unit = {},
     ) {
         composeTestRule.setContent {
@@ -65,6 +66,7 @@ class StatisticsScreenTest {
                     onSelectMetric = onSelectMetric,
                     onSelectExercise = onSelectExercise,
                     onOpenMeasurements = onOpenMeasurements,
+                    onOpenAdherence = onOpenAdherence,
                     onSetGoal = onSetGoal,
                 )
             }
@@ -337,6 +339,25 @@ class StatisticsScreenTest {
         setScreen()
 
         composeTestRule.onNodeWithTag(TestTags.Statistics.MEASUREMENTS).assertDoesNotExist()
+    }
+
+    @Test
+    fun adherenceIsReachable_fromHere() {
+        // The aggregate over the session-level plan-versus-actual (ROADMAP P3.5), pushed from the tab that
+        // answers how everything is going rather than earning a sixth tab (N34).
+        var opened = false
+        setScreen(onOpenAdherence = { opened = true })
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.ADHERENCE).performClick()
+
+        assertThat(opened).isTrue()
+    }
+
+    @Test
+    fun withoutAWiredAdherenceAction_thereIsNoButton() {
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TestTags.Statistics.ADHERENCE).assertDoesNotExist()
     }
 
     @Test

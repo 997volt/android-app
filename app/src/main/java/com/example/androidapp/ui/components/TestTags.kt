@@ -309,8 +309,7 @@ object TestTags {
     }
 
     /** The Statistics screen's own tags (ROADMAP N35), grouped so this object stays under its ceiling. */
-    object Statistics {
-        /** The Statistics screen (ROADMAP N35). */
+    object Statistics {        /** The Statistics screen (ROADMAP N35). */
         const val OVERVIEW_WORKOUTS = "statistics_overview_workouts"
         const val OVERVIEW_VOLUME = "statistics_overview_volume"
         const val OVERVIEW_RECORDS = "statistics_overview_records"
@@ -323,6 +322,9 @@ object TestTags {
         const val CHOOSE_LIFT = "statistics_choose_lift"
         const val LIFT = "statistics_lift"
         const val MEASUREMENTS = "statistics_measurements"
+
+        /** The other screen this tab pushes: adherence over a month (ROADMAP P3.5). */
+        const val ADHERENCE = "statistics_adherence"
         const val READINGS_TOGGLE = "statistics_readings_toggle"
         const val READINGS_AVERAGE = "statistics_readings_average"
         const val READINGS_TREND = "statistics_readings_trend"
@@ -349,5 +351,27 @@ object TestTags {
         fun range(kind: String) = "statistics_range_$kind"
     
         fun metric(id: String) = "statistics_metric_$id"
+    }
+
+    /**
+     * The Adherence screen's own tags (ROADMAP P3.5), grouped for the same reason.
+     *
+     * A day is addressed by its ISO date rather than its position in the grid, so a test names
+     * the day it means and a leap year cannot shift which cell a tag lands on.
+     */
+    object Adherence {
+        const val MONTH = "adherence_month"
+        const val PREVIOUS_MONTH = "adherence_previous_month"
+        const val NEXT_MONTH = "adherence_next_month"
+        const val RATIO = "adherence_ratio"
+        const val SUMMARY = "adherence_summary"
+        const val DONE = "adherence_done"
+        const val SKIPPED = "adherence_skipped"
+        const val MISSED = "adherence_missed"
+
+        /** Shown in place of the ratio when there is no elapsed schedule to score. */
+        const val NO_RATIO = "adherence_no_ratio"
+
+        fun dayCell(date: String) = "adherence_day_$date"
     }
 }
