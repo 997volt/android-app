@@ -44,6 +44,13 @@ repeated here.
   from the same template in one week is unmatched; and editing a template changes every week
   that references it, which is N16's living-template decision inherited rather than new.
 
+### Changed
+
+- **The dead code the statistics round left behind is gone, and the test-tag backlog has a gate**
+  (B47, D4). Three unused `HOME_*` constants went, along with the assertions that asserted the
+  absence of things already absent; the tag rule now fails a build that adds a tag without the
+  test asserting on it, so the backlog can only shrink rather than silently drift.
+
 ### Fixed
 
 - **Metric targets survive a backup** (N39). A target is a setting rather than a row, and the

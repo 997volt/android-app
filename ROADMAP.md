@@ -1,6 +1,7 @@
 # Workout — Roadmap
 
-> **v1.8** is shipped and installed. Last reviewed against the code: 2026-10-03.
+> **v1.8** is shipped and installed; **P3.3** is implemented and unreleased. Last reviewed
+> against the code: 2026-10-03.
 >
 > Forward-looking only. What shipped is [CHANGELOG.md](CHANGELOG.md), how a release is cut is
 > [RELEASING.md](RELEASING.md), and settled decisions with the rules that apply to every
@@ -17,16 +18,10 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**Nothing else is open.** B47, the dead code the statistics round left behind, is removed —
-including the three `HOME_*` constants and the assertions that asserted the absence of things
-already absent. The question it raised, whether a test read counts as a caller, is settled in
-[DECISIONS.md](DECISIONS.md) (D2): an accessor whose only reader is the test asserting on it is
-dead weight. D4's tag backlog also has a gate now, so a new tag without its test fails rather
-than joining the list.
-
-N39's metric targets were the one thing that split across the line the cleanup drew: they are
-settings, and settings were not in the backup, so a restore dropped them. They ride in the file
-now and "delete everything" clears them, while the rest of settings stays a device preference.
+**Nothing is planned.** The last row, P3.3, shipped into *Unreleased* — its entry is in
+[CHANGELOG.md](CHANGELOG.md) — and the scope it deliberately left out sits under *Later* below,
+because a deferred scope is not a queue entry. The next row picked up gains an id and a
+spelled-out decision and moves back here.
 
 ## Later (still self-contained)
 
