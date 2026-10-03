@@ -18,10 +18,68 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**Nothing is planned.** The last row, P3.3, shipped into *Unreleased* — its entry is in
-[CHANGELOG.md](CHANGELOG.md) — and the scope it deliberately left out sits under *Later* below,
-because a deferred scope is not a queue entry. The next row picked up gains an id and a
-spelled-out decision and moves back here.
+**P3.5 — Adherence and a calendar.**
+
+How often what was scheduled actually happened, over weeks rather than one session, plus a
+month of days trained. N20 shipped the session-level plan-versus-actual; this is the aggregate
+over it, and it is answerable now only because P3.3 shipped the two things a standing pin could
+not carry: a program's weekday slots, and `program_skips` as a record of what was passed over
+on purpose.
+
+- **A destination of its own, reached from Statistics** — the tab that answers "how is
+  everything going" (N35) — the way Measurements already is. N34's five surfaces stand: one
+  screen does not earn a sixth tab.
+- **One window, the month the grid shows.** The calendar navigates back through history and
+  forward no further than the current month, and the ratio covers that same month, so the
+  number and the grid cannot disagree about what they are counting. Days after today are drawn
+  but never scored: only a day strictly before today can have been missed (P3.3).
+- **What was scheduled is the active program's weekday slots.** An unscheduled day is rest, not
+  a miss, so it never enters the ratio; a weekday-less slot is order-only and is scheduled on no
+  day, so it is never scored. With **no active program** the calendar still marks the days
+  trained — that needs no schedule — but there is **no ratio**, because the N16 pins home
+  falls back to carry no skip record, so a rest on a pinned day is indistinguishable from a
+  miss. Scoring the pins was rejected for exactly that reason: it would turn every deliberate
+  rest on a pinned day into a failure.
+- **Done, skipped and missed come from one set of definitions:**
+  - **Done** — the slot's template was started *and the session was finished* (`finishedAt`,
+    the rule history and every statistic already read), matched by template and date in a
+    Monday-start week taken in the session's own zone (P3.3's matching, reused rather than
+    restated).
+  - **Skipped** — a `program_skips` row for that slot and week.
+  - **Missed** — elapsed and scheduled, and neither of the above.
+  - **The unit is the occurrence, not the day.** Two slots may fall on one Tuesday, and P3.3
+    settles and skips them one at a time, so the ratio counts two while the calendar marks the
+    one day.
+  - **The ratio** is done over done + skipped + missed for the shown month; a month with no
+    elapsed scheduled day says so rather than reporting 0% or 100%.
+- **A trained day is a finished session's own day**, in the zone it was performed in (N25,
+  B45), so a workout performed abroad marks the day it happened even when the device's month
+  has moved on. Weeks stay Monday-start in that same zone, because that is what a skip row is
+  keyed by.
+- **Adherence is deliberately stricter than the prompt.** P3.3 settles a day when a session is
+  *started*, because what it asks is "should I nag you about Tuesday?"; this asks whether the
+  training happened, so an abandoned start is a miss here and marks no trained day.
+- **A week is a week.** Deloads were left out of P3.3, so nothing in the data marks one and
+  every week is judged by the same standard; exempting a deload week becomes a decision on the
+  day deloads are authored.
+- **No schema change.** Everything it reads shipped with P3.3 at v20 — `program_slots`,
+  `program_skips`, and `workout_sessions`' `templateId`, `finishedAt` and `zoneOffsetMinutes`
+  — and the aggregate is the same pure, JVM-tested `ProgramSchedule` the prompt uses, fed the
+  window's finished sessions.
+
+**What v1 leaves out:** no streaks and no per-lift or per-template breakdown — a ratio and a
+grid are the whole view; no editing or back-filling a skip, because a skip is a decision taken
+at the moment of starting and P3.3's prompt is its only writer; and no rolling multi-month
+chart, because the month is the window.
+
+**Known limitations, stated rather than discovered:** skips exist only from P3.3 onward and
+only for a week whose prompt was answered, so an older — or unanswered — past week reads as
+misses, and the app cannot invent a skip it never recorded; the schedule is the program as it
+is *now*, so adding a weekday slot writes misses into weeks already past and deleting one
+erases them, which is P3.3/N16's living schedule inherited rather than new; deactivating a
+program takes its history out of the ratio while the calendar keeps the days; and P3.3's two
+inherited limits stand: a second finished session from the same template in a week goes
+unmatched, and a session started by hand resolves nothing.
 
 ## Later (still self-contained)
 
@@ -30,23 +88,6 @@ This is where candidates live: one graduates to *Next* — gaining an id and a s
 decision — when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
-
-**P3.5 — Adherence and a calendar.**
-
-How often what was scheduled actually happened, over weeks rather than one session, plus a
-calendar of days trained. Session-level plan-versus-actual shipped as N20; this is the
-aggregate over it.
-
-- **Its hard part is knowing what was skipped, and it has no answer of its own.** Today the
-  schedule is a standing rule — "these templates are pinned to Tuesday" — not a history, so
-  "you missed last Tuesday" cannot be derived from pins. **P3.3's `program_skips` rows are what
-  make it answerable** — they shipped with P3.3, which is why this row follows it rather than
-  standing beside it.
-- **Shape:** a month calendar with trained days marked, and a completion ratio over a window —
-  sessions started against scheduled days.
-- **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled
-  days count; what counts as scheduled when nothing is pinned; and whether a deload week is
-  judged by the same standard as any other.
 
 **The rest of programs — what v1 deliberately leaves out.** P3.3 shipped as the ordered
 schedule, and the scope it does not build is the future of the same feature, deferred rather
