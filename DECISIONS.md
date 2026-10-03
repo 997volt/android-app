@@ -1,378 +1,263 @@
 # Decisions
 
-Settled choices for Workout, kept out of [ROADMAP.md](ROADMAP.md) so that file can
-stay a queue. Nothing here is a task: each entry is a decision already taken, written
-down so it is not relitigated by accident.
+Settled choices for Workout, kept out of [ROADMAP.md](ROADMAP.md) so that file stays a
+queue. Nothing here is a task: each entry is a decision already taken, recorded so it is
+not relitigated by accident. A decision that constrains **unshipped** work stays with that
+work in the roadmap — N15's `assistanceGrams`, N16's living-template choice — and moves
+here once the feature ships.
 
-A decision that constrains **unshipped** work stays with that work in the roadmap —
-N15's `assistanceGrams` and N16's living-template choice live there, not here — and moves
-into this file once the feature ships.
+Each entry states the rule, the shortest honest reason, and the alternative that was
+rejected. The argument behind it — measurements, observed history, verbatim errors, the
+longer case against the rejected option — is in
+[DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md), one entry per feature id. This file states
+the rule; that one argues it.
 
 ## Data model
 
 - **Weights are whole grams in a `Long`**
-  ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)) — exact
-  0.5 kg and 1.25 kg steps, no floating-point drift, and units are presentational.
+  ([Weight.kt](app/src/main/java/com/example/androidapp/domain/Weight.kt)) — exact 0.5 kg
+  and 1.25 kg steps, no floating-point drift; units are presentational.
 - **The v1 set row is `reps × weight`.** Bodyweight is reps at 0 kg — accepted, clamped,
-  and asserted by a test. Duration and distance are out of scope; adding them later is
-  one more migration plus a test, a path this app has walked repeatedly. **N15 extends
-  this** with an `assistanceGrams` field beside the weight, rather than letting a signed
-  weight carry two meanings.
-- **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows
-  already on disk.
-- **Rows are sync-shaped** — UUID ids and `createdAt`/`updatedAt`/`deletedAt` soft
-  deletes — so a future sync stays a decision, not a migration. The zone offset is the
-  one missing piece, and it is an open question in the roadmap.
+  asserted by a test. Duration and distance are out of scope; **N15 extends this** with
+  `assistanceGrams` beside the weight rather than letting a signed weight carry two
+  meanings.
+- **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows on
+  disk.
+- **Rows are sync-shaped** — UUID ids, `createdAt`/`updatedAt`/`deletedAt` soft deletes —
+  so a future sync stays a decision, not a migration. The zone offset is the missing piece,
+  and an open question in the roadmap.
 
 ## Templates and plans
 
-- **A plan's sets are targets, and nothing verifies them** (N14). The set the user logs
-  is a separate row in `set_entries` and is expected to differ; the plan describes the
-  shape of a session rather than predicting it. Every target is nullable, because "work
-  up to a heavy single" has no weight to write down and a zero would be a claim the app
+- **A plan's sets are targets, and nothing verifies them** (N14). The logged set is a
+  separate `set_entries` row and is expected to differ; every target is nullable, because
+  "work up to a heavy single" has no weight to write down and a zero is a claim the app
   cannot check.
 - **One role vocabulary for planned and performed sets.** `SetType` gained `TOP_SET`
-  rather than a parallel enum for plans, so a plan that says "top set" and a log that
-  cannot would not be two names for one idea. Enums are stored by name, so adding it
-  touched no row already on disk.
-- **A template is living, and a session reads it at the start.** Nothing links a session
-  to the plan it came from beyond the route that started it: editing a plan changes what
-  the next workout prefills, which is what N16 relies on. Writing the targets onto the
-  session instead would freeze them and make "living" false.
-- **The plan's rest and cue win over the library's, and null means "the library's"**
-  (N14, extending N5). They are copied onto the session exercise when it is seeded from
-  a plan, so a workout started from a plan that says "3m break" counts 3m.
+  rather than a parallel plan enum, so one idea keeps one name; storing enums by name meant
+  no row changed.
+- **A template is living, and a session reads it at the start** (N16). Nothing links a
+  session to its plan beyond the route that started it, so editing a plan changes the next
+  prefill; writing targets onto the session would freeze them and make "living" false.
+- **The plan's rest and cue win over the library's; null means "the library's"** (N14,
+  extending N5) — copied onto the session exercise when it is seeded from a plan.
 
 - **Assistance is a magnitude in its own column, never a signed weight** (N15).
-  `weightGrams` stays non-negative and volume stays `weight * reps`, so an assisted set
-  contributes nothing rather than subtracting — a sign would have quietly corrupted
-  every volume trend. The editor shows the load as one signed number (`-20`), and the
-  steppers step *that* number, so pressing + on an assisted set reduces the help; the
-  weight column itself still cannot go below zero.
-- **`Load` stays a two-property `data class`; it cannot be a `value class`.** A
-  `@JvmInline value class` wraps exactly one property, so the only way to inline `Load`
-  is to store the load as one signed number — which is precisely the signed weight the
-  entry above rejects, because it would make an assisted set subtract from volume. The
-  inlining would also buy nothing at the call sites that exist: `parseLoad` returns
-  `Load?` and the editor holds it in a nullable field, so the value is boxed anyway, and
-  the project's own rule is that a performance claim comes with a measurement. Recorded
-  so the suggestion is not re-litigated without new information.
+  `weightGrams` stays non-negative so volume stays `weight * reps` and contributes nothing
+  rather than subtracting; the editor shows one signed number and steps that, so the weight
+  column cannot go below zero. ([evidence](DECISIONS-EVIDENCE.md#n15))
+- **`Load` stays a two-property `data class`; it cannot be a `value class`.** Inlining
+  means storing one signed number, which N15 rejects, and it would buy nothing because
+  `parseLoad` returns `Load?` and is boxed anyway. ([evidence](DECISIONS-EVIDENCE.md#n15))
 
-- **RPE is half-points in an `Int`, and the feel and pain ratings are not** (N6,
-  extended for 9.5). `19` is 9.5, exactly, for the reason weights are grams: no binary
-  drift, and a trend can average it without the last digit wandering. It refuses
-  anything finer than a half rather than rounding, because a rounded 9.3 would be a
-  claim about the set that was never made. The column is named `rpeHalves` so its unit
-  is visible at the schema, and an older backup's whole-number `rpe` is still read as
-  halves rather than dropped.
+- **RPE is half-points in an `Int`; the feel and pain ratings are not** (N6, extended for
+  9.5). `19` is exactly 9.5; it refuses anything finer than a half rather than rounding,
+  because a rounded 9.3 would claim something never measured. The column is `rpeHalves`,
+  and an older backup's whole-number `rpe` is read as halves rather than dropped.
 
-- **A scheduled plan is a living template, not a dated instance** (N16). There is one
-  Friday plan: editing its sets changes every future Friday until it is edited again.
-  What was *performed* is the record and is already kept, so dated instances would add a
-  plan-per-date entity, plan generation and skipped-week handling to support a
-  comparison the logged sets already allow. Several plans may share a day, and a plan
-  with no day is simply one you start by hand.
+- **A scheduled plan is a living template, not a dated instance** (N16). Dated instances
+  would add a plan-per-date entity, plan generation and skipped-week handling for a
+  comparison the logged sets already allow; several plans may share a day.
+  ([evidence](DECISIONS-EVIDENCE.md#n16))
 
-- **One-tap "Log set" writes the set its button describes** (D3, B7). The button may
-  display a planned assistance, so the set it records carries it; the alternative —
-  showing less so that display and storage agree — makes the app withhold something it
-  knows. A logged set is still expected to differ from the plan, and the user adjusts it
-  afterwards; what it must never be is *different from what the button said*.
-- **"No dead weight" is strict about APIs that exist to be tested, and lenient about
-  tests' instruments** (D2). `Weight.step`, `DataResult.map` and `successUnit` had no
-  production caller and no test that used them as anything but their own subject: they
-  are gone, and the tests that existed only to exercise them went with them. A DAO or
-  store method that a test calls to *arrange or read* the subject under test is a
-  caller — `ExerciseDao.insertAll`, `softDelete`, `CrashLogStore.latest` stay, because
-  deleting them would mean testing through a different door than the app uses. The line
-  is what the API is for, not where it is called from.
+- **One-tap "Log set" writes the set its button describes** (D3, B7). Withholding
+  knowledge so that display and storage agree is worse; a logged set may differ from the
+  plan, never from the button.
+- **"No dead weight" is strict about APIs that exist to be tested, lenient about tests'
+  instruments** (D2). `Weight.step`, `DataResult.map` and `successUnit` went, with the
+  tests that only exercised them; `ExerciseDao.insertAll`, `softDelete` and
+  `CrashLogStore.latest` stay, because a test calling a method to arrange or read its
+  subject is a caller. ([evidence](DECISIONS-EVIDENCE.md#d2))
 
 - **A per-exercise trend plots the number that moves, and says which way is forward**
-  (N17). Load series come from *working* sets only: a warm-up must not become the
-  "heaviest set" on a chart, which is why N14's roles had to exist first. A set with no
-  added weight is not a load at all — bodyweight and assisted work carry reps and volume
-  (both zero) exactly as N15 decided they carry. For an assisted exercise the series is
-  the *least* assistance of the session, labelled "less is more", because on a machine a
-  climbing line means the machine is doing more of the work. A one-rep-max estimate is
-  Epley's, taken from the heaviest working set, refused beyond twelve reps (where it
-  extrapolates rather than calculates) and rounded to the nearest half-kilo, because an
-  estimate is not precise to the gram.
+  (N17). Load series come from *working* sets only; a set with no added weight is not a
+  load; an assisted series is the session's *least* assistance, labelled "less is more".
+  The one-rep-max estimate is Epley's, from the heaviest working set, refused beyond twelve
+  reps and rounded to the nearest half-kilo. ([evidence](DECISIONS-EVIDENCE.md#n17))
 
-- **The JVM tests are not forked across JVMs** (D1). Measured on the 4-core CI runner,
-  same branch, same tasks, only `maxParallelForks` differing: **424 s without forking,
-  467 s with four forks** — slower, and summing roughly six times the CPU. Measured
-  locally the same way: 63 s vs 65 s. Most of the task is compilation and Robolectric's
-  resource merging, which forking cannot overlap; there is no wall-clock win to buy. The
-  trigger to revisit is a runner that measures faster, not a feeling that it should.
+- **The JVM tests are not forked across JVMs** (D1). Measured slower at roughly six times
+  the CPU, and most of the task is compilation and Robolectric merging, which forking
+  cannot overlap. ([evidence](DECISIONS-EVIDENCE.md#d1))
 
 - **A test tag arrives with the test that asserts on it** (D4). Twenty-five tags are
-  applied in production today and asserted by nothing, which is drift in the one namespace
-  that exists to stop tests reading English. They are kept rather than deleted in a sweep,
-  because each marks a real control and the change that next touches it pays it off by
-  writing the test; the rule that stops the list growing is one-way, so a new tag without
-  its test is a finding. Tags that map to no control at all are still deleted on sight.
+  applied in production and asserted by nothing; they are kept rather than swept, and the
+  change that next touches one pays it off. A new tag without its test is a finding; a tag
+  mapping to no control is deleted on sight. ([evidence](DECISIONS-EVIDENCE.md#d4))
 
 - **The role for the next set is armed at the button, and clears itself** (N19). The
-  alternative — a pending role per exercise in the screen's state — was built first and
-  then removed: it made transient UI state part of a database-driven flow, needed a
-  `combine` input and a field on every row, and pushed `ActiveWorkoutViewModel` past the
-  function ceiling detekt enforces (which the config says means a split, not another +1).
-  Holding it in the composable that draws the button is smaller, survives the state
-  rebuilds, and puts the "one set per role choice" rule where the choice is made. The
-  ViewModel takes the role as an argument to `onLogSet`, so nothing there has to remember
-  to clear it.
+  pending-role-per-exercise alternative made transient UI state part of a database-driven
+  flow and broke the detekt function ceiling; the composable is smaller and survives state
+  rebuilds. ([evidence](DECISIONS-EVIDENCE.md#n19))
 
-- **A plan is compared against the work, not the warm-ups** (N20). Warm-up sets are
-  excluded from both sides of a comparison, for the reason N17 excluded them from a load
-  series: a warm-up is not what the plan prescribes, and letting one stand in for the top
-  set would flatter every review. A plan that names no weight leaves the delta *null* rather
-  than zero, because zero claims the lifter matched a plan that never said.
-- **The review is a moment, not a screen** (N20). It is built from state the workout screen
-  already holds, so it costs no database reads and needs no schema — the session does not
-  record which template it came from, and adding that would be a migration for a sentence.
-  The cost is real and accepted: the review is not revisitable from history. If that becomes
-  wanted, the honest fix is to store the plan with the session, not to re-derive it.
+- **A plan is compared against the work, not the warm-ups** (N20). Warm-ups are excluded
+  from both sides for N17's reason; a plan naming no weight leaves the delta *null*, not
+  zero, because zero claims the lifter matched a plan that never said.
+- **The review is a moment, not a screen** (N20). It is built from state the workout
+  screen already holds, so no reads and no schema; the accepted cost is that it is not
+  revisitable from history, and the honest fix for that is storing the plan with the
+  session rather than re-deriving it.
 
-- **Settings live in `SharedPreferences`, not DataStore** (N21). What is stored is a handful
-  of integers and booleans owned by one process, which is the case `SharedPreferences` is
-  still the right tool for — and DataStore would be a new dependency for it. The move is
-  warranted the moment settings need a collection, a schema or a migration; until then this
-  is one file, one key and no ceremony. Writes are **committed**, not applied, because the
-  screen reports a real result: a fire-and-forget write would let it say "saved" about
-  something that never reached disk. **A consequence worth naming:** settings are therefore
-  not in the export file, so restoring onto a fresh install returns the default rest to 90 s.
-  That is a decision — a device preference is not training history — rather than the omission
-  it would otherwise look like.
-- **The default rest is a bounded choice, not a number field** (N21). The value becomes an
-  alarm, so a typed zero would fire instantly and a typed negative would not be a setting at
-  all; the repository refuses anything outside 5–3600 seconds as `DataError.Invalid`.
+- **Settings live in `SharedPreferences`, not DataStore** (N21) — integers and booleans
+  owned by one process; writes are **committed**, so the screen never reports a save that
+  did not reach disk. Settings are not in the export, so a fresh install returns the
+  default rest to 90 s: a device preference, not training history.
+  ([evidence](DECISIONS-EVIDENCE.md#n21))
+- **The default rest is a bounded choice, not a number field** (N21) — the value becomes
+  an alarm, so the repository refuses anything outside 5–3600 seconds as
+  `DataError.Invalid`.
 
-- **Progression is double progression, and it only ever suggests** (N22). Keep the load and
-  add a rep until the plan's rep ceiling is reached, then add the smallest loadable step
-  (2.5 kg, a pair of 1.25s) and start the range again. The alternatives were rejected
-  deliberately: a percentage-based rule needs a true one-rep max this app estimates rather
-  than measures, and a linear weekly add ignores missed sessions. Two consequences worth
-  stating: **assisted work inverts the direction** — the machine doing less is the progress,
-  so the step comes off the assistance — and with **no plan there is no ceiling**, so the app
-  proposes one more rep and stops there, because adding weight without a target would be the
-  app programming rather than the lifter.
-- **A suggestion carries its reason, and null means "nothing to explain"** (N22). The number
-  reaches the screen as a value *with* the rule that produced it, because a number the app
-  chose is an instruction unless it says why — but only the three progression reasons draw a
-  line. A prefilled set that is just the plan, or just a repeat of the set logged moments ago,
-  has nothing to explain, and a line there would train the user to ignore the line that
-  matters.
-- **The app suggests; it never writes.** Nothing here changes a plan or a stored set. A
-  suggestion the app applied silently would be a programme decision taken without the person
-  training, and this app is a log, not a coach.
-- **Warm-ups are excluded from progression too.** The third feature in a row to make that
-  choice (N17, N20, N22) and for the same reason: a warm-up is not the work a target is
-  measured against, and letting one set the next target would ask for a step on a bar that
-  was only ever being warmed up with.
+- **Progression is double progression, and it only ever suggests** (N22). Add reps to the
+  plan's rep ceiling, then the smallest loadable step (2.5 kg) and start the range again;
+  a percentage rule needs a true one-rep max this app estimates rather than measures, and
+  a linear weekly add ignores missed sessions. Assisted work inverts the direction, and
+  with no plan there is no ceiling. ([evidence](DECISIONS-EVIDENCE.md#n22))
+- **A suggestion carries its reason, and null means "nothing to explain"** (N22). Only the
+  three progression reasons draw a line; a line on a plain prefill would train the user to
+  ignore the line that matters. ([evidence](DECISIONS-EVIDENCE.md#n22))
+- **The app suggests; it never writes.** A silently applied suggestion is a programme
+  decision taken without the person training, and this app is a log, not a coach.
+- **Warm-ups are excluded from progression too** (N17, N20, N22) — a warm-up is not the
+  work a target is measured against.
 
-- **A superset is a group of exercises performed in rounds** (N24). The model is a nullable `supersetGroup: Int?` ordinal on `session_exercises` and
-  `template_exercises` — the same integer meaning "these are done together" in a session and
-  in the plan that seeds it. A separate `superset_groups` table was rejected: it needs its own
-  ordering, a join on every read, and it expresses nothing an ordinal on the rows does not,
-  while the ordinal survives reordering because `position` already carries the workout order.
-  One concept covers circuits too — a circuit is a group with three or more members — and a
-  group with one member is not a group, so nothing is labelled.
-- **Round semantics: the rest belongs to the round, not the set** (N24). After a set in a
-  grouped exercise the app moves to the next member with no rest, and starts the rest only
-  after the **last** member — otherwise the point of pairing (no rest between the pair) is
-  defeated by the app that is supposed to support it. The rest is the group's longest member,
-  or the app default (N21) when none prescribes one. Labels are giant-set notation: A1, A2,
-  A3 by group letter and member index.
-- **N24 is a schema change, and is done by the book**: a migration 15→16 adding the two
-  nullable columns, an exported `16.json`, a `MigrationTestHelper` case that seeds a real
-  superset, and registration in `ALL_MIGRATIONS` — the columns land with the code that reads
-  them, never ahead of it. Worth stating because it is the first *structural* change since the
-  features that shipped after N14: N17's series, N20's plan-versus-actual and N22's progression
-  are all per exercise, so none of them has to be revisited when a workout stops being a flat
-  list.
+- **A superset is a group of exercises performed in rounds** (N24). The model is a
+  nullable `supersetGroup: Int?` ordinal on `session_exercises` and `template_exercises`; a
+  separate `superset_groups` table would need its own ordering and a join on every read and
+  expresses nothing more, while the ordinal survives reordering because `position` already
+  carries the workout order. A group of one is not a group, so nothing is labelled.
+- **Round semantics: the rest belongs to the round, not the set** (N24). After a set the
+  app moves to the next member with no rest and starts the rest after the **last** one,
+  otherwise pairing defeats itself; the rest is the group's longest member or the app
+  default, and labels are giant-set notation: A1, A2, A3.
+- **N24 is a schema change, done by the book**: migration 15→16, an exported `16.json`, a
+  `MigrationTestHelper` case seeding a real superset, and registration in `ALL_MIGRATIONS`
+  — columns land with the code that reads them. It is the first *structural* change since
+  the features after N14, and those per-exercise features do not need revisiting.
 
-- **A new column is added to the backup codec in the same change, and the codec is guarded by
-  a round trip** (N24's preparation). The codec is hand-written and lists every field by name,
-  so a column it does not know about is not an error — the export simply does not contain it,
-  and the loss is invisible until someone restores a backup that is quietly missing data. It
-  has happened three times (a set's location N9, a set's assistance N15, a template's weekday
-  N16), which makes it a trap rather than bad luck: `BackupCodecRoundTripTest` now asserts that
-  every field of every backed-up entity survives entity → DTO → entity, so the next column
-  fails the suite where it is introduced. The one field deliberately excluded is a session's
-  `restEndsAt`, because a rest countdown is device-and-moment state rather than training
-  history — and that line now says so, since the guard could not tell it apart from a mistake.
+- **A new column joins the backup codec in the same change, and the codec is guarded by a
+  round trip** (N24's preparation). The hand-written codec omits a column it does not know
+  without erroring — three silent losses so far (N9, N15, N16) — so
+  `BackupCodecRoundTripTest` asserts every field of every backed-up entity survives
+  entity → DTO → entity. A session's `restEndsAt` is the one deliberate exclusion.
+  ([evidence](DECISIONS-EVIDENCE.md#n24-codec))
 
-- **A migration is amended only while its version has never shipped — and the cost is real**
-  (B16). `MIGRATION_15_16` gained a second column for the plan side (`template_exercises.supersetGroup`)
-  after N24 had already run the first version on development devices. That is legal only because
-  nothing has ever been released with schema 16, and it is not free: **Room refuses to open a
-  database whose stored identity hash does not match**, so any device that ran the earlier 15→16
-  fails with *"Room cannot verify the data integrity… you have changed schema but forgot to update
-  the version number"* until its app data is cleared. Confirmed on the emulator rather than
-  assumed. The rule that follows: amending is for a version no user has, and a device that already
-  ran it must be wiped — the alternative, a 16→17 migration, is correct but adds a version step to
-  prove for data that only exists on developer machines.
+- **A migration is amended only while its version has never shipped — and the cost is
+  real** (B16). Room refuses a database whose stored identity hash no longer matches, so a
+  device that ran the amended version must be wiped; the alternative, a 16→17 migration, is
+  correct but adds a version step to prove for data that exists only on developer machines.
+  ([evidence](DECISIONS-EVIDENCE.md#b16))
 
-- **The instrumented job keeps getting cancelled, and that is accepted** (B25). Across the last
-  sixty runs, forty were cancelled against eighteen successes: `cancel-in-progress` meets a fast
-  push cadence, and the emulator job needs 15–30 minutes while the build job needs about eight. The
-  tempting fix — running the instrumented job only on `main` — was rejected because it trades a
-  *visible* gap for an invisible one: cancelled runs are obviously missing, whereas a job that never
-  starts on a branch reads like coverage that was never needed. What makes accepting safe is the
-  guard from B8: a truncated run fails the job rather than passing quietly, which is why the one
-  genuine failure in that window was the guard firing. **The trigger to revisit**: a real failure
-  that a cancellation hid — that is, a red run noticed later than it should have been — at which
-  point the jobs split by branch rather than by trust.
+- **The instrumented job keeps getting cancelled, and that is accepted** (B25). Running it
+  only on `main` trades a *visible* gap for an invisible one, since cancelled runs are
+  obviously missing while a job that never starts reads like coverage that was never
+  needed; accepting is safe because the B8 guard fails a truncated run rather than passing
+  it quietly. Revisit on a real failure a cancellation hid, at which point the jobs split
+  by branch. ([evidence](DECISIONS-EVIDENCE.md#b25))
 
-- **The rest cue stays inside the permission-free envelope** (N27). Removing the background alert left
-  the app declaring nothing, and the obvious way to make a rest audible and felt would spend that:
-  `Vibrator` needs `android.permission.VIBRATE`. So the cue is **view-level haptics**
-  (`performHapticFeedback`, no permission) plus a tone played in-process, and keep-screen-on is a
-  window flag rather than a wake lock. Stated here because the constraint is invisible from the
-  feature's description: "sound and haptics" reads like a platform call, and the platform call that
-  does it costs the property N26 was for. If a stronger cue is ever wanted, the trade is a permission
-  and it should be taken deliberately rather than as a side effect.
+- **The rest cue stays inside the permission-free envelope** (N27). `Vibrator` needs
+  `VIBRATE`, so the cue is view-level haptics plus an in-process tone, and keep-screen-on
+  is a window flag; a stronger cue is a permission, to be taken deliberately rather than as
+  a side effect. ([evidence](DECISIONS-EVIDENCE.md#n27))
 
-- **A removed feature still cleans up after itself** (B37, B40). The rest alert is gone and its
-  notification channel is not: Android keeps one across updates until uninstall, so a device that ran
-  a pre-N26 build still lists "Rest timer" in its notification settings. Deleting it costs one
-  idempotent call that needs **no permission**, so the app does it on every launch and the channel
-  goes. The alternative — documenting it as accepted — was rejected because it leaves a trace of a
-  deleted feature on a user's device to save four lines, and because "we removed it" should mean the
-  device looks like it too. The channel id survives in `AndroidApp` for exactly one purpose, and its
-  comment says so.
+- **A removed feature still cleans up after itself** (B37, B40). The pre-N26 notification
+  channel is deleted on every launch by one idempotent, permission-free call; documenting
+  it as accepted instead leaves a trace of a deleted feature on a user's device to save
+  four lines. ([evidence](DECISIONS-EVIDENCE.md#b37-and-b40))
 
-- **A measurement is one entry per day, edited rather than added to** (N32). The roadmap left this to
-  implementation and named the two candidates. Several per day was rejected because it makes the chart
-  noisy and, worse, makes "what did I weigh today" a question with more than one answer — and the second
-  reading of a day is nearly always a correction of the first rather than a second measurement. So the
-  day is the key: saving onto a day that already has an entry edits it. **The day is the local day it was
-  taken**, converted from the timestamp at the edge, which is the same rule N25 established for a
-  session's time — a measurement belongs to the day it happened where it happened.
-- **An unmeasured tape site stays blank** (N32). It does not carry the previous value forward. A carried
-  number is indistinguishable from a measurement and would draw a flat line through a site nobody
-  measured that day, which is an invented fact rather than a missing one.
+- **A measurement is one entry per day, edited rather than added to** (N32). Several per
+  day makes "what did I weigh today" a question with more than one answer, and a second
+  reading is nearly always a correction of the first; the day is the local day it was
+  taken, which is N25's rule for a session's time.
+  ([evidence](DECISIONS-EVIDENCE.md#n32))
+- **An unmeasured tape site stays blank** (N32) — carrying a value forward is
+  indistinguishable from a measurement and draws a flat line through a site nobody
+  measured.
 
-- **One tap logs what happened; the app's idea of what should happen is an offer** (N33). The suggestion
-  and the prefill are different things and are now different fields: the prefill is the plan's target, what
-  you just did, or last time unchanged, while the progression proposal is shown with its reason and applied
-  only when accepted. They were one value before, which is what made a suggestion into a decision — a
-  proposal that *is* the prefill is committed by the next tap whether or not anyone agreed to it. The rule
-  is global, not program-only: how a workout was started says nothing about whether its lifter progresses by
-  hand.
+- **One tap logs what happened; the app's idea of what should happen is an offer** (N33).
+  Prefill and progression proposal are separate fields, so a suggestion is not committed by
+  the next tap; the rule is global, not program-only, because how a workout was started
+  says nothing about whether its lifter progresses by hand.
+  ([evidence](DECISIONS-EVIDENCE.md#n33))
 
-- **CI runs nightly and before a release, not on every push** (N30). The emulator is the one piece of
-  infrastructure in this project that has failed without a test running, so a per-push run would mostly
-  report on the runner, and a red pipeline that says nothing about the change trains people to ignore it.
-  The per-change guard is the local gate set in AGENTS.md — the same tasks the build job runs — and the
-  nightly run is what catches the drift a local run cannot see. A release dispatches the pipeline first
-  (RELEASING.md step 5), because a release is the wrong time to discover the gate set has stopped working.
-  The concurrency group carries the event name, so a release dispatch and the nightly run cannot cancel
-  each other: that is not hypothetical, a push once cancelled an instrumented run twenty minutes in and the
-  cancelled job's summary was indistinguishable from an infrastructure failure.
+- **CI runs nightly and before a release, not on every push** (N30). The emulator is the
+  one piece of infrastructure that has failed without a test running, so a per-push run
+  would mostly report on the runner; the per-change guard is the local gate set in
+  AGENTS.md, and the nightly run catches drift a local run cannot see. A release dispatches
+  the pipeline first ([RELEASING.md](RELEASING.md) step 5), and the concurrency group
+  carries the event name so a release dispatch and the nightly run cannot cancel each
+  other. ([evidence](DECISIONS-EVIDENCE.md#n30-ci))
 
-- **The emulator runs with VM acceleration, and that is what the flakiness was** (N30). The job had failed on
-  infrastructure four times with four signatures — a corrupt image download, a boot that outran its timeout, an
-  adb connection that died after a sixteen-minute boot, and a device that booted and then could not answer
-  `getprop`, so AGP skipped it as "Unknown API Level" and no test ran. The emulator's own probe named the
-  cause every time and it was read as background noise: "This user doesn't have permissions to use KVM
-  (/dev/kvm). The KVM line in /etc/group is: [kvm:x:993:]". The device is on the runner and the group exists;
-  the runner user is simply not in it, so the emulator fell back to software emulation — "Disabling Linux
-  hardware acceleration" — and every one of those signatures is what a starved emulator does. A udev rule
-  grants the group access and `-accel auto` lets the emulator take it. The levers tried before this one were
-  all about tolerating a slow emulator rather than checking why it was slow: a longer boot timeout, a lighter
-  image, a lower API level. The API level is still 34 rather than the 37 the app ships against, and that is
-  now the only remaining trade — worth revisiting on its own merits, since the boot time that drove it is no
-  longer the binding constraint.
+- **The emulator runs with VM acceleration, and that is what the flakiness was** (N30).
+  Four different infrastructure failures shared one cause: the runner user is not in the
+  `kvm` group, so the emulator fell back to software emulation. A udev rule grants the
+  group access and `-accel auto` takes it. API 34 rather than the app's 37 is the remaining
+  trade. ([evidence](DECISIONS-EVIDENCE.md#n30-emulator))
 
-- **A series is described once, in the metric registry** (N35). Labels, units, formatters, groups, whether a
-  series is bars or a line, whether its axis starts at zero and which direction is better all live in one
-  place, because twenty-one series spread across three screens and three query shapes is what made "show
-  everything" expensive. **The existing enums stay and the registry references them**: each means something on
-  its own — `TrendMetric` is what a workout's ratings are read through — and a registry that replaced them
-  would be a rename dressed as a refactor.
-- **Arriving at Statistics with a lift selects estimated 1RM** (N35). "How is my bench going" is the question
-  the library and the workout detail both ask when they open a trend, and an Exercise series means nothing
-  until a lift is chosen, so landing on bodyweight would answer something nobody asked. Of the eight exercise
-  metrics, estimated 1RM is the one that answers it: the heaviest set ignores the reps, and volume rewards a
-  long session over a strong one.
+- **A series is described once, in the metric registry** (N35). Labels, units, formatters,
+  groups, bars-or-line, axis-at-zero and better-direction all live in one place, because
+  twenty-one series across three screens and three query shapes is what made "show
+  everything" expensive. The existing enums stay and the registry references them —
+  `TrendMetric` is what a workout's ratings are read through — since replacing them would
+  be a rename dressed as a refactor.
+- **Arriving at Statistics with a lift selects estimated 1RM** (N35). An Exercise series
+  means nothing until a lift is chosen, and of the eight exercise metrics 1RM is the one
+  that answers "how is my bench going" — the heaviest set ignores reps, and volume rewards
+  a long session over a strong one.
 
-- **A gap is distance, and the line breaks at it** (N37). On an index axis a missing reading was merely
-  invisible; on a time axis it is a stretch of the chart, and a straight segment across it would be a claim about
-  weeks nobody measured. This is the one place the app deliberately differs from the tool whose shape it borrows:
-  that one spans its gaps, and the argument for breaking them is stronger here because the x-axis now means
-  something.
-- **The moving average's period counts readings, not days** (N40). For a daily weigh-in the two are the same
-  thing — the case the feature exists for — but a seven-day window for a lift trained twice a week would often
-  hold one reading and average nothing. A window that is sometimes empty is worse than one whose unit is stated
-  on the control.
+- **A gap is distance, and the line breaks at it** (N37). On a time axis a straight
+  segment across missing weeks is a claim about weeks nobody measured; this is where the
+  app deliberately differs from the tool whose shape it borrows.
+- **The moving average's period counts readings, not days** (N40). A seven-day window for
+  a lift trained twice a week would often average one reading, and a window that is
+  sometimes empty is worse than one whose unit is stated on the control.
 
-- **Test tags are exposed as resource ids** (N38–N39). The app opts in with `testTagsAsResourceId`, so a
-  device-side tool can address a control by *identity* rather than by coordinates: a tap then either lands on the
-  control or fails, instead of silently hitting its neighbour and producing a screen that reads as a bug in the
-  app. Two rounds were spent guessing offsets before this was found — a Compose app is otherwise an opaque tree
-  of anonymous Views to everything outside its process. The cost is that the tags become visible to accessibility
-  tooling, which is what an annotation meant for tooling is for. Noted as a limit: `android_ui_tree` cannot see
-  popup windows, so items inside a `DropdownMenu` still have to be tapped by coordinates read from a screenshot.
+- **Test tags are exposed as resource ids** (N38–N39). A device-side tool addresses a
+  control by *identity* rather than coordinates, so a tap lands on the control or fails
+  instead of hitting its neighbour; the cost is that tags become visible to accessibility
+  tooling, which is what an annotation meant for tooling is for.
+  ([evidence](DECISIONS-EVIDENCE.md#n38))
 
 ## Rules that apply to every change
 
-- **A range is a window in the current zone; a session's date is where it happened** (B45). These are two
-  different questions and the app answers them differently on purpose. A *window* — "the last 7 days", a
-  custom range — is one interval, and an interval has to be measured somewhere; the device's current zone is
-  the only answer that makes "today" mean today for the person reading the screen. A *session's date* is a
-  fact about the past, so it is shown in the zone the session was performed in, which is what N25 stores. The
-  consequence is real and accepted: after a long flight a workout near midnight can be listed under one date
-  and fall outside a window that appears to include it. The alternative — a window per session — is not a
-  window, and one screen cannot be drawn against several intervals at once. The reason this is written down
-  rather than patched is that the two readings are both correct about different things, so the next person to
-  notice the mismatch should find a decision here instead of a bug report.
-- **The current zone is read when it is needed, never captured** (B45). `ZoneId.systemDefault()` is a
-  function for a reason: a `val` in a companion object freezes the zone at class load, so a process that
-  outlives a timezone change keeps computing "today" in a zone the device no longer has. Every screen reads
-  it at the point of use, and the statistics view model now does too.
-
+- **A range is a window in the current zone; a session's date is where it happened**
+  (B45). A window is one interval and has to be measured somewhere, so the current zone is
+  the only answer that makes "today" mean today; a session's date is a fact about the past,
+  shown in the zone it was performed in. The accepted consequence is that a workout near
+  midnight after a long flight can be listed under one date and fall outside a window that
+  appears to include it — a window per session is not a window. It is recorded rather than
+  patched so the next person finds a decision, not a bug report.
+  ([evidence](DECISIONS-EVIDENCE.md#b45))
+- **The current zone is read when it is needed, never captured** (B45). A `val` in a
+  companion object freezes the zone at class load, so a process outliving a timezone change
+  keeps computing "today" in a zone the device no longer has.
 - **Accessibility accompanies each screen**; it is not a later phase. Name what a control
   does (`onClickLabel`), *announce* state changes rather than only drawing them, and tag
   things so tests do not assert on English literals.
-- **Privacy:** local-only. No `INTERNET` permission, no ads, no analytics. Crash logs stay
-  in app-private storage and leave only inside an export the user chose to make.
-- **No Google Play services at runtime.** The app runs on a degoogled device. Firebase,
-  `play-services-*`, Play Billing and Play Integrity are out by default; a future
-  integration has to argue past this line.
-- **Errors are values.** Reads and writes both return `DataResult`, so a failure is
-  something a screen can render rather than an exception that disappears inside a
-  coroutine. `dataResultOf` rethrows `CancellationException` instead of swallowing it,
-  which `runCatching` would because it catches `Throwable` — so a `suspend` function does
-  not use `runCatching`. The last two hold-outs — `ExerciseRepository`'s two reads — were
-  closed by B4; keep it that way for anything new.
-- **Measure before optimizing.** The one known hot spot — a per-second recomposition of
-  the workout list — was found by reading the code and is fixed. Any further performance
-  claim should come with a measurement.
+- **Privacy: local-only.** No `INTERNET` permission, no ads, no analytics. Crash logs stay
+  in app-private storage and leave only in an export the user chose to make.
+- **No Google Play services at runtime.** Firebase, `play-services-*`, Play Billing and
+  Play Integrity are out by default; a future integration has to argue past this line.
+- **Errors are values.** Reads and writes return `DataResult`, and `dataResultOf` rethrows
+  `CancellationException` rather than swallowing it — `runCatching` catches `Throwable`, so
+  a `suspend` function does not use it. The last two hold-outs, `ExerciseRepository`'s two
+  reads, were closed by B4.
+- **Measure before optimizing.** The one known hot spot was found by reading the code, and
+  any further performance claim comes with a measurement.
 - **Testing:** pure logic gets JVM tests, persistence gets DAO and migration tests,
-  composables get Robolectric tests with no device. There is no coverage target. The
-  long-standing gap — a Compose test for the *active workout* screen — closed with N7.
-- **New and touched tests assert with Truth, and assert Flow sequences with Turbine.**
-  JUnit's `assertEquals(expected, actual)` puts two bare values side by side with nothing
-  saying which was which, and the arguments are easy to swap; `assertThat(actual)
-  .isEqualTo(expected)` cannot be written the wrong way round. Turbine is for what a
-  polled `.value` cannot express at all: a *sequence* of emissions, or an invariant that
-  has to hold across one. Both are JVM-only (`testImplementation`), and the core Truth
-  artifact rather than `truth-android`, which would pull androidx.test stubs alongside
-  Robolectric's. Adopted after the review, so most files still use JUnit: they migrate
-  **as they are touched**, never in a sweep, and a file is not left half-converted. This
-  is a preference about failure messages, not a correctness gate — do not spend a change
-  on migration alone.
+  composables get Robolectric tests with no device; there is no coverage target, and the
+  active-workout Compose gap closed with N7.
+- **New and touched tests assert with Truth, and Flow sequences with Turbine.** JUnit's
+  `assertEquals(expected, actual)` puts two bare values side by side and is easy to write
+  the wrong way round; both libraries are JVM-only and the core Truth artifact, not
+  `truth-android`. Most files still use JUnit and migrate **as they are touched**, never in
+  a sweep and never left half-converted — a preference about failure messages, not a
+  correctness gate. ([evidence](DECISIONS-EVIDENCE.md#truth-turbine))
 - **No dead weight.** Extract a shared component at its second caller, not its first;
-  delete an API the moment nothing calls it. Both hold today; this rule keeps them.
-- **Schema changes are migration-numbered as they ship.** A migration takes the next
-  version when its feature lands; do not add columns or tables ahead of the code that
-  reads them, because Room validates the declared entities against the migrated schema —
-  an early column forces an entity field nothing reads. Copy the SQL from Room's generated
-  `createSql` rather than hand-writing an equivalent, register the migration in
-  `ALL_MIGRATIONS`, and never edit one that has shipped. Every migration gets an exported
-  schema under [app/schemas](app/schemas) and a `MigrationTestHelper` test that upgrades a
-  database with real rows in it.
+  delete an API the moment nothing calls it.
+- **Schema changes are migration-numbered as they ship.** Do not add columns or tables
+  ahead of the code that reads them; copy the SQL from Room's generated `createSql`,
+  register the migration in `ALL_MIGRATIONS`, and never edit one that has shipped. Every
+  migration gets an exported schema under [app/schemas](app/schemas) and a
+  `MigrationTestHelper` test that upgrades a database with real rows.
 
 ## Process
 
@@ -383,8 +268,8 @@ into this file once the feature ships.
 
 ## Verified on device
 
-Not rules — facts that were checked on hardware, recorded because they are the kind that
-quietly stop being true:
+Not rules — facts checked on hardware, recorded because they are the kind that quietly
+stop being true:
 
 - Process death mid-workout resumes the session with its set and rest intact.
 - The library renders on the very first read after `pm clear`.

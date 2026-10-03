@@ -7,11 +7,11 @@ import org.junit.Test
 /**
  * The gate on the documentation itself (no feature id — no feature changed).
  *
- * Nothing else checks prose, and two claims in it have already gone stale once: the task
- * set AGENTS.md tells an agent to run, and the paths the docs link. A green build says
- * nothing about either, so they are asserted rather than trusted — the same reasoning as
- * `tools/ci-check-instrumented.py`, which exists because a report with no failures looks
- * exactly like a complete one.
+ * Nothing else checks prose, and three claims in it have already gone stale: the task set
+ * AGENTS.md tells an agent to run, the paths the docs link, and an evidence anchor pointing
+ * at a heading that did not exist. A green build says nothing about any of them, so they are
+ * asserted rather than trusted — the same reasoning as `tools/ci-check-instrumented.py`,
+ * which exists because a report with no failures looks exactly like a complete one.
  */
 class DocsConsistencyTest {
 
@@ -36,11 +36,24 @@ class DocsConsistencyTest {
 
     @Test
     fun every_path_the_docs_link_resolves() {
-        val missing = listOf("AGENTS.md", "README.md").flatMap { doc ->
+        val missing = DOCS.flatMap { doc ->
             linkTargets(read(doc)).filterNot { File(root, it).exists() }.map { "$doc -> $it" }
         }
 
         assertThat(missing).isEmpty()
+    }
+
+    @Test
+    fun every_evidence_anchor_resolves() {
+        val headings = HEADING.findAll(read("DECISIONS-EVIDENCE.md"))
+            .map { slug(it.groupValues[1]) }
+            .toSet()
+        val anchors = ANCHOR.findAll(read("DECISIONS.md")).map { it.groupValues[1] }.toSet()
+
+        // A regex that quietly stopped matching would leave both sides empty, and an empty
+        // set is a subset of every set.
+        assertThat(anchors).isNotEmpty()
+        assertThat(anchors.filterNot { it in headings }).isEmpty()
     }
 
     /**
@@ -67,6 +80,12 @@ class DocsConsistencyTest {
             .filter { it.isNotEmpty() && !it.startsWith("http") && !it.startsWith("mailto:") }
             .toList()
 
+    /** GitHub's heading anchor: lowercased, punctuation dropped, spaces to hyphens. */
+    private fun slug(heading: String): String =
+        heading.lowercase()
+            .filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
+            .replace(' ', '-')
+
     private fun read(name: String): String = File(root, name).readText()
 
     private val root: File by lazy {
@@ -79,7 +98,10 @@ class DocsConsistencyTest {
     }
 
     private companion object {
+        val DOCS = listOf("AGENTS.md", "README.md", "DECISIONS.md", "DECISIONS-EVIDENCE.md")
         val WHITESPACE = Regex("\\s+")
         val LINK = Regex("""\]\(([^)]+)\)""")
+        val HEADING = Regex("^## (.+)$", RegexOption.MULTILINE)
+        val ANCHOR = Regex("""DECISIONS-EVIDENCE\.md#([A-Za-z0-9_-]+)""")
     }
 }

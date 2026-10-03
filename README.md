@@ -12,7 +12,8 @@ empty — which says more about where your training data lives than any wording 
 ## Project docs
 
 - [ROADMAP.md](ROADMAP.md) — what is planned, in order
-- [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change
+- [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change;
+  the argument for each is in [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md)
 - [CHANGELOG.md](CHANGELOG.md) — what shipped, per version
 - [RELEASING.md](RELEASING.md) — how a release is cut, and its traps
 - [AGENTS.md](AGENTS.md) — the map: where each kind of truth lives, and the rules a

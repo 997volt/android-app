@@ -2,14 +2,16 @@
 
 This file is the router **and** the always-loaded digest: where truth lives, the facts
 that bite, the gate to run, and each rule in one line. Reasoning, scope and rejected
-alternatives are in [DECISIONS.md](DECISIONS.md), which **wins any disagreement with this
+alternatives are in [DECISIONS.md](DECISIONS.md) — its argument in
+[DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md) — which **wins any disagreement with this
 file**.
 
 ## Read, by question
 
 - **What is planned** — [ROADMAP.md](ROADMAP.md); feature ids (`F#`, `B#`, `N#`, `P#.#`)
   are stable and go in commits. Forward-looking, not binding.
-- **What is settled** — [DECISIONS.md](DECISIONS.md); the rules that bind every change.
+- **What is settled** — [DECISIONS.md](DECISIONS.md); the rules that bind every change,
+  argued in [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md).
 - **What shipped** — [CHANGELOG.md](CHANGELOG.md); shipped work leaves the roadmap for here.
 - **Cutting a release** — [RELEASING.md](RELEASING.md); binding while releasing.
 - **Building, installing, the toolchain** — [README.md](README.md); its emulator

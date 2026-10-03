@@ -253,6 +253,8 @@ tasks.withType<Test>().configureEach {
     inputs.files(
         rootProject.file("AGENTS.md"),
         rootProject.file("README.md"),
+        rootProject.file("DECISIONS.md"),
+        rootProject.file("DECISIONS-EVIDENCE.md"),
         rootProject.file(".github/workflows/android.yml"),
     ).withPropertyName("documentation").withPathSensitivity(PathSensitivity.RELATIVE)
 }
