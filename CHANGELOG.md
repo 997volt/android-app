@@ -78,6 +78,10 @@ repeated here.
   (B47, D4). Three unused `HOME_*` constants went, along with the assertions that asserted the
   absence of things already absent; the tag rule now fails a build that adds a tag without the
   test asserting on it, so the backlog can only shrink rather than silently drift.
+- **A pre-release dispatch runs the instrumented job at the API the app ships against** (N30). The
+  nightly keeps the fast `aosp_atd` image at API 34 — a run nobody is watching should not be slow
+  for a reason nobody is testing that night — while the release dispatch, the run that can catch an
+  API 35+ behaviour change, uses the shipping API. The `aosp_atd` images stop at 34.
 
 ### Fixed
 
