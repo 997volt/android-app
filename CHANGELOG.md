@@ -78,10 +78,12 @@ repeated here.
   (B47, D4). Three unused `HOME_*` constants went, along with the assertions that asserted the
   absence of things already absent; the tag rule now fails a build that adds a tag without the
   test asserting on it, so the backlog can only shrink rather than silently drift.
-- **A pre-release dispatch runs the instrumented job at the API the app ships against** (N30). The
+- **A pre-release dispatch runs the instrumented job at the highest published API** (N30). The
   nightly keeps the fast `aosp_atd` image at API 34 — a run nobody is watching should not be slow
   for a reason nobody is testing that night — while the release dispatch, the run that can catch an
-  API 35+ behaviour change, uses the shipping API. The `aosp_atd` images stop at 34.
+  API 35+ behaviour change, runs at **36**. The shipping API is 37, but Google publishes no
+  `platforms;android-37` and no `default` or `aosp_atd` system image at any 37.x, so 36 is the
+  highest that exists; the first dispatch found that out. The `aosp_atd` images stop at 34.
 
 ### Fixed
 

@@ -260,11 +260,19 @@ was slow: a longer boot timeout, a lighter image, a lower API level.
 The API level was still 34 rather than the 37 the app ships against, and that revisit has now
 been taken, by splitting the trade instead of picking a side. The nightly keeps `aosp_atd` at 34
 — the image exists because a starved emulator needed a light one, and that reasoning still holds
-for a run nobody is watching — while the pre-release `workflow_dispatch` runs at the shipping API
-on the default image, which is the run that can catch an API 35+ behaviour change. The one thing
-not verified here is that a system image is published for the shipping API: the first dispatch is
-the experiment, and if none exists the highest published API is the number to use, with the reason
-recorded here rather than rediscovered.
+for a run nobody is watching — while the pre-release `workflow_dispatch` runs at the highest
+published API on the default image, which is the run that can catch an API 35+ behaviour change.
+The one thing not verified here was that a system image is published for the shipping API: the
+first dispatch was the experiment, and if none exists the highest published API is the number to
+use, with the reason recorded here rather than rediscovered.
+
+The first dispatch took that experiment and answered it by failing at download. Google publishes
+no `platforms;android-37` — the 37 platforms are `android-37.0`, `-37.1` and `-37.2` — and no
+`default` or `aosp_atd` system image at any 37.x, only `google_apis*`, which would put back the
+Google services this app is built to run without. The dispatch therefore runs at **36**, the
+highest API with a published `default` image: one below the shipping API, and the price of a
+published image rather than a second choice about the trade. The gap is recorded here rather
+than rediscovered on the next release.
 
 ## N32
 
