@@ -6,6 +6,7 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.repository.AdherenceRepository
@@ -297,6 +298,27 @@ class AdherenceViewModelTest {
         assertThat(viewModel.uiState.value.error).isNull()
     }
 
+    @Test
+    fun theRatioHistory_reachesTheState_overTwelveMonths() = runTest(dispatcher) {
+        // ROADMAP P3.16: one point per month, ending with the one we are in.
+        val repository = FakeAdherenceRepository()
+        repository.history = DataResult.Success(
+            listOf(
+                MonthlyRatio(YearMonth.of(2026, 9), 0.5),
+                MonthlyRatio(YearMonth.of(2026, 10), 1.0),
+            ),
+        )
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+
+        advanceUntilIdle()
+
+        assertThat(repository.historiesAsked).containsExactly(12)
+        assertThat(viewModel.uiState.value.history.map { it.month })
+            .containsExactly(YearMonth.of(2026, 9), YearMonth.of(2026, 10))
+            .inOrder()
+    }
+
     private fun viewModel(repository: FakeAdherenceRepository) =
         AdherenceViewModel(repository, TimeSource { now })
 
@@ -329,6 +351,21 @@ class AdherenceViewModelTest {
         var streak: DataResult<Streak?> = DataResult.Success(null)
 
         override suspend fun streak(today: LocalDate, zone: ZoneId): DataResult<Streak?> = streak
+
+        /** What the ratio history answers with; none unless a test sets it (ROADMAP P3.16). */
+        var history: DataResult<List<MonthlyRatio>> = DataResult.Success(emptyList())
+
+        /** Every month count the history was asked for, in order. */
+        val historiesAsked = mutableListOf<Int>()
+
+        override suspend fun ratioHistory(
+            months: Int,
+            today: LocalDate,
+            zone: ZoneId,
+        ): DataResult<List<MonthlyRatio>> {
+            historiesAsked += months
+            return history
+        }
 
         override suspend fun setDeloadWeek(
             programId: String,

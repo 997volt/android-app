@@ -8,6 +8,7 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.ProgramSchedule
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.repository.AdherenceRepository
@@ -63,6 +64,13 @@ data class AdherenceUiState(
      * same while the grid is showing history.
      */
     val streak: Streak? = null,
+    /**
+     * The ratio of the last [HISTORY_MONTHS] months, oldest first (ROADMAP P3.16).
+     *
+     * The grid keeps its month and this is the history beside it, measured to today like
+     * [streak]: a point per month, with a null ratio where a month scored nothing.
+     */
+    val history: List<MonthlyRatio> = emptyList(),
     val error: DataError? = null,
 ) {
     /** False on the current month: the calendar navigates back through history, never forward. */
@@ -240,6 +248,7 @@ class AdherenceViewModel @Inject constructor(
                 deloadWeeks = result.data.deloadWeeks,
                 markableWeeks = markableWeeksOf(month, today),
                 streak = streakOrNull(today, zone),
+                history = historyOrEmpty(today, zone),
             )
 
             is DataResult.Failure -> AdherenceUiState(
@@ -260,6 +269,10 @@ class AdherenceViewModel @Inject constructor(
     private suspend fun streakOrNull(today: LocalDate, zone: ZoneId): Streak? =
         (adherence.streak(today, zone) as? DataResult.Success)?.data
 
+    /** The history, or none when it could not be read (P3.16) — see [streakOrNull]. */
+    private suspend fun historyOrEmpty(today: LocalDate, zone: ZoneId): List<MonthlyRatio> =
+        (adherence.ratioHistory(HISTORY_MONTHS, today, zone) as? DataResult.Success)?.data.orEmpty()
+
     private fun today(zone: ZoneId = ZoneId.systemDefault()): LocalDate =
         timeSource.now().atZone(zone).toLocalDate()
 
@@ -267,5 +280,15 @@ class AdherenceViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        /**
+         * How many months the history covers (P3.16).
+         *
+         * A year: long enough that a four-to-six week block reads as a shape rather than as one
+         * flat month after another, and short enough to draw on a phone. Deliberately **not** N21's
+         * statistics range — that setting is another screen's chart window, and reusing it would
+         * make one number mean two things.
+         */
+        const val HISTORY_MONTHS = 12
     }
 }

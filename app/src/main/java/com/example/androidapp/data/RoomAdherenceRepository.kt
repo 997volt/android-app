@@ -18,6 +18,7 @@ import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedDeload
@@ -191,6 +192,39 @@ class RoomAdherenceRepository @Inject constructor(
             today = today,
             deloads = deloadsBetween(since, lastWeek),
             substitutions = substitutionsBetween(since, lastWeek),
+        )
+    }
+
+    override suspend fun ratioHistory(
+        months: Int,
+        today: LocalDate,
+        zone: ZoneId,
+    ): DataResult<List<MonthlyRatio>> = dataResultOf {
+        val last = YearMonth.from(today)
+        val first = last.minusMonths((months - 1).toLong())
+        val window = (0 until months).map { first.plusMonths(it.toLong()) }
+
+        // One read for the whole window rather than one per month: a slot inside a month can be
+        // settled by a session earlier or later in its own week (P3.3), and a skip is keyed by that
+        // week's Monday.
+        val firstWeek = ProgramSchedule.weekStartOf(first.atDay(1))
+        val lastWeek = ProgramSchedule.weekStartOf(last.atEndOfMonth())
+        val from = firstWeek.minusDays(SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = lastWeek.plusDays(DAYS_IN_WEEK + SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+        val sessions = programDao.finishedSessionsBetween(from, to).map { it.toAdherenceSession(zone) }
+
+        val active = programDao.findActivePrograms()
+        ProgramSchedule.monthlyRatios(
+            // No active program means no ratio at all, so every point is a gap, for P3.5's reason.
+            slots = if (active.isEmpty()) emptyList() else activeSlots(active.map { it.id }),
+            sessions = sessions,
+            skips = skipDao.findSkipsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay()).map {
+                RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
+            },
+            months = window,
+            today = today,
+            deloads = deloadsBetween(firstWeek, lastWeek),
+            substitutions = substitutionsBetween(firstWeek, lastWeek),
         )
     }
 

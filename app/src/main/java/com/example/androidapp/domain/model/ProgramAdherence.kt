@@ -2,6 +2,7 @@ package com.example.androidapp.domain.model
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 
 /**
@@ -113,6 +114,15 @@ data class MonthAdherence(
  * that pushes is a coach.
  */
 data class Streak(val count: Int, val startedOn: LocalDate? = null)
+
+/**
+ * One month's ratio, or the gap where a month scored nothing (ROADMAP P3.16).
+ *
+ * [ratio] null is a gap rather than a zero: a month with no elapsed scheduled day did not fail, it
+ * was not scored (P3.5), and drawing it at the floor would be an invented measurement — N37's rule
+ * for a trend line, said again for the ratio.
+ */
+data class MonthlyRatio(val month: YearMonth, val ratio: Double?)
 
 /**
  * One slot's share of the month (ROADMAP P3.14).

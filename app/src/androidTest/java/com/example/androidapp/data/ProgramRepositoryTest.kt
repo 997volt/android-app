@@ -795,6 +795,25 @@ class ProgramRepositoryTest {
         assertNull(adherence.streak(today, utc).getOrNull())
     }
 
+    @Test
+    fun theRatioHistory_endsWithThisMonth_andAgreesWithTheGrid() = runTest {
+        // ROADMAP P3.16: a point and the grid it came from cannot disagree.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        insertSessionWithSet("done", "2026-10-06T09:00:00Z", template, weightGrams = 100_000L)
+
+        val history = adherence.ratioHistory(months = 3, today, utc).getOrNull()!!
+
+        assertEquals(3, history.size)
+        assertEquals(YearMonth.of(2026, 10), history.last().month)
+        history.forEach { point ->
+            val grid = adherence.monthAdherence(point.month, today, utc).getOrNull()!!
+            assertEquals(grid.adherence.ratio, point.ratio)
+        }
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

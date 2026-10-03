@@ -241,6 +241,9 @@
     </plurals>
     <string name="adherence_streak_since">since %1$s</string>
     <string name="adherence_streak_none">No run going yet</string>
+    <!-- The ratio as a history of months (ROADMAP P3.16). -->
+    <string name="adherence_history">Ratio by month</string>
+    <string name="adherence_history_caption">A month with nothing scored is a gap, not a zero.</string>
     <!-- The month read per slot and per lift (ROADMAP P3.14). -->
     <string name="adherence_by_slot">By day</string>
     <string name="adherence_by_lift">By lift</string>

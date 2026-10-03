@@ -324,6 +324,9 @@ private fun AdherenceBody(
 
         // The same counts, read per slot and per lift (ROADMAP P3.14). Empty with no active
         // program, for the ratio's reason: the pins carry no skip record to break down.
+        // The grid keeps its month and the ratio gains a history (ROADMAP P3.16).
+        RatioHistory(rows = state.history)
+
         SlotBreakdown(rows = state.adherence.bySlot)
         ExerciseBreakdown(rows = state.adherence.byExercise)
 

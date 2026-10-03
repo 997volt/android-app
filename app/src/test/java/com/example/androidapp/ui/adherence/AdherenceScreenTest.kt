@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.SlotAdherence
 import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.model.ExerciseAdherence
@@ -271,6 +272,53 @@ class AdherenceScreenTest {
             .performClick()
 
         assertThat(marked).isFalse()
+    }
+
+    @Test
+    fun theRatioHistory_isDrawnBesideTheMonth() {
+        // ROADMAP P3.16: the grid keeps its month and the ratio gains a history.
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                adherence = MonthAdherence(scheduledDays = setOf(LocalDate.of(2026, 10, 6))),
+                history = listOf(
+                    MonthlyRatio(YearMonth.of(2026, 8), 0.5),
+                    // A gap in the middle of the line, not a point at the floor.
+                    MonthlyRatio(YearMonth.of(2026, 9), null),
+                    MonthlyRatio(YearMonth.of(2026, 10), 1.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.HISTORY_TITLE)
+            .performScrollTo()
+            .assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.HISTORY_CHART)
+            .performScrollTo()
+            .assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.HISTORY_CAPTION)
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun withOneScoredMonth_thereIsNoHistoryToDraw() {
+        // One point is not a history; the ratio above it already says what that month was.
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                history = listOf(
+                    MonthlyRatio(YearMonth.of(2026, 9), null),
+                    MonthlyRatio(YearMonth.of(2026, 10), 1.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.HISTORY_CHART).assertDoesNotExist()
     }
 
     @Test

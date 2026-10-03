@@ -17,25 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-One row, planned together: they are everything the last two rounds deferred, and each one
-carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
-not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
-
-**Adherence** — how often the plan happened
-
-**P3.16 — A window wider than a month.**
-
-A month is the right grid and too short a judgement: a block is four to six weeks, so a change
-that took one reads as one flat month after another.
-
-- **The grid keeps its month and the ratio gains a history**: a chart with one point per month,
-  so a point and the grid it came from cannot disagree, and P3.5's one-window rule holds.
-- **A month with nothing scored is a gap, not a zero** — N37's rule for a trend line, and
-  P3.5's rule for the ratio said again.
-- **It arrives when a month proves too short**, which is a block the lifter is actually running
-  and not a date: that is the trigger the deferred row named, and why this row is last.
-- **The window is not the statistics range** (N21): that setting is a chart's window on another
-  screen, and reusing it would make one number mean two things.
+Nothing is planned. The deferred scope of the last two rounds — P3.3's and P3.5's, programmed as
+P3.8-P3.16 — has shipped and left for [CHANGELOG.md](CHANGELOG.md). A candidate graduates to this
+section — gaining an id and a spelled-out decision rather than a wish — when it is picked up, so
+an empty *Next* is a state rather than a gap: the two queues below are where unplanned work lives,
+*Later* for what is self-contained and *Parked* for what is a product in its own right.
 
 ## Later (still self-contained)
 
@@ -43,11 +29,11 @@ Post-MVP on the same local-only premise, grouped by theme and ordered by value i
 candidate graduates to *Next* — gaining an id and a spelled-out decision — when it is picked
 up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
-Nothing is waiting here. Both paragraphs of deferred scope — P3.3's and P3.5's — are planned in
-*Next* above, and what they named that is not a feature is already a settled decision: no dated
-instances (N16), nothing automatic (N22's "the app suggests; it never writes"), a weekday-less
-slot that is never missed and is order-only, and one active program, which P3.12 amends. The
-next candidate comes from a parked row's trigger or a new reason, not from this queue.
+Nothing is waiting here. Both paragraphs of deferred scope — P3.3's and P3.5's — shipped as
+P3.8-P3.16, and what they named that is not a feature is a settled decision: no dated instances
+(N16), nothing automatic (N22's "the app suggests; it never writes"), a weekday-less slot that is
+never missed and is order-only, and more than one active program, which P3.12 allowed. The next
+candidate comes from a parked row's trigger or a new reason, not from this queue.
 
 ## Parked — deliberately not planned
 

@@ -96,6 +96,14 @@ repeated here.
   and an untrained today is stepped over rather than counted as a break. It is shown as a number
   **with its start** and never as a nudge. No schema change.
 
+- **The ratio gains a history, a point per month** (P3.16). A month is the right grid and too short
+  a judgement: a block is four to six weeks, so a change that took one reads as one flat month after
+  another. Adherence now charts **twelve months** of the ratio beneath the month grid — the same
+  aggregate, evaluated once per month over one wider read, so **a point and the grid it came from
+  cannot disagree**. A month with nothing scored is a **gap in the line, not a point at zero**:
+  nothing was scored there, it did not fail. The window is deliberately not the statistics screen's
+  range (N21), which would make one number mean two things. No schema change.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

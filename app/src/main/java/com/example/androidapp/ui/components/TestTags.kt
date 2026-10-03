@@ -441,6 +441,11 @@ object TestTags {
         const val STREAK = "adherence_streak"
         const val STREAK_START = "adherence_streak_start"
 
+        /** The ratio as a history of months (ROADMAP P3.16). */
+        const val HISTORY_TITLE = "adherence_history_title"
+        const val HISTORY_CHART = "adherence_history_chart"
+        const val HISTORY_CAPTION = "adherence_history_caption"
+
         /** The month read per slot and per lift (ROADMAP P3.14). */
         const val BY_SLOT_TITLE = "adherence_by_slot_title"
         const val BY_EXERCISE_TITLE = "adherence_by_lift_title"

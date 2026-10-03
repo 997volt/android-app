@@ -3,6 +3,7 @@ package com.example.androidapp.domain.repository
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.Streak
 import java.time.LocalDate
 import java.time.YearMonth
@@ -68,6 +69,20 @@ interface AdherenceRepository {
      * pinned day cannot be told from a miss and a run built on it would not be trustworthy.
      */
     suspend fun streak(today: LocalDate, zone: ZoneId): DataResult<Streak?>
+
+    /**
+     * The ratio of each of the last [months] months, oldest first, ending with the month [today] is
+     * in (ROADMAP P3.16).
+     *
+     * The grid keeps its month and this is the history beside it: the same aggregate, evaluated once
+     * per month over **one** wider read, so a point and the grid it came from cannot disagree. A
+     * month with nothing scored comes back with a null ratio — a gap, not a zero (N37).
+     */
+    suspend fun ratioHistory(
+        months: Int,
+        today: LocalDate,
+        zone: ZoneId,
+    ): DataResult<List<MonthlyRatio>>
 
     /**
      * Marks or unmarks one occurrence as skipped (ROADMAP P3.13).

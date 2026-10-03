@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.adherence
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +16,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidapp.R
 import com.example.androidapp.domain.model.ExerciseAdherence
+import com.example.androidapp.domain.model.MonthlyRatio
 import com.example.androidapp.domain.model.SlotAdherence
 import com.example.androidapp.domain.model.Streak
+import com.example.androidapp.ui.components.ChartPoint
 import com.example.androidapp.ui.components.TestTags
+import com.example.androidapp.ui.components.TrendChartFrame
 import com.example.androidapp.ui.history.HistoryFormat
 import java.time.ZoneId
 
@@ -134,5 +138,42 @@ internal fun StreakSummary(streak: Streak) {
                 modifier = Modifier.testTag(TestTags.Adherence.STREAK_START),
             )
         }
+    }
+}
+
+/**
+ * One point per month, over the same aggregate the grid draws (ROADMAP P3.16).
+ *
+ * The same `TrendChart` the trends screen uses, for the reason it exists: a null value is a gap in
+ * the line rather than a point at the floor, so a month with nothing scored reads as *not scored*
+ * instead of as a failure. Points are placed by month, which is why the x here is a plain index —
+ * months are equal lengths, unlike the readings on N37's time axis.
+ *
+ * Hidden below two scored months: one point is not a history, and the ratio above it already says
+ * what that month was.
+ */
+@Composable
+internal fun RatioHistory(rows: List<MonthlyRatio>) {
+    if (rows.count { it.ratio != null } < 2) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.adherence_history),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.testTag(TestTags.Adherence.HISTORY_TITLE),
+        )
+        TrendChartFrame(
+            points = rows.mapIndexed { index, row ->
+                ChartPoint(x = index.toFloat() / (rows.size - 1), value = row.ratio)
+            },
+            minValue = 0.0,
+            maxValue = 1.0,
+            testTag = TestTags.Adherence.HISTORY_CHART,
+        )
+        Text(
+            text = stringResource(R.string.adherence_history_caption),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(TestTags.Adherence.HISTORY_CAPTION),
+        )
     }
 }

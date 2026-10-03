@@ -503,6 +503,41 @@ object ProgramSchedule {
     }
 
     /**
+     * The ratio of each of [months], in the order given (ROADMAP P3.16).
+     *
+     * A month is the right grid and too short a judgement: a block is four to six weeks, so a
+     * change that took one reads as one flat month after another. This is the same aggregate over
+     * the same definitions, evaluated once per month, so **a point and the grid it came from cannot
+     * disagree** — there is no second ratio to drift, and P3.5's one-window rule holds.
+     *
+     * A month with nothing scored comes back with a null ratio: a gap, not a zero (N37).
+     */
+    fun monthlyRatios(
+        slots: List<ProgramSlot>,
+        sessions: List<AdherenceSession>,
+        skips: List<RecordedSkip>,
+        months: List<YearMonth>,
+        today: LocalDate,
+        /** The deloaded weeks across the window, or none (P3.10). */
+        deloads: List<RecordedDeload> = emptyList(),
+        /** The occurrences trained with another workout across the window, or none (P3.11). */
+        substitutions: List<RecordedSubstitution> = emptyList(),
+    ): List<MonthlyRatio> = months.map { month ->
+        MonthlyRatio(
+            month = month,
+            ratio = monthAdherence(
+                slots = slots,
+                sessions = sessions,
+                skips = skips,
+                deloads = deloads,
+                substitutions = substitutions,
+                month = month,
+                today = today,
+            ).ratio,
+        )
+    }
+
+    /**
      * The month's counts, read per lift (ROADMAP P3.14).
      *
      * [exercisesByTemplate] is the join N14 already has — a template's planned exercise ids — and

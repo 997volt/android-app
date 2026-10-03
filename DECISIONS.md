@@ -386,6 +386,18 @@ the rule; that one argues it.
   a number with its start and never a nudge: the app has no notifications (P4.7 is parked), and a
   streak that pushes is a coach.
 
+- **The ratio's history is the same aggregate per month, so a point cannot disagree with the
+  grid** (P3.16). A month is the right grid and too short a judgement — a block is four to six weeks,
+  so a change that took one reads as one flat month after another — so the ratio gains a chart of
+  one point per month while the grid keeps its month. It is deliberately the *same* `monthAdherence`
+  evaluated once per month over one wider read rather than a second ratio: P3.5's one-window rule
+  holds, and a point and the grid it came from cannot drift. A month with nothing scored is a gap
+  rather than a zero, which is N37's rule for a trend line said again — the chart breaks the line
+  instead of drawing through a month nobody scored. The window is twelve months and is **not** N21's
+  statistics range: that setting is another screen's chart window, and reusing it would make one
+  number mean two things. Because it has to agree with the grid, the history inherits P3.5's limits
+  instead of inventing a second answer — including that the schedule is the program as it is now.
+
 ## Rules that apply to every change
 
 - **A range is a window in the current zone; a session's date is where it happened**

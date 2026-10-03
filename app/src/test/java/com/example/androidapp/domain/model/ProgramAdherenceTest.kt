@@ -670,6 +670,51 @@ class ProgramAdherenceTest {
         assertThat(streak).isNull()
     }
 
+    @Test
+    fun theMonthlyRatios_leaveAGapWhereNothingHasBeenScored() {
+        // ROADMAP P3.16: a month with nothing scored is a gap, not a zero (N37).
+        val ratios = ProgramSchedule.monthlyRatios(
+            slots = listOf(slot("thu", DayOfWeek.THURSDAY)),
+            sessions = listOf(session("t-thu", LocalDate.of(2026, 9, 3))),
+            skips = emptyList(),
+            months = listOf(YearMonth.of(2026, 9), october),
+            today = LocalDate.of(2026, 10, 1),
+        )
+
+        assertThat(ratios.map { it.month })
+            .containsExactly(YearMonth.of(2026, 9), october)
+            .inOrder()
+        // September's four Thursdays, one of them trained.
+        assertThat(ratios.first().ratio).isWithin(TOLERANCE).of(0.25)
+        // October's first Thursday is today, so nothing has been scored yet.
+        assertThat(ratios.last().ratio).isNull()
+    }
+
+    @Test
+    fun aMonthInTheHistory_agreesWithTheMonthTheGridDraws() {
+        // The row's own rule: a point and the grid it came from cannot disagree.
+        val slots = listOf(slot("tue", DayOfWeek.TUESDAY))
+        val sessions = listOf(session("t-tue", monday.plusDays(1)))
+        val skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday.minusWeeks(1)))
+
+        val point = ProgramSchedule.monthlyRatios(
+            slots = slots,
+            sessions = sessions,
+            skips = skips,
+            months = listOf(october),
+            today = today,
+        ).single()
+        val grid = ProgramSchedule.monthAdherence(
+            slots = slots,
+            sessions = sessions,
+            skips = skips,
+            month = october,
+            today = today,
+        )
+
+        assertThat(point.ratio).isEqualTo(grid.ratio)
+    }
+
     private companion object {
         /** A ratio of thirds is not exact in binary floating point. */
         const val TOLERANCE = 1e-9
