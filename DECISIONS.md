@@ -317,7 +317,11 @@ the rule; that one argues it.
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's
-  living-template decision, unchanged.
+  living-template decision, unchanged. P3.12 adds one more the union makes reachable: a session
+  names only its template, so when two active programs put one template in a slot, that session
+  settles an occurrence in **both** and advances both runs. Telling them apart would need the
+  session to record the slot, which P3.8 deliberately did not do; it is recorded here so the
+  overlap is a known limit rather than a surprise.
 
 ## Adherence
 

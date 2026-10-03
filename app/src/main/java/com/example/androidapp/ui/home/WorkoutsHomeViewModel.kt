@@ -148,15 +148,19 @@ class WorkoutsHomeViewModel @Inject constructor(
         }
 
     /**
-     * What today's plan is, by the device's own calendar (ROADMAP N16).
+     * The device's own day, read once when this screen is built (ROADMAP N16).
      *
-     * The day is read once per composition of this flow rather than recomputed on every
-     * emission: a phone left open across midnight is a rounding error, and re-reading a
-     * clock inside a `combine` would make the state unstable for no gain.
+     * One reading supplies both [today]'s weekday and the week a substitution is recorded
+     * against, so the row a lifter taps and the week that write lands in cannot disagree when the
+     * clock crosses midnight: a live read for the write and a captured one for the row meant a tap
+     * on Sunday's plan could be keyed to Monday's week (P3.11). A screen left open across midnight
+     * shows the day it was opened on until it is rebuilt, which is the same accepted staleness the
+     * plan's own heading already carries.
      */
-    private val today: DayOfWeek = timeSource.now()
-        .atZone(ZoneId.systemDefault())
-        .dayOfWeek
+    private val todayDate: LocalDate = timeSource.now().atZone(ZoneId.systemDefault()).toLocalDate()
+
+    /** The weekday of [todayDate], for the "Today" heading and the plan it selects. */
+    private val today: DayOfWeek = todayDate.dayOfWeek
 
     /**
      * Every program home follows, in the authored order (ROADMAP P3.12).
@@ -268,18 +272,16 @@ class WorkoutsHomeViewModel @Inject constructor(
     /**
      * Records that one occurrence is trained with a different workout, or clears it (ROADMAP P3.11).
      *
-     * The week is the current one, taken from the device's own clock: the substitute is chosen at
-     * the point of starting, so "which week" means the week being started now. [templateId] null
-     * restores the slot's own workout.
+     * The week is the one [todayDate] falls in — the day the tapped row was drawn for — so the
+     * write is keyed to the occurrence on screen rather than to whatever day the clock has reached
+     * since. [templateId] null restores the slot's own workout.
      */
     suspend fun setSubstitution(slotId: String, templateId: String?): DataResult<Unit> =
         programRepository.setSubstitution(
             slotId = slotId,
-            weekStart = ProgramSchedule.weekStartOf(todayDate()),
+            weekStart = ProgramSchedule.weekStartOf(todayDate),
             templateId = templateId,
         )
-
-    private fun todayDate(): LocalDate = timeSource.now().atZone(ZoneId.systemDefault()).toLocalDate()
 
     private val ticker: Flow<Unit> = flow {
         while (true) {

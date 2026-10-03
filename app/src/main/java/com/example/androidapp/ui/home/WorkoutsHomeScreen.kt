@@ -282,6 +282,10 @@ private fun FailureMessage(
  *
  * Split out of the screen, which is at the length this project allows, and because the dialog's
  * three exits are one shape: pick a stand-in, restore the scheduled workout, or back out.
+ *
+ * The slot's own template is left out: the dialog asks what stands in for it, so offering the thing
+ * being replaced as a choice was a second, contradictory way to say "the scheduled workout", and the
+ * first row already says that. Starting the scheduled workout stays the row's own Start.
  */
 @Composable
 private fun SubstitutePicker(
@@ -292,7 +296,7 @@ private fun SubstitutePicker(
 ) {
     val current = plan ?: return
     SubstituteDialog(
-        templates = templates,
+        templates = templates.filterNot { it.id == current.templateId },
         onPick = { templateId ->
             onDismiss()
             onChoose(current, templateId)

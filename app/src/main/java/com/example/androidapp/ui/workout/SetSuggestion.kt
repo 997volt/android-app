@@ -165,29 +165,40 @@ fun prescribedWeightGrams(percentOf1Rm: Int, estimatedOneRepMaxGrams: Long?): Lo
 }
 
 /**
- * What a slot prescribes for the next set of one exercise, or null when it says nothing there
- * (ROADMAP P3.8).
+ * What a slot prescribes for the next set of one exercise, merged with the template (ROADMAP P3.8).
  *
- * The slot wins over the template where it speaks (N14), and null leaves [plannedTargetFor] to
- * answer from the template. A percentage resolves through [prescribedWeightGrams], so an
- * exercise with no estimate leaves the load open and the prefill falls back to history rather
- * than inventing a number.
+ * The slot wins **where it speaks** (N14), field by field: a set that writes reps but no load keeps
+ * the template's load, and one that writes only a note leaves the template's target standing rather
+ * than shadowing it with nulls. That is what "anything you leave alone uses the workout's own
+ * targets" promises on the dialog.
+ *
+ * The **load is one number**, though, so it is taken whole from one source or the other: a slot that
+ * names 100 kg must not also inherit the template's assistance, or the set would count the kilograms
+ * as volume while the machine did the work (N15). [template] is the template's own target for the
+ * same set, or null when it has none.
+ *
+ * A percentage resolves through [prescribedWeightGrams], so an exercise with no estimate leaves the
+ * load open and, with no template load to fall back to either, the prefill takes history rather than
+ * inventing a number.
  */
 fun prescribedTargetFor(
     prescription: SlotPrescription?,
     nextIndex: Int,
     estimatedOneRepMaxGrams: Long?,
+    template: PlannedTarget? = null,
 ): PlannedTarget? {
-    val prescribed = prescription?.sets?.firstOrNull { it.setIndex == nextIndex } ?: return null
+    val prescribed = prescription?.sets?.firstOrNull { it.setIndex == nextIndex } ?: return template
     val percentWeight = prescribed.targetPercentOf1Rm?.let {
         prescribedWeightGrams(it, estimatedOneRepMaxGrams)
     }
+    val slotWeight = prescribed.targetWeightGrams ?: percentWeight
+    val slotNamesLoad = slotWeight != null || prescribed.targetAssistanceGrams != null
     return PlannedTarget(
         // The upper bound is the one a written prescription means (`max 2`).
-        reps = prescribed.targetRepsMax ?: prescribed.targetRepsMin,
+        reps = prescribed.targetRepsMax ?: prescribed.targetRepsMin ?: template?.reps,
         // A weight the slot wrote wins over a percentage; the two are alternatives, not a sum.
-        weightGrams = prescribed.targetWeightGrams ?: percentWeight,
-        assistanceGrams = prescribed.targetAssistanceGrams,
+        weightGrams = if (slotNamesLoad) slotWeight else template?.weightGrams,
+        assistanceGrams = if (slotNamesLoad) prescribed.targetAssistanceGrams else template?.assistanceGrams,
     )
 }
 

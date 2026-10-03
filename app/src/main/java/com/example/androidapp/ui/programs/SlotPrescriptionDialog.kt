@@ -407,6 +407,14 @@ private fun SlotSetLoadFields(
             singleLine = true,
             isError = !draft.percentIsValid,
             label = { Text(stringResource(R.string.program_set_percent)) },
+            // A weight and a percentage together are legal but not a sum: the load is one number and
+            // the weight is the one that wins (P3.8). Say so rather than let the percentage look
+            // ignored by accident.
+            supportingText = if (draft.weightText.isNotBlank() && draft.percentText.isNotBlank()) {
+                { Text(stringResource(R.string.program_set_percent_hint)) }
+            } else {
+                null
+            },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
     }

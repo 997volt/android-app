@@ -18,10 +18,10 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 ## Next
 
 Nothing is planned. The deferred scope of the last two rounds — P3.3's and P3.5's, programmed as
-P3.8-P3.16 — has shipped and left for [CHANGELOG.md](CHANGELOG.md). A candidate graduates to this
-section — gaining an id and a spelled-out decision rather than a wish — when it is picked up, so
-an empty *Next* is a state rather than a gap: the two queues below are where unplanned work lives,
-*Later* for what is self-contained and *Parked* for what is a product in its own right.
+P3.8-P3.16 — is built and waiting in [CHANGELOG.md](CHANGELOG.md)'s Unreleased section. A candidate
+graduates to this section — gaining an id and a spelled-out decision rather than a wish — when it is
+picked up, so an empty *Next* is a state rather than a gap: the two queues below are where unplanned
+work lives, *Later* for what is self-contained and *Parked* for what is a product in its own right.
 
 ## Later (still self-contained)
 
@@ -29,7 +29,7 @@ Post-MVP on the same local-only premise, grouped by theme and ordered by value i
 candidate graduates to *Next* — gaining an id and a spelled-out decision — when it is picked
 up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
-Nothing is waiting here. Both paragraphs of deferred scope — P3.3's and P3.5's — shipped as
+Nothing is waiting here. Both paragraphs of deferred scope — P3.3's and P3.5's — are built as
 P3.8-P3.16, and what they named that is not a feature is a settled decision: no dated instances
 (N16), nothing automatic (N22's "the app suggests; it never writes"), a weekday-less slot that is
 never missed and is order-only, and more than one active program, which P3.12 allowed. The next

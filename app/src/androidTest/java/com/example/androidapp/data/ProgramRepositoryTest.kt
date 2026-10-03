@@ -161,7 +161,7 @@ class ProgramRepositoryTest {
     }
 
     @Test
-    fun programs_keepTheAuthoredOrder_andMovingSwapsTwo() = runTest {
+    fun programs_keepTheAuthoredOrder_andMovingReorders() = runTest {
         // The order is authored rather than alphabetical or by creation time, so it has to
         // survive a move (ROADMAP P3.12).
         val first = create("Alpha")
@@ -177,6 +177,24 @@ class ProgramRepositoryTest {
 
         assertEquals(
             listOf(first, third, second),
+            repository.observePrograms().first().map { it.id },
+        )
+    }
+
+    @Test
+    fun programsTiedAtOnePosition_areStillReorderable() = runTest {
+        // A file written before programs could be ordered carries no position, so a restore brings
+        // every program back at 0 and the displayed order is the name order. Swapping two equal
+        // values moves nothing; the move has to re-number the list for the controls to work at all.
+        val first = create("Alpha")
+        val second = create("Beta")
+        database.programDao().setProgramPosition(id = first, position = 0, at = 1L)
+        database.programDao().setProgramPosition(id = second, position = 0, at = 1L)
+
+        repository.moveProgram(second, delta = -1)
+
+        assertEquals(
+            listOf(second, first),
             repository.observePrograms().first().map { it.id },
         )
     }
@@ -849,7 +867,9 @@ class ProgramRepositoryTest {
 
     private fun exercise(id: String) = ExerciseEntity(
         id = id,
-        name = id,
+        // A display name that is *not* the id: `exerciseAdherence` falls back to the id when the
+        // library has no row, so a fixture named after its own id could not tell the two apart.
+        name = id.replace('-', ' ').replaceFirstChar { it.uppercase() },
         primaryMuscle = MuscleGroup.QUADS,
         secondaryMuscles = emptyList(),
         equipment = Equipment.BARBELL,

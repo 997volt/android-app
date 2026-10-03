@@ -255,7 +255,7 @@
     <!-- Substituting one occurrence, this week only (ROADMAP P3.11). -->
     <string name="home_substitute">Substitute</string>
     <string name="home_substitute_title">Train something else?</string>
-    <string name="home_substitute_clear">The scheduled workout</string>
+    <string name="home_substitute_clear">Restore the scheduled workout</string>
     <plurals name="home_plan_exercises">
         <item quantity="one">%1$d exercise</item>
         <item quantity="other">%1$d exercises</item>
@@ -492,6 +492,8 @@
     <string name="program_set_title_new">Add a prescribed set</string>
     <string name="program_set_percent">% of estimated 1RM</string>
     <string name="program_set_percent_value">%1$d%%</string>
+    <!-- Shown only when a set carries both a weight and a percentage: the weight is the one used. -->
+    <string name="program_set_percent_hint">The weight above wins over this percentage.</string>
     <string name="program_remove_slot">Remove %1$s</string>
     <string name="program_delete">Delete program</string>
     <string name="program_delete_confirm_title">Delete this program?</string>

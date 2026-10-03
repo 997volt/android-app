@@ -301,8 +301,10 @@ data class ProgramDto(
     /**
      * The authored order, low first (ROADMAP P3.12).
      *
-     * Defaulted so a file written before programs could be ordered still decodes; the rows it
-     * carries then tie on 0 and fall back to name order, which is what they were.
+     * Defaulted so a file written before programs could be ordered still decodes. Every row then
+     * carries 0 and the list falls back to name order — the old active-first grouping is not
+     * reconstructed — and the first move re-numbers the whole list, so a restored file is
+     * reorderable rather than stuck.
      */
     val position: Int = 0,
     val createdAt: Long,

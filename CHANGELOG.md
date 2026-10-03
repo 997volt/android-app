@@ -104,6 +104,27 @@ repeated here.
   nothing was scored there, it did not fail. The window is deliberately not the statistics screen's
   range (N21), which would make one number mean two things. No schema change.
 
+### Fixed
+
+- **A restore no longer fails on a program's slot** (no feature id). The import inserted the program
+  tables before the templates they name, so a restore into a fresh install — the one case the backup
+  exists for — hit `FOREIGN KEY constraint failed` on `program_slots.templateId` and rolled the
+  **whole** import back, leaving an empty database. The two halves are now ordered parent-first
+  across the boundary (`insertMissing` before `importPrograms`), and the round-trip test asserts the
+  import succeeded rather than reading an empty table back. The ordering predates this round — it
+  shipped with P3.3 at v1.9 — and this round is the first coverage of it.
+- **A restored program list can be reordered again** (P3.12). A file written before the order existed
+  carries no `position`, so every program came back at 0; `moveProgram` swapped two equal values and
+  the up/down controls did nothing, permanently. A move now re-numbers the whole list from the
+  displayed order, which repairs the ties on the first move.
+- **A slot's prescribed set no longer erases the template's target with nulls** (P3.8). A set that
+  wrote only a note, or only reps, left the template's numbers unreachable because the slot's target
+  shadowed it. The slot now wins field by field, with the load still taken whole from one side or the
+  other so a slot's kilograms cannot be added to a template's assistance (N15).
+- **A substitution is recorded against the week the tapped row was drawn for** (P3.11), not against
+  whatever day the clock had reached, so a tap on Sunday's plan can no longer be keyed to Monday's
+  week.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

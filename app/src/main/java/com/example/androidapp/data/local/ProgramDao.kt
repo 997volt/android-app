@@ -237,17 +237,17 @@ interface ProgramDao {
     )
     suspend fun setProgramPosition(id: String, position: Int, at: Long): Int
 
-    /** Swaps two programs in one transaction, so a reorder cannot half-move (P3.12). */
+    /**
+     * Writes the whole order in one transaction, so a move cannot half-apply (ROADMAP P3.12).
+     *
+     * The whole list rather than a swap: a database restored from a file written before programs
+     * could be ordered carries every row at position 0, and swapping two zeros is a no-op that
+     * leaves the up/down controls dead. Re-numbering from the displayed order repairs that on
+     * the first move.
+     */
     @Transaction
-    suspend fun swapProgramPositions(
-        firstId: String,
-        firstPosition: Int,
-        secondId: String,
-        secondPosition: Int,
-        at: Long,
-    ) {
-        setProgramPosition(id = firstId, position = firstPosition, at = at)
-        setProgramPosition(id = secondId, position = secondPosition, at = at)
+    suspend fun resequencePrograms(order: List<Pair<String, Int>>, at: Long) {
+        order.forEach { (id, position) -> setProgramPosition(id = id, position = position, at = at) }
     }
 
     /** Next free slot position; -1 on an empty program, so callers add 1. */

@@ -464,7 +464,12 @@ class BackupRoundTripTest {
 
         val json = exportedJson()
         database.clearAllTables()
-        repository.import(json)
+        // The import must *succeed*, not roll back: a slot names a template through a foreign key,
+        // and a restore that inserted the program tables before the templates failed the whole
+        // transaction and left an empty database behind. Asserted here rather than trusted to the
+        // reads below, so the failure is the import and not a puzzling empty list.
+        val imported = repository.import(json)
+        assertTrue("a restore into an empty database must not roll back: $imported", imported is DataResult.Success)
 
         val exercise = database.programPrescriptionDao().observeSlotExercises("slot1").first().single()
         assertEquals(150, exercise.restSeconds)
@@ -477,7 +482,7 @@ class BackupRoundTripTest {
         assertEquals("the one target a template's planned set cannot carry", 85, set.targetPercentOf1Rm)
         assertEquals("grind", set.note)
 
-        val deload = database.programDeloadDao().observeDeloads().first().single()
+        val deload = database.programBackupDao().allProgramDeloads().single()
         assertEquals("the deloaded week survives", 20_305L, deload.weekStart)
         assertEquals("p1", deload.programId)
     }

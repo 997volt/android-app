@@ -143,17 +143,18 @@ class RoomProgramRepository @Inject constructor(
     }
 
     override suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit> = dataResultOf {
-        val row = dao.findProgram(programId) ?: throw NotFoundException("program $programId")
+        if (dao.findProgram(programId) == null) throw NotFoundException("program $programId")
         val ordered = dao.findPrograms()
         val index = ordered.indexOfFirst { it.id == programId }
-        val neighbour = ordered.getOrNull(index + delta)
+        val target = index + delta
         // At the top or the bottom: nothing to do, and not an error.
-        if (index >= 0 && neighbour != null) {
-            dao.swapProgramPositions(
-                firstId = row.id,
-                firstPosition = neighbour.position,
-                secondId = neighbour.id,
-                secondPosition = row.position,
+        if (index >= 0 && target in ordered.indices) {
+            // Re-number the whole list rather than swap two rows: a restore from a file written
+            // before programs could be ordered leaves every position at 0, where a swap of two
+            // equal values moves nothing (P3.12).
+            val reordered = ordered.map { it.id }.toMutableList().apply { add(target, removeAt(index)) }
+            dao.resequencePrograms(
+                order = reordered.mapIndexed { position, id -> id to position },
                 at = timeSource.nowEpochMillis(),
             )
         }

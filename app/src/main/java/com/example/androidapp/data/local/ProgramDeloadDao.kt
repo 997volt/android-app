@@ -3,7 +3,6 @@ package com.example.androidapp.data.local
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 /**
  * The weeks a program was deliberately backed off (ROADMAP P3.10).
@@ -14,10 +13,6 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface ProgramDeloadDao {
-
-    /** Every live deload, for the adherence screen. */
-    @Query("SELECT * FROM program_deloads WHERE deletedAt IS NULL")
-    fun observeDeloads(): Flow<List<ProgramDeloadEntity>>
 
     /** The live deloads for any week in [from, to] inclusive, both epoch days (P3.10). */
     @Query(

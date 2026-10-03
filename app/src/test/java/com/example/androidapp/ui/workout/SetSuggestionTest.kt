@@ -239,14 +239,85 @@ class SetSuggestionTest {
 
     @Test
     fun aSetTheSlotDoesNotMention_isLeftToTheTemplate() {
-        // Null, not an empty target: an empty one would erase the template's numbers (N14).
+        // The slot overrides only what it says: a prescription with no set at this index hands the
+        // template's own target straight back (N14, P3.8).
+        val template = PlannedTarget(reps = 5, weightGrams = 100_000L)
         val target = prescribedTargetFor(
             prescription = SlotPrescription(exerciseId = "back-squat", sets = emptyList()),
             nextIndex = 0,
             estimatedOneRepMaxGrams = 100_000L,
+            template = template,
         )
 
-        assertNull(target)
+        assertEquals(template, target)
+    }
+
+    @Test
+    fun aSlotSetThatNamesNothing_keepsTheTemplatesTarget() {
+        // A set carrying only a note speaks about the note, not the load: the dialog promises that
+        // anything left alone uses the workout's own targets (P3.8).
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, note = "slow descent")),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = 100_000L,
+            template = PlannedTarget(reps = 5, weightGrams = 100_000L),
+        )
+
+        assertEquals("the template's reps still stand", 5, target?.reps)
+        assertEquals("and its bar", 100_000L, target?.weightGrams)
+    }
+
+    @Test
+    fun aSlotSetThatNamesRepsOnly_keepsTheTemplatesLoad() {
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, targetRepsMin = 3, targetRepsMax = 3)),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = 100_000L,
+            template = PlannedTarget(reps = 5, weightGrams = 100_000L),
+        )
+
+        assertEquals("the slot's reps win", 3, target?.reps)
+        assertEquals("the slot said nothing about the bar", 100_000L, target?.weightGrams)
+    }
+
+    @Test
+    fun aSlotSetThatNamesALoad_doesNotAlsoInheritTheTemplatesAssistance() {
+        // The load is *one* number (N15): taking the slot's kilograms and the template's assistance
+        // would build a set that is both, and count the kilograms as volume on an assisted set.
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "assisted-pull-up",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, targetWeightGrams = 100_000L)),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = null,
+            template = PlannedTarget(reps = 5, weightGrams = null, assistanceGrams = 20_000L),
+        )
+
+        assertEquals(100_000L, target?.weightGrams)
+        assertNull("the template's assistance must not ride along", target?.assistanceGrams)
+    }
+
+    @Test
+    fun aSlotPercentageWithNoEstimate_fallsBackToTheTemplatesLoad() {
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, targetPercentOf1Rm = 85, targetRepsMin = 3)),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = null,
+            template = PlannedTarget(reps = 5, weightGrams = 100_000L),
+        )
+
+        assertEquals(3, target?.reps)
+        assertEquals("no estimate means the template's bar, not an invented one", 100_000L, target?.weightGrams)
     }
 
     @Test

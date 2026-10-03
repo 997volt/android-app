@@ -1170,8 +1170,7 @@ private fun SessionExercise.toRow(
     supersetLabels: Map<String, String>,
     accepted: AcceptedPrefill?,
 ): SessionExerciseRow {
-    val loggedSets = sets
-        .filter { it.sessionExerciseId == id }
+    val loggedSets = sets.filter { it.sessionExerciseId == id }
         .sortedBy { it.setIndex }
         .mapIndexed { index, set ->
             SetRow(
@@ -1205,13 +1204,13 @@ private fun SessionExercise.toRow(
         suggestion = suggestionForNextSet(
             loggedSets = loggedSets,
             previous = previous,
-            // The slot's prescription for this set where it has one; the template's otherwise
-            // (ROADMAP P3.8, N14).
+            // The slot wins where it speaks; the template fills whatever it leaves alone (P3.8, N14).
             planned = prescribedTargetFor(
                 prescription = plan.prescription,
                 nextIndex = loggedSets.size,
                 estimatedOneRepMaxGrams = plan.estimatedOneRepMaxGrams,
-            ) ?: plannedTargetFor(plan.planned, position = position, nextIndex = loggedSets.size),
+                template = plannedTargetFor(plan.planned, position = position, nextIndex = loggedSets.size),
+            ),
         ).let { suggestion ->
             // An accepted offer wins over the rule, but only while it still applies: once a set is
             // logged the count moves on and the offer is spent.

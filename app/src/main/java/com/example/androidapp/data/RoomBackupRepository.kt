@@ -124,10 +124,17 @@ class RoomBackupRepository @Inject constructor(
         // The shape is: a soft delete keeps the row under its id, so an insert-only import
         // skips exactly what a restore is meant to bring back — restore the hidden rows from
         // the file (which also clears `deletedAt`), then insert what is genuinely missing.
+        //
+        // `insertMissing` runs **first**, because the order is parent-before-child across the
+        // two helpers and not just inside each one: `program_slots.templateId` and
+        // `program_substitutions.templateId` reference `templates`, and running the program
+        // block first made every restore into a fresh database fail with
+        // `FOREIGN KEY constraint failed` and roll the whole import back.
         val summary = database.withTransaction {
+            val inserted = insertMissing(file)
             val programs = importPrograms(file)
             ImportSummary(
-                added = insertMissing(file) + programs.added,
+                added = inserted + programs.added,
                 restored = restoreSoftDeleted(file) + programs.restored,
             )
         }
