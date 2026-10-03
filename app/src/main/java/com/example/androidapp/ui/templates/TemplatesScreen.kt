@@ -24,8 +24,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -37,8 +39,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.model.WorkoutTemplate
 import com.example.androidapp.ui.components.CenteredMessage
+import com.example.androidapp.ui.components.MessageSnackbar
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
+import com.example.androidapp.ui.programs.programStartGate
+import com.example.androidapp.ui.programs.StartIntent
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
 /**
@@ -60,6 +65,15 @@ fun TemplatesRoute(
     val created by viewModel.createdTemplateId.collectAsStateWithLifecycle()
     val currentOnOpenTemplate by rememberUpdatedState(onOpenTemplate)
 
+    // Starting a plan is a start like any other, so the program's missed-day question is
+    // asked here too (ROADMAP P3.3). The gate is the home screen's, shared rather than
+    // copied: "which day did I miss" is one rule, not two.
+    var gateMessage by remember { mutableStateOf<String?>(null) }
+    val requestStart = programStartGate(
+        onStart = { intent -> intent.templateId?.let(onStartTemplate) },
+        onError = { gateMessage = it },
+    )
+
     // A newly created template opens straight into its editor: it has no exercises
     // yet and its name is still the default, so there is nothing to see in a row.
     LaunchedEffect(created) {
@@ -73,10 +87,19 @@ fun TemplatesRoute(
         state = state,
         onCreateTemplate = viewModel::onCreateTemplate,
         onOpenTemplate = onOpenTemplate,
-        onStartTemplate = onStartTemplate,
+        onStartTemplate = { templateId ->
+            requestStart(
+                StartIntent(
+                    templateId = templateId,
+                    label = state.templates.firstOrNull { it.id == templateId }?.name,
+                ),
+            )
+        },
         onDismissMessage = viewModel::onErrorShown,
         onBack = onBack,
         modifier = modifier,
+        message = gateMessage,
+        onDismissGateMessage = { gateMessage = null },
     )
 }
 
@@ -90,17 +113,21 @@ fun TemplatesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onDismissMessage: () -> Unit = {},
+    /** A sentence from the point-of-start question, shown on the same host (ROADMAP P3.3). */
+    message: String? = null,
+    onDismissGateMessage: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val defaultName = stringResource(R.string.template_default_name)
     val currentOnDismissMessage by rememberUpdatedState(onDismissMessage)
+    MessageSnackbar(message, snackbarHostState, onDismissGateMessage)
 
     // The message is resolved during composition and shown from the effect, because
     // a string resource cannot be read inside LaunchedEffect.
     state.error?.let { failure ->
-        val message = dataErrorMessage(failure)
-        LaunchedEffect(message) {
-            snackbarHostState.showSnackbar(message)
+        val failureMessage = dataErrorMessage(failure)
+        LaunchedEffect(failureMessage) {
+            snackbarHostState.showSnackbar(failureMessage)
             currentOnDismissMessage()
         }
     }

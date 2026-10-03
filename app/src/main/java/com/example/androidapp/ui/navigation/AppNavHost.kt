@@ -23,6 +23,8 @@ import com.example.androidapp.ui.exercises.ExerciseLibraryRoute
 import com.example.androidapp.ui.history.WorkoutDetailRoute
 import com.example.androidapp.ui.history.WorkoutHistoryRoute
 import com.example.androidapp.ui.home.WorkoutsHomeRoute
+import com.example.androidapp.ui.programs.ProgramEditorRoute
+import com.example.androidapp.ui.programs.ProgramsRoute
 import com.example.androidapp.ui.templates.TemplateEditorRoute
 import com.example.androidapp.ui.statistics.StatisticsRoute
 import com.example.androidapp.ui.templates.TemplatesRoute
@@ -73,6 +75,7 @@ fun AppNavHost(
             homeDestinations(navController)
             workoutDestinations(navController)
             templateDestinations(navController)
+            programDestinations(navController)
             historyDestinations(navController)
         }
     }
@@ -100,6 +103,8 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             onStartTemplate = { templateId -> navController.navigate(ActiveWorkout(templateId)) },
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
             onOpenHistory = { navController.navigate(WorkoutHistory) },
+            // The schedule the today's-plan section is read from (ROADMAP P3.3).
+            onOpenPrograms = { navController.navigate(Programs) },
         )
     }
 
@@ -174,9 +179,22 @@ private fun NavGraphBuilder.templateDestinations(navController: NavHostControlle
     }
 }
 
+/** Programs: the list and one program's editor (ROADMAP P3.3). */
+private fun NavGraphBuilder.programDestinations(navController: NavHostController) {
+    composable<Programs> {
+        ProgramsRoute(
+            onOpenProgram = { programId -> navController.navigate(ProgramEditor(programId)) },
+            onBack = { navController.popBackStack() },
+        )
+    }
+
+    composable<ProgramEditor> {
+        ProgramEditorRoute(onBack = { navController.popBackStack() })
+    }
+}
+
 /** Finished workouts and one workout's detail. */
-private fun NavGraphBuilder.historyDestinations(navController: NavHostController) {
-    composable<WorkoutHistory> {
+private fun NavGraphBuilder.historyDestinations(navController: NavHostController) {    composable<WorkoutHistory> {
         WorkoutHistoryRoute(
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
             onBack = { navController.popBackStack() },

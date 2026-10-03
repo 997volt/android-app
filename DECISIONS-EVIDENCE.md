@@ -330,6 +330,55 @@ companion object freezes the zone at class load, so a process that outlives a ti
 change keeps computing "today" in a zone the device no longer has. Every screen reads it at
 the point of use, and the statistics view model now does too.
 
+## P3.3
+
+Programs. The shape was decided before the code, and the interesting part is what each
+decision rules out.
+
+**A skip is an event, not a flag.** The obvious model is a `skipped` boolean on the slot. It
+cannot work: the same weekday recurs every week, so the flag would have to be reset, and it
+would be wrong the moment two weeks in a row were missed. A row per (slot, week) needs no
+resetting and answers "what did I miss in the week of the 5th" — which is exactly the query
+P3.5's adherence is made of. The week's Monday is stored as an epoch day rather than a
+timestamp, because "which week" is a calendar question and a millisecond would drag a
+timezone into it.
+
+**Provenance, not prescription, on the session.** An occurrence is settled by the session
+started from its template, so the session has to say which template that was. N16 explicitly
+rejected copying a plan's *targets* onto a session — that freezes what the plan prescribes and
+makes "living template" false. Copying the template's *id* is the opposite: it records where
+the session came from and changes nothing about the plan. The column is therefore written
+**only on insert**: `findOrCreateActiveSession` returns early for a resumed session, so a
+resumed workout keeps the provenance it was created with rather than acquiring a new one.
+
+**Matching is by template and date, and the rule order is stated because ties are real.** More
+than one slot can reference the same template (a lift trained twice a week is the normal
+case), so one session has to choose which occurrence it settles. Exact weekday first, then the
+latest earlier slot, then the earliest later one, then the earliest unresolved; a session
+resolves one occurrence and an occurrence is settled by the first session that matches it.
+Matching by *exercises* was rejected — it breaks the moment a template is edited, and it
+cannot tell two slots apart. The week is Monday-start and taken in the session's own zone
+(N25), which is the only reading that survives a workout performed after a flight.
+
+**The question is asked at the point of starting.** Asking at launch was rejected outright: an
+app that interrogates you when you open it is one you stop opening. Only days strictly before
+today count as missed, so a Friday slot on a Wednesday is not "settled" by a Continue that
+would be inventing a decision. Continue writes every pending skip in one call for the same
+reason it exists at all: asking again for the next miss turns two misses into two
+interrogations.
+
+**One active program is a flag on the row.** The alternative — an id in `SharedPreferences` —
+was rejected because a program is training data: it rides in the backup like a plan or a
+measurement, and a preference pointing at it would split one answer across two stores and be
+lost on a restore. `setActiveProgram` clears the others and sets this one in a single
+transaction, so "at most one" cannot be observed half-applied. `isActive` also makes the
+fallback explicit: no live row active means the home screen reads the N16 pins it always did.
+
+**The migration leaves `templateId` null, deliberately.** A workout recorded before programs
+existed cannot be given the template it was started from — that was never captured — and
+stamping one on would make it settle an occurrence it never touched. Null means "unknown",
+and the matcher finds no session for those weeks, which is the honest outcome.
+
 ## Truth, Turbine
 
 New and touched tests assert with Truth, and assert Flow sequences with Turbine.

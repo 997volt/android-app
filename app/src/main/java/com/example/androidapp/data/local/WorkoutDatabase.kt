@@ -24,8 +24,11 @@ import androidx.room.TypeConverters
         TemplateExerciseEntity::class,
         TemplateSetEntity::class,
         MeasurementEntity::class,
+        ProgramEntity::class,
+        ProgramSlotEntity::class,
+        ProgramSkipEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -44,8 +47,14 @@ abstract class WorkoutDatabase : RoomDatabase() {
     /** Templates and their exercises (ROADMAP N3). */
     abstract fun templateDao(): TemplateDao
 
+    /** Programs, their slots and their recorded skips (ROADMAP P3.3). */
+    abstract fun programDao(): ProgramDao
+
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao
+
+    /** The newest tables' half of that (ROADMAP P3.3), split to keep both under the ceiling. */
+    abstract fun programBackupDao(): ProgramBackupDao
 
     /** Read-only per-workout aggregates for the trends screen (ROADMAP N13). */
     abstract fun trendsDao(): TrendsDao

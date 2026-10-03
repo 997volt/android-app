@@ -48,6 +48,21 @@ data class BackupFile(
     /** A plan's sets (ROADMAP N14). Defaulted, like every added collection. */
     val templateSets: List<TemplateSetDto> = emptyList(),
     /**
+     * Programs: an ordered list of templates, each with a weekday (ROADMAP P3.3).
+     *
+     * Defaulted like every added collection. A program is the user's authored training
+     * setup, so it rides in the file with the templates it orders.
+     */
+    val programs: List<ProgramDto> = emptyList(),
+    val programSlots: List<ProgramSlotDto> = emptyList(),
+    /**
+     * The weeks an occurrence was consciously passed over (ROADMAP P3.3).
+     *
+     * They are history, not configuration: without them a restored schedule cannot tell a
+     * skip from a miss, which is exactly what P3.5 will read them for.
+     */
+    val programSkips: List<ProgramSkipDto> = emptyList(),
+    /**
      * Body measurements (ROADMAP N32).
      *
      * Defaulted, like every added collection — and it must be here in the same change as the table,
@@ -142,6 +157,13 @@ data class SessionDto(
      * than acquiring an offset it never had.
      */
     val zoneOffsetMinutes: Int? = null,
+    /**
+     * The template this session was started from, or null (ROADMAP P3.3).
+     *
+     * Defaulted for the same reason as every added field: a file written before programs
+     * existed still decodes, and its sessions simply have no provenance.
+     */
+    val templateId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -242,6 +264,42 @@ data class TemplateSetDto(
     /** The plan target's pre-half-step whole-number RPE, read only (ROADMAP N6). */
     val targetRpe: Int? = null,
     val note: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** A program (ROADMAP P3.3): a name, and whether the home screen follows it. */
+@Serializable
+data class ProgramDto(
+    val id: String,
+    val name: String,
+    val isActive: Boolean = false,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** One slot of a program: a template, a place in the order, and a weekday (ROADMAP P3.3). */
+@Serializable
+data class ProgramSlotDto(
+    val id: String,
+    val programId: String,
+    val templateId: String,
+    val position: Int,
+    val weekday: DayOfWeek? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** A recorded skip: a slot's occurrence in one week (ROADMAP P3.3). */
+@Serializable
+data class ProgramSkipDto(
+    val id: String,
+    val slotId: String,
+    /** Monday of the week, as `LocalDate.toEpochDay()`. */
+    val weekStart: Long,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

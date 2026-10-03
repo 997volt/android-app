@@ -3,8 +3,8 @@
 Settled choices for Workout, kept out of [ROADMAP.md](ROADMAP.md) so that file stays a
 queue. Nothing here is a task: each entry is a decision already taken, recorded so it is
 not relitigated by accident. A decision that constrains **unshipped** work stays with that
-work in the roadmap — P3.3's `templateId` on a session and its `program_skips` rows, N39's
-parked plan target — and moves here once the feature ships.
+work in the roadmap — N39's parked plan target is the one left — and moves here once the
+feature ships.
 
 Each entry states the rule, the shortest honest reason, and the alternative that was
 rejected. The argument behind it — measurements, observed history, verbatim errors, the
@@ -63,7 +63,6 @@ the rule; that one argues it.
   would add a plan-per-date entity, plan generation and skipped-week handling for a
   comparison the logged sets already allow; several plans may share a day.
   ([evidence](DECISIONS-EVIDENCE.md#n16))
-
 - **One-tap "Log set" writes the set its button describes** (D3, B7). Withholding
   knowledge so that display and storage agree is worse; a logged set may differ from the
   plan, never from the button.
@@ -222,6 +221,47 @@ the rule; that one argues it.
   instead of hitting its neighbour; the cost is that tags become visible to accessibility
   tooling, which is what an annotation meant for tooling is for.
   ([evidence](DECISIONS-EVIDENCE.md#n38))
+
+## Programs
+
+- **A program orders templates; a slot is a template plus an optional weekday** (P3.3). It is
+  the container N16's pins cannot be on their own: a pin says what happens on a Tuesday, but
+  nothing orders the pins against each other, so "which one is next" has no answer. A
+  weekday-less slot is order-only and is never "missed" — it has no day to miss. Today's plan
+  comes from the slot pinned to today, and **with no program active home falls back to the
+  template pins it already reads**.
+- **A skipped occurrence is an event keyed by slot and week** (P3.3). `program_skips` stores the
+  week's Monday as an epoch day, never a boolean on the slot: the same weekday recurs, so a flag
+  would need resetting and would be wrong the moment two weeks in a row were missed. The
+  rejected alternative — a `skipped` column — cannot answer P3.5 either, because a standing
+  weekday pin carries no history. ([evidence](DECISIONS-EVIDENCE.md#p33))
+- **The missed-day question is asked at the point of starting, never at launch** (P3.3). An app
+  that questions you when you open it is one you stop opening. *Do it now* starts the missed
+  slot; *Continue* records a skip for **every** pending occurrence this week in one write,
+  because asking again for the next one turns two misses into two interrogations. Only days
+  strictly before today are pending: recording a skip for a Friday on a Wednesday would be the
+  app inventing a decision the user has not taken.
+- **A session records the template it was started from, and only when it is created** (P3.3).
+  One nullable `templateId` on `workout_sessions`, written at the moment the session opens, so a
+  resumed session never rewrites it. This **amends N16 deliberately**: N16 rejected copying a
+  plan's *targets* onto a session because that freezes what the plan prescribes; recording
+  *where a session came from* freezes nothing, so the template stays living. It is provenance,
+  not prescription. ([evidence](DECISIONS-EVIDENCE.md#p33))
+- **An occurrence is matched by template and date, in a Monday-start week taken in the session's
+  own zone** (P3.3, extending N25). With one candidate slot it resolves; with several, an exact
+  weekday match wins, then the latest slot earlier in the week (done late), then the earliest
+  after it (done early), then the earliest unresolved. A session resolves at most one
+  occurrence, and an occurrence is resolved by at most one session — the first. Matching by
+  exercises was rejected: it breaks the moment a template is edited and cannot tell two slots
+  apart. ([evidence](DECISIONS-EVIDENCE.md#p33))
+- **One active program, and it is a flag on the row** (P3.3). `programs.isActive` is set in one
+  transaction that clears the others, so "at most one" is a property of a single statement
+  rather than an invariant two stores have to agree on. A program is training data and rides in
+  the backup; the flag keeps that answer there rather than splitting it into a preference.
+- **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
+  the workout was started from that template, a second session from the same template in a week
+  is unmatched, and editing a template changes every week that references it — N16's
+  living-template decision, unchanged.
 
 ## Rules that apply to every change
 

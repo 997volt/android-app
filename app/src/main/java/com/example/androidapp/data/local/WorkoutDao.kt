@@ -153,6 +153,13 @@ interface WorkoutDao {
          * production caller always knows, and passes it.
          */
         zoneOffsetMinutes: Int? = null,
+        /**
+         * The template the workout is being started from, or null (ROADMAP P3.3).
+         *
+         * Written only on the insert below, which is the whole point: a resumed session
+         * returns early and keeps the provenance it was created with.
+         */
+        templateId: String? = null,
     ): SessionStart {
         findActiveSession()?.let { return SessionStart(session = it, created = false) }
 
@@ -169,6 +176,9 @@ interface WorkoutDao {
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
+            // Provenance, not prescription: it records where the session came from and freezes
+            // nothing about the plan (ROADMAP P3.3, amending N16).
+            templateId = templateId,
         )
         insertSession(session)
         return SessionStart(session = session, created = true)

@@ -75,6 +75,8 @@ object TestTags {
 
     /** The other half of the start action (ROADMAP N3): begin from a template. */
     const val HOME_START_FROM_TEMPLATE = "home_start_from_template"
+    /** The way into programs, one tap from the plan they schedule (ROADMAP P3.3). */
+    const val HOME_PROGRAMS = "home_programs"
     const val HOME_REPEAT_LAST = "home_repeat_last"
     const val DETAIL_SAVE_AS_PLAN = "detail_save_as_plan"
     const val DETAIL_PLAN_NAME = "detail_plan_name"
@@ -251,6 +253,46 @@ object TestTags {
 
     /** Pinning a plan to a weekday (ROADMAP N16). */
     fun templateWeekday(day: String) = "template_weekday_$day"
+
+    /**
+     * Programs (ROADMAP P3.3), grouped so this object stays under its ceiling.
+     *
+     * The same shape as templates: a flat list with rows addressed by id, so a test names
+     * the slot it means rather than counting positions.
+     */
+    object Programs {
+        const val NEW = "programs_new"
+        const val EMPTY = "programs_empty"
+        const val NAME_FIELD = "program_name_field"
+        const val NAME_SAVE = "program_name_save"
+        const val ACTIVE = "program_active"
+        const val ADD_SLOT = "program_add_slot"
+        const val NO_SLOTS = "program_no_slots"
+        const val DELETE = "program_delete"
+        const val DELETE_CONFIRM = "program_delete_confirm"
+        const val PICKER = "program_template_picker"
+        const val PICKER_EMPTY = "program_template_picker_empty"
+
+        /** The point-of-start question (P3.3): the missed day, and the two answers. */
+        const val SKIP_PROMPT = "program_skip_prompt"
+        const val SKIP_DO_NOW = "program_skip_do_now"
+        const val SKIP_CONTINUE = "program_skip_continue"
+
+        /** A program in the list; tapping it edits, its button makes it the active one. */
+        fun row(id: String) = "program_row_$id"
+
+        fun use(id: String) = "program_use_$id"
+
+        fun slot(id: String) = "program_slot_$id"
+
+        fun move(id: String, up: Boolean) = "program_slot_move_${if (up) "up" else "down"}_$id"
+
+        fun slotWeekday(id: String, day: String) = "program_slot_weekday_${day}_$id"
+
+        fun removeSlot(id: String) = "program_slot_remove_$id"
+
+        fun pickTemplate(id: String) = "program_pick_template_$id"
+    }
 
     /** The measurements screen's own tags (ROADMAP N32), grouped so this object stays under its ceiling. */
     object Measurements {

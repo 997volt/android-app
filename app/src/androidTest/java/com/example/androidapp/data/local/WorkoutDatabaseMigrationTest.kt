@@ -862,4 +862,54 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration19To20_addsPrograms_withoutInventingProvenance() {
+        // ROADMAP P3.3. Three new tables and one additive column, and the column is the half
+        // worth a test: a workout done before programs existed cannot be given a template it
+        // was started from, and inventing one would make it settle an occurrence it never
+        // touched.
+        helper.createDatabase(TEST_DB, 19).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, finishedAt, zoneOffsetMinutes,
+                    createdAt, updatedAt, deletedAt)
+                VALUES ('s1', 100, 200, 540, 100, 200, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions (id, startedAt, createdAt, updatedAt, deletedAt)
+                VALUES ('s2', 300, 300, 300, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 20, true, MIGRATION_19_20)
+
+        // The sessions survive, and their provenance is unknown rather than manufactured.
+        migrated.query(
+            "SELECT id, zoneOffsetMinutes, templateId FROM workout_sessions ORDER BY id",
+        ).use { cursor ->
+            assertTrue("the finished session survived", cursor.moveToFirst())
+            assertEquals("s1", cursor.getString(0))
+            assertEquals("its own zone is untouched", 540, cursor.getInt(1))
+            assertTrue("and no template is invented for it", cursor.isNull(2))
+            assertTrue("the open one survived too", cursor.moveToNext())
+            assertEquals("s2", cursor.getString(0))
+            assertTrue("with no provenance either", cursor.isNull(2))
+            assertFalse("exactly the rows that were there", cursor.moveToNext())
+        }
+
+        // The three new tables exist and are empty.
+        listOf("programs", "program_slots", "program_skips").forEach { table ->
+            migrated.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("no $table is invented by the upgrade", 0, cursor.getInt(0))
+            }
+        }
+
+        migrated.close()
+    }
 }

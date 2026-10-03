@@ -401,4 +401,47 @@
     <string name="history_delete_confirm_text">It disappears from your history. There is no undo in the app — only an exported backup would bring it back.</string>
     <string name="history_delete_confirm">Delete</string>
     <string name="history_cancel">Cancel</string>
+
+    <!-- Programs (ROADMAP P3.3): an ordered list of templates, each with a weekday.
+         The container the N16 pins cannot be on their own, because a pin says what
+         happens on a Tuesday but nothing orders the pins against each other. -->
+    <string name="programs_title">Programs</string>
+    <string name="programs_loading">Loading programs…</string>
+    <string name="programs_empty">No programs yet</string>
+    <string name="programs_empty_hint">A program is your workouts in the order you train them, with a day for each.</string>
+    <string name="program_new">New program</string>
+    <string name="program_default_name">New program</string>
+    <string name="program_use">Use</string>
+    <string name="program_in_use">In use</string>
+    <string name="program_edit_title">Program</string>
+    <string name="program_name_label">Name</string>
+    <string name="program_save_name">Save name</string>
+    <string name="program_active">Active program</string>
+    <string name="program_active_hint">Home follows this program’s days. With none active it falls back to each plan’s own weekday.</string>
+    <string name="program_no_slots">No workouts yet</string>
+    <string name="program_no_slots_hint">Add the workouts you train, in order, and give each one a day.</string>
+    <string name="program_add_slot">Add workout</string>
+    <string name="program_move_up">Move %1$s up</string>
+    <string name="program_move_down">Move %1$s down</string>
+    <string name="program_remove_slot">Remove %1$s</string>
+    <string name="program_delete">Delete program</string>
+    <string name="program_delete_confirm_title">Delete this program?</string>
+    <string name="program_delete_confirm_text">The schedule goes away. The workouts it points at, and everything you logged, stay.</string>
+    <string name="program_pick_title">Add a workout</string>
+    <string name="program_pick_empty">No templates to add yet</string>
+    <string name="program_pick_empty_hint">A slot is a template, so create one first.</string>
+    <plurals name="program_slots">
+        <item quantity="one">%1$d workout</item>
+        <item quantity="other">%1$d workouts</item>
+    </plurals>
+    <!-- Asked at the point of starting, never at launch: an app that questions you when
+         you open it is one you stop opening. -->
+    <string name="program_skip_title">Missed a day</string>
+    <string name="program_skip_body">You missed %1$s on %2$s. Do it now, or continue with %3$s?</string>
+    <string name="program_skip_body_plain">You missed %1$s on %2$s. Do it now, or continue?</string>
+    <string name="program_skip_do_now">Do it now</string>
+    <string name="program_skip_continue">Continue</string>
+    <string name="program_skip_continue_with">Continue with %1$s</string>
+    <string name="program_skip_note">Continuing marks every missed day this week as skipped.</string>
+    <string name="home_programs">Programs</string>
 </resources>

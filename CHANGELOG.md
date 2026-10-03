@@ -12,6 +12,38 @@ repeated here.
 
 ## [Unreleased]
 
+### Added
+
+- **Programs: an ordered list of templates, each with a weekday, schema v20** (P3.3). A program
+  is the container the N16 pins could not be on their own — a pin answers "what happens on a
+  Tuesday", but nothing ordered the pins against each other, so "which one is next" had no
+  answer. A **slot** is a template plus an optional weekday; a weekday-less slot is order-only
+  and can never be missed. **Today's plan comes from the slot pinned to today**; with no program
+  active, home falls back to the template pins it already read.
+- **The missed day is asked about at the point of starting, not assumed and not asked at
+  launch.** Starting a workout with a scheduled day this week neither trained nor skipped asks
+  *"You missed Paused Squat on Tuesday. Do it now, or continue with Bench?"* — **Do it now**
+  starts that slot, **Continue** records a skip for **every** pending occurrence that week, so
+  two misses are not two interrogations. Only days already behind you count: a Friday slot on a
+  Wednesday has not been missed yet.
+- **A skip is an event keyed by slot and week** (`program_skips`, storing the Monday as an epoch
+  day), never a boolean on the slot — a flag would need resetting and would be wrong the moment
+  two weeks in a row were missed. Those rows are also what P3.5's adherence needs, because a
+  standing weekday pin carries no history.
+- **A session records the template it was started from** — one nullable `templateId` on
+  `workout_sessions`, written only when the session is created from a template, so a resumed
+  session never rewrites it. It amends N16 deliberately: N16 rejected copying a plan's *targets*
+  onto a session because that freezes what the plan prescribes, while recording *where a session
+  came from* freezes nothing. An occurrence is matched by template and date, in a Monday-start
+  week taken in the session's own zone (N25).
+- **The schedule, its slots and its skips ride in the backup**, and the new column joined the
+  codec in the same change with a round-trip test behind it (N24's rule).
+
+  Known limits, stated rather than discovered: an occurrence is resolved only when the workout
+  was *started from* that template, so a plan added by hand does not settle it; a second session
+  from the same template in one week is unmatched; and editing a template changes every week
+  that references it, which is N16's living-template decision inherited rather than new.
+
 ### Fixed
 
 - **Metric targets survive a backup** (N39). A target is a setting rather than a row, and the

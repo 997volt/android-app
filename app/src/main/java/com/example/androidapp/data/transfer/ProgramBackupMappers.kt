@@ -1,0 +1,72 @@
+package com.example.androidapp.data.transfer
+
+import com.example.androidapp.data.local.ProgramEntity
+import com.example.androidapp.data.local.ProgramSkipEntity
+import com.example.androidapp.data.local.ProgramSlotEntity
+
+/**
+ * Entity <-> backup DTO for programs (ROADMAP P3.3).
+ *
+ * Beside [BackupMappers] rather than inside it: that file is a hand-written field-per-field
+ * map and had reached the file ceiling this project enforces, so the newest three tables
+ * moved here rather than the gate being raised. The rule is unchanged — field for field, in
+ * both directions, so an export followed by an import is a no-op.
+ */
+
+internal fun ProgramEntity.toDto() = ProgramDto(
+    id = id,
+    name = name,
+    isActive = isActive,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramDto.toEntity() = ProgramEntity(
+    id = id,
+    name = name,
+    isActive = isActive,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotEntity.toDto() = ProgramSlotDto(
+    id = id,
+    programId = programId,
+    templateId = templateId,
+    position = position,
+    weekday = weekday,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotDto.toEntity() = ProgramSlotEntity(
+    id = id,
+    programId = programId,
+    templateId = templateId,
+    position = position,
+    weekday = weekday,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSkipEntity.toDto() = ProgramSkipDto(
+    id = id,
+    slotId = slotId,
+    weekStart = weekStart,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSkipDto.toEntity() = ProgramSkipEntity(
+    id = id,
+    slotId = slotId,
+    weekStart = weekStart,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)

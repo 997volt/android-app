@@ -95,6 +95,19 @@ data object WorkoutTemplates
 @Serializable
 data class TemplateEditor(val templateId: String)
 
+/**
+ * The program list (ROADMAP P3.3).
+ *
+ * Programs live under Workouts, like templates: a program is a set of plans in the order
+ * they are trained, so it is part of working out rather than a tab of its own.
+ */
+@Serializable
+data object Programs
+
+/** One program: its name, its ordered slots, and whether it is the active one (P3.3). */
+@Serializable
+data class ProgramEditor(val programId: String)
+
 /** The history list (ROADMAP P1.6). */
 @Serializable
 data object WorkoutHistory

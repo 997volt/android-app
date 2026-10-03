@@ -60,6 +60,8 @@ import com.example.androidapp.ui.components.MessageSnackbar
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.longLabel
 import com.example.androidapp.ui.history.HistoryFormat
+import com.example.androidapp.ui.programs.programStartGate
+import com.example.androidapp.ui.programs.StartIntent
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.example.androidapp.ui.transfer.DataTransferViewModel
 import com.example.androidapp.ui.transfer.rememberDataTransferActions
@@ -75,6 +77,7 @@ fun WorkoutsHomeRoute(
     onStartTemplate: (String) -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenPrograms: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsHomeViewModel = hiltViewModel(),
     transferViewModel: DataTransferViewModel = hiltViewModel(),
@@ -104,15 +107,39 @@ fun WorkoutsHomeRoute(
         }
     }
 
+    // Every start goes through the program's missed-day question (ROADMAP P3.3), and this is
+    // the only place the navigation happens: "do it now" and "continue" differ in intent
+    // rather than in destination plumbing. A skip that could not be recorded is shown on the
+    // same host, because the workout still starts and the question will come back (F7).
+    val requestStart = programStartGate(
+        onStart = { intent ->
+            when {
+                intent.repeatLast -> onRepeatLast()
+                intent.templateId != null -> onStartTemplate(intent.templateId)
+                else -> onStartWorkout()
+            }
+        },
+        onError = { message = it },
+    )
+
     WorkoutsHomeScreen(
         state = state,
         clock = clock,
-        onStartWorkout = onStartWorkout,
+        onStartWorkout = { requestStart(StartIntent()) },
         onStartFromTemplate = onStartFromTemplate,
-        onRepeatLast = onRepeatLast,
-        onStartTemplate = onStartTemplate,
+        onRepeatLast = { requestStart(StartIntent(repeatLast = true)) },
+        onStartTemplate = { templateId ->
+            requestStart(
+                StartIntent(
+                    templateId = templateId,
+                    // The row being started names it, so "continue with Bench" reads true.
+                    label = state.todaysPlan.firstOrNull { it.templateId == templateId }?.name,
+                ),
+            )
+        },
         onOpenWorkout = onOpenWorkout,
         onOpenHistory = onOpenHistory,
+        onOpenPrograms = onOpenPrograms,
         onExportData = transferActions.export,
         onImportData = transferActions.import,
         onClearData = {
@@ -141,6 +168,7 @@ fun WorkoutsHomeScreen(
     onStartFromTemplate: () -> Unit = {},
     onStartTemplate: (String) -> Unit = {},
     onRepeatLast: () -> Unit = {},
+    onOpenPrograms: () -> Unit = {},
     onExportData: (() -> Unit)? = null,
     onImportData: (() -> Unit)? = null,
     onClearData: (() -> Unit)? = null,
@@ -167,6 +195,7 @@ fun WorkoutsHomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             HomeTopBar(
+                onOpenPrograms = onOpenPrograms,
                 onExport = onExportData,
                 onImport = onImportData,
                 onClear = onClearData?.let { { confirmingClear = true } },
@@ -221,8 +250,8 @@ LazyColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
             }
-            items(state.todaysPlans.size, key = { state.todaysPlans[it].id }) { index ->
-                val plan = state.todaysPlans[index]
+            items(state.todaysPlan.size, key = { state.todaysPlan[it].id }) { index ->
+                val plan = state.todaysPlan[index]
                 ListItem(
                     headlineContent = { Text(plan.name) },
                     supportingContent = {
@@ -236,7 +265,9 @@ LazyColumn(
                     },
                     trailingContent = {
                         TextButton(
-                            onClick = { onStartTemplate(plan.id) },
+                            // The row's identity is the slot's, but what starts is the
+                            // template it points at (ROADMAP P3.3).
+                            onClick = { onStartTemplate(plan.templateId) },
                             modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
                         ) {
                             Text(stringResource(R.string.home_plan_start))
@@ -279,7 +310,7 @@ private fun HomeContent(
             )
 
             // First run: an empty list with no explanation tells the user nothing.
-            state.todaysPlans.isNotEmpty() -> TodayAndRecent(
+            state.todaysPlan.isNotEmpty() -> TodayAndRecent(
                 state = state,
                 onOpenWorkout = onOpenWorkout,
                 onStartTemplate = onStartTemplate,
@@ -499,6 +530,7 @@ private fun HomeTopBar(
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onOpenPrograms: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -522,6 +554,7 @@ private fun HomeTopBar(
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 HomeMenuItems(
+                    onOpenPrograms = onOpenPrograms,
                     onExport = onExport,
                     onImport = onImport,
                     onClear = onClear,
@@ -594,8 +627,20 @@ private fun HomeMenuItems(
     onImport: (() -> Unit)?,
     onClear: (() -> Unit)?,
     onDismiss: () -> Unit,
+    onOpenPrograms: () -> Unit = {},
 ) {
     Column {
+        // The schedule the today's-plan section is read from (ROADMAP P3.3): one tap from
+        // the plan it changes, and above the data actions because it is a destination
+        // rather than something done to the data.
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.home_programs)) },
+            onClick = {
+                onDismiss()
+                onOpenPrograms()
+            },
+            modifier = Modifier.testTag(TestTags.HOME_PROGRAMS),
+        )
         // Export and import, moved down from the library (ROADMAP B1).
         if (onExport != null && onImport != null) {
             DataActions(

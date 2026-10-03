@@ -56,4 +56,15 @@ data class WorkoutSessionEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,
+    /**
+     * The template this session was started from, or null (ROADMAP P3.3).
+     *
+     * Written only when the session is **created** from a template, so a resumed session
+     * never rewrites it: this is *provenance*, not prescription. It amends N16
+     * deliberately — N16 rejected copying a plan's **targets** onto a session because that
+     * freezes what the plan prescribes, while recording where a session came from freezes
+     * nothing. The template stays living; this only answers which occurrence a session
+     * settled, which a standing weekday pin carries no history for.
+     */
+    val templateId: String? = null,
 )

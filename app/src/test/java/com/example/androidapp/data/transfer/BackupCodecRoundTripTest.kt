@@ -6,13 +6,16 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.data.local.ExerciseEntity
 import com.example.androidapp.data.local.MeasurementEntity
+import com.example.androidapp.data.local.ProgramEntity
+import com.example.androidapp.data.local.ProgramSkipEntity
+import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.TemplateSetEntity
 import com.example.androidapp.data.local.WorkoutSessionEntity
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import java.time.DayOfWeek
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
@@ -57,7 +60,7 @@ class BackupCodecRoundTripTest {
             deletedAt = 1_700_000_000_003L,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -80,7 +83,7 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -99,7 +102,7 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -121,7 +124,7 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -142,7 +145,7 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -157,6 +160,9 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
             createdAt = 1_600_000_000_000L,
             updatedAt = 1_600_000_000_001L,
+            // The column P3.3 added: a session's provenance must survive a restore, or a
+            // restored done day would read as missed.
+            templateId = "t1",
         )
 
         val restored = entity.toDto().toEntity()
@@ -164,8 +170,54 @@ class BackupCodecRoundTripTest {
         // The one field the codec drops on purpose: a rest countdown is device-and-moment
         // state rather than training history, so a restored session must not come back
         // mid-rest. Everything else is asserted field for field.
-        assertEquals(entity.copy(restEndsAt = null), restored)
-        assertNull("and it is dropped deliberately", restored.restEndsAt)
+        assertThat(restored).isEqualTo(entity.copy(restEndsAt = null))
+        assertThat(restored.restEndsAt).isNull()
+    }
+
+    @Test
+    fun aProgram_survivesTheCodec() {
+        val entity = ProgramEntity(
+            id = "p1",
+            name = "Upper/Lower",
+            isActive = true,
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramSlot_survivesTheCodec() {
+        val entity = ProgramSlotEntity(
+            id = "slot1",
+            programId = "p1",
+            templateId = "t1",
+            position = 2,
+            // A weekday is the column a hand-written codec loses first (N16's own history),
+            // so it is set to something distinctive here.
+            weekday = DayOfWeek.THURSDAY,
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramSkip_survivesTheCodec() {
+        val entity = ProgramSkipEntity(
+            id = "skip1",
+            slotId = "slot1",
+            weekStart = 20_345L,
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 
     @Test
@@ -186,6 +238,6 @@ class BackupCodecRoundTripTest {
             deletedAt = null,
         )
 
-        assertEquals(entity, entity.toDto().toEntity())
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
     }
 }

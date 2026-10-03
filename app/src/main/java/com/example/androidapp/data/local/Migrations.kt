@@ -479,9 +479,79 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
     }
 }
 
+/**
+ * v19 -> v20: programs, their slots, their recorded skips, and a session's provenance
+ * (ROADMAP P3.3).
+ *
+ * Three new tables plus one additive column, and the column is the one worth stating:
+ * `workout_sessions.templateId` is left **null** for every session already recorded. A
+ * workout done before this existed cannot be given provenance after the fact — the plan it
+ * was started from was never captured — and inventing one would make a session resolve an
+ * occurrence it never touched. Null means "unknown", which is the honest answer, and the
+ * occurrence matcher simply finds no session for those weeks.
+ *
+ * The program tables are new, so an upgrade cannot lose a schedule that did not exist;
+ * what it must not disturb is everything else, which is the same additive argument
+ * migration 8→9 made for templates.
+ */
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_PROGRAMS)
+        db.execSQL(CREATE_PROGRAM_SLOTS)
+        db.execSQL(CREATE_PROGRAM_SLOTS_PROGRAM_INDEX)
+        db.execSQL(CREATE_PROGRAM_SLOTS_TEMPLATE_INDEX)
+        db.execSQL(CREATE_PROGRAM_SKIPS)
+        db.execSQL(CREATE_PROGRAM_SKIPS_SLOT_INDEX)
+        db.execSQL(CREATE_PROGRAM_SKIPS_WEEK_INDEX)
+        db.execSQL(ADD_SESSION_TEMPLATE_ID)
+    }
+}
+
+private const val CREATE_PROGRAMS =
+    "CREATE TABLE IF NOT EXISTS `programs` (" +
+        "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, " +
+        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, " +
+        "PRIMARY KEY(`id`))"
+
+private const val CREATE_PROGRAM_SLOTS =
+    "CREATE TABLE IF NOT EXISTS `program_slots` (" +
+        "`id` TEXT NOT NULL, `programId` TEXT NOT NULL, `templateId` TEXT NOT NULL, " +
+        "`position` INTEGER NOT NULL, `weekday` TEXT, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`programId`) REFERENCES `programs`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE , " +
+        "FOREIGN KEY(`templateId`) REFERENCES `templates`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+
+private const val CREATE_PROGRAM_SLOTS_PROGRAM_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_slots_programId` " +
+        "ON `program_slots` (`programId`)"
+
+private const val CREATE_PROGRAM_SLOTS_TEMPLATE_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_slots_templateId` " +
+        "ON `program_slots` (`templateId`)"
+
+private const val CREATE_PROGRAM_SKIPS =
+    "CREATE TABLE IF NOT EXISTS `program_skips` (" +
+        "`id` TEXT NOT NULL, `slotId` TEXT NOT NULL, `weekStart` INTEGER NOT NULL, " +
+        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, " +
+        "PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`slotId`) REFERENCES `program_slots`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_PROGRAM_SKIPS_SLOT_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_skips_slotId` " +
+        "ON `program_skips` (`slotId`)"
+
+private const val CREATE_PROGRAM_SKIPS_WEEK_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_skips_weekStart` " +
+        "ON `program_skips` (`weekStart`)"
+
+private const val ADD_SESSION_TEMPLATE_ID =
+    "ALTER TABLE `workout_sessions` ADD COLUMN `templateId` TEXT"
+
 /** Applied in order by the database builder. */
-val ALL_MIGRATIONS = arrayOf(
-    MIGRATION_1_2,
+val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_2_3,
     MIGRATION_3_4,
     MIGRATION_4_5,
@@ -499,4 +569,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_16_17,
     MIGRATION_17_18,
     MIGRATION_18_19,
+    MIGRATION_19_20,
 )

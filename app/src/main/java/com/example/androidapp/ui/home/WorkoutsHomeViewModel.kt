@@ -2,7 +2,10 @@ package com.example.androidapp.ui.home
 
 import java.time.ZoneId
 import java.time.DayOfWeek
+import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.WorkoutTemplate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -49,14 +52,31 @@ data class ActiveWorkoutInfo(
     val exerciseCount: Int,
 )
 
+/**
+ * One row of today's plan (ROADMAP P3.3).
+ *
+ * [id] is the row's own identity — a program slot's id when a program is active, a
+ * template's id under the weekday pins. It is deliberately not [templateId]: a program may
+ * put the same template in two slots, and a list keyed by template would collide.
+ */
+data class TodayPlan(
+    val id: String,
+    val templateId: String,
+    val name: String,
+    val exerciseCount: Int,
+)
+
 data class WorkoutsHomeUiState(
     val isLoading: Boolean = true,
     val recent: List<WorkoutSummary> = emptyList(),
     val activeWorkout: ActiveWorkoutInfo? = null,
     /** The device's weekday, for the "Today" heading (ROADMAP N16). */
     val today: DayOfWeek = DayOfWeek.MONDAY,
-    /** Plans pinned to today, in the repository's order. */
-    val todaysPlans: List<WorkoutTemplate> = emptyList(),
+    /**
+     * What is scheduled today: the active program's slots for this weekday, or — with no
+     * program active — the plans pinned to it (ROADMAP P3.3, falling back to N16).
+     */
+    val todaysPlan: List<TodayPlan> = emptyList(),
     /** Whether repeating the last workout would copy something (ROADMAP B43's tail). */
     val canRepeatLast: Boolean = false,
 ) {
@@ -79,6 +99,7 @@ data class WorkoutsHomeUiState(
 class WorkoutsHomeViewModel @Inject constructor(
     workoutRepository: WorkoutRepository,
     templateRepository: TemplateRepository,
+    programRepository: ProgramRepository,
     private val timeSource: TimeSource,
 ) : ViewModel() {
 
@@ -106,11 +127,26 @@ class WorkoutsHomeViewModel @Inject constructor(
         .atZone(ZoneId.systemDefault())
         .dayOfWeek
 
+    /**
+     * The active program, and its slots (ROADMAP P3.3).
+     *
+     * A program's slots are read only while one is active, so a shelf full of programs costs
+     * the home screen nothing. With none active the plan falls back to the pins below.
+     */
+    private val activeProgram: Flow<WorkoutProgram?> = programRepository.observeActiveProgram()
+
+    private val activeProgramSlots: Flow<List<ProgramSlot>> = activeProgram
+        .flatMapLatest { program ->
+            if (program == null) flowOf(emptyList()) else programRepository.observeSlots(program.id)
+        }
+
     val uiState: StateFlow<WorkoutsHomeUiState> = combine(
         workoutRepository.observeHistory(),
         activeWorkout,
         templateRepository.observeTemplates(),
-    ) { history, workout, templates ->
+        activeProgram,
+        activeProgramSlots,
+    ) { history, workout, templates, program, slots ->
         WorkoutsHomeUiState(
             isLoading = false,
             recent = history.take(RECENT_LIMIT),
@@ -119,7 +155,12 @@ class WorkoutsHomeViewModel @Inject constructor(
             canRepeatLast = history.firstOrNull()?.isRepeatable == true,
             activeWorkout = workout,
             today = today,
-            todaysPlans = templates.filter { it.weekday == today },
+            todaysPlan = todaysPlanFor(
+                program = program,
+                slots = slots,
+                templates = templates,
+                day = today,
+            ),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -160,3 +201,53 @@ class WorkoutsHomeViewModel @Inject constructor(
         const val TICK_MILLIS = 1_000L
     }
 }
+
+/**
+ * What is scheduled for [day] (ROADMAP P3.3).
+ *
+ * With a program active the program is the schedule, even on a day it schedules nothing —
+ * an empty day is rest, not a fallback. Only **no active program** returns the N16 pins,
+ * which is the rule the roadmap states and the reason the pins stay editable.
+ *
+ * File-level and pure so the fallback can be tested without a database or a ViewModel.
+ */
+internal fun todaysPlanFor(
+    program: WorkoutProgram?,
+    slots: List<ProgramSlot>,
+    templates: List<WorkoutTemplate>,
+    day: DayOfWeek,
+): List<TodayPlan> = if (program != null) slots.scheduledFor(day) else templates.pinnedFor(day)
+
+/**
+ * The plans pinned to [day], as home rows — the fallback when no program is active
+ * (ROADMAP N16, kept by P3.3).
+ */
+private fun List<WorkoutTemplate>.pinnedFor(day: DayOfWeek): List<TodayPlan> =
+    filter { it.weekday == day }.map { template ->
+        TodayPlan(
+            id = template.id,
+            templateId = template.id,
+            name = template.name,
+            exerciseCount = template.exerciseCount,
+        )
+    }
+
+/**
+ * A program's slots that fall on [day], in the program's own order (ROADMAP P3.3).
+ *
+ * The row's identity is the slot's, not the template's: a program may schedule the same
+ * workout twice, and two rows keyed by one template would collide.
+ */
+private fun List<ProgramSlot>.scheduledFor(day: DayOfWeek): List<TodayPlan> =
+    filter { it.weekday == day }
+        // The repository already orders by position; sorting here too means the rule is the
+        // function's rather than its caller's.
+        .sortedBy { it.position }
+        .map { slot ->
+        TodayPlan(
+            id = slot.id,
+            templateId = slot.templateId,
+            name = slot.templateName,
+            exerciseCount = slot.exerciseCount,
+        )
+    }

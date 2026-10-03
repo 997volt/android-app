@@ -94,6 +94,9 @@ internal fun WorkoutSessionEntity.toDto() = SessionDto(
     // Carried, unlike the rest countdown: where a session happened is a fact about the training,
     // not about the device it was written on (ROADMAP N25).
     zoneOffsetMinutes = zoneOffsetMinutes,
+    // Provenance, and history once the session is done (ROADMAP P3.3) — it must survive a restore
+    // or a restored schedule would read a done day as missed.
+    templateId = templateId,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
@@ -117,6 +120,8 @@ internal fun SessionDto.toEntity() = WorkoutSessionEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
+    // Provenance survives the restore: without it a restored done day would read as missed.
+    templateId = templateId,
 )
 
 internal fun SessionExerciseEntity.toDto() = SessionExerciseDto(
@@ -263,5 +268,3 @@ internal fun TemplateSetDto.toEntity() = TemplateSetEntity(
     updatedAt = updatedAt,
     deletedAt = deletedAt,
 )
-
-/** Half steps per RPE point (ROADMAP N6). */

@@ -80,6 +80,9 @@ class RoomWorkoutRepository @Inject constructor(
                     now = timeSource.nowEpochMillis(),
                     // Where this workout is happening, captured once (ROADMAP N25).
                     zoneOffsetMinutes = zoneOffsetSource.offsetMinutes(),
+                    // Written only if this call opens the session, so a resumed workout keeps the
+                    // template it was created from (ROADMAP P3.3).
+                    templateId = templateId,
                 )
                 if (start.created && templateId != null) {
                     templateDao.findPlannedExercises(templateId).forEach { planned ->

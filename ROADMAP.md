@@ -17,47 +17,6 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**P3.3 — Programs: an ordered list of templates, each with a weekday.**
-
-A **program** is a named, ordered list of slots; a slot is a template plus an optional
-weekday. It is the container N16's pins cannot be on their own: a pin says what happens on a
-Tuesday, but nothing orders the pins against each other, so "which one is next" and "was that
-a skip or a rest day" have no answer.
-
-- **Today's plan** comes from the slot pinned to today. With no program active, home falls
-  back to the template pins it already reads.
-- **A skipped occurrence is asked about, not assumed.** When a start is attempted and a slot's
-  occurrence this week has neither a session nor a recorded skip, the app asks: *"You missed
-  Paused Squat on Tuesday. Do it now, or continue with Bench?"* — **Do it now** starts that
-  slot; **Continue** records a skip for **every** pending occurrence this week, because asking
-  again for the next one turns two misses into two interrogations. Asked at the point of
-  starting, not at launch: an app that questions you when you open it is one you stop opening.
-- **A skip is an event keyed by slot and week** (`program_skips`, storing the week start),
-  never a boolean on the slot: the same weekday recurs, so a flag would need resetting and
-  would be wrong the moment two weeks in a row were missed. Those rows are also exactly what
-  P3.5 needs — without them, "skipped" is unknowable, because a standing weekday pin carries
-  no history.
-- **A session records the template it was started from** — one nullable `templateId` on
-  `workout_sessions`, written only when the session is *created* from a template, so a resumed
-  session never rewrites it. That is how an occurrence is matched: **by template and date**, in
-  a Monday-start week taken in the session's own zone (N25 is what makes "which day was this"
-  answerable).
-  - **It amends N16 deliberately, and the distinction is the point.** N16 rejected copying a
-    plan's *targets* onto a session because that freezes what the plan prescribes. Recording
-    *where a session came from* freezes nothing: the template stays living, and this is
-    provenance rather than prescription.
-  - **Matching:** one candidate slot with that template resolves; with several, an exact
-    weekday match wins, then the latest slot earlier in the week (done late), then the earliest
-    after it (done early), then the earliest unresolved. A session resolves at most one
-    occurrence, and an occurrence is resolved by at most one session — the first.
-
-**Known limitations, stated rather than discovered:** an occurrence is resolved only when the
-workout was *started from* that template, so bench added by hand to an empty workout does not
-resolve it — matching by exercises was rejected because it breaks the moment a template is
-edited and cannot tell two slots apart; a second session from the same template in a week is
-unmatched; and editing a template changes every week that references it, which is N16's
-living-template decision inherited rather than new.
-
 **Nothing else is open.** B47, the dead code the statistics round left behind, is removed —
 including the three `HOME_*` constants and the assertions that asserted the absence of things
 already absent. The question it raised, whether a test read counts as a caller, is settled in
@@ -86,22 +45,23 @@ aggregate over it.
 - **Its hard part is knowing what was skipped, and it has no answer of its own.** Today the
   schedule is a standing rule — "these templates are pinned to Tuesday" — not a history, so
   "you missed last Tuesday" cannot be derived from pins. **P3.3's `program_skips` rows are what
-  make it answerable**, which is why this row follows P3.3 rather than standing beside it.
+  make it answerable** — they shipped with P3.3, which is why this row follows it rather than
+  standing beside it.
 - **Shape:** a month calendar with trained days marked, and a completion ratio over a window —
   sessions started against scheduled days.
 - **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled
   days count; what counts as scheduled when nothing is pinned; and whether a deload week is
   judged by the same standard as any other.
 
-**The rest of programs — what v1 deliberately leaves out.** P3.3 is picked up in *Next*, and
-the scope it does not build is the future of the same feature, deferred rather than rejected:
-no deloads (a deload will be *authored* when it arrives, not calculated), no auto-progression
-(a program decides *which* template; the lifter decides the numbers — this depends on
-**N33**), no intensity modifiers, no percentage-of-1RM programming, no automatic anything, no
-dated instances (N16 rejected the entity a calendar of planned sessions would reintroduce),
-one active program only (any others fall back to the template pins), a weekday-less slot is
-never "missed" because it has no day to miss and is order-only, and no per-slot template
-substitution mid-cycle beyond editing the program, nor load-based rotation.
+**The rest of programs — what v1 deliberately leaves out.** P3.3 shipped as the ordered
+schedule, and the scope it does not build is the future of the same feature, deferred rather
+than rejected: no deloads (a deload will be *authored* when it arrives, not calculated), no
+auto-progression (a program decides *which* template; the lifter decides the numbers — this
+depends on **N33**), no intensity modifiers, no percentage-of-1RM programming, no automatic
+anything, no dated instances (N16 rejected the entity a calendar of planned sessions would
+reintroduce), one active program only (any others fall back to the template pins), a
+weekday-less slot is never "missed" because it has no day to miss and is order-only, and no
+per-slot template substitution mid-cycle beyond editing the program, nor load-based rotation.
 
 ## Parked — deliberately not planned
 

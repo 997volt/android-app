@@ -1,7 +1,6 @@
 package com.example.androidapp.ui.home
 
-import org.junit.Assert.assertEquals
-import com.example.androidapp.domain.model.WorkoutTemplate
+import com.google.common.truth.Truth.assertThat
 import java.time.DayOfWeek
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +48,7 @@ class WorkoutsHomeScreenTest {
         val onStartTemplate: (String) -> Unit = {},
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
+        val onOpenPrograms: () -> Unit = {},
         // Null by default, mirroring the screen: a host that wired no transfer
         // actions gets no dead menu entries (ROADMAP B1).
         val onExportData: (() -> Unit)? = null,
@@ -71,6 +71,7 @@ class WorkoutsHomeScreenTest {
                     onStartTemplate = actions.onStartTemplate,
                     onOpenWorkout = actions.onOpenWorkout,
                     onOpenHistory = actions.onOpenHistory,
+                    onOpenPrograms = actions.onOpenPrograms,
                     onExportData = actions.onExportData,
                     onImportData = actions.onImportData,
                     message = message,
@@ -88,7 +89,7 @@ class WorkoutsHomeScreenTest {
         composeTestRule.onNodeWithTag(TestTags.HOME_FIRST_RUN).assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.HOME_START).performClick()
 
-        assert(started) { "the start button did not reach its callback" }
+        assertThat(started).isTrue()
     }
 
     @Test
@@ -120,7 +121,7 @@ class WorkoutsHomeScreenTest {
         composeTestRule.onNodeWithTag(TestTags.HOME_START).assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.HOME_START_FROM_TEMPLATE).performClick()
 
-        assert(fromTemplate) { "Start from template did not open the template list" }
+        assertThat(fromTemplate).isTrue()
     }
 
     @Test
@@ -150,11 +151,11 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
         composeTestRule.onNodeWithTag(TestTags.DATA_EXPORT).performClick()
-        assert(exported) { "Export did not reach the transfer action" }
+        assertThat(exported).isTrue()
 
         composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
         composeTestRule.onNodeWithTag(TestTags.DATA_IMPORT).performClick()
-        assert(imported) { "Import did not reach the transfer action" }
+        assertThat(imported).isTrue()
     }
 
     @Test
@@ -166,6 +167,18 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.DATA_EXPORT).assertDoesNotExist()
         composeTestRule.onNodeWithTag(TestTags.DATA_IMPORT).assertDoesNotExist()
+    }
+
+    @Test
+    fun theOverflowMenu_offersPrograms() {
+        // ROADMAP P3.3: the schedule the today's-plan section is read from is one tap from it.
+        var opened = false
+        setScreen(WorkoutsHomeUiState(isLoading = false), Actions(onOpenPrograms = { opened = true }))
+
+        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
+        composeTestRule.onNodeWithTag(TestTags.HOME_PROGRAMS).performClick()
+
+        assertThat(opened).isTrue()
     }
 
     @Test
@@ -185,7 +198,7 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.HOME_RECENT_ROW).performClick()
 
-        assert(opened == "session-1") { "expected the row to open its workout, got $opened" }
+        assertThat(opened).isEqualTo("session-1")
     }
 
     @Test
@@ -199,7 +212,7 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithTag(TestTags.HOME_SEE_ALL).performClick()
 
-        assert(openedHistory) { "See all did not open the history" }
+        assertThat(openedHistory).isTrue()
     }
 
     private fun summary(id: String) = WorkoutSummary(
@@ -219,8 +232,13 @@ class WorkoutsHomeScreenTest {
             state = WorkoutsHomeUiState(
                 isLoading = false,
                 today = DayOfWeek.FRIDAY,
-                todaysPlans = listOf(
-                    WorkoutTemplate(id = "t1", name = "Heavy lower", exerciseCount = 4),
+                todaysPlan = listOf(
+                    TodayPlan(
+                        id = "slot-1",
+                        templateId = "t1",
+                        name = "Heavy lower",
+                        exerciseCount = 4,
+                    ),
                 ),
             ),
             actions = Actions(onStartTemplate = { started += it }),
@@ -228,9 +246,10 @@ class WorkoutsHomeScreenTest {
 
         composeTestRule.onNodeWithText("Today · Friday").assertExists()
         composeTestRule.onNodeWithText("Heavy lower").assertExists()
-        composeTestRule.onNodeWithTag(TestTags.homeStartPlan("t1")).performClick()
+        composeTestRule.onNodeWithTag(TestTags.homeStartPlan("slot-1")).performClick()
 
-        assertEquals(listOf("t1"), started)
+        // The row's identity is the slot's; what starts is the template it points at (P3.3).
+        assertThat(started).containsExactly("t1")
     }
 
     @Test
@@ -247,15 +266,34 @@ class WorkoutsHomeScreenTest {
             state = WorkoutsHomeUiState(
                 isLoading = false,
                 today = DayOfWeek.FRIDAY,
-                todaysPlans = listOf(
-                    WorkoutTemplate(id = "t1", name = "Heavy lower"),
-                    WorkoutTemplate(id = "t2", name = "Push"),
+                todaysPlan = listOf(
+                    TodayPlan(id = "t1", templateId = "t1", name = "Heavy lower", exerciseCount = 0),
+                    TodayPlan(id = "t2", templateId = "t2", name = "Push", exerciseCount = 0),
                 ),
             ),
         )
 
         composeTestRule.onNodeWithText("Heavy lower").assertExists()
         composeTestRule.onNodeWithText("Push").assertExists()
+    }
+
+    @Test
+    fun theSameTemplateTwiceInADay_isTwoRows() {
+        // ROADMAP P3.3: a program may schedule one template in two slots, so a row is keyed
+        // by the slot rather than by the template — keying by template would collide and crash.
+        setScreen(
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                today = DayOfWeek.FRIDAY,
+                todaysPlan = listOf(
+                    TodayPlan(id = "slot-1", templateId = "t1", name = "Heavy lower", exerciseCount = 3),
+                    TodayPlan(id = "slot-2", templateId = "t1", name = "Heavy lower", exerciseCount = 3),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.homeStartPlan("slot-1")).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.homeStartPlan("slot-2")).assertExists()
     }
 
     @Test
@@ -280,7 +318,7 @@ class WorkoutsHomeScreenTest {
         )
 
         composeTestRule.onNodeWithTag(TestTags.HOME_REPEAT_LAST).assertIsDisplayed().performClick()
-        assertEquals(1, repeated)
+        assertThat(repeated).isEqualTo(1)
     }
 
     @Test
