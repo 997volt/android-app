@@ -2,8 +2,11 @@ package com.example.androidapp.data
 
 import androidx.room.withTransaction
 import com.example.androidapp.data.local.ProgramDao
+import com.example.androidapp.data.local.ProgramPrescriptionDao
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
+import com.example.androidapp.data.local.ProgramSlotExerciseEntity
+import com.example.androidapp.data.local.ProgramSlotSetEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toAdherenceSession
@@ -20,8 +23,11 @@ import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedSkip
+import com.example.androidapp.domain.model.Rpe
+import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.repository.ProgramRepository
+import com.example.androidapp.domain.repository.SlotSetEdit
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -30,6 +36,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -47,6 +54,8 @@ class RoomProgramRepository @Inject constructor(
 ) : ProgramRepository {
 
     private val dao: ProgramDao = database.programDao()
+
+    private val prescriptionDao: ProgramPrescriptionDao = database.programPrescriptionDao()
 
     override fun observePrograms(): Flow<List<WorkoutProgram>> =
         dao.observePrograms().map { rows -> rows.map { it.toDomain() } }
@@ -188,6 +197,150 @@ class RoomProgramRepository @Inject constructor(
         }
     }
 
+    override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
+        combine(
+            prescriptionDao.observeSlotExercises(slotId),
+            prescriptionDao.observeSlotSets(slotId),
+        ) { exercises, sets ->
+            val byExercise = sets.groupBy { it.slotExerciseId }
+            exercises
+                .map { it.toDomain(byExercise[it.id].orEmpty()) }
+                // A row with nothing to say is not a prescription: the template's targets stand.
+                .filterNot { it.isEmpty }
+        }
+
+    override suspend fun setSlotExercisePlan(
+        slotId: String,
+        exerciseId: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+    ): DataResult<Unit> = dataResultOf {
+        val slot = dao.findSlot(slotId) ?: throw NotFoundException("program slot $slotId")
+        requireExerciseInTemplate(database, slot.templateId, exerciseId)
+        if (restSeconds != null && restSeconds < 1) {
+            throw InvalidInputException("A prescribed rest must be at least a second.")
+        }
+
+        val now = timeSource.nowEpochMillis()
+        val existing = prescriptionDao.findSlotExercise(slotId, exerciseId)
+        val saysNothing = restSeconds == null && techniqueNote == null
+        when {
+            // Nothing is said and there is no row: there is nothing to write.
+            existing == null && saysNothing -> Unit
+            existing == null -> prescriptionDao.insertSlotExercise(
+                ProgramSlotExerciseEntity(
+                    id = UUID.randomUUID().toString(),
+                    slotId = slotId,
+                    exerciseId = exerciseId,
+                    restSeconds = restSeconds,
+                    techniqueNote = techniqueNote,
+                    createdAt = now,
+                    updatedAt = now,
+                    deletedAt = null,
+                ),
+            )
+
+            // The row was only holding sets, and it has none: an empty prescription is absent.
+            saysNothing && prescriptionDao.countSlotSets(existing.id) == 0 ->
+                prescriptionDao.softDeleteSlotExercise(existing.id, now)
+
+            else -> prescriptionDao.updateSlotExercise(
+                existing.copy(
+                    restSeconds = restSeconds,
+                    techniqueNote = techniqueNote,
+                    updatedAt = now,
+                ),
+            )
+        }
+    }
+
+    override suspend fun addSlotSet(
+        slotId: String,
+        exerciseId: String,
+        edit: SlotSetEdit,
+    ): DataResult<Unit> = dataResultOf {
+        val slot = dao.findSlot(slotId) ?: throw NotFoundException("program slot $slotId")
+        requireExerciseInTemplate(database, slot.templateId, exerciseId)
+        validateSlotSet(edit)
+
+        val now = timeSource.nowEpochMillis()
+        val parent = ensureSlotExercise(slotId, exerciseId, now)
+        prescriptionDao.insertSlotSet(
+            ProgramSlotSetEntity(
+                id = UUID.randomUUID().toString(),
+                slotExerciseId = parent.id,
+                setIndex = prescriptionDao.maxSetIndex(parent.id) + 1,
+                role = edit.role,
+                targetWeightGrams = edit.targetWeightGrams,
+                targetAssistanceGrams = edit.targetAssistanceGrams,
+                targetRepsMin = edit.targetRepsMin,
+                targetRepsMax = edit.targetRepsMax,
+                targetRpeHalves = edit.targetRpeHalves,
+                targetPercentOf1Rm = edit.targetPercentOf1Rm,
+                note = edit.note,
+                createdAt = now,
+                updatedAt = now,
+                deletedAt = null,
+            ),
+        )
+    }
+
+    override suspend fun updateSlotSet(
+        slotSetId: String,
+        edit: SlotSetEdit,
+    ): DataResult<Unit> = dataResultOf {
+        validateSlotSet(edit)
+        val existing = prescriptionDao.findSlotSet(slotSetId)
+            ?: throw NotFoundException("prescribed set $slotSetId")
+        val updated = prescriptionDao.updateSlotSet(
+            existing.copy(
+                role = edit.role,
+                targetWeightGrams = edit.targetWeightGrams,
+                targetAssistanceGrams = edit.targetAssistanceGrams,
+                targetRepsMin = edit.targetRepsMin,
+                targetRepsMax = edit.targetRepsMax,
+                targetRpeHalves = edit.targetRpeHalves,
+                targetPercentOf1Rm = edit.targetPercentOf1Rm,
+                note = edit.note,
+                updatedAt = timeSource.nowEpochMillis(),
+            ),
+        )
+        if (updated == 0) throw NotFoundException("prescribed set $slotSetId")
+    }
+
+    override suspend fun removeSlotSet(slotSetId: String): DataResult<Unit> = dataResultOf {
+        val now = timeSource.nowEpochMillis()
+        val existing = prescriptionDao.findSlotSet(slotSetId)
+            ?: throw NotFoundException("prescribed set $slotSetId")
+        if (prescriptionDao.softDeleteSlotSet(slotSetId, now) == 0) {
+            throw NotFoundException("prescribed set $slotSetId")
+        }
+        // The parent exercise row exists to carry the sets: with none left and nothing else said,
+        // it goes too, so an emptied prescription leaves no row behind.
+        val parent = prescriptionDao.findSlotExerciseById(existing.slotExerciseId)
+        if (parent != null) {
+            val saysNothing = parent.restSeconds == null && parent.techniqueNote == null
+            if (saysNothing && prescriptionDao.countSlotSets(parent.id) == 0) {
+                prescriptionDao.softDeleteSlotExercise(parent.id, now)
+            }
+        }
+    }
+
+    /** The slot's prescription row for one exercise, created on the first write (P3.8). */
+    private suspend fun ensureSlotExercise(
+        slotId: String,
+        exerciseId: String,
+        now: Long,
+    ): ProgramSlotExerciseEntity =
+        prescriptionDao.findSlotExercise(slotId, exerciseId) ?: ProgramSlotExerciseEntity(
+            id = UUID.randomUUID().toString(),
+            slotId = slotId,
+            exerciseId = exerciseId,
+            createdAt = now,
+            updatedAt = now,
+            deletedAt = null,
+        ).also { prescriptionDao.insertSlotExercise(it) }
+
     override suspend fun pendingOccurrences(
         today: LocalDate,
         zone: ZoneId,
@@ -312,3 +465,71 @@ class RoomProgramRepository @Inject constructor(
         const val DAYS_IN_WEEK = 7L
     }
 }
+
+/**
+ * A slot prescribes only what its template trains (ROADMAP P3.8).
+ *
+ * Checked rather than trusted: a prescription for an exercise the template does not have is
+ * invisible on every screen the moment it is written, which is the same trap `addSlot` guards a
+ * slot against. File-level because the repository is at the function ceiling this project
+ * enforces, and this reads one table rather than owning any state.
+ */
+private suspend fun requireExerciseInTemplate(
+    database: WorkoutDatabase,
+    templateId: String,
+    exerciseId: String,
+) {
+    val planned = database.templateDao().findPlannedExercises(templateId)
+    if (planned.none { it.exerciseId == exerciseId }) {
+        throw NotFoundException("$exerciseId is not in the slot's template")
+    }
+}
+
+/**
+ * A prescribed set's targets use the plan's vocabulary, plus the percentage (ROADMAP P3.8).
+ *
+ * Two functions rather than one `when` for the reason the template repository states its own
+ * validation apart: a load rule and an effort rule are different questions, and one of them
+ * growing should not push the other past the complexity ceiling.
+ */
+private fun validateSlotSet(edit: SlotSetEdit) {
+    validateSlotSetLoad(edit)
+    validateSlotSetEffort(edit)
+}
+
+/** A prescribed load is a weight or a magnitude of assistance, never a negative either way. */
+private fun validateSlotSetLoad(edit: SlotSetEdit) {
+    val problem = when {
+        edit.targetWeightGrams != null && edit.targetWeightGrams < 0 ->
+            "A target weight cannot be negative."
+
+        edit.targetAssistanceGrams != null && edit.targetAssistanceGrams < 0 ->
+            "Assistance is a magnitude, not a negative weight."
+
+        else -> null
+    }
+    if (problem != null) throw InvalidInputException(problem)
+}
+
+/** Reps, RPE and the percentage all sit on a scale, and the scale is checked (P3.8). */
+private fun validateSlotSetEffort(edit: SlotSetEdit) {
+    val problem = when {
+        edit.targetRepsMin != null && edit.targetRepsMin < 1 -> "Target reps must be at least 1."
+        edit.targetRepsMax != null && edit.targetRepsMax < 1 -> "Target reps must be at least 1."
+        edit.targetRepsMin != null && edit.targetRepsMax != null &&
+            edit.targetRepsMin > edit.targetRepsMax ->
+            "The low end of a rep range cannot exceed the high end."
+
+        !Rpe.isValid(edit.targetRpeHalves) ->
+            "Target RPE must be between 1 and 10, in half steps."
+
+        edit.targetPercentOf1Rm != null && edit.targetPercentOf1Rm !in 1..MAX_SLOT_PERCENT ->
+            "A percentage of the estimated one-rep max must be between 1 and $MAX_SLOT_PERCENT."
+
+        else -> null
+    }
+    if (problem != null) throw InvalidInputException(problem)
+}
+
+/** Above this, a "percentage of the max" is no longer a percentage of a max. */
+private const val MAX_SLOT_PERCENT = 100

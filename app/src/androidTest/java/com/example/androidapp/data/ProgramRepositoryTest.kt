@@ -14,6 +14,8 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.MovementPattern
 import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.repository.SlotSetEdit
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -376,9 +378,102 @@ class ProgramRepositoryTest {
         assertEquals(setOf(LocalDate.of(2026, 10, 6)), report.adherence.trainedDays)
     }
 
+    @Test
+    fun aSlotPrescribesItsOwnSets_inOrder_andTheTemplateStandsWhereItSaysNothing() = runTest {
+        // ROADMAP P3.8: two slots pointing at one template can train it differently, because the
+        // prescription belongs to the slot. An empty one is absent, not an empty row.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        val slotId = slot(program).id
+
+        assertTrue(repository.observeSlotPrescriptions(slotId).first().isEmpty())
+
+        repository.addSlotSet(
+            slotId,
+            "back-squat",
+            SlotSetEdit(targetWeightGrams = 100_000L, targetRepsMin = 3, targetRepsMax = 5),
+        )
+        repository.addSlotSet(
+            slotId,
+            "back-squat",
+            SlotSetEdit(role = SetType.TOP_SET, targetPercentOf1Rm = 85, targetRepsMin = 1),
+        )
+
+        val prescription = repository.observeSlotPrescriptions(slotId).first().single()
+        assertEquals("back-squat", prescription.exerciseId)
+        assertEquals(listOf(0, 1), prescription.sets.map { it.setIndex })
+        assertEquals(100_000L, prescription.sets[0].targetWeightGrams)
+        assertEquals(3, prescription.sets[0].targetRepsMin)
+        // The percentage is the one target a template's planned set cannot carry.
+        assertEquals(85, prescription.sets[1].targetPercentOf1Rm)
+        assertEquals(SetType.TOP_SET, prescription.sets[1].role)
+    }
+
+    @Test
+    fun aRestTheSlotPrescribes_isReadBack_andClearingItWithNoSetsRemovesTheRow() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        val slotId = slot(program).id
+
+        repository.setSlotExercisePlan(slotId, "back-squat", restSeconds = 150, techniqueNote = "brace")
+
+        val prescribed = repository.observeSlotPrescriptions(slotId).first().single()
+        assertEquals(150, prescribed.restSeconds)
+        assertEquals("brace", prescribed.techniqueNote)
+
+        repository.setSlotExercisePlan(slotId, "back-squat", restSeconds = null, techniqueNote = null)
+
+        assertTrue(
+            "a prescription with nothing left to say is absent, not an empty row",
+            repository.observeSlotPrescriptions(slotId).first().isEmpty(),
+        )
+    }
+
+    @Test
+    fun removingTheLastPrescribedSet_leavesTheSlotSayingNothing() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        val slotId = slot(program).id
+        repository.addSlotSet(slotId, "back-squat", SlotSetEdit(targetRepsMin = 5))
+        val setId = repository.observeSlotPrescriptions(slotId).first().single().sets.single().id
+
+        repository.removeSlotSet(setId)
+
+        assertTrue(repository.observeSlotPrescriptions(slotId).first().isEmpty())
+    }
+
+    @Test
+    fun prescribingAnExerciseTheTemplateDoesNotTrain_isRefused() = runTest {
+        // A prescription for an exercise the template does not have would be invisible on every
+        // screen the moment it was written.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        val slotId = slot(program).id
+
+        val result = repository.addSlotSet(slotId, "front-squat", SlotSetEdit(targetRepsMin = 5))
+
+        assertTrue(result is DataResult.Failure)
+        assertTrue(repository.observeSlotPrescriptions(slotId).first().isEmpty())
+    }
+
+    @Test
+    fun aPercentageOutsideTheScale_isRefused() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        val slotId = slot(program).id
+
+        val result = repository.addSlotSet(slotId, "back-squat", SlotSetEdit(targetPercentOf1Rm = 120))
+
+        assertTrue(result is DataResult.Failure)
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
-    private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {
-        val startedAt = Instant.parse(date).toEpochMilli()
+    private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(
             WorkoutSessionEntity(
                 id = id,

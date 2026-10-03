@@ -63,6 +63,14 @@ data class BackupFile(
      */
     val programSkips: List<ProgramSkipDto> = emptyList(),
     /**
+     * What each program slot prescribes, per exercise (ROADMAP P3.8).
+     *
+     * Defaulted like every added collection: a file written before a slot could prescribe still
+     * decodes, and its slots simply leave the template's targets standing.
+     */
+    val programSlotExercises: List<ProgramSlotExerciseDto> = emptyList(),
+    val programSlotSets: List<ProgramSlotSetDto> = emptyList(),
+    /**
      * Body measurements (ROADMAP N32).
      *
      * Defaulted, like every added collection — and it must be here in the same change as the table,
@@ -307,6 +315,43 @@ data class ProgramSkipDto(
     val slotId: String,
     /** Monday of the week, as `LocalDate.toEpochDay()`. */
     val weekStart: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** One exercise of one slot, and the rest and cue that slot prescribes for it (ROADMAP P3.8). */
+@Serializable
+data class ProgramSlotExerciseDto(
+    val id: String,
+    val slotId: String,
+    val exerciseId: String,
+    val restSeconds: Int? = null,
+    val techniqueNote: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/**
+ * One set a slot prescribes (ROADMAP P3.8).
+ *
+ * [targetPercentOf1Rm] is the one target a template's planned set cannot carry; every other field
+ * is the plan's own vocabulary, written raw exactly as the database holds it.
+ */
+@Serializable
+data class ProgramSlotSetDto(
+    val id: String,
+    val slotExerciseId: String,
+    val setIndex: Int,
+    val role: SetType,
+    val targetWeightGrams: Long? = null,
+    val targetAssistanceGrams: Long? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpeHalves: Int? = null,
+    val targetPercentOf1Rm: Int? = null,
+    val note: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

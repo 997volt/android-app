@@ -3,6 +3,8 @@ package com.example.androidapp.data.transfer
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
+import com.example.androidapp.data.local.ProgramSlotExerciseEntity
+import com.example.androidapp.data.local.ProgramSlotSetEntity
 
 /**
  * Entity <-> backup DTO for programs (ROADMAP P3.3).
@@ -68,6 +70,62 @@ internal fun ProgramSkipDto.toEntity() = ProgramSkipEntity(
     id = id,
     slotId = slotId,
     weekStart = weekStart,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotExerciseEntity.toDto() = ProgramSlotExerciseDto(
+    id = id,
+    slotId = slotId,
+    exerciseId = exerciseId,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotExerciseDto.toEntity() = ProgramSlotExerciseEntity(
+    id = id,
+    slotId = slotId,
+    exerciseId = exerciseId,
+    restSeconds = restSeconds,
+    techniqueNote = techniqueNote,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotSetEntity.toDto() = ProgramSlotSetDto(
+    id = id,
+    slotExerciseId = slotExerciseId,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetAssistanceGrams = targetAssistanceGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpeHalves = targetRpeHalves,
+    targetPercentOf1Rm = targetPercentOf1Rm,
+    note = note,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramSlotSetDto.toEntity() = ProgramSlotSetEntity(
+    id = id,
+    slotExerciseId = slotExerciseId,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetAssistanceGrams = targetAssistanceGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpeHalves = targetRpeHalves,
+    targetPercentOf1Rm = targetPercentOf1Rm,
+    note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

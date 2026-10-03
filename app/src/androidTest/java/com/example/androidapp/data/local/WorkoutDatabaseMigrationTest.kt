@@ -951,4 +951,49 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration21To22_addsSlotPrescriptions_withoutInventingOne() {
+        // ROADMAP P3.8. Two new tables, and what matters is what they do *not* do: a slot that
+        // prescribed nothing before the upgrade gets no rows, so the template's targets still
+        // stand exactly as they did. The slot already there has to survive.
+        helper.createDatabase(TEST_DB, 21).apply {
+            execSQL(
+                """
+                INSERT INTO templates (id, name, createdAt, updatedAt, deletedAt)
+                VALUES ('t1', 'Heavy lower', 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO programs (id, name, isActive, position, createdAt, updatedAt, deletedAt)
+                VALUES ('p1', 'Upper/Lower', 1, 1, 100, 100, NULL)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO program_slots
+                    (id, programId, templateId, position, weekday, createdAt, updatedAt, deletedAt)
+                VALUES ('slot1', 'p1', 't1', 0, 'MONDAY', 100, 100, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 22, true, MIGRATION_21_22)
+
+        migrated.query("SELECT id, weekday FROM program_slots").use { cursor ->
+            assertTrue("the slot already there survived", cursor.moveToFirst())
+            assertEquals("slot1", cursor.getString(0))
+            assertEquals("MONDAY", cursor.getString(1))
+        }
+        listOf("program_slot_exercises", "program_slot_sets").forEach { table ->
+            migrated.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("no $table is invented by the upgrade", 0, cursor.getInt(0))
+            }
+        }
+
+        migrated.close()
+    }
 }

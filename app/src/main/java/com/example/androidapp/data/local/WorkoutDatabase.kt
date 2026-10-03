@@ -27,8 +27,10 @@ import androidx.room.TypeConverters
         ProgramEntity::class,
         ProgramSlotEntity::class,
         ProgramSkipEntity::class,
+        ProgramSlotExerciseEntity::class,
+        ProgramSlotSetEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -49,6 +51,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
 
     /** Programs, their slots and their recorded skips (ROADMAP P3.3). */
     abstract fun programDao(): ProgramDao
+
+    /** What each slot prescribes, per exercise (ROADMAP P3.8). */
+    abstract fun programPrescriptionDao(): ProgramPrescriptionDao
 
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao

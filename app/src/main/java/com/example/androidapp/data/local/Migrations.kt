@@ -526,6 +526,23 @@ val MIGRATION_20_21 = object : Migration(20, 21) {
     }
 }
 
+/**
+ * v21 -> v22: what each program slot prescribes for each exercise (ROADMAP P3.8).
+ *
+ * Two new tables, so an upgrade cannot lose a prescription that did not exist. A slot that
+ * prescribed nothing gets no rows, which is exactly the state it was in before: the template's
+ * targets stood then and still do. The SQL is Room's own, copied from the exported schema rather
+ * than hand-written as an equivalent.
+ */
+val MIGRATION_21_22 = object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_PROGRAM_SLOT_EXERCISES)
+        db.execSQL(CREATE_PROGRAM_SLOT_EXERCISES_SLOT_INDEX)
+        db.execSQL(CREATE_PROGRAM_SLOT_SETS)
+        db.execSQL(CREATE_PROGRAM_SLOT_SETS_EXERCISE_INDEX)
+    }
+}
+
 private const val CREATE_PROGRAMS =
     "CREATE TABLE IF NOT EXISTS `programs` (" +
         "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, " +
@@ -572,6 +589,32 @@ private const val ADD_SESSION_TEMPLATE_ID =
 private const val ADD_PROGRAM_POSITION =
     "ALTER TABLE `programs` ADD COLUMN `position` INTEGER NOT NULL DEFAULT 0"
 
+private const val CREATE_PROGRAM_SLOT_EXERCISES =
+    "CREATE TABLE IF NOT EXISTS `program_slot_exercises` (" +
+        "`id` TEXT NOT NULL, `slotId` TEXT NOT NULL, `exerciseId` TEXT NOT NULL, " +
+        "`restSeconds` INTEGER, `techniqueNote` TEXT, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`slotId`) REFERENCES `program_slots`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_PROGRAM_SLOT_EXERCISES_SLOT_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_slot_exercises_slotId` " +
+        "ON `program_slot_exercises` (`slotId`)"
+
+private const val CREATE_PROGRAM_SLOT_SETS =
+    "CREATE TABLE IF NOT EXISTS `program_slot_sets` (" +
+        "`id` TEXT NOT NULL, `slotExerciseId` TEXT NOT NULL, `setIndex` INTEGER NOT NULL, " +
+        "`role` TEXT NOT NULL, `targetWeightGrams` INTEGER, `targetAssistanceGrams` INTEGER, " +
+        "`targetRepsMin` INTEGER, `targetRepsMax` INTEGER, `targetRpeHalves` INTEGER, " +
+        "`targetPercentOf1Rm` INTEGER, `note` TEXT, `createdAt` INTEGER NOT NULL, " +
+        "`updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`slotExerciseId`) REFERENCES `program_slot_exercises`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_PROGRAM_SLOT_SETS_EXERCISE_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_slot_sets_slotExerciseId` " +
+        "ON `program_slot_sets` (`slotExerciseId`)"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_2_3,
@@ -593,4 +636,5 @@ val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_18_19,
     MIGRATION_19_20,
     MIGRATION_20_21,
+    MIGRATION_21_22,
 )

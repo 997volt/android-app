@@ -3,6 +3,8 @@ package com.example.androidapp.data.local
 import com.example.androidapp.domain.model.AdherenceSession
 import com.example.androidapp.domain.model.ProgramSession
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SlotPrescription
+import com.example.androidapp.domain.model.SlotSet
 import com.example.androidapp.domain.model.WorkoutProgram
 import java.time.Instant
 import java.time.ZoneId
@@ -30,6 +32,33 @@ internal fun ProgramSlotDetail.toDomain(): ProgramSlot = ProgramSlot(
     weekday = weekday,
     templateName = templateName,
     exerciseCount = exerciseCount,
+)
+
+/**
+ * What one slot prescribes for one exercise, with the sets read alongside it (ROADMAP P3.8).
+ *
+ * The sets are passed in rather than gathered here so the repository can group one read of all
+ * of a slot's sets by their exercise row, which is a join the mapper should not be repeating.
+ */
+internal fun ProgramSlotExerciseEntity.toDomain(sets: List<ProgramSlotSetEntity>): SlotPrescription =
+    SlotPrescription(
+        exerciseId = exerciseId,
+        restSeconds = restSeconds,
+        techniqueNote = techniqueNote,
+        sets = sets.map { it.toDomain() },
+    )
+
+internal fun ProgramSlotSetEntity.toDomain(): SlotSet = SlotSet(
+    id = id,
+    setIndex = setIndex,
+    role = role,
+    targetWeightGrams = targetWeightGrams,
+    targetAssistanceGrams = targetAssistanceGrams,
+    targetRepsMin = targetRepsMin,
+    targetRepsMax = targetRepsMax,
+    targetRpeHalves = targetRpeHalves,
+    targetPercentOf1Rm = targetPercentOf1Rm,
+    note = note,
 )
 
 /**

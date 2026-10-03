@@ -9,6 +9,8 @@ import com.example.androidapp.data.local.MeasurementEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
+import com.example.androidapp.data.local.ProgramSlotExerciseEntity
+import com.example.androidapp.data.local.ProgramSlotSetEntity
 import com.example.androidapp.data.local.SessionExerciseEntity
 import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
@@ -215,6 +217,49 @@ class BackupCodecRoundTripTest {
             id = "skip1",
             slotId = "slot1",
             weekStart = 20_345L,
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramSlotExercise_survivesTheCodec() {
+        // The row P3.8 added: a slot's rest and cue for one exercise, which a hand-written codec
+        // loses first when it is not told about the table.
+        val entity = ProgramSlotExerciseEntity(
+            id = "pse1",
+            slotId = "slot1",
+            exerciseId = "back-squat",
+            restSeconds = 150,
+            techniqueNote = "brace hard",
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramSlotSet_survivesTheCodec() {
+        // The percentage is the one target a template's planned set cannot carry (P3.8), so it is
+        // deliberately set here: a codec that forgot it would silently restore a percentage load
+        // as no load at all.
+        val entity = ProgramSlotSetEntity(
+            id = "pss1",
+            slotExerciseId = "pse1",
+            setIndex = 2,
+            role = SetType.DROP,
+            targetWeightGrams = 92_500L,
+            targetAssistanceGrams = 15_000L,
+            targetRepsMin = 2,
+            targetRepsMax = 4,
+            targetRpeHalves = 19,
+            targetPercentOf1Rm = 85,
+            note = "leave one in the tank",
             createdAt = 1_600_000_000_000L,
             updatedAt = 1_600_000_000_001L,
             deletedAt = null,

@@ -5,8 +5,10 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.repository.ProgramRepository
+import com.example.androidapp.domain.repository.SlotSetEdit
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
 import java.time.DayOfWeek
@@ -196,6 +198,28 @@ class ProgramStartGateViewModelTest {
         override fun observeActivePrograms(): Flow<List<WorkoutProgram>> = flowOf(emptyList())
 
         override fun observeSlots(programId: String): Flow<List<ProgramSlot>> = flowOf(emptyList())
+
+        override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
+            flowOf(emptyList())
+
+        override suspend fun setSlotExercisePlan(
+            slotId: String,
+            exerciseId: String,
+            restSeconds: Int?,
+            techniqueNote: String?,
+        ): DataResult<Unit> = error("these tests do not prescribe an exercise")
+
+        override suspend fun addSlotSet(
+            slotId: String,
+            exerciseId: String,
+            edit: SlotSetEdit,
+        ): DataResult<Unit> = error("these tests do not prescribe a set")
+
+        override suspend fun updateSlotSet(slotSetId: String, edit: SlotSetEdit): DataResult<Unit> =
+            error("these tests do not edit a prescribed set")
+
+        override suspend fun removeSlotSet(slotSetId: String): DataResult<Unit> =
+            error("these tests do not remove a prescribed set")
 
         override suspend fun pendingOccurrences(
             today: LocalDate,

@@ -5,6 +5,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.ProgramEntity
+import com.example.androidapp.data.local.ProgramSlotEntity
+import com.example.androidapp.data.local.ProgramSlotExerciseEntity
+import com.example.androidapp.data.local.ProgramSlotSetEntity
 import com.example.androidapp.data.local.TemplateEntity
 import com.example.androidapp.data.local.TemplateExerciseEntity
 import com.example.androidapp.data.local.WorkoutDatabase
@@ -18,6 +22,7 @@ import com.example.androidapp.domain.model.MuscleGroup
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.platform.CrashLogStore
 import java.nio.file.Files
+import java.time.DayOfWeek
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -380,6 +385,84 @@ class BackupRoundTripTest {
         val exercise = database.backupDao().allTemplateExercises().single()
         assertEquals(180, exercise.restSeconds)
         assertEquals("Slow descent", exercise.techniqueNote)
+    }
+
+    @Test
+    fun aSlotPrescription_survivesTheRoundTrip() = runTest {
+        // ROADMAP P3.8: what a slot prescribes is authored setup, and the codec is hand-written —
+        // so a table it is not told about is dropped on export and every slot silently returns to
+        // the template's targets. The percentage is the target only this table can carry.
+        database.exerciseDao().insertAll(listOf(seedExercise()))
+        database.templateDao().insertTemplate(
+            TemplateEntity(id = "t1", name = "Heavy lower", createdAt = 1L, updatedAt = 1L, deletedAt = null),
+        )
+        database.programDao().insertProgram(
+            ProgramEntity(
+                id = "p1",
+                name = "Upper/Lower",
+                isActive = true,
+                position = 0,
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
+        database.programDao().insertSlot(
+            ProgramSlotEntity(
+                id = "slot1",
+                programId = "p1",
+                templateId = "t1",
+                position = 0,
+                weekday = DayOfWeek.MONDAY,
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
+        database.programPrescriptionDao().insertSlotExercise(
+            ProgramSlotExerciseEntity(
+                id = "pse1",
+                slotId = "slot1",
+                exerciseId = "back-squat",
+                restSeconds = 150,
+                techniqueNote = "brace hard",
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
+        database.programPrescriptionDao().insertSlotSet(
+            ProgramSlotSetEntity(
+                id = "pss1",
+                slotExerciseId = "pse1",
+                setIndex = 0,
+                role = SetType.TOP_SET,
+                targetAssistanceGrams = 20_000L,
+                targetRepsMin = 1,
+                targetRepsMax = 2,
+                targetRpeHalves = 18,
+                targetPercentOf1Rm = 85,
+                note = "grind",
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
+
+        val json = exportedJson()
+        database.clearAllTables()
+        repository.import(json)
+
+        val exercise = database.programPrescriptionDao().observeSlotExercises("slot1").first().single()
+        assertEquals(150, exercise.restSeconds)
+        assertEquals("brace hard", exercise.techniqueNote)
+
+        val set = database.programPrescriptionDao().observeSlotSets("slot1").first().single()
+        assertEquals(SetType.TOP_SET, set.role)
+        assertEquals(20_000L, set.targetAssistanceGrams)
+        assertEquals(18, set.targetRpeHalves)
+        assertEquals("the one target a template's planned set cannot carry", 85, set.targetPercentOf1Rm)
+        assertEquals("grind", set.note)
     }
 
     @Test

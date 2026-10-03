@@ -4,6 +4,8 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -85,6 +87,35 @@ interface ProgramRepository {
     suspend fun removeSlot(slotId: String): DataResult<Unit>
 
     /**
+     * What one slot prescribes for each exercise of its template (ROADMAP P3.8).
+     *
+     * Empty prescriptions are absent rather than empty rows, so "the slot says nothing" and "the
+     * slot has no prescription" are one state. The template's targets stand wherever a slot does
+     * not speak (N14).
+     */
+    fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>>
+
+    /**
+     * Writes the rest and cue a slot prescribes for one exercise (P3.8), creating the row on the
+     * first write. Clearing both when the exercise has no set left removes the row, so an empty
+     * prescription does not linger as an empty row.
+     */
+    suspend fun setSlotExercisePlan(
+        slotId: String,
+        exerciseId: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+    ): DataResult<Unit>
+
+    /** Appends a prescribed set to a slot's exercise, creating its row on the first write (P3.8). */
+    suspend fun addSlotSet(slotId: String, exerciseId: String, edit: SlotSetEdit): DataResult<Unit>
+
+    /** Overwrites one prescribed set's targets (P3.8). */
+    suspend fun updateSlotSet(slotSetId: String, edit: SlotSetEdit): DataResult<Unit>
+
+    suspend fun removeSlotSet(slotSetId: String): DataResult<Unit>
+
+    /**
      * The occurrences of every active program's current week that were missed (P3.3, unioned
      * by P3.12).
      *
@@ -123,3 +154,23 @@ interface ProgramRepository {
         zone: ZoneId,
     ): DataResult<AdherenceReport>
 }
+
+/**
+ * The editable targets of one set a slot prescribes (ROADMAP P3.8).
+ *
+ * A parameter object for [TemplateSetEdit]'s reason: everything but the role is optional, and a
+ * positional call site would be unreadable. It carries one field a template's planned set does
+ * not — [targetPercentOf1Rm].
+ */
+data class SlotSetEdit(
+    val role: SetType = SetType.NORMAL,
+    val targetWeightGrams: Long? = null,
+    /** The assistance the slot prescribes, as a magnitude (ROADMAP N15). */
+    val targetAssistanceGrams: Long? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpeHalves: Int? = null,
+    /** A percentage of the estimated one-rep max, or null (P3.8). */
+    val targetPercentOf1Rm: Int? = null,
+    val note: String? = null,
+)

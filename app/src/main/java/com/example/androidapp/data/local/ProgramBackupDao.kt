@@ -27,6 +27,12 @@ interface ProgramBackupDao {
     @Query("SELECT * FROM program_skips")
     suspend fun allProgramSkips(): List<ProgramSkipEntity>
 
+    @Query("SELECT * FROM program_slot_exercises")
+    suspend fun allProgramSlotExercises(): List<ProgramSlotExerciseEntity>
+
+    @Query("SELECT * FROM program_slot_sets")
+    suspend fun allProgramSlotSets(): List<ProgramSlotSetEntity>
+
     @Query("SELECT id FROM programs WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedProgramIds(): List<String>
 
@@ -35,6 +41,12 @@ interface ProgramBackupDao {
 
     @Query("SELECT id FROM program_skips WHERE deletedAt IS NOT NULL")
     suspend fun softDeletedProgramSkipIds(): List<String>
+
+    @Query("SELECT id FROM program_slot_exercises WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedProgramSlotExerciseIds(): List<String>
+
+    @Query("SELECT id FROM program_slot_sets WHERE deletedAt IS NOT NULL")
+    suspend fun softDeletedProgramSlotSetIds(): List<String>
 
     @Update
     suspend fun restorePrograms(rows: List<ProgramEntity>): Int
@@ -45,6 +57,12 @@ interface ProgramBackupDao {
     @Update
     suspend fun restoreProgramSkips(rows: List<ProgramSkipEntity>): Int
 
+    @Update
+    suspend fun restoreProgramSlotExercises(rows: List<ProgramSlotExerciseEntity>): Int
+
+    @Update
+    suspend fun restoreProgramSlotSets(rows: List<ProgramSlotSetEntity>): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPrograms(rows: List<ProgramEntity>): List<Long>
 
@@ -53,4 +71,10 @@ interface ProgramBackupDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertProgramSkips(rows: List<ProgramSkipEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertProgramSlotExercises(rows: List<ProgramSlotExerciseEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertProgramSlotSets(rows: List<ProgramSlotSetEntity>): List<Long>
 }
