@@ -15,6 +15,8 @@ empty — which says more about where your training data lives than any wording 
 - [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change
 - [CHANGELOG.md](CHANGELOG.md) — what shipped, per version
 - [RELEASING.md](RELEASING.md) — how a release is cut, and its traps
+- [AGENTS.md](AGENTS.md) — the map: where each kind of truth lives, and the rules a
+  change has to respect
 
 ## Toolchain
 

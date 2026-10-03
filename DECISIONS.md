@@ -342,8 +342,10 @@ into this file once the feature ships.
   integration has to argue past this line.
 - **Errors are values.** Reads and writes both return `DataResult`, so a failure is
   something a screen can render rather than an exception that disappears inside a
-  coroutine. The last two hold-outs — `ExerciseRepository`'s two reads — were closed by
-  B4; keep it that way for anything new.
+  coroutine. `dataResultOf` rethrows `CancellationException` instead of swallowing it,
+  which `runCatching` would because it catches `Throwable` — so a `suspend` function does
+  not use `runCatching`. The last two hold-outs — `ExerciseRepository`'s two reads — were
+  closed by B4; keep it that way for anything new.
 - **Measure before optimizing.** The one known hot spot — a per-second recomposition of
   the workout list — was found by reading the code and is fixed. Any further performance
   claim should come with a measurement.
@@ -366,7 +368,9 @@ into this file once the feature ships.
 - **Schema changes are migration-numbered as they ship.** A migration takes the next
   version when its feature lands; do not add columns or tables ahead of the code that
   reads them, because Room validates the declared entities against the migrated schema —
-  an early column forces an entity field nothing reads. Every migration gets an exported
+  an early column forces an entity field nothing reads. Copy the SQL from Room's generated
+  `createSql` rather than hand-writing an equivalent, register the migration in
+  `ALL_MIGRATIONS`, and never edit one that has shipped. Every migration gets an exported
   schema under [app/schemas](app/schemas) and a `MigrationTestHelper` test that upgrades a
   database with real rows in it.
 

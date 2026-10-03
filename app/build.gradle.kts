@@ -245,4 +245,14 @@ tasks.withType<Test>().configureEach {
     // Robolectric creates a lock file directly under the home directory and does
     // not create the directory first, so it must already exist.
     doFirst { robolectricHome.mkdirs() }
+
+    // DocsConsistencyTest reads these at runtime. Without declaring them, Gradle sees no
+    // input change after a documentation edit and reports the task UP-TO-DATE or
+    // FROM-CACHE, so the guard would not run on the very change it exists to check and a
+    // cached pass from older prose would read as green.
+    inputs.files(
+        rootProject.file("AGENTS.md"),
+        rootProject.file("README.md"),
+        rootProject.file(".github/workflows/android.yml"),
+    ).withPropertyName("documentation").withPathSensitivity(PathSensitivity.RELATIVE)
 }
