@@ -264,7 +264,8 @@ the rule; that one argues it.
 - **The lint baseline is unwired on purpose.** Accepting a warning is a two-step, reviewed
   act, not a side effect of running the build.
 - **Releases are manual**, and the tag must point at the commit that built the APK. The
-  procedure is in [RELEASING.md](RELEASING.md).
+  procedure is in [RELEASING.md](RELEASING.md); why it stays manual is in
+  [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md#releases).
 
 ## Verified on device
 

@@ -343,3 +343,19 @@ Both are JVM-only (`testImplementation`), and the core Truth artifact rather tha
 the review, so most files still use JUnit: they migrate **as they are touched**, never in a
 sweep, and a file is not left half-converted. This is a preference about failure messages,
 not a correctness gate — do not spend a change on migration alone.
+
+## Releases
+
+Releases are manual, and CI cannot attach an artifact: it builds a release APK to prove R8
+succeeds but signs nothing, so automating steps 4–7 of the procedure would mean putting
+`workout.jks` **and its passwords** into GitHub Secrets.
+
+**Decided against, for now.** The automation has a genuine engineering benefit — CI building
+from the tag would make the tag/APK mismatch impossible *by construction*, rather than merely
+documented — weighed against moving a permanent signing key into a third party's store, where
+any workflow in this repository could reach it, for an app released a few times a year. Ten
+documented minutes is the cheaper side of that trade.
+
+If the cadence ever changes, do it as a **GitHub Environment secret with required reviewers**, so
+a human approves before any job can read the key. A raw repository secret readable by any
+workflow is the version that should stay unbuilt.

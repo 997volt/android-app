@@ -4,35 +4,30 @@ One rule matters more than everything else here:
 
 > **The tag must point at the commit that built the APK.**
 
-Get that wrong and `git checkout v1.2` silently disagrees with the binary people
-downloaded. Nothing tests it, no build fails, and it stays wrong. The rest of this
-file exists to keep that true.
-
-This was written after the v1.2 release, which nearly went wrong twice — see
+Get that wrong and `git checkout v1.2` silently disagrees with the binary people downloaded.
+Nothing tests it, no build fails, and it stays wrong. The rest of this file exists to keep that
+true. It was written after the v1.2 release, which nearly went wrong twice — see
 [Traps](#traps).
 
 ## The procedure
 
 ### 1. Decide the version
 
-[`version.properties`](version.properties) is the single source of truth for both
-`versionCode` and `versionName`; the build fails loudly if either is missing.
-
-**`versionCode` must increase.** Android compares it and nothing else — publish a
-lower one and no phone will accept the update.
+[`version.properties`](version.properties) is the single source of truth for both `versionCode`
+and `versionName`; the build fails loudly if either is missing. **`versionCode` must increase** —
+Android compares it and nothing else, so a lower one is refused by every phone.
 
 ### 2. Write the changelog *before* the bump
 
-Add a `CHANGELOG.md` entry for the new version, and **list only what is actually in
+Add a [CHANGELOG.md](CHANGELOG.md) entry for the new version, listing **only what is actually in
 this build**. Check which commits landed before the commit you are about to tag:
 
 ```bash
 git log --oneline <last-release-tag>..HEAD
 ```
 
-An entry credited to the wrong release is the same class of error as a tag that
-does not match its binary: invisible, and misleading exactly to the person who
-trusts it.
+An entry credited to the wrong release is the same class of error as a tag that does not match
+its binary: invisible, and misleading exactly to the person who trusts it.
 
 ### 3. Bump, commit
 
@@ -47,29 +42,28 @@ git add -A && git commit -m "release: 1.3 (versionCode 4)"
 ./tools/build-apk.sh
 ```
 
-It refuses to hand over an unsigned APK, which would install for nobody. It reads
-the gitignored `keystore.properties`; see
-[Install on your own phone](README.md#install-on-your-own-phone) if that is missing.
-
-> The build can fail intermittently under memory pressure on a small machine
-> (`hiltJavaCompile*`, `expandReleaseArtProfileWildcards`, the lint worker). It is
-> not a code problem — run it again.
+It refuses to hand over an unsigned APK, which would install for nobody, and reads the
+gitignored `keystore.properties`; see
+[Install on your own phone](README.md#install-on-your-own-phone) if that is missing. If a task
+fails with an error that does not point at your own code, re-run before investigating —
+[README](README.md#known-flakiness-intermittent-task-failures-under-memory-pressure) lists the
+four that do this.
 
 ### 5. Verify, before tagging
 
-**Run the pipeline first.** CI no longer runs on every push, so nothing has confirmed this commit on the
-hosted runner — dispatch it and wait for both jobs, including the instrumented one:
+**Dispatch the pipeline first** and wait for both jobs, including the instrumented one: CI no
+longer runs on every push, so nothing else has confirmed this commit on a clean machine.
 
 ```sh
 gh workflow run "Android CI" --ref main
 gh run watch
 ```
 
-The build job is what runs the gate set (unit tests, lint, detekt, R8) on a clean machine, and the
-instrumented job is the only place the emulator suite runs outside a developer's machine. A release is the
-wrong time to discover that either has stopped working, which is why this is a step rather than a
-suggestion. If the instrumented job fails on the emulator rather than on a test, say so and decide
-deliberately — the failure signatures and the levers still untried are in ROADMAP.md (N30).
+The build job runs the gate set — unit tests, lint, detekt, R8 — and the instrumented job is the
+only place the emulator suite runs outside a developer's machine, so a release is the wrong time
+to discover either has stopped working. If the instrumented job fails on the emulator rather than
+on a test, say so and decide deliberately: the failure signatures and the remaining API-level
+trade are in [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md#n30-emulator).
 
 ```bash
 APK=app/build/outputs/apk/release/app-release.apk
@@ -80,9 +74,9 @@ $BT/apksigner verify --print-certs "$APK" | grep SHA-256  # must match the last 
 sha256sum "$APK"                                          # goes in the release notes
 ```
 
-**The certificate must be unchanged.** Any other value means the APK will be
-refused as an update and the only fix is an uninstall — which deletes the workout
-history, because platform backup is off. If it differs, stop and work out why.
+**The certificate must be unchanged.** Any other value means the APK is refused as an update and
+the only fix is an uninstall — which deletes the workout history, because platform backup is off.
+If it differs, stop and work out why.
 
 ### 6. Tag the commit you built
 
@@ -94,17 +88,15 @@ git push origin main
 git push origin v1.3
 ```
 
-**If `main` has moved since you branched, merge it in first** — `git merge
-origin/main`, never `git rebase`. A rebase rewrites the release commit, changes its
-SHA, and orphans the tag. Merging keeps the commit identity, and therefore the tag,
-valid.
+**If `main` has moved, merge it in first** — `git merge origin/main`, never `git rebase`. A
+rebase rewrites the release commit, changes its SHA, and orphans the tag; merging keeps the
+commit identity, and therefore the tag, valid.
 
 ### 7. Publish the release
 
-**Releases → Draft a new release** → pick the tag → title it `Workout 1.3` →
-paste the notes → attach the APK → Publish.
-
-Make sure the attached file's name and `sha256` in the notes agree with step 5:
+**Releases → Draft a new release** → pick the tag → title it `Workout 1.3` → paste the notes →
+attach the APK → Publish. The attached file's name and the `sha256` in the notes must agree with
+step 5:
 
 ```
 **Version:** 1.3 (versionCode 4)
@@ -112,45 +104,29 @@ Make sure the attached file's name and `sha256` in the notes agree with step 5:
 **SHA-256:** <from step 5>
 **Requires:** Android 8.0+ (API 26)
 
-Install with `adb install -r workout-1.3.apk`, or copy it to the phone and tap
-it. Signed with the same key as previous releases, so it upgrades in place — do not
-uninstall first, which would delete the history.
+Install with `adb install -r workout-1.3.apk`, or copy it to the phone and tap it. Signed with
+the same key as previous releases, so it upgrades in place — do not uninstall first, which would
+delete the history.
 ```
 
 ## Traps
 
 Collected from the v1.2 release, all of them real:
 
-- **A rejected `main` push.** `git push` fails as a non-fast-forward when someone
-  merged to `main` while you were working. The tag may already be up by then,
-  pointing at a commit that is not on the branch. **Merge, don't rebase** (step 6)
-  and re-push; the tag then becomes reachable without changing.
-- **A changelog that credited the wrong version.** The v1.2 notes initially
-  attributed two changes to 1.1 that landed after the 1.1 build. Check with `git
-  log` (step 2) rather than memory.
-- **"Generate release notes" in the GitHub UI.** It builds notes from merged PRs
-  and commit subjects, which here means `chore(deps): …` and internal refactors.
-  Write notes for the person downloading the APK instead.
+- **A rejected `main` push.** `git push` fails as a non-fast-forward when someone merged to `main`
+  while you were working, and the tag may already be up by then, pointing at a commit that is not
+  on the branch. **Merge, don't rebase** (step 6) and re-push; the tag then becomes reachable
+  without changing.
+- **A changelog that credited the wrong version.** The v1.2 notes attributed two changes to 1.1
+  that landed after the 1.1 build. Check with `git log` (step 2) rather than memory.
+- **"Generate release notes" in the GitHub UI.** It builds notes from merged PRs and commit
+  subjects, which here means `chore(deps): …` and internal refactors. Write notes for the person
+  downloading the APK instead.
 - **An unsigned APK in the output directory.** CI signs nothing, so
-  `app/build/outputs/apk/release/` can contain `app-release-unsigned.apk` after a
-  CI-shaped build. Check the filename before handing anything to anyone.
-- **Deleting or re-pushing a published tag.** Safe only before anyone has fetched
-  it. Once a release exists against a tag, treat it as immutable and cut a new
-  version instead.
+  `app/build/outputs/apk/release/` can hold `app-release-unsigned.apk` after a CI-shaped build.
+  Check the filename before handing anything to anyone.
+- **Deleting or re-pushing a published tag.** Safe only before anyone has fetched it. Once a
+  release exists against a tag, treat it as immutable and cut a new version instead.
 
-## Why this is manual (decided)
-
-CI builds a release APK to prove R8 succeeds, but signs nothing, so it cannot attach
-an artifact to a release. Automating steps 4–7 would mean putting `workout.jks` **and
-its passwords** into GitHub Secrets.
-
-**Decided against, for now.** The automation has a genuine engineering benefit: CI
-building from the tag would make the tag/APK mismatch impossible *by construction*,
-rather than merely documented in this file. That was weighed against moving a
-permanent signing key into a third party's store, where any workflow in this
-repository could reach it — for an app released a few times a year. Ten documented
-minutes is the cheaper side of that trade.
-
-If the cadence ever changes, do it as a **GitHub Environment secret with required
-reviewers**, so a human approves before any job can read the key. A raw repository
-secret readable by any workflow is the version that should stay unbuilt.
+Why releases stay manual, and the automation that was rejected, is in
+[DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md#releases).

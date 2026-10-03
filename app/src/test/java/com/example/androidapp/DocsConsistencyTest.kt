@@ -44,16 +44,30 @@ class DocsConsistencyTest {
     }
 
     @Test
-    fun every_evidence_anchor_resolves() {
-        val headings = HEADING.findAll(read("DECISIONS-EVIDENCE.md"))
-            .map { slug(it.groupValues[1]) }
-            .toSet()
-        val anchors = ANCHOR.findAll(read("DECISIONS.md")).map { it.groupValues[1] }.toSet()
+    fun every_doc_anchor_resolves() {
+        val headings = mutableMapOf<String, Set<String>>()
+        fun headingsOf(path: String): Set<String>? {
+            if (path.isNotEmpty() && !path.endsWith(".md")) return null
+            return headings.getOrPut(path) {
+                HEADING.findAll(read(path)).map { slug(it.groupValues[1]) }.toSet()
+            }
+        }
 
-        // A regex that quietly stopped matching would leave both sides empty, and an empty
-        // set is a subset of every set.
-        assertThat(anchors).isNotEmpty()
-        assertThat(anchors.filterNot { it in headings }).isEmpty()
+        val broken = mutableListOf<String>()
+        var checked = 0
+        DOCS.forEach { doc ->
+            ANCHOR.findAll(read(doc)).forEach { match ->
+                val targetDoc = match.groupValues[1].ifEmpty { doc }
+                val known = headingsOf(targetDoc) ?: return@forEach
+                val fragment = match.groupValues[2]
+                checked++
+                if (fragment !in known) broken += "$doc -> $targetDoc#$fragment"
+            }
+        }
+
+        // A regex that quietly stopped matching would check nothing and pass.
+        assertThat(checked).isGreaterThan(0)
+        assertThat(broken).isEmpty()
     }
 
     /**
@@ -109,7 +123,7 @@ class DocsConsistencyTest {
         )
         val WHITESPACE = Regex("\\s+")
         val LINK = Regex("""\]\(([^)]+)\)""")
-        val HEADING = Regex("^## (.+)$", RegexOption.MULTILINE)
-        val ANCHOR = Regex("""DECISIONS-EVIDENCE\.md#([A-Za-z0-9_-]+)""")
+        val HEADING = Regex("^#{1,6} (.+)$", RegexOption.MULTILINE)
+        val ANCHOR = Regex("""\]\(([^)#\s]*)#([A-Za-z0-9_-]+)\)""")
     }
 }
