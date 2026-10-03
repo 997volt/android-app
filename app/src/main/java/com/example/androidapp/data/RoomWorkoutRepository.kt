@@ -68,7 +68,10 @@ class RoomWorkoutRepository @Inject constructor(
     override fun observeSession(sessionId: String): Flow<WorkoutSession?> =
         dao.observeSession(sessionId).map { it?.toDomain() }
 
-    override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> =
+    override suspend fun startOrResumeSession(
+        templateId: String?,
+        slotId: String?,
+    ): DataResult<StartedSession> =
         dataResultOf {
             // find-or-create and any template seeding are one transaction, so two
             // taps cannot open two sessions — and a failure cannot leave a session
@@ -85,18 +88,27 @@ class RoomWorkoutRepository @Inject constructor(
                     templateId = templateId,
                 )
                 if (start.created && templateId != null) {
+                    // What the slot prescribes for each exercise, if it was started from one
+                    // (ROADMAP P3.8). Read here rather than stored on the session, so the slot
+                    // stays a living thing the session merely followed.
+                    val prescribed = slotId
+                        ?.let { slot -> database.programPrescriptionDao().findSlotExercises(slot) }
+                        .orEmpty()
+                        .associateBy { it.exerciseId }
                     templateDao.findPlannedExercises(templateId).forEach { planned ->
+                        val fromSlot = prescribed[planned.exerciseId]
                         // The plan's rest and cue come with it (ROADMAP N14): a plan
                         // that says "3m break" and a workout counting 90 seconds is
                         // the plan being ignored. Null leaves the library's showing
-                        // through, which is the fallback N5 established.
+                        // through, which is the fallback N5 established. A slot's own
+                        // prescription wins where it speaks (P3.8).
                         appendExercise(
                             dao = dao,
                             now = timeSource.nowEpochMillis(),
                             sessionId = start.session.id,
                             exerciseId = planned.exerciseId,
-                            restSeconds = planned.restSeconds,
-                            techniqueNote = planned.techniqueNote,
+                            restSeconds = fromSlot?.restSeconds ?: planned.restSeconds,
+                            techniqueNote = fromSlot?.techniqueNote ?: planned.techniqueNote,
                             // A plan that prescribes a superset must arrive as one, or the
                             // grouping can only ever be made by hand (ROADMAP B16).
                             supersetGroup = planned.supersetGroup,

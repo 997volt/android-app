@@ -25,10 +25,12 @@ import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.TemplateExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.taxonomySubtitle
+import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.WorkoutRepository
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.ui.navigation.ActiveWorkout
@@ -180,6 +182,7 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
     private val timeSource: TimeSource,
     private val templateRepository: TemplateRepository,
+    private val programRepository: ProgramRepository,
     savedStateHandle: SavedStateHandle,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
@@ -197,6 +200,15 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val repeatLast: Boolean = savedStateHandle.toRoute<ActiveWorkout>().repeatLast
 
     /**
+     * The program slot this workout was started from, or null (ROADMAP P3.8).
+     *
+     * A start argument rather than a stored fact: the session still records only the template
+     * (P3.3). It matters twice — the slot's prescription seeds the rest and cue, and the offer the
+     * lifter sees is made from *that slot's* history rather than the exercise's.
+     */
+    private val slotId: String? = savedStateHandle.toRoute<ActiveWorkout>().slotId
+
+    /**
      * The plan this workout was started from, or empty (ROADMAP N14).
      *
      * Nothing is stored on the session to link it: the route already carries the
@@ -206,6 +218,17 @@ class ActiveWorkoutViewModel @Inject constructor(
      */
     private val plannedExercises: Flow<List<TemplateExercise>> =
         templateId?.let { templateRepository.observeExercises(it) } ?: flowOf(emptyList())
+
+    /**
+     * What the started slot prescribes, keyed by exercise, or empty (ROADMAP P3.8).
+     *
+     * The slot this workout was started from is the slot this session follows, so it is read once
+     * rather than re-derived per set.
+     */
+    private val slotPrescriptions: Flow<Map<String, SlotPrescription>> = slotId
+        ?.let { slot -> programRepository.observeSlotPrescriptions(slot) }
+        ?.map { prescriptions -> prescriptions.associateBy { it.exerciseId } }
+        ?: flowOf(emptyMap())
 
     private val lastError = MutableStateFlow<DataError?>(null)
 
@@ -255,6 +278,15 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val pendingUndo = MutableStateFlow<SetEntry?>(null)
     private val previousByExercise = MutableStateFlow<Map<String, PreviousPerformance>>(emptyMap())
 
+    /**
+     * Each exercise's estimated one-rep max, or null when N17 cannot estimate one (ROADMAP P3.8).
+     *
+     * A key present with a null value means "read, and there is nothing estimable", so it is not
+     * read again; a missing key has not been read. Only a slot's percentage prescription uses it,
+     * and it is read with the previous performance rather than eagerly on every screen.
+     */
+    private val oneRepMaxByExercise = MutableStateFlow<Map<String, Long?>>(emptyMap())
+
     /** True while a just-opened session is asking what was not recovered today (N4). */
     private val readinessPromptVisible = MutableStateFlow(false)
 
@@ -294,6 +326,23 @@ class ActiveWorkoutViewModel @Inject constructor(
         val sets: List<SetEntry>,
         val previous: Map<String, PreviousPerformance>,
         val planned: List<TemplateExercise>,
+        val prescriptions: Map<String, SlotPrescription>,
+        val oneRepMax: Map<String, Long?>,
+    )
+
+    /** The three session-shaped sources, kept together so the combine below stays three deep. */
+    private data class SessionPart(
+        val session: WorkoutSession?,
+        val exercises: List<SessionExercise>,
+        val sets: List<SetEntry>,
+    )
+
+    /** What the plan and the slot say, and what history answers (ROADMAP P3.8). */
+    private data class PlanPart(
+        val planned: List<TemplateExercise>,
+        val prescriptions: Map<String, SlotPrescription>,
+        val previous: Map<String, PreviousPerformance>,
+        val oneRepMax: Map<String, Long?>,
     )
 
     /** Offers the user has taken (ROADMAP N33), keyed by the exercise row. */
@@ -305,13 +354,27 @@ class ActiveWorkoutViewModel @Inject constructor(
         }
 
     private val snapshots: Flow<Snapshot> = combine(
-        activeSession,
-        sessionExercises,
-        setsState,
-        previousByExercise,
-        plannedExercises,
-    ) { session, exercises, logged, previous, planned ->
-        Snapshot(session, exercises, logged, previous, planned)
+        combine(activeSession, sessionExercises, setsState) { session, exercises, logged ->
+            SessionPart(session, exercises, logged)
+        },
+        combine(
+            previousByExercise,
+            oneRepMaxByExercise,
+            plannedExercises,
+            slotPrescriptions,
+        ) { previous, oneRepMax, planned, prescriptions ->
+            PlanPart(planned, prescriptions, previous, oneRepMax)
+        },
+    ) { session, plan ->
+        Snapshot(
+            session = session.session,
+            exercises = session.exercises,
+            sets = session.sets,
+            previous = plan.previous,
+            planned = plan.planned,
+            prescriptions = plan.prescriptions,
+            oneRepMax = plan.oneRepMax,
+        )
     }
 
     /** Drives both the elapsed clock and the rest countdown; stops when unsubscribed. */
@@ -365,12 +428,13 @@ class ActiveWorkoutViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // Repeating is the same open, with the last workout's exercises as the seed instead of a
-            // plan's — both go through the one append path (ROADMAP N3, N29).
+            // plan's — both go through the one append path (ROADMAP N3, N29). The slot travels with
+            // the template so its prescription is what the session is seeded from (P3.8).
             val opened =
                 if (repeatLast) {
                     workoutRepository.repeatLastSession()
                 } else {
-                    workoutRepository.startOrResumeSession(templateId)
+                    workoutRepository.startOrResumeSession(templateId, slotId)
                 }
             when (val result = opened) {
                 is DataResult.Success -> {
@@ -393,12 +457,39 @@ class ActiveWorkoutViewModel @Inject constructor(
                 val sessionId = activeSession.replayCache.firstOrNull()?.id ?: return@collect
                 exercises
                     .map { it.exerciseId }
+                    .distinct()
                     .filterNot { it in previousByExercise.value }
                     .forEach { exerciseId ->
-                        val result = workoutRepository.previousPerformance(exerciseId, sessionId)
+                        // A slot's own history where there is a slot (P3.8), so two slots naming
+                        // one template progress apart; otherwise the exercise's last session.
+                        val result = slotId?.let { slot ->
+                            programRepository.slotPreviousPerformance(
+                                slotId = slot,
+                                exerciseId = exerciseId,
+                                currentSessionId = sessionId,
+                                // Read when it is needed rather than captured (B45).
+                                zone = ZoneId.systemDefault(),
+                            )
+                        } ?: workoutRepository.previousPerformance(exerciseId, sessionId)
                         if (result is DataResult.Success) {
                             previousByExercise.update { it + (exerciseId to result.data) }
                         }
+                    }
+            }
+        }
+
+        // N17's estimate, once per exercise, for the one prescription a template cannot write: a
+        // percentage of the estimated one-rep max (P3.8). A null value is a recorded answer.
+        viewModelScope.launch {
+            sessionExercises.collect { exercises ->
+                exercises
+                    .map { it.exerciseId }
+                    .distinct()
+                    .filterNot { it in oneRepMaxByExercise.value }
+                    .forEach { exerciseId ->
+                        val estimate = (programRepository.estimatedOneRepMax(exerciseId) as? DataResult.Success)
+                            ?.data
+                        oneRepMaxByExercise.update { it + (exerciseId to estimate) }
                     }
             }
         }
@@ -888,7 +979,13 @@ class ActiveWorkoutViewModel @Inject constructor(
                 it.toRow(
                     sets = sets,
                     previous = previous[it.exerciseId],
-                    planned = planned,
+                    // The slot's prescription wins where it speaks; the template answers the rest
+                    // (ROADMAP P3.8, N14).
+                    plan = PlanContext(
+                        planned = planned,
+                        prescription = prescriptions[it.exerciseId],
+                        estimatedOneRepMaxGrams = oneRepMax[it.exerciseId],
+                    ),
                     supersetLabels = supersetLabelsFor(exercises),
                     accepted = acceptedPrefill[it.id],
                 )
@@ -1033,6 +1130,19 @@ private fun ActiveWorkoutUiState.roundIsCompleteFor(row: SessionExerciseRow): Bo
  * be worse than no label.
  */
 /**
+ * What the plan says for one exercise: the template's targets, the slot's prescription where it
+ * speaks, and the estimate a percentage resolves against (ROADMAP N14, P3.8).
+ *
+ * The three travel together because they are one question — "what is this set supposed to be" —
+ * and the percentage is meaningless without the estimate beside it.
+ */
+private data class PlanContext(
+    val planned: List<TemplateExercise>,
+    val prescription: SlotPrescription?,
+    val estimatedOneRepMaxGrams: Long?,
+)
+
+/**
  * An offer the user accepted, and the set count it was accepted at (ROADMAP N33).
  *
  * The count is what keeps it honest: rows are rebuilt from the database after every write, so an
@@ -1056,7 +1166,7 @@ private data class RowOverrides(
 private fun SessionExercise.toRow(
     sets: List<SetEntry>,
     previous: PreviousPerformance?,
-    planned: List<TemplateExercise>,
+    plan: PlanContext,
     supersetLabels: Map<String, String>,
     accepted: AcceptedPrefill?,
 ): SessionExerciseRow {
@@ -1095,7 +1205,13 @@ private fun SessionExercise.toRow(
         suggestion = suggestionForNextSet(
             loggedSets = loggedSets,
             previous = previous,
-            planned = plannedTargetFor(planned, position = position, nextIndex = loggedSets.size),
+            // The slot's prescription for this set where it has one; the template's otherwise
+            // (ROADMAP P3.8, N14).
+            planned = prescribedTargetFor(
+                prescription = plan.prescription,
+                nextIndex = loggedSets.size,
+                estimatedOneRepMaxGrams = plan.estimatedOneRepMaxGrams,
+            ) ?: plannedTargetFor(plan.planned, position = position, nextIndex = loggedSets.size),
         ).let { suggestion ->
             // An accepted offer wins over the rule, but only while it still applies: once a set is
             // logged the count moves on and the offer is spent.

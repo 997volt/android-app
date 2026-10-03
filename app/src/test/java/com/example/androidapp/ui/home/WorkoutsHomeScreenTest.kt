@@ -45,7 +45,7 @@ class WorkoutsHomeScreenTest {
         val onStartWorkout: () -> Unit = {},
         val onStartFromTemplate: () -> Unit = {},
         val onRepeatLast: () -> Unit = {},
-        val onStartTemplate: (String) -> Unit = {},
+        val onStartTemplate: (TodayPlan) -> Unit = {},
         val onOpenWorkout: (String) -> Unit = {},
         val onOpenHistory: () -> Unit = {},
         val onOpenPrograms: () -> Unit = {},
@@ -227,7 +227,7 @@ class WorkoutsHomeScreenTest {
     @Test
     fun todaysPlan_isShownUnderToday_withAStartAction() {
         // ROADMAP N16: home shows what is scheduled for today and offers to start it.
-        val started = mutableListOf<String>()
+        val started = mutableListOf<TodayPlan>()
         setScreen(
             state = WorkoutsHomeUiState(
                 isLoading = false,
@@ -238,6 +238,9 @@ class WorkoutsHomeScreenTest {
                         templateId = "t1",
                         name = "Heavy lower",
                         exerciseCount = 4,
+                        // The slot travels with the row so its prescription seeds the workout
+                        // (ROADMAP P3.8).
+                        slotId = "slot-1",
                     ),
                 ),
             ),
@@ -248,8 +251,10 @@ class WorkoutsHomeScreenTest {
         composeTestRule.onNodeWithText("Heavy lower").assertExists()
         composeTestRule.onNodeWithTag(TestTags.homeStartPlan("slot-1")).performClick()
 
-        // The row's identity is the slot's; what starts is the template it points at (P3.3).
-        assertThat(started).containsExactly("t1")
+        // The row's identity is the slot's; what starts is the template it points at, and the
+        // slot travels with it (P3.3, P3.8).
+        assertThat(started.single().templateId).isEqualTo("t1")
+        assertThat(started.single().slotId).isEqualTo("slot-1")
     }
 
     @Test

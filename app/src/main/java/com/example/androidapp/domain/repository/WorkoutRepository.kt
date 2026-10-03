@@ -66,8 +66,16 @@ interface WorkoutRepository {
      * exercises are appended in order (ROADMAP N3), through the same append path
      * [addExercise] uses. A resumed session is left alone: it already has the
      * exercises it was started with, and seeding it again would duplicate them.
+     *
+     * When [slotId] is also given, the slot's prescription wins over the template's for each
+     * exercise's rest and cue (ROADMAP P3.8): a slot that says "3m break" is the plan being
+     * followed, and the template is what it falls back to. The slot is not stored on the session
+     * — P3.3's rule stands, and the session still records only the template.
      */
-    suspend fun startOrResumeSession(templateId: String? = null): DataResult<StartedSession>
+    suspend fun startOrResumeSession(
+        templateId: String? = null,
+        slotId: String? = null,
+    ): DataResult<StartedSession>
 
     /**
      * Starts a session holding the exercises of the last finished one, in their order (ROADMAP N29).

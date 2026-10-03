@@ -105,9 +105,11 @@ private fun NavGraphBuilder.homeDestinations(navController: NavHostController) {
             // The start action's other half: home offers the choice, the template
             // list makes it (ROADMAP N3).
             onStartFromTemplate = { navController.navigate(WorkoutTemplates) },
-            // Today's plan starts directly, with the plan's id — the same destination
-            // the template list reaches (ROADMAP N16).
-            onStartTemplate = { templateId -> navController.navigate(ActiveWorkout(templateId)) },
+            // Today's plan starts directly, with the plan's id and the slot it was scheduled as —
+            // the same destination the template list reaches (ROADMAP N16, P3.8).
+            onStartTemplate = { templateId, slotId ->
+                navController.navigate(ActiveWorkout(templateId = templateId, slotId = slotId))
+            },
             onOpenWorkout = { sessionId -> navController.navigate(WorkoutDetail(sessionId)) },
             onOpenHistory = { navController.navigate(WorkoutHistory) },
             // The schedule the today's-plan section is read from (ROADMAP P3.3).

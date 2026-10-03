@@ -3,6 +3,7 @@ package com.example.androidapp.domain.repository
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
+import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.SlotPrescription
@@ -114,6 +115,32 @@ interface ProgramRepository {
     suspend fun updateSlotSet(slotSetId: String, edit: SlotSetEdit): DataResult<Unit>
 
     suspend fun removeSlotSet(slotSetId: String): DataResult<Unit>
+
+    /**
+     * The previous performance of [exerciseId] for **one slot**, before [currentSessionId] (P3.8).
+     *
+     * A slot's own history rather than the exercise's: two slots may name one template, and the
+     * heavy Monday and the light Friday have to progress apart. The session is found the way an
+     * occurrence is matched (P3.3) — by template, then attributed to a slot by its own week and
+     * weekday — and [zone] is the device's, used only for a session recorded before N25.
+     */
+    suspend fun slotPreviousPerformance(
+        slotId: String,
+        exerciseId: String,
+        currentSessionId: String,
+        zone: ZoneId,
+    ): DataResult<PreviousPerformance>
+
+    /**
+     * N17's estimated one-rep max for [exerciseId], or null when there is nothing estimable
+     * (ROADMAP P3.8).
+     *
+     * A slot's percentage prescription resolves against this, which is why it lives beside the
+     * prescription: the figure is the exercise's own trend's, from its heaviest working set and
+     * refused beyond twelve reps, so an exercise with no working set that short has no number
+     * rather than a borrowed one.
+     */
+    suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?>
 
     /**
      * The occurrences of every active program's current week that were missed (P3.3, unioned

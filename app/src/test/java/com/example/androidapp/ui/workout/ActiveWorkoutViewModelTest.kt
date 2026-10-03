@@ -3,6 +3,13 @@ package com.example.androidapp.ui.workout
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.PersonalRecords
+import com.example.androidapp.domain.model.AdherenceReport
+import com.example.androidapp.domain.model.PendingOccurrence
+import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SlotPrescription
+import com.example.androidapp.domain.model.WorkoutProgram
+import com.example.androidapp.domain.repository.ProgramRepository
+import com.example.androidapp.domain.repository.SlotSetEdit
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.androidapp.domain.repository.SettingsRepository
 import java.time.DayOfWeek
@@ -22,6 +29,7 @@ import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.SessionExercise
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.SetType
+import com.example.androidapp.domain.model.SlotSet
 import com.example.androidapp.domain.model.WorkoutSession
 import com.example.androidapp.domain.model.WorkoutSummary
 import com.example.androidapp.domain.repository.StartedSession
@@ -105,7 +113,10 @@ class ActiveWorkoutViewModelTest {
     private fun activeWorkoutRoute(
         templateId: String? = null,
         repeatLast: Boolean = false,
-    ) = SavedStateHandle(mapOf("templateId" to templateId, "repeatLast" to repeatLast))
+        slotId: String? = null,
+    ) = SavedStateHandle(
+        mapOf("templateId" to templateId, "repeatLast" to repeatLast, "slotId" to slotId),
+    )
 
     private fun viewModelFor(
         repository: FakeWorkoutRepository,
@@ -113,11 +124,14 @@ class ActiveWorkoutViewModelTest {
         templates: FakeTemplateRepository = FakeTemplateRepository(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
         repeatLast: Boolean = false,
+        programs: FakeProgramRepository = FakeProgramRepository(),
+        slotId: String? = null,
     ) = ActiveWorkoutViewModel(
         repository,
         clock,
         templates,
-        activeWorkoutRoute(templateId, repeatLast),
+        programs,
+        activeWorkoutRoute(templateId, repeatLast, slotId),
         settings,
     )
 
@@ -994,6 +1008,7 @@ class ActiveWorkoutViewModelTest {
             FakeWorkoutRepository(),
             tickingClock,
             FakeTemplateRepository(),
+            FakeProgramRepository(),
             activeWorkoutRoute(),
             FakeSettingsRepository(),
         )
@@ -1056,7 +1071,10 @@ class ActiveWorkoutViewModelTest {
 
         override fun observeSessionExercises(sessionId: String): Flow<List<SessionExercise>> = exercises
 
-        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> {
+        override suspend fun startOrResumeSession(
+            templateId: String?,
+            slotId: String?,
+        ): DataResult<StartedSession> {
             sessions.value?.let { return DataResult.Success(StartedSession(it.id, isNew = false)) }
             val created = WorkoutSession(id = "s1", startedAt = Instant.parse("2026-09-28T07:00:00Z"))
             sessions.value = created
@@ -1295,6 +1313,77 @@ class ActiveWorkoutViewModelTest {
             "a plan prefills targets; it does not log sets",
             viewModel.uiState.value.exercises.single().sets.isEmpty(),
         )
+    }
+
+    @Test
+    fun aSlotsPrescription_prefillsOverTheTemplatesTarget() = runTest(dispatcher) {
+        // ROADMAP P3.8: the slot's prescription wins where it speaks, so two slots pointing at one
+        // template train it differently.
+        val repository = FakeWorkoutRepository()
+        val templates = FakeTemplateRepository(
+            planned = listOf(
+                plannedExercise(
+                    position = 0,
+                    sets = listOf(plannedSet(index = 0, reps = 5, weightGrams = 90_000L)),
+                ),
+            ),
+        )
+        val programs = FakeProgramRepository().apply {
+            prescriptions = listOf(
+                SlotPrescription(
+                    exerciseId = "back-squat",
+                    sets = listOf(
+                        SlotSet(id = "ps0", setIndex = 0, targetWeightGrams = 110_000L, targetRepsMin = 2),
+                    ),
+                ),
+            )
+        }
+        val viewModel = viewModelFor(
+            repository,
+            templateId = "t1",
+            templates = templates,
+            programs = programs,
+            slotId = "slot-1",
+        )
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val suggestion = viewModel.uiState.value.exercises.single().suggestion
+        assertEquals("the slot's reps, not the template's", 2, suggestion.reps)
+        assertEquals(110_000L, suggestion.weightGrams)
+    }
+
+    @Test
+    fun aSlotsPercentage_prefillsTheWeightDerivedFromTheEstimate() = runTest(dispatcher) {
+        // The one target a template's planned set cannot carry (P3.8): 85% of a 100 kg estimate.
+        val repository = FakeWorkoutRepository()
+        val programs = FakeProgramRepository().apply {
+            oneRepMax = 100_000L
+            prescriptions = listOf(
+                SlotPrescription(
+                    exerciseId = "back-squat",
+                    sets = listOf(
+                        SlotSet(id = "ps0", setIndex = 0, targetPercentOf1Rm = 85, targetRepsMin = 3),
+                    ),
+                ),
+            )
+        }
+        val viewModel = viewModelFor(
+            repository,
+            templateId = "t1",
+            programs = programs,
+            slotId = "slot-1",
+        )
+        observe(viewModel)
+        settle()
+        viewModel.onAddExercise("back-squat")
+        settle()
+
+        val suggestion = viewModel.uiState.value.exercises.single().suggestion
+        assertEquals(3, suggestion.reps)
+        assertEquals(85_000L, suggestion.weightGrams)
     }
 
     @Test
@@ -1895,5 +1984,107 @@ private class FakeSettingsRepository(
 
     override suspend fun setStatisticsRange(range: StatisticsRange): DataResult<Unit> =
         DataResult.Success(Unit)
+}
 
+/**
+ * Hand-written, because the project uses no mocking framework (DECISIONS.md).
+ *
+ * The workout screen reads a slot's prescription and that slot's history only when the route
+ * carried a slot (ROADMAP P3.8); every write here is a path this screen never takes.
+ */
+private class FakeProgramRepository : ProgramRepository {
+    override fun observePrograms(): Flow<List<WorkoutProgram>> = flowOf(emptyList())
+
+    override fun observeProgram(programId: String): Flow<WorkoutProgram?> = flowOf(null)
+
+    override fun observeActivePrograms(): Flow<List<WorkoutProgram>> = flowOf(emptyList())
+
+    override fun observeSlots(programId: String): Flow<List<ProgramSlot>> = flowOf(emptyList())
+
+    /** What the started slot prescribes; empty unless a test sets one (ROADMAP P3.8). */
+    var prescriptions: List<SlotPrescription> = emptyList()
+
+    override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
+        flowOf(prescriptions)
+
+    /** N17's estimate a slot's percentage resolves against (ROADMAP P3.8). */
+    var oneRepMax: Long? = null
+
+    override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
+        DataResult.Success(oneRepMax)
+
+    override suspend fun slotPreviousPerformance(
+        slotId: String,
+        exerciseId: String,
+        currentSessionId: String,
+        zone: java.time.ZoneId,
+    ): DataResult<PreviousPerformance> = DataResult.Success(PreviousPerformance(emptyList()))
+
+    override suspend fun createProgram(name: String): DataResult<String> =
+        error("the workout screen does not create a program")
+
+    override suspend fun renameProgram(programId: String, name: String): DataResult<Unit> =
+        error("the workout screen does not rename a program")
+
+    override suspend fun deleteProgram(programId: String): DataResult<Unit> =
+        error("the workout screen does not delete a program")
+
+    override suspend fun activateProgram(programId: String): DataResult<Unit> =
+        error("the workout screen does not activate a program")
+
+    override suspend fun deactivateProgram(programId: String): DataResult<Unit> =
+        error("the workout screen does not deactivate a program")
+
+    override suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit> =
+        error("the workout screen does not move a program")
+
+    override suspend fun addSlot(
+        programId: String,
+        templateId: String,
+        weekday: DayOfWeek?,
+    ): DataResult<Unit> = error("the workout screen does not add a slot")
+
+    override suspend fun setSlotWeekday(slotId: String, weekday: DayOfWeek?): DataResult<Unit> =
+        error("the workout screen does not schedule a slot")
+
+    override suspend fun moveSlot(slotId: String, delta: Int): DataResult<Unit> =
+        error("the workout screen does not move a slot")
+
+    override suspend fun removeSlot(slotId: String): DataResult<Unit> =
+        error("the workout screen does not remove a slot")
+
+    override suspend fun setSlotExercisePlan(
+        slotId: String,
+        exerciseId: String,
+        restSeconds: Int?,
+        techniqueNote: String?,
+    ): DataResult<Unit> = error("the workout screen does not prescribe an exercise")
+
+    override suspend fun addSlotSet(
+        slotId: String,
+        exerciseId: String,
+        edit: SlotSetEdit,
+    ): DataResult<Unit> = error("the workout screen does not prescribe a set")
+
+    override suspend fun updateSlotSet(slotSetId: String, edit: SlotSetEdit): DataResult<Unit> =
+        error("the workout screen does not edit a prescribed set")
+
+    override suspend fun removeSlotSet(slotSetId: String): DataResult<Unit> =
+        error("the workout screen does not remove a prescribed set")
+
+    override suspend fun pendingOccurrences(
+        today: java.time.LocalDate,
+        zone: java.time.ZoneId,
+    ): DataResult<List<PendingOccurrence>> = error("the workout screen does not ask about misses")
+
+    override suspend fun skipOccurrences(
+        slotIds: List<String>,
+        weekStart: java.time.LocalDate,
+    ): DataResult<Unit> = error("the workout screen does not record a skip")
+
+    override suspend fun monthAdherence(
+        month: java.time.YearMonth,
+        today: java.time.LocalDate,
+        zone: java.time.ZoneId,
+    ): DataResult<AdherenceReport> = error("the workout screen does not read adherence")
 }

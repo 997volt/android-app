@@ -58,12 +58,16 @@ data class ActiveWorkoutInfo(
  * [id] is the row's own identity — a program slot's id when a program is active, a
  * template's id under the weekday pins. It is deliberately not [templateId]: a program may
  * put the same template in two slots, and a list keyed by template would collide.
+ *
+ * [slotId] is set only for a program slot, and it is what carries the slot's prescription into
+ * the workout (P3.8): the template is what is started, the slot is what it was scheduled as.
  */
 data class TodayPlan(
     val id: String,
     val templateId: String,
     val name: String,
     val exerciseCount: Int,
+    val slotId: String? = null,
 )
 
 data class WorkoutsHomeUiState(
@@ -247,6 +251,8 @@ private fun List<WorkoutTemplate>.pinnedFor(day: DayOfWeek): List<TodayPlan> =
             templateId = template.id,
             name = template.name,
             exerciseCount = template.exerciseCount,
+            // A pin is not a slot, so there is no prescription to carry (P3.8).
+            slotId = null,
         )
     }
 
@@ -276,6 +282,7 @@ private fun List<ProgramSlot>.scheduledFor(
                 templateId = slot.templateId,
                 name = slot.templateName,
                 exerciseCount = slot.exerciseCount,
+                slotId = slot.id,
             )
         }
 }

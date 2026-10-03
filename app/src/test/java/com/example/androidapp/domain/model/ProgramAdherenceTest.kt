@@ -45,6 +45,8 @@ class ProgramAdherenceTest {
         date: LocalDate,
         zone: ZoneId = ZoneOffset.UTC,
     ) = AdherenceSession(
+        // Distinct per template and day, though adherence matching never reads it.
+        sessionId = "$templateId@$date",
         templateId = templateId,
         startedAt = date.atStartOfDay(zone).toInstant(),
         zone = zone,
@@ -264,7 +266,7 @@ class ProgramAdherenceTest {
 
         val adherence = ProgramSchedule.monthAdherence(
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
-            sessions = listOf(AdherenceSession("t-tue", lateMondayUtc, tokyo)),
+            sessions = listOf(AdherenceSession("tokyo", "t-tue", lateMondayUtc, tokyo)),
             skips = emptyList(),
             month = october,
             today = today,

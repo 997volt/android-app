@@ -4,6 +4,7 @@ import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.PendingOccurrence
+import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -97,7 +98,14 @@ class ProgramStartGateViewModelTest {
         viewModel.onDoItNow()
 
         assertThat(viewModel.started.value)
-            .isEqualTo(StartIntent(templateId = "squat-template", label = "Paused Squat"))
+            .isEqualTo(
+                StartIntent(
+                    templateId = "squat-template",
+                    label = "Paused Squat",
+                    // The missed slot travels with the start so its own prescription seeds it (P3.8).
+                    slotId = "squat-slot",
+                ),
+            )
         assertThat(repository.skipped).isEmpty()
     }
 
@@ -201,6 +209,16 @@ class ProgramStartGateViewModelTest {
 
         override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
             flowOf(emptyList())
+
+        override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
+            error("these tests do not estimate a one-rep max")
+
+        override suspend fun slotPreviousPerformance(
+            slotId: String,
+            exerciseId: String,
+            currentSessionId: String,
+            zone: ZoneId,
+        ): DataResult<PreviousPerformance> = error("these tests do not read slot history")
 
         override suspend fun setSlotExercisePlan(
             slotId: String,

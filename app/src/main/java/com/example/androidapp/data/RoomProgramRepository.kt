@@ -11,6 +11,7 @@ import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toAdherenceSession
 import com.example.androidapp.data.local.toDomain
+import com.example.androidapp.data.local.toExerciseTrendRow
 import com.example.androidapp.data.local.toProgramSession
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.InvalidInputException
@@ -19,13 +20,17 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.model.AdherenceReport
+import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.PendingOccurrence
+import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedSkip
 import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
+import com.example.androidapp.domain.model.latestValue
+import com.example.androidapp.domain.model.toExerciseTrendPoints
 import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.SlotSetEdit
 import java.time.DayOfWeek
@@ -35,8 +40,10 @@ import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToLong
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -264,7 +271,7 @@ class RoomProgramRepository @Inject constructor(
         validateSlotSet(edit)
 
         val now = timeSource.nowEpochMillis()
-        val parent = ensureSlotExercise(slotId, exerciseId, now)
+        val parent = ensureSlotExercise(prescriptionDao, slotId, exerciseId, now)
         prescriptionDao.insertSlotSet(
             ProgramSlotSetEntity(
                 id = UUID.randomUUID().toString(),
@@ -326,20 +333,39 @@ class RoomProgramRepository @Inject constructor(
         }
     }
 
-    /** The slot's prescription row for one exercise, created on the first write (P3.8). */
-    private suspend fun ensureSlotExercise(
+    override suspend fun slotPreviousPerformance(
         slotId: String,
         exerciseId: String,
-        now: Long,
-    ): ProgramSlotExerciseEntity =
-        prescriptionDao.findSlotExercise(slotId, exerciseId) ?: ProgramSlotExerciseEntity(
-            id = UUID.randomUUID().toString(),
-            slotId = slotId,
-            exerciseId = exerciseId,
-            createdAt = now,
-            updatedAt = now,
-            deletedAt = null,
-        ).also { prescriptionDao.insertSlotExercise(it) }
+        currentSessionId: String,
+        zone: ZoneId,
+    ): DataResult<PreviousPerformance> = dataResultOf {
+        val slot = dao.findSlot(slotId) ?: throw NotFoundException("program slot $slotId")
+        val slots = dao.findSlotDetails(slot.programId).map { it.toDomain() }
+        val candidates = dao.finishedSessionsForTemplate(slot.templateId, currentSessionId)
+            .map { it.toProgramSession(zone) }
+
+        // A slot's own history is the P3.3 assignment: a session settles one occurrence, so two
+        // slots naming one template each progress from the sessions that settled them.
+        val settled = ProgramSchedule.sessionAssignments(slots, candidates)
+            .lastOrNull { (_, occurrence) -> occurrence.slotId == slotId }
+            ?: return@dataResultOf PreviousPerformance(emptyList())
+
+        PreviousPerformance(
+            sets = database.workoutDao().findSetsFor(settled.first.sessionId, exerciseId)
+                .map { it.toDomain() },
+        )
+    }
+
+    override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> = dataResultOf {
+        // The exercise's whole history, for the reason a record reads all of it: an estimate is a
+        // fact about the lifter, and a chart's window would forget a heavy old set (N17, P3.8).
+        database.trendsDao().observeExerciseTrendRows(exerciseId, limit = ALL_TREND_SESSIONS)
+            .first()
+            .map { it.toExerciseTrendRow() }
+            .toExerciseTrendPoints()
+            .latestValue(ExerciseTrendMetric.ESTIMATED_1RM)
+            ?.roundToLong()
+    }
 
     override suspend fun pendingOccurrences(
         today: LocalDate,
@@ -533,3 +559,27 @@ private fun validateSlotSetEffort(edit: SlotSetEdit) {
 
 /** Above this, a "percentage of the max" is no longer a percentage of a max. */
 private const val MAX_SLOT_PERCENT = 100
+
+/** A stand-in for "all of them": no exercise has anywhere near this many sessions (N17). */
+private const val ALL_TREND_SESSIONS = 100_000
+
+/**
+ * The slot's prescription row for one exercise, created on the first write (ROADMAP P3.8).
+ *
+ * File-level because the repository is at the function ceiling this project enforces, and this is
+ * a read-or-insert of one row rather than a decision the repository owns.
+ */
+private suspend fun ensureSlotExercise(
+    dao: ProgramPrescriptionDao,
+    slotId: String,
+    exerciseId: String,
+    now: Long,
+): ProgramSlotExerciseEntity =
+    dao.findSlotExercise(slotId, exerciseId) ?: ProgramSlotExerciseEntity(
+        id = UUID.randomUUID().toString(),
+        slotId = slotId,
+        exerciseId = exerciseId,
+        createdAt = now,
+        updatedAt = now,
+        deletedAt = null,
+    ).also { dao.insertSlotExercise(it) }

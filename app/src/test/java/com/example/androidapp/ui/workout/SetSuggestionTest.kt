@@ -3,8 +3,11 @@ package com.example.androidapp.ui.workout
 import com.example.androidapp.domain.model.SetEntry
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgressionReason
+import com.example.androidapp.domain.model.SlotPrescription
+import com.example.androidapp.domain.model.SlotSet
 import com.example.androidapp.domain.Weight
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -177,5 +180,81 @@ class SetSuggestionTest {
         assertEquals("one more rep offered, not applied", 3, suggestion.offer?.reps)
         assertEquals(90_000L, suggestion.offer?.weightGrams)
         assertEquals(ProgressionReason.MORE_REPS, suggestion.offer?.reason)
+    }
+
+    @Test
+    fun aSlotsPercentage_resolvesThroughTheEstimatedOneRepMax() {
+        // ROADMAP P3.8: the one load a template's planned set cannot express. 100 kg estimated at
+        // 85% is 85 kg, rounded to the loadable step.
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, targetPercentOf1Rm = 85, targetRepsMin = 3)),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = 100_000L,
+        )
+
+        assertEquals(3, target?.reps)
+        assertEquals(85_000L, target?.weightGrams)
+    }
+
+    @Test
+    fun aSlotsPercentage_withoutAnEstimate_hasNoNumber() {
+        // Nothing estimable means no kilograms rather than a borrowed one; the caller falls back to
+        // history, which is the honest answer (P3.8).
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(SlotSet(id = "x", setIndex = 0, targetPercentOf1Rm = 85, targetRepsMin = 3)),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = null,
+        )
+
+        assertEquals(3, target?.reps)
+        assertNull(target?.weightGrams)
+    }
+
+    @Test
+    fun aSlotsWeight_winsOverItsPercentage() {
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(
+                exerciseId = "back-squat",
+                sets = listOf(
+                    SlotSet(
+                        id = "x",
+                        setIndex = 0,
+                        targetWeightGrams = 90_000L,
+                        targetPercentOf1Rm = 85,
+                    ),
+                ),
+            ),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = 100_000L,
+        )
+
+        assertEquals(90_000L, target?.weightGrams)
+    }
+
+    @Test
+    fun aSetTheSlotDoesNotMention_isLeftToTheTemplate() {
+        // Null, not an empty target: an empty one would erase the template's numbers (N14).
+        val target = prescribedTargetFor(
+            prescription = SlotPrescription(exerciseId = "back-squat", sets = emptyList()),
+            nextIndex = 0,
+            estimatedOneRepMaxGrams = 100_000L,
+        )
+
+        assertNull(target)
+    }
+
+    @Test
+    fun prescribedWeight_roundsToTheLoadableStep() {
+        assertEquals(85_000L, prescribedWeightGrams(85, 100_000L))
+        // 82% of 100 kg is 82 kg, which is not a loadable step: it lands on the nearest one.
+        assertEquals(82_500L, prescribedWeightGrams(82, 100_000L))
+        assertNull("nothing estimable has no number", prescribedWeightGrams(85, null))
+        assertNull(prescribedWeightGrams(85, 0L))
     }
 }

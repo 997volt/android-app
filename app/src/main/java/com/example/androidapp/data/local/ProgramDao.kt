@@ -170,9 +170,6 @@ interface ProgramDao {
     )
     suspend fun findSlotDetails(programId: String): List<ProgramSlotDetail>
 
-    @Query("SELECT * FROM program_slots WHERE programId = :programId")
-    suspend fun findSlots(programId: String): List<ProgramSlotEntity>
-
     @Query("SELECT * FROM program_slots WHERE id = :id AND deletedAt IS NULL")
     suspend fun findSlot(id: String): ProgramSlotEntity?
 
@@ -340,6 +337,33 @@ interface ProgramDao {
         """,
     )
     suspend fun finishedSessionsBetween(fromMillis: Long, toMillis: Long): List<FinishedSessionRow>
+
+    /**
+     * Every **finished** session started from one template, oldest first, excluding [currentSessionId]
+     * (ROADMAP P3.8).
+     *
+     * What a slot's own history is read from: a session names only the template it was started from
+     * (P3.3), so which *slot* it belongs to is settled by [ProgramSchedule.sessionAssignments] in
+     * Kotlin, where the week and the slot's weekday are known.
+     */
+    @Query(
+        """
+        SELECT id AS sessionId,
+               templateId AS templateId,
+               startedAt AS startedAt,
+               zoneOffsetMinutes AS zoneOffsetMinutes
+        FROM workout_sessions
+        WHERE templateId = :templateId
+          AND finishedAt IS NOT NULL
+          AND deletedAt IS NULL
+          AND id <> :currentSessionId
+        ORDER BY startedAt ASC
+        """,
+    )
+    suspend fun finishedSessionsForTemplate(
+        templateId: String,
+        currentSessionId: String,
+    ): List<ProgramSessionRow>
 
     /** The skips recorded for any week in [from, to] inclusive, both epoch days (P3.5). */
     @Query("SELECT * FROM program_skips WHERE weekStart >= :from AND weekStart <= :to AND deletedAt IS NULL")

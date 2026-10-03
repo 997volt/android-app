@@ -5,10 +5,12 @@ import com.example.androidapp.domain.model.suggestProgression
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.PlannedSetSpec
 import com.example.androidapp.domain.model.PerformedSetSpec
+import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.Load
 import com.example.androidapp.domain.Weight
 import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.TemplateExercise
+import kotlin.math.roundToLong
 
 /**
  * The values a new set will be logged with, before the user adjusts them.
@@ -146,6 +148,54 @@ fun plannedTargetFor(
 
 /** Typical working-set reps when there is nothing to go on. */
 const val DEFAULT_REPS = 8
+
+/**
+ * The weight a percentage of an estimated one-rep max prescribes, or null (ROADMAP P3.8).
+ *
+ * The estimate is N17's Epley figure. An exercise with nothing estimable has **no number**, and
+ * this says so by returning null rather than borrowing one — the caller then falls back to
+ * history, which is the honest answer. The result is rounded to the smallest loadable step
+ * (N22's 2.5 kg), because a prescription is a target to load rather than a formula's output.
+ */
+fun prescribedWeightGrams(percentOf1Rm: Int, estimatedOneRepMaxGrams: Long?): Long? {
+    val estimate = estimatedOneRepMaxGrams?.takeIf { it > 0L && percentOf1Rm in 1..MAX_PERCENT }
+        ?: return null
+    val raw = estimate.toDouble() * percentOf1Rm / PERCENT
+    return (raw / Weight.DEFAULT_STEP_GRAMS).roundToLong() * Weight.DEFAULT_STEP_GRAMS
+}
+
+/**
+ * What a slot prescribes for the next set of one exercise, or null when it says nothing there
+ * (ROADMAP P3.8).
+ *
+ * The slot wins over the template where it speaks (N14), and null leaves [plannedTargetFor] to
+ * answer from the template. A percentage resolves through [prescribedWeightGrams], so an
+ * exercise with no estimate leaves the load open and the prefill falls back to history rather
+ * than inventing a number.
+ */
+fun prescribedTargetFor(
+    prescription: SlotPrescription?,
+    nextIndex: Int,
+    estimatedOneRepMaxGrams: Long?,
+): PlannedTarget? {
+    val prescribed = prescription?.sets?.firstOrNull { it.setIndex == nextIndex } ?: return null
+    val percentWeight = prescribed.targetPercentOf1Rm?.let {
+        prescribedWeightGrams(it, estimatedOneRepMaxGrams)
+    }
+    return PlannedTarget(
+        // The upper bound is the one a written prescription means (`max 2`).
+        reps = prescribed.targetRepsMax ?: prescribed.targetRepsMin,
+        // A weight the slot wrote wins over a percentage; the two are alternatives, not a sum.
+        weightGrams = prescribed.targetWeightGrams ?: percentWeight,
+        assistanceGrams = prescribed.targetAssistanceGrams,
+    )
+}
+
+/** Above this, a "percentage of the max" is no longer a percentage of a max. */
+private const val MAX_PERCENT = 100
+
+/** A percentage as the fraction of the estimate it names. */
+private const val PERCENT = 100.0
 
 /** True when there is a last time worth progressing from. */
 private fun PreviousPerformance?.hasSets(): Boolean = this != null && sets.isNotEmpty()

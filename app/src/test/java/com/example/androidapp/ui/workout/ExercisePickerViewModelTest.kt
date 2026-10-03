@@ -366,7 +366,10 @@ class ExercisePickerViewModelTest {
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = flowOf(emptyList())
         override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
         override fun observeSession(sessionId: String): Flow<WorkoutSession?> = flowOf(null)
-        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> = unused()
+        override suspend fun startOrResumeSession(
+            templateId: String?,
+            slotId: String?,
+        ): DataResult<StartedSession> = unused()
 
         /** The one fake that models repeating: it records the call, since its tests ask what it did. */
         override suspend fun repeatLastSession(): DataResult<StartedSession> = unused()

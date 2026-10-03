@@ -1,8 +1,10 @@
 package com.example.androidapp.data.local
 
 import com.example.androidapp.domain.model.AdherenceSession
+import com.example.androidapp.domain.model.ExerciseTrendRow
 import com.example.androidapp.domain.model.ProgramSession
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.SlotSet
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -62,6 +64,26 @@ internal fun ProgramSlotSetEntity.toDomain(): SlotSet = SlotSet(
 )
 
 /**
+ * One trend row as N17's per-exercise series reads it (ROADMAP P3.8).
+ *
+ * The projection keeps `setType` as its stored name — a database column, not an entity — so it is
+ * resolved here; null stays null, because a row that left-joined no set has no role to resolve.
+ * The repository reads the series this way to take the estimated one-rep max a slot's percentage
+ * prescription resolves against.
+ */
+internal fun ExerciseTrendRowEntity.toExerciseTrendRow(): ExerciseTrendRow = ExerciseTrendRow(
+    sessionId = sessionId,
+    startedAt = Instant.ofEpochMilli(startedAt),
+    muscleFeel = muscleFeel,
+    jointPain = jointPain,
+    weightGrams = weightGrams,
+    reps = reps,
+    rpeHalves = rpeHalves,
+    setType = setType?.let { name -> SetType.entries.firstOrNull { it.name == name } },
+    assistanceGrams = assistanceGrams,
+)
+
+/**
  * A session row as occurrence matching reads it.
  *
  * The zone is the session's own (N25), with [fallbackZone] only for rows written before
@@ -69,6 +91,7 @@ internal fun ProgramSlotSetEntity.toDomain(): SlotSet = SlotSet(
  */
 internal fun ProgramSessionRow.toProgramSession(fallbackZone: ZoneId): ProgramSession =
     ProgramSession(
+        sessionId = sessionId,
         templateId = templateId,
         startedAt = Instant.ofEpochMilli(startedAt),
         zone = zoneOffsetMinutes
@@ -84,6 +107,7 @@ internal fun ProgramSessionRow.toProgramSession(fallbackZone: ZoneId): ProgramSe
  */
 internal fun FinishedSessionRow.toAdherenceSession(fallbackZone: ZoneId): AdherenceSession =
     AdherenceSession(
+        sessionId = sessionId,
         templateId = templateId,
         startedAt = Instant.ofEpochMilli(startedAt),
         zone = zoneOffsetMinutes

@@ -199,7 +199,10 @@ class WorkoutDetailViewModelTest {
         override fun observeSets(sessionId: String): Flow<List<SetEntry>> = sets
         override fun observeActiveSession(): Flow<WorkoutSession?> = flowOf(null)
         override fun observeHistory(): Flow<List<WorkoutSummary>> = flowOf(emptyList())
-        override suspend fun startOrResumeSession(templateId: String?): DataResult<StartedSession> =
+        override suspend fun startOrResumeSession(
+            templateId: String?,
+            slotId: String?,
+        ): DataResult<StartedSession> =
             unused()
 
         override suspend fun repeatLastSession(): DataResult<StartedSession> = unused()

@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.SessionExerciseEntity
+import com.example.androidapp.data.local.SetEntryEntity
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.WorkoutSessionEntity
 import com.example.androidapp.domain.DataError
@@ -470,6 +472,97 @@ class ProgramRepositoryTest {
         val result = repository.addSlotSet(slotId, "back-squat", SlotSetEdit(targetPercentOf1Rm = 120))
 
         assertTrue(result is DataResult.Failure)
+    }
+
+    @Test
+    fun aSlotsOwnHistory_isWhatThatSlotProgressesFrom() = runTest {
+        // ROADMAP P3.8: one template in two slots, and the heavy Monday and the light Friday
+        // progress apart. A session names only the template, so which slot it belongs to is
+        // settled the way P3.3 settles an occurrence.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        repository.addSlot(program, template, DayOfWeek.FRIDAY)
+        val slots = repository.observeSlots(program).first()
+        val mondaySlot = slots.first { it.weekday == DayOfWeek.MONDAY }
+        val fridaySlot = slots.first { it.weekday == DayOfWeek.FRIDAY }
+
+        insertSessionWithSet("mon", "2026-09-28T09:00:00Z", template, weightGrams = 100_000L)
+        insertSessionWithSet("fri", "2026-10-02T09:00:00Z", template, weightGrams = 80_000L)
+
+        val fromMonday = repository
+            .slotPreviousPerformance(mondaySlot.id, "back-squat", "current", utc)
+            .getOrNull()
+        val fromFriday = repository
+            .slotPreviousPerformance(fridaySlot.id, "back-squat", "current", utc)
+            .getOrNull()
+
+        assertEquals(100_000L, fromMonday?.sets?.single()?.weightGrams)
+        assertEquals(80_000L, fromFriday?.sets?.single()?.weightGrams)
+    }
+
+    /** A finished session from [templateId] with one logged set of `back-squat` (P3.8). */
+    private suspend fun insertSessionWithSet(
+        id: String,
+        date: String,
+        templateId: String,
+        weightGrams: Long,
+    ) {
+        val startedAt = Instant.parse(date).toEpochMilli()
+        database.workoutDao().insertSession(
+            WorkoutSessionEntity(
+                id = id,
+                startedAt = startedAt,
+                finishedAt = startedAt + 3_600_000,
+                notes = null,
+                restEndsAt = null,
+                readinessNote = null,
+                zoneOffsetMinutes = 0,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+                templateId = templateId,
+            ),
+        )
+        database.workoutDao().insertSessionExercise(
+            SessionExerciseEntity(
+                id = "$id-se",
+                sessionId = id,
+                exerciseId = "back-squat",
+                position = 0,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+            ),
+        )
+        database.workoutDao().insertSet(
+            SetEntryEntity(
+                id = "$id-set",
+                sessionExerciseId = "$id-se",
+                setIndex = 0,
+                reps = 5,
+                weightGrams = weightGrams,
+                setType = SetType.NORMAL,
+                completedAt = null,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+            ),
+        )
+    }
+
+    @Test
+    fun estimatedOneRepMax_comesFromTheHeaviestWorkingSet_andIsNullWhenNothingIs() = runTest {
+        // ROADMAP P3.8: a percentage prescription resolves against N17's estimate, and an exercise
+        // with nothing estimable has no number rather than a borrowed one.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.MONDAY)
+        insertSessionWithSet("heavy", "2026-09-28T09:00:00Z", template, weightGrams = 100_000L)
+
+        // Epley: 100 kg for 5 is 100 * (1 + 5/30) = 116.67 kg, rounded to the nearest half-kilo.
+        assertEquals(116_500L, repository.estimatedOneRepMax("back-squat").getOrNull())
+        assertNull(repository.estimatedOneRepMax("front-squat").getOrNull())
     }
 
     /** A session row, finished or abandoned, started from [templateId] or by hand. */

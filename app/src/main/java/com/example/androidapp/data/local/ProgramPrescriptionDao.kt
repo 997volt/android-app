@@ -23,6 +23,10 @@ interface ProgramPrescriptionDao {
     @Query("SELECT * FROM program_slot_exercises WHERE slotId = :slotId AND deletedAt IS NULL")
     fun observeSlotExercises(slotId: String): Flow<List<ProgramSlotExerciseEntity>>
 
+    /** The same rows, one shot — what seeding a session from a slot reads (P3.8). */
+    @Query("SELECT * FROM program_slot_exercises WHERE slotId = :slotId AND deletedAt IS NULL")
+    suspend fun findSlotExercises(slotId: String): List<ProgramSlotExerciseEntity>
+
     /** Every live prescribed set of a slot's live exercises, in set order (P3.8). */
     @Query(
         """

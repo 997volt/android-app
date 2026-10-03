@@ -29,6 +29,13 @@ data class StartIntent(
     val templateId: String? = null,
     val repeatLast: Boolean = false,
     val label: String? = null,
+    /**
+     * The program slot the start came from, if any (ROADMAP P3.8).
+     *
+     * Carried through the question so a start that answers *Do it now* seeds the missed slot's
+     * prescription, and one that carries on from a row seeds that row's.
+     */
+    val slotId: String? = null,
 )
 
 /** The missed day the prompt names, and the name of what was being started instead. */
@@ -123,7 +130,12 @@ class ProgramStartGateViewModel @Inject constructor(
         val current = pending ?: return
         clearPrompt()
         val missed = current.occurrences.first()
-        _started.value = StartIntent(templateId = missed.templateId, label = missed.templateName)
+        _started.value = StartIntent(
+            templateId = missed.templateId,
+            label = missed.templateName,
+            // The missed slot is the one being started, so its own prescription seeds it (P3.8).
+            slotId = missed.slotId,
+        )
     }
 
     /**

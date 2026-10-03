@@ -26,6 +26,13 @@ data class SlotOccurrence(
  * in, not to the device's current one.
  */
 data class ProgramSession(
+    /**
+     * The session's own id, carried so a matched session can be read back (ROADMAP P3.8).
+     *
+     * Matching itself never looks at it; "this slot's own history" does, because the sets of the
+     * session a slot settled are what that slot progresses from.
+     */
+    val sessionId: String,
     val templateId: String,
     val startedAt: Instant,
     val zone: ZoneId,
@@ -81,9 +88,23 @@ object ProgramSchedule {
     fun resolvedOccurrences(
         slots: List<ProgramSlot>,
         sessions: List<ProgramSession>,
-    ): Set<SlotOccurrence> {
+    ): Set<SlotOccurrence> = sessionAssignments(slots, sessions).mapTo(mutableSetOf()) { it.second }
+
+    /**
+     * Each session paired with the occurrence it settled, oldest session first (P3.3, P3.8).
+     *
+     * The same matching [resolvedOccurrences] is built on, read where the *session* matters: a
+     * slot's own history is the last session that settled one of its occurrences, which is what
+     * lets two slots pointing at one template progress apart. A session that settled nothing —
+     * a template no slot names, or a week whose slots are all taken — is absent.
+     */
+    fun sessionAssignments(
+        slots: List<ProgramSlot>,
+        sessions: List<ProgramSession>,
+    ): List<Pair<ProgramSession, SlotOccurrence>> {
         val dated = slots.filter { it.weekday != null }.sortedBy { it.position }
         val resolved = mutableSetOf<SlotOccurrence>()
+        val assignments = mutableListOf<Pair<ProgramSession, SlotOccurrence>>()
 
         sessions.sortedBy { it.startedAt }.forEach { session ->
             val weekStart = weekStartOf(session.date)
@@ -108,9 +129,11 @@ object ProgramSchedule {
 
                 else -> unresolved.first()
             }
-            resolved += SlotOccurrence(chosen.id, weekStart, occurrenceDate(weekStart, chosen.weekday!!))
+            val occurrence = SlotOccurrence(chosen.id, weekStart, occurrenceDate(weekStart, chosen.weekday!!))
+            resolved += occurrence
+            assignments += session to occurrence
         }
-        return resolved
+        return assignments
     }
 
     /**
@@ -187,7 +210,14 @@ object ProgramSchedule {
         // Only a finished session settles an occurrence here. An abandoned start is a miss
         // (P3.5): what this asks is whether the training happened, not whether to nag.
         val finished = sessions.mapNotNull { session ->
-            session.templateId?.let { ProgramSession(it, session.startedAt, session.zone) }
+            session.templateId?.let {
+                ProgramSession(
+                    sessionId = session.sessionId,
+                    templateId = it,
+                    startedAt = session.startedAt,
+                    zone = session.zone,
+                )
+            }
         }
         val resolved = resolvedOccurrences(slots, finished)
         val skipped = skips.toSet()

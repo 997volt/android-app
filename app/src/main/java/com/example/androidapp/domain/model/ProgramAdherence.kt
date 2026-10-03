@@ -16,6 +16,7 @@ import java.time.ZoneId
  * even when the device's clock has moved on.
  */
 data class AdherenceSession(
+    val sessionId: String,
     val templateId: String?,
     val startedAt: Instant,
     val zone: ZoneId,

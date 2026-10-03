@@ -38,6 +38,8 @@ class ProgramScheduleTest {
         date: LocalDate,
         zone: ZoneId = ZoneOffset.UTC,
     ) = ProgramSession(
+        // Distinct per template and day, so a test that reads a session back can name it.
+        sessionId = "$templateId@$date",
         templateId = templateId,
         startedAt = date.atStartOfDay(zone).toInstant(),
         zone = zone,
@@ -179,6 +181,63 @@ class ProgramScheduleTest {
     }
 
     @Test
+    fun sessionAssignments_pairEachSessionWithTheSlotItSettled_oldestFirst() {
+        // P3.8's per-slot history reads this: which session belongs to which slot, where
+        // resolvedOccurrences only says that an occurrence was settled.
+        val slots = listOf(
+            slot("mon", DayOfWeek.MONDAY, position = 0, templateId = "t"),
+            slot("fri", DayOfWeek.FRIDAY, position = 1, templateId = "t"),
+        )
+        val sessions = listOf(
+            session("t", monday.plusDays(4)),
+            session("t", monday),
+        )
+
+        val assignments = ProgramSchedule.sessionAssignments(slots, sessions)
+
+        assertThat(assignments.map { it.first.sessionId to it.second.slotId })
+            .containsExactly(
+                "t@$monday" to "mon",
+                "t@${monday.plusDays(4)}" to "fri",
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun twoSlotsOnOneTemplate_eachGetsItsOwnSessions() {
+        // The case a slot's own history exists for: the heavy Monday and the light Friday
+        // progress apart even though they name one template (P3.8).
+        val slots = listOf(
+            slot("mon", DayOfWeek.MONDAY, position = 0, templateId = "t"),
+            slot("fri", DayOfWeek.FRIDAY, position = 1, templateId = "t"),
+        )
+        val sessions = listOf(
+            session("t", monday),
+            session("t", monday.plusDays(4)),
+            session("t", monday.plusWeeks(1)),
+            session("t", monday.plusWeeks(1).plusDays(4)),
+        )
+
+        val assignments = ProgramSchedule.sessionAssignments(slots, sessions)
+
+        assertThat(assignments.filter { it.second.slotId == "mon" }.map { it.first.date })
+            .containsExactly(monday, monday.plusWeeks(1))
+            .inOrder()
+        assertThat(assignments.filter { it.second.slotId == "fri" }.map { it.first.date })
+            .containsExactly(monday.plusDays(4), monday.plusWeeks(1).plusDays(4))
+            .inOrder()
+    }
+
+    @Test
+    fun aSessionNoSlotNames_isNotAssigned() {
+        val slots = listOf(slot("mon", DayOfWeek.MONDAY, templateId = "t"))
+
+        val assignments = ProgramSchedule.sessionAssignments(slots, listOf(session("other", monday)))
+
+        assertThat(assignments).isEmpty()
+    }
+
+    @Test
     fun aScheduledDayAlreadyPast_withNothingDone_isPending() {
         val slots = listOf(slot("tue", DayOfWeek.TUESDAY))
 
@@ -296,6 +355,7 @@ class ProgramScheduleTest {
             slots,
             listOf(
                 ProgramSession(
+                    sessionId = "tokyo",
                     templateId = "t-mon",
                     startedAt = sundayInUtc,
                     zone = tokyo,

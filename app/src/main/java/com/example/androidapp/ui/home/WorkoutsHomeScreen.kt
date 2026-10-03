@@ -74,7 +74,11 @@ fun WorkoutsHomeRoute(
     onStartWorkout: () -> Unit,
     onStartFromTemplate: () -> Unit,
     onRepeatLast: () -> Unit,
-    onStartTemplate: (String) -> Unit,
+    /**
+     * The navigation target: the template to start, and the slot it was scheduled as, if any
+     * (ROADMAP P3.3, P3.8).
+     */
+    onStartTemplate: (String, String?) -> Unit,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onOpenPrograms: () -> Unit,
@@ -115,7 +119,8 @@ fun WorkoutsHomeRoute(
         onStart = { intent ->
             when {
                 intent.repeatLast -> onRepeatLast()
-                intent.templateId != null -> onStartTemplate(intent.templateId)
+                // The slot travels with the template so its prescription seeds the workout (P3.8).
+                intent.templateId != null -> onStartTemplate(intent.templateId, intent.slotId)
                 else -> onStartWorkout()
             }
         },
@@ -128,12 +133,14 @@ fun WorkoutsHomeRoute(
         onStartWorkout = { requestStart(StartIntent()) },
         onStartFromTemplate = onStartFromTemplate,
         onRepeatLast = { requestStart(StartIntent(repeatLast = true)) },
-        onStartTemplate = { templateId ->
+        onStartTemplate = { plan ->
             requestStart(
                 StartIntent(
-                    templateId = templateId,
-                    // The row being started names it, so "continue with Bench" reads true.
-                    label = state.todaysPlan.firstOrNull { it.templateId == templateId }?.name,
+                    templateId = plan.templateId,
+                    // The row being started names it, so "continue with Bench" reads true, and its
+                    // slot is what carries the prescription (P3.8).
+                    slotId = plan.slotId,
+                    label = plan.name,
                 ),
             )
         },
@@ -166,7 +173,7 @@ fun WorkoutsHomeScreen(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     onStartFromTemplate: () -> Unit = {},
-    onStartTemplate: (String) -> Unit = {},
+    onStartTemplate: (TodayPlan) -> Unit = {},
     onRepeatLast: () -> Unit = {},
     onOpenPrograms: () -> Unit = {},
     onExportData: (() -> Unit)? = null,
@@ -235,7 +242,7 @@ fun WorkoutsHomeScreen(
 private fun TodayAndRecent(
     state: WorkoutsHomeUiState,
     onOpenWorkout: (String) -> Unit,
-    onStartTemplate: (String) -> Unit,
+    onStartTemplate: (TodayPlan) -> Unit,
     modifier: Modifier = Modifier,
 ) {
 LazyColumn(
@@ -265,9 +272,10 @@ LazyColumn(
                     },
                     trailingContent = {
                         TextButton(
-                            // The row's identity is the slot's, but what starts is the
-                            // template it points at (ROADMAP P3.3).
-                            onClick = { onStartTemplate(plan.templateId) },
+                            // The row's identity is the slot's, and the whole row travels: what
+                            // starts is the template, and the slot carries its prescription
+                            // (ROADMAP P3.3, P3.8).
+                            onClick = { onStartTemplate(plan) },
                             modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
                         ) {
                             Text(stringResource(R.string.home_plan_start))
@@ -300,7 +308,7 @@ private fun HomeContent(
     state: WorkoutsHomeUiState,
     onOpenWorkout: (String) -> Unit,
     onOpenHistory: () -> Unit,
-    onStartTemplate: (String) -> Unit,
+    onStartTemplate: (TodayPlan) -> Unit,
     modifier: Modifier = Modifier,
 ) {
         when {
