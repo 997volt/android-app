@@ -3,14 +3,17 @@
 Settled choices for Workout, kept out of [ROADMAP.md](ROADMAP.md) so that file stays a
 queue. Nothing here is a task: each entry is a decision already taken, recorded so it is
 not relitigated by accident. A decision that constrains **unshipped** work stays with that
-work in the roadmap — N15's `assistanceGrams`, N16's living-template choice — and moves
-here once the feature ships.
+work in the roadmap — P3.3's `templateId` on a session and its `program_skips` rows, N39's
+parked plan target — and moves here once the feature ships.
 
 Each entry states the rule, the shortest honest reason, and the alternative that was
 rejected. The argument behind it — measurements, observed history, verbatim errors, the
 longer case against the rejected option — is in
 [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md), one entry per feature id. This file states
 the rule; that one argues it.
+
+> Reviewed against the code: 2026-10-03. Bump the date when this file is checked, the way
+> [ROADMAP.md](ROADMAP.md) does, so the next reader knows how old these rules are.
 
 ## Data model
 
@@ -24,8 +27,9 @@ the rule; that one argues it.
 - **Enums are stored by name**, never ordinal, so reordering cannot reinterpret rows on
   disk.
 - **Rows are sync-shaped** — UUID ids, `createdAt`/`updatedAt`/`deletedAt` soft deletes —
-  so a future sync stays a decision, not a migration. The zone offset is the missing piece,
-  and an open question in the roadmap.
+  so a future sync stays a decision, not a migration. A session's zone offset, the piece this
+  entry used to call missing, landed with N25 (`zoneOffsetMinutes`); the design beyond the
+  row shape is still parked (ROADMAP P4.9).
 
 ## Templates and plans
 
@@ -79,10 +83,11 @@ the rule; that one argues it.
   the CPU, and most of the task is compilation and Robolectric merging, which forking
   cannot overlap. ([evidence](DECISIONS-EVIDENCE.md#d1))
 
-- **A test tag arrives with the test that asserts on it** (D4). Twenty-five tags are
-  applied in production and asserted by nothing; they are kept rather than swept, and the
-  change that next touches one pays it off. A new tag without its test is a finding; a tag
-  mapping to no control is deleted on sight. ([evidence](DECISIONS-EVIDENCE.md#d4))
+- **A test tag arrives with the test that asserts on it** (D4). Tags already applied in
+  production and asserted by nothing are kept rather than swept, and the change that next
+  touches one pays it off. A new tag without its test is a finding; a tag mapping to no
+  control is deleted on sight. The backlog's size is deliberately not recorded: it drifts.
+  ([evidence](DECISIONS-EVIDENCE.md#d4))
 
 - **The role for the next set is armed at the button, and clears itself** (N19). The
   pending-role-per-exercise alternative made transient UI state part of a database-driven
@@ -145,13 +150,6 @@ the rule; that one argues it.
   device that ran the amended version must be wiped; the alternative, a 16→17 migration, is
   correct but adds a version step to prove for data that exists only on developer machines.
   ([evidence](DECISIONS-EVIDENCE.md#b16))
-
-- **The instrumented job keeps getting cancelled, and that is accepted** (B25). Running it
-  only on `main` trades a *visible* gap for an invisible one, since cancelled runs are
-  obviously missing while a job that never starts reads like coverage that was never
-  needed; accepting is safe because the B8 guard fails a truncated run rather than passing
-  it quietly. Revisit on a real failure a cancellation hid, at which point the jobs split
-  by branch. ([evidence](DECISIONS-EVIDENCE.md#b25))
 
 - **The rest cue stays inside the permission-free envelope** (N27). `Vibrator` needs
   `VIBRATE`, so the cue is view-level haptics plus an in-process tone, and keep-screen-on
@@ -274,4 +272,6 @@ stop being true:
 
 - Process death mid-workout resumes the session with its set and rest intact.
 - The library renders on the very first read after `pm clear`.
-- v1.1 installed over v1.0 and kept the history.
+- v1.1 installed over v1.0 and kept the history — dated, and now historical. Every schema step
+  since is covered by the instrumented migration tests, which upgrade a real database holding
+  real rows; the next manual upgrade check belongs here with the two versions it compared.
