@@ -263,6 +263,39 @@ the rule; that one argues it.
   is unmatched, and editing a template changes every week that references it — N16's
   living-template decision, unchanged.
 
+## Adherence
+
+- **Adherence counts occurrences; the calendar marks days. They are two questions** (P3.5). The
+  ratio is done over done + skipped + missed, one per scheduled occurrence, while the grid draws
+  the days a finished session happened on. Counting *days* in the ratio was rejected: two slots
+  may fall on one Tuesday and P3.3 settles them one at a time, so a doubled schedule would hide a
+  miss behind the one day it shares with the session that was done.
+- **Done means finished, not started — deliberately stricter than the prompt** (P3.5, amending
+  P3.3's rule for a different question). P3.3 asks "should I nag you about Tuesday?", so a start
+  silences it; adherence asks whether the training happened, so an abandoned start is a miss and
+  marks no trained day. Reusing the prompt's started-session rule was rejected because it would
+  record a session opened and abandoned as training. ([evidence](DECISIONS-EVIDENCE.md#p35))
+- **One window: the month the grid shows is the month the ratio covers** (P3.5). The calendar
+  navigates back through history and forward no further than the current month, and days after
+  today are drawn but never scored — only a day strictly before today can have been missed.
+  A rolling window drawn beside the grid was rejected because the number and the grid would then
+  be counting different things.
+- **With no active program there is no ratio, and the calendar still marks the days trained**
+  (P3.5). A trained day needs no schedule; a ratio does. The N16 pins home falls back to carry no
+  skip record, so a rest on a pinned day is indistinguishable from a miss, and scoring the pins
+  was rejected for exactly that reason: it would turn every deliberate rest into a failure. A
+  month with no elapsed scheduled day says so rather than reporting 0% or 100%.
+- **A trained day is the finished session's own day, and a week is taken in that session's own
+  zone** (P3.5, extending N25 and B45). A workout performed abroad marks the day it happened even
+  when the device's month has moved on, and weeks stay Monday-start in that same zone because
+  that is what a `program_skips` row is keyed by.
+- **No schema change** (P3.5). Everything it reads shipped with P3.3 at v20 — `program_slots`,
+  `program_skips`, and `workout_sessions`' `templateId`, `finishedAt` and `zoneOffsetMinutes` —
+  and the aggregate is the same pure, JVM-tested `ProgramSchedule` the prompt uses, fed the
+  window's finished sessions. P3.3's inherited limits stand: skips exist only from P3.3 onward
+  and only for a week whose prompt was answered, an unanswered past week reads as misses, and the
+  schedule is the program as it is *now*, so editing a slot rewrites past weeks.
+
 ## Rules that apply to every change
 
 - **A range is a window in the current zone; a session's date is where it happened**

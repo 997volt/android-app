@@ -14,6 +14,34 @@ repeated here.
 
 ### Added
 
+- **Adherence: how often the days a program scheduled actually happened, and a month of days
+  trained** (P3.5). A destination of its own, reached from Statistics the way Measurements is —
+  N34's five surfaces stand, because one screen does not earn a sixth tab. **One window**: the
+  month the grid draws is the month the ratio covers, so the number and the grid cannot disagree
+  about what they are counting, and the calendar navigates back through history and forward no
+  further than the current month. Days after today are drawn but never scored.
+- **Done, skipped and missed come from one set of definitions, and the unit is the occurrence,
+  not the day.** *Done* is an occurrence settled by a session that was **finished**, matched by
+  template and date in a Monday-start week taken in the session's own zone — P3.3's matching,
+  fed this window's finished sessions. *Skipped* is a `program_skips` row for that slot and week.
+  *Missed* is elapsed and scheduled and neither of the others. Two slots can fall on one Tuesday,
+  so the ratio counts two while the calendar marks the one day. Adherence is deliberately
+  **stricter than the prompt**: an abandoned start is a miss here and marks no trained day.
+- **What was scheduled is the active program's weekday slots**, so an unscheduled day is rest
+  rather than a miss and a weekday-less slot has no day to miss. A **trained day is a finished
+  session's own day in the zone it was performed in** (N25, B45), so a workout done abroad marks
+  the day it happened. With **no active program** the calendar still marks the days trained —
+  that needs no schedule — but there is **no ratio**, because the pins home falls back to carry
+  no skip record, which would make every deliberate rest on a pinned day a failure. A month with
+  no elapsed scheduled day says so rather than reporting 0% or 100%.
+- **No schema change.** Everything it reads shipped with P3.3 at v20 — `program_slots`,
+  `program_skips` and `workout_sessions`' `templateId`, `finishedAt` and `zoneOffsetMinutes` —
+  and the aggregate is the pure, JVM-tested `ProgramSchedule` the prompt already uses.
+
+  Known limits, inherited rather than new: skips exist only from P3.3 onward and only for a week
+  whose prompt was answered, so an older or unanswered week reads as misses; the schedule is the
+  program as it is *now*, so adding a slot writes misses into weeks already past.
+
 - **Programs: an ordered list of templates, each with a weekday, schema v20** (P3.3). A program
   is the container the N16 pins could not be on their own — a pin answers "what happens on a
   Tuesday", but nothing ordered the pins against each other, so "which one is next" had no

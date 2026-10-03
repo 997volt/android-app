@@ -379,6 +379,44 @@ existed cannot be given the template it was started from — that was never capt
 stamping one on would make it settle an occurrence it never touched. Null means "unknown",
 and the matcher finds no session for those weeks, which is the honest outcome.
 
+## P3.5
+
+Adherence and a calendar. The shape is P3.3's read forward: the prompt's occurrence matching
+already answers "was Tuesday done", and the aggregate asks the same question over a month.
+
+**The unit is the occurrence because that is the unit P3.3 settles.** A day-level ratio was the
+obvious alternative and it is wrong in a way that only shows up in data: a program may place two
+slots on one weekday — a doubled session is the normal shape of that — and P3.3 resolves and skips
+them one at a time. Counting days would let a session settle the day and hide the second slot's
+miss inside it. The calendar draws days because "which days did I train" is a different question
+from "how much of the schedule happened", and the two are allowed to differ: the ratio counts two
+while the grid marks one.
+
+**Done means finished.** The prompt and the aggregate disagree on purpose. P3.3's question is
+"should I nag you about Tuesday?", asked at the point of starting, and a session that was started
+is one you are in the middle of — nagging would be absurd. Adherence's question is whether the
+training happened, and a session opened and abandoned is not training. Reusing the started rule
+was rejected for that reason, and the narrower read costs one predicate: the window's *finished*
+sessions rather than every started one, which is also what stops an abandoned start marking a
+trained day.
+
+**One window, the month the grid shows.** The alternative — a rolling ratio beside a calendar of
+the month — was rejected because the number and the grid would then be counting different spans,
+which is the kind of mismatch a reader notices and cannot explain. The calendar goes back through
+history and forward no further than the current month, and only a day strictly before today can
+be missed, which is P3.3's rule and the reason a Friday slot on a Wednesday is not a failure.
+
+**No program, no ratio.** The fallback home keeps is the N16 pins, and a pin records that a
+weekday is trained, never that a rest on it was chosen — there is no skip row to consult. A ratio
+over pins would therefore count every deliberate rest as a miss, which is worse than no number.
+The calendar still marks the days trained, because that question needs no schedule at all; the
+ratio is absent, and the screen says which of the two absences it is.
+
+**No schema change.** `program_slots`, `program_skips` and a session's `templateId` and
+`finishedAt` are everything P3.5 reads, and all of them shipped with P3.3 at v20. The aggregate
+is a pure function over them, so the arithmetic worth arguing about is a JVM test rather than a
+device one.
+
 ## Truth, Turbine
 
 New and touched tests assert with Truth, and assert Flow sequences with Turbine.
