@@ -5,882 +5,619 @@ Notable changes to Workout, newest first. Format follows
 `versionName` from [`version.properties`](version.properties), with the
 `versionCode` in brackets because that is what Android actually compares.
 
+Each entry says what shipped and why it mattered. The reasoning behind a decision — the
+alternatives rejected, the measurements, the argument — lives in
+[DECISIONS.md](DECISIONS.md) and [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md), and is not
+repeated here.
+
 ## [Unreleased]
 
 ## [1.8] — 2026-10-02 (versionCode 9)
 
 ### Added
 
-- **An index on `workout_sessions.startedAt`, schema v19** (B46). The statistics range filter scans by start
-  time and the record count does too, and the existing `finishedAt` index cannot serve either — one filters
-  `IS NOT NULL`, the other wants a range on a different column — so the record query read every set ever
-  logged and ran a correlated subquery per row. The `MigrationTestHelper` case seeds a real row and asserts
-  both that it survives and that the index exists, because an index migration is the one kind with nothing to
-  show for itself: a query cannot report a missing index, it just gets slower.
-
-- **A target for any metric, drawn on the chart.** Type one in the unit the screen shows — 80 kilograms — and it
-  is stored in the units everything else uses, so the line it draws is the same number the readings are. It is
-  **dotted where the average is dashed**, because the two are both levels and reading the user's own target as
-  the app's summary of them would be the worst kind of quiet error. A target can be cleared, and a number that
-  cannot be read sets nothing at all rather than a zero — a target of zero would be a line along the bottom of
-  every chart and a claim nobody made. **The axis widens to include the target**, because a target you cannot
-  see is not a target: setting 80 against a series running 81.75 to 84.75 used to pin the line to the bottom
-  edge, and now moves the axis to start below it.
-
-- **The readings, under the chart.** Every reading as a date and a value, newest first, collapsed until it is
-  asked for, with **Average** and **Trend** rows above them. It is also the accessible counterpart to the chart:
-  a canvas is deliberately blanked out for a screen reader, so for anyone who cannot see the line this list is
-  the screen. A moment that recorded nothing is not a reading — the chart draws it as a gap, and a list of
-  numbers with holes in it would be a list of holes — and the average is over the readings that exist, so a week
-  nobody weighed in cannot pull it towards zero.
-- **The chart's x-axis is time.** Two workouts a day apart and two a month apart used to be drawn the same
-  distance apart, which made a month off look like a day off. Where a reading sits is now a question about
-  elapsed time, answered by pure Kotlin with its own tests, and the axis is labelled in words: first and last
-  date, minimum and maximum. **The line still breaks at a missing reading rather than spanning it**, and on a
-  time axis that matters more, not less — the gap is now visible as *distance*, and a straight segment across
-  three weeks would be a claim about weeks nobody measured. That is the one place this app deliberately differs
-  from the tool it borrows its shape from.
-- **Bars for quantities, a line for a scale, and zero where zero is.** Volume draws as bars from the baseline;
-  the ratings, bodyweight and tape measurements stay lines. A weight axis beginning at the lightest set turns
-  every change into a cliff, and a 1–10 rating anchored at zero flattens the differences ratings exist to show —
-  so which it is remains a property of the metric rather than of the data.
-- **An average, a fitted trend and its slope.** A dashed horizontal average; a least-squares line; and the slope
-  as text in the metric's own unit, **per week** rather than per reading, because a slope per point reports the
-  same number for a change over a day and the same change over a month. The sign is part of the text, since the
-  same number is progress on a bodyweight and a warning on joint pain, and only the metric knows which. A gap
-  does not pull the line: only the readings that exist are fitted. *A first attempt drew all three in the
-  theme's tertiary colour, which is close enough to the surface that they were invisible on a device — they are
-  a neutral annotation now, and the average is dashed.*
-- **A trailing mean, drawn heavier, over a configurable period.** Seven readings by default. The period counts
-  **readings rather than days**: for a daily weigh-in the two are the same thing, but a seven-day window for a
-  lift trained twice a week would often hold one reading and average nothing. It emits from the first reading
-  rather than waiting for a full period — a chart beginning a week in would hide the first week of the signal it
-  was added to show — and an unmeasured day neither counts towards the period nor drags the mean down.
-
-- **A Statistics tab, and one picker over every series.** It answers "how is everything going" with one
-  chart, a range and three numbers, where there used to be a workout-trends screen and a separate per-lift one
-  reached from two places. Every series the app records — the workout ratings, the eight exercise metrics, and
-  body measurements including each tape site — is described in **one registry** carrying its label, unit,
-  formatter, group, whether it is a line or bars, whether its axis starts at zero and which direction is
-  better. The three enums stay: each still means something on its own, and the registry references them.
-- **The range is remembered as what it means**, not as the dates it resolved to, so a saved "last 7 days" is
-  still the last seven days tomorrow. A custom From–To asks for its dates before it applies — a chip that
-  selected an unbounded window would make the chart look broken rather than empty — and the dates are read in
-  the calendar's own zone, because reading them in the device's would shift the day for anyone west of
-  Greenwich.
-- **The overview is three numbers, and no more**: workouts, volume and records. Records needed a query of
-  their own, because a set is a record by a rule about everything performed *before* it and nothing stores
-  that a set was one. Where a record count has not been asked for the screen shows a dash rather than a zero,
-  since "you set none" and "not counted" are different statements.
-- **The two screens it replaced are gone**, with their ViewModels and tests. **Body measurements stay a pushed
-  destination** reached from the tab, because recording an entry is a different job from reading a trend.
-
-- **Five tabs along the bottom.** Workouts · History · Statistics · Library · Settings, with Workouts
-  where the app opens. Every surface used to hang off home's overflow menu, which is why "how is everything
-  going" had no home of its own; the menu is now the data actions and nothing else, and the six entries that
-  left it took their plumbing with them rather than leaving five callbacks nothing consumes. **Templates
-  stayed under Workouts** — a plan is part of working out — and Library remains the exercise reference.
-- **Each tab keeps its own place**, so History is where you left it after a look at Statistics, and back
-  from a tab root goes to Workouts rather than walking back through the tabs in the order you visited them.
-- **The bar disappears during a workout** — a live set logger with a tab bar under it is an invitation to
-  lose the session — and a detail pushed inside a tab keeps that tab highlighted, so the bar reads as a map
-  of where you are rather than five buttons that forget. Each item carries a label and a selected state, so
-  TalkBack announces it as a named, selected tab rather than an unlabelled square.
-- Body measurements moved with the surfaces: they are now pushed from **Statistics**, which is the tab that
-  answers how everything is going, rather than sitting in the menu.
-
-- **Body measurements**, on their own screen reached from home. A dated entry with a **weight, and
-  optionally** body fat, muscle and seven tape sites — every one of those nullable, because that is how
-  people measure: a waist taken on a morning the scale was not stepped on is a real entry, and it must not
-  need a second screen or a fake zero to exist. A zero would be indistinguishable from a measurement of
-  nothing, which is the one reading no body ever gives. Weight is the only thing an entry cannot be
-  without, and the save says so before it is tapped rather than after.
-- **A day has one entry, and saving onto it edits it.** The second reading of a day is nearly always a
-  correction of the first rather than a second measurement, and "what did I weigh today" should not have
-  two answers. An unmeasured tape site stays blank rather than carrying the previous value forward:
-  carrying a number forward invents a measurement and draws a flat line through a site nobody measured.
-- **Measurements are charted** alongside the training trends, through the same chart: bodyweight first,
-  then body fat, muscle and each site. They share the chart rather than the axis — the training trends are
-  indexed by workout, and a measurement is not a workout — so each series carries its unit and is scaled
-  to its own readings rather than to a rating's fixed range.
-- Measurements travel in the **backup file** like everything else, with a round-trip guard test, and the
-  measurements schema is at **version 18** (the index below takes it to 19); the upgrade keeps every row
-  that was already there.
-- **A finished workout can become a plan.** The app went plan to session and history to session, but
-  never session to plan: after a good unplanned workout the only way to keep it was rebuilding it by
-  hand. The workout detail now offers **Save as plan** — it asks for a name, copies the exercises in
-  order with their performed sets as targets, keeps the rest, the technique note and the superset
-  grouping, and offers to open the plan it just made. It copies neither the readiness note, the ratings
-  nor the workout comment, which describe that day rather than the plan. An exercise deleted from the
-  library since is skipped while the rest copy, and the copy stands independent of its source.
+- **An index on `workout_sessions.startedAt`, schema v19** (B46). The statistics range filter
+  and the record count both scan by start time and neither could use the `finishedAt` index —
+  one filters `IS NOT NULL`, the other wants a range on a different column — so the record query
+  read every set ever logged. The migration test asserts the row survives *and* that the index
+  exists, since a query cannot report a missing index.
+- **A target for any metric, drawn on the chart.** Typed in the unit the screen shows and
+  stored in canonical units, so the line is the number the readings are. **Dotted where the
+  average is dashed**, because the user's own target is not the app's summary of them. It can
+  be cleared, an unreadable number sets nothing rather than a zero, and **the axis widens to
+  include the target** — a target you cannot see is not a target **(N39)**.
+- **The readings, under the chart.** Every reading as a date and a value, newest first,
+  collapsed until asked for, with **Average** and **Trend** rows above them. It is also the
+  chart's accessible counterpart: a canvas is blanked for a screen reader, so for anyone who
+  cannot see the line this list is the screen. A moment that recorded nothing is a gap rather
+  than a zero, and the average is over readings that exist.
+- **The chart's x-axis is time.** Two workouts a day apart and two a month apart no longer
+  draw the same distance apart, and the axis is labelled in words. **The line still breaks at
+  a missing reading**, which matters more here, not less: the gap is now visible as *distance*
+  **(N37)**.
+- **Bars for quantities, a line for a scale, zero where zero is.** Volume draws as bars;
+  ratings, bodyweight and tape measurements stay lines, so a 1–10 rating is not flattened by
+  an axis anchored at zero — which it is stays a property of the metric, not of the data.
+- **An average, a fitted trend, and its slope in the metric's own unit per week.** Only the
+  readings that exist are fitted, so a gap does not pull the line, and the sign is part of the
+  text because the same number is progress on bodyweight and a warning on joint pain. *(A first
+  attempt drew all three in a theme colour too close to the surface to see on a device; they are
+  a neutral annotation now.)*
+- **A trailing mean over a configurable period**, seven readings by default. The period counts
+  **readings rather than days** (N40) — the same thing for a daily weigh-in, not for a lift
+  trained twice a week — it emits from the first reading rather than waiting for a full period,
+  and an unmeasured day neither counts nor drags the mean down.
+- **A Statistics tab, and one picker over every series.** It answers "how is everything going"
+  with one chart, a range and three numbers, where there used to be a workout-trends screen and
+  a separate per-lift one. Every series — the ratings, the eight exercise metrics, and each
+  measurement site — is described in **one registry** carrying its label, unit, formatter,
+  group, line-or-bars, axis-at-zero and better-direction (N35). The three enums stay; the
+  registry references them. The two screens it replaced are gone, with their ViewModels and
+  tests.
+- **The range is remembered as what it means**, not as the dates it resolved to, so a saved
+  "last 7 days" is still the last seven days tomorrow. A custom From–To asks for its dates
+  before it applies, and reads them in the calendar's own zone.
+- **The overview is three numbers**: workouts, volume and records. A record needed a query of
+  its own, because a set is a record by a rule about everything performed *before* it and
+  nothing stores that a set was one. Where the count has not been asked for the screen shows a
+  dash rather than a zero — "you set none" and "not counted" are different statements.
+- **Five tabs along the bottom** — Workouts · History · Statistics · Library · Settings — with
+  the overflow menu reduced to the data actions and nothing else. Templates stayed under
+  Workouts, because a plan is part of working out, and **body measurements are pushed from
+  Statistics** rather than sitting in the menu.
+- **Each tab keeps its own place**, so History is where you left it after a look at Statistics,
+  and back from a tab root goes to Workouts rather than walking back through the tabs in the
+  order you visited them. The bar disappears during a workout, a detail pushed inside a tab
+  keeps that tab highlighted, and each item carries a label and a selected state so TalkBack
+  announces a named, selected tab rather than an unlabelled square.
+- **Body measurements**, on their own screen: a dated entry with a **weight** and *optionally*
+  body fat, muscle and seven tape sites, every one nullable, because a waist taken on a morning
+  the scale was not stepped on is a real entry. A zero would be indistinguishable from a
+  measurement of nothing; weight is the only field an entry cannot be without, and the save says
+  so before it is tapped.
+- **A day has one entry, and saving onto it edits it** (N32). A second reading of a day is nearly
+  always a correction of the first, so "what did I weigh today" has one answer. An unmeasured
+  tape site stays **blank** rather than carrying the previous value forward, which would invent a
+  measurement and draw a flat line through a site nobody measured.
+- **Measurements are charted** through the same chart as the training trends — bodyweight, then
+  body fat, muscle and each site — sharing the chart rather than the axis, since a measurement is
+  not a workout, so each series is scaled to its own readings. They travel in the **backup file**
+  with a round-trip guard test, and the schema is at **version 18** (the index above takes it to
+  19); the upgrade keeps every row that was already there.
+- **A finished workout can become a plan.** The app went plan to session and history to session,
+  never session to plan, so after a good unplanned workout the only way to keep it was rebuilding
+  it by hand. Workout detail now offers **Save as plan** — it asks for a name, copies the
+  exercises in order with their performed sets as targets, keeps the rest, the technique note and
+  the superset grouping, and offers to open the plan. It copies neither the readiness note, the
+  ratings nor the workout comment, which describe that day rather than the plan; an exercise
+  deleted from the library since is skipped while the rest copy.
 
 ### Changed
 
-- **The instrumented job runs the emulator with VM acceleration.** It had gone red on infrastructure four
-  times with four different signatures, and the emulator's own probe named the cause every time: `/dev/kvm` is
-  on the runner and the `kvm` group exists, but the runner user is not in it, so the emulator fell back to
-  software emulation. A udev rule grants it, and `-accel auto` takes it. Every one of those signatures is what
-  a starved emulator does — a sixteen-minute boot, an adb connection that dies as tests start, and a device
-  that boots and then cannot answer `getprop`, which made AGP skip it as "Unknown API Level" and run no tests
-  at all. The previous answers were all about tolerating a slow emulator (a longer timeout, a lighter image, a
-  lower API level) rather than asking why it was slow.
-
-- **CI: the emulator job's flags are set explicitly, and the lever it was waiting for turned out to be
-  pulled already.** The job was gated behind a manual dispatch because the hosted runner's emulator kept
-  dying, and the untried prescription was to set the emulator's options to what works locally. Reading the
-  pinned `android-emulator-runner`'s own `action.yml` settled it: its default *is* exactly those flags, so
-  an absent key was inheriting them and the experiment could not have been the fix. They are set now
-  anyway, so the workflow owns the flags it depends on and a future action bump cannot change how the
-  emulator boots without this file saying so. **CI now runs nightly and on demand before a release rather
-  than on every push**: the emulator is the one piece of infrastructure here that has failed without a test
-  running, so a per-push run would mostly report on the runner, and the per-change guard is the local gate
-  set. The instrumented job is no longer held back to a manual dispatch, so it is exercised on a schedule,
-  and the concurrency group now includes the event name — a dispatch before a release can no longer be
-  cancelled by the nightly run, or the reverse. That last one was not hypothetical: a documentation push
-  cancelled an instrumented run twenty minutes in, and the cancelled job's summary looked exactly like the
-  infrastructure failure this whole thread is about.
-- **CI: the instrumented suite runs green on the hosted runner.** It never had: the emulator took sixteen and
-  a half minutes to boot, spent the run `offline`, and died before a single test ran, so the job failed with
-  no report at all — three times with three signatures, the last of which is what gated it. The fix was the
-  image rather than the flags: an **Automated Test Device** (`aosp_atd`, API 34) boots in three and a half
-  minutes, and the suite now completes with the count guard satisfied — *declared 175 instrumented tests,
-  executed 175, every one executed*. It also runs against an image with no Google services, which is the
-  constraint this app has anyway. The cost is real and recorded: the suite is tested against API 34 rather
-  than 37, which is what the app ships against. The flags the job was told to try turned out to be the
-  action's own defaults, so that lever had
-  been pulled all along — a workflow that omits a key is still choosing a value, and the value lives in the
-  pinned action.
-
-- **The app's progression is now offered rather than applied.** N22 shipped a suggestion whose own
-  documentation said it "suggests; it never writes", and in two places it *was* the value one tap logged:
-  with no plan, the first set of an exercise prefilled last time **plus a step**, and with a plan that named
-  reps but no load, the weight came from the same proposal. A lifter who progresses by hand had to notice
-  the app's arithmetic and undo it on every first set. What one tap logs is now the plan's target where it
-  names one, then what you just did, then **what you did last time, unchanged**, then the default; the
-  proposal is shown beside it with its reason and a **Use it** action, applied only when accepted. The rule
-  is global rather than program-only, because "I progress by hand" is not a property of how a workout was
-  started.
+- **The instrumented job runs the emulator with VM acceleration** (N30). It had gone red on
+  infrastructure four times with four different signatures, and the emulator's own probe named
+  the cause every time: `/dev/kvm` is on the runner and the `kvm` group exists, but the runner
+  user is not in it, so the emulator fell back to software emulation. A udev rule grants it and
+  `-accel auto` takes it. *(The four signatures and the probe output are in
+  DECISIONS-EVIDENCE.md.)*
+- **CI: the emulator's flags are set explicitly, and the job runs nightly and before a release
+  rather than on every push** (N30). Reading the pinned `android-emulator-runner`'s own `action.yml`
+  settled it: the flags it was told to try *are* the action's defaults, so that experiment could not
+  have been the fix. Setting them anyway means a future action bump cannot change how the emulator
+  boots without the workflow saying so. The
+  concurrency group now includes the event name, after a documentation push cancelled an
+  instrumented run twenty minutes in and its summary read exactly like an infrastructure failure.
+- **The instrumented suite runs green on the hosted runner**, which it never had. An **Automated
+  Test Device** (`aosp_atd`, API 34) boots in three and a half minutes where the previous image
+  took sixteen and spent the run offline. The count guard is satisfied — declared 175
+  instrumented tests, executed 175 — and the image carries no Google services, which is this
+  app's constraint anyway. The cost stands: the suite is tested against API 34 rather than the
+  37 the app ships against.
+- **Progression is offered rather than applied** (N33). N22 shipped a suggestion whose own
+  documentation said it "suggests; it never writes", and in two places it *was* the value one tap
+  logged — with no plan, last time plus a step, and with a plan naming reps but no load, the
+  weight from the same proposal — so a lifter who progresses by hand had to undo the app's
+  arithmetic on every first set. One tap now logs the plan's target where it names one, then what
+  you just did, then **what you did last time unchanged**, then the default; the proposal sits
+  beside it with its reason and a **Use it** action, applied only when accepted.
 
 ### Fixed
 
-- **The Statistics chart's fitted line is inside the axis.** A series rising fast ends above its own last
-  reading, and the axis was built from the readings alone — so the line was clamped flat along the top edge
-  for its final stretch and appeared to level off exactly where it rose fastest. Its ends are drawn, so they
-  are now part of the axis, and the same holds for a fitted end below the readings.
-- **A tape or body-fat field that is not a real number is no longer stored.** `Math.round(NaN * 10)` is `0`,
-  so typing "NaN" into the body-fat field wrote a real 0.0% reading — a measurement nobody took, in a series
-  that then draws it — and "Infinity" became −0.1%. Negative values were accepted too, though nothing this
-  screen collects is below zero. The guard is the one `Weight.parseKilograms` has always used.
-- **"All" counts records instead of showing a dash.** The tile was permanently empty on the one range where a
-  lifetime count means most, because "all" has no window and the count bailed when the window was absent.
-  Unbounded is a range the query can express.
-- **A long range no longer loses its older sessions.** The training series were fetched with a cap of 500
-  *sessions* and then filtered by date, so with more history than the cap a "last year" range silently omitted
-  the sessions before the newest 500 — including from the record count. The cap is gone; the range is honoured
-  by the date filter, which is what it was always meant to do.
-
-
-- **The Statistics screen can change the lift again.** The picker was drawn only while *no* lift was
-  selected, and every entry point — the library, the workout detail, a lift just performed — arrives with one
-  already chosen, so the lift could never be changed. The prompt ("choose a lift") is for the empty case and
-  the control is for either; they were being asked of the same flag, and the control lost. Its
-  selected-name branch was dead code, which is the tell that it was meant to be reachable.
-- **Loading and failure no longer read as "0 workouts, 0 kg".** The overview and the chart were drawn from
-  the default state before anything had been read, so a first frame — and any failed read, which had no
-  message at all — made a claim about data the screen did not have. Both now say what is happening, using the
-  shared message component and the read error the view model was already carrying.
-
-- **The exported schema for version 18 was corrupted, and is regenerated.** That file listed fifteen
-  entities for eight tables — every table from before the measurements work appeared twice, byte for byte.
-  Room never writes that and nothing consumed the duplicates, so it was invisible; what makes it worth
-  fixing is that `app/schemas` is the baseline the migration tests validate against, and a baseline that is
-  wrong about its own contents is not a baseline. Regenerated from the entities, which also produced the
-  identity hash the correct table set has. Every other version in the directory was already 1:1.
-- **A target that is not a real number can no longer blank the chart.** `MetricUnit.parse` was a bare
-  `toDoubleOrNull()`, which accepts `NaN`, `Infinity` and a value large enough that the unit conversion
-  overflows to infinity. A target of `NaN` reached the axis, made both ends `NaN` — and `NaN.coerceIn(0f,
-  1f)` is still `NaN` — so every coordinate on the canvas became `NaN`, the chart drew nothing, and nothing
-  said why. Parsing now requires a finite, non-negative number, checked *after* the unit conversion as well
-  as before, which is the guard `Weight.parseKilograms` has always used; `axisBounds` discards non-finite
-  input too, so a bad value from anywhere else cannot do it either.
-- **A rating is drawn on its own scale again.** The chart's doc promised that "a 1–10 rating is drawn on a
-  fixed axis so a 0.2 change cannot look like a cliff", and the two constants that would have done it were
-  referenced nowhere — ratings were auto-fitted, so RPE readings of 7.1, 7.2 and 7.3 produced an axis 0.24
-  wide and a 0.2 wobble filled the chart. The scale now lives beside the metric in the registry, where the
-  axis policy already lives, and the axis widens past it when a reading or a target leaves 1–10, because
-  those are claims the user made and have to stay visible.
-- **A trend that is rising no longer prints as "+0".** The rate beside the chart used the metric's
-  *reading* formatter, and the whole-number units truncate: 0.2 reps a week read as "+0 reps per week" next
-  to a line going up. Rates have their own formatter now, which keeps a tenth when there is one and stays
-  clean when there is not.
-- **A target below zero is visible on a metric anchored at zero.** N39 made the axis include a target above
-  the readings; the same clipping pinned a negative target to the bottom edge where it drew nothing. The
-  axis extends below zero only when something actually sits there, so a bar chart's zero baseline is
-  unchanged in the ordinary case.
-
-
-- **Discarding a workout no longer leaves a white screen.** Closing a session went through two
-  identical `LaunchedEffect(closed)` blocks in the workout route, both calling `popBackStack`, so the
-  back stack was popped **twice**: the workout left, and so did the screen beneath it, leaving the
-  navigation host with nothing to render. Discard is where it was noticed, but Finish had it too, one
-  tap later, because both close through the same path. The effect is now a single named composable,
-  `LeaveWhenClosed`, which is also what puts it under test — three Robolectric cases hold that an open
-  screen is not left, that closing leaves exactly once, and that a screen which stays closed does not
-  leave again when it recomposes. What they cannot see is a second call site in the route, because
-  that is removed by construction rather than caught. **Verified on the emulator both ways:** with the
-  fix reverted, Discard reproduces the report exactly — the accessibility tree comes back empty and
-  the screenshot is 94.6% a single flat colour — and with the fix the same sequence lands on home.
+- **The fitted line is inside the axis.** A series rising fast ends above its own last reading,
+  and the axis was built from the readings alone, so the line was clamped flat along the top edge
+  exactly where it rose fastest. Its ends are now part of the axis, and the same holds for a
+  fitted end below the readings.
+- **A tape or body-fat field that is not a real number is no longer stored.** `Math.round` of a
+  `NaN * 10` is `0`, so typing "NaN" wrote a real 0.0% reading — a measurement nobody took, in a
+  series that then draws it — and "Infinity" became −0.1%; negatives were accepted too. The guard
+  is the one `Weight.parseKilograms` has always used.
+- **"All" counts records instead of showing a dash.** The tile was permanently empty on the one
+  range where a lifetime count means most, because "all" has no window and the count bailed when
+  the window was absent.
+- **A long range no longer loses its older sessions.** The training series were fetched with a cap
+  of 500 *sessions* and then filtered by date, so with more history than the cap a "last year"
+  range silently omitted everything before the newest 500, including from the record count.
+- **The Statistics screen can change the lift again.** The picker was drawn only while *no* lift
+  was selected, and every entry point — the library, the workout detail, a lift just performed —
+  arrives with one already chosen, so the lift could never be changed. Its selected-name branch
+  was dead code, which is the tell that it was meant to be reachable.
+- **Loading and failure no longer read as "0 workouts, 0 kg".** The overview and the chart were
+  drawn from the default state before anything had been read, so a first frame — and any failed
+  read, which had no message at all — made a claim about data the screen did not have.
+- **The exported schema for version 18 is regenerated.** It listed fifteen entities for eight
+  tables, every pre-measurements table twice, byte for byte. Nothing consumed the duplicates, but
+  `app/schemas` is the baseline the migration tests validate against, and a baseline that is wrong
+  about its own contents is not a baseline.
+- **A target that is not a real number can no longer blank the chart.** `MetricUnit.parse` was a
+  bare `toDoubleOrNull()`, which accepts `NaN`, `Infinity` and a value whose unit conversion
+  overflows; a `NaN` axis made every canvas coordinate `NaN`, so the chart drew nothing and
+  nothing said why — `NaN.coerceIn(0f, 1f)` is still `NaN`. Parsing now requires a finite,
+  non-negative number checked *after* the unit conversion as well as before, and `axisBounds`
+  discards non-finite input.
+- **A rating is drawn on its own scale again.** The chart promised a fixed 1–10 axis and the two
+  constants that would have done it were referenced nowhere, so RPE readings of 7.1, 7.2 and 7.3
+  produced an axis 0.24 wide. The scale now lives beside the metric in the registry and widens
+  past 1–10 when a reading or a target leaves it, because those are claims the user made.
+- **A rising trend no longer prints as "+0".** The rate used the metric's *reading* formatter,
+  which truncates, so 0.2 reps a week read as "+0 reps per week" beside a line going up.
+- **A target below zero is visible on a metric anchored at zero.** The axis extends below zero
+  only when something actually sits there, so a bar chart's baseline is unchanged in the ordinary
+  case.
+- **Discarding a workout no longer leaves a white screen.** Two identical `LaunchedEffect(closed)`
+  blocks in the workout route both called `popBackStack`, so the back stack was popped **twice**:
+  the workout left, and so did the screen beneath it. Discard is where it was noticed, but Finish
+  had it too, one tap later. A single named composable, `LeaveWhenClosed`, replaces both and is
+  under test. *Verified on the emulator both ways: with the fix reverted, Discard reproduces the
+  report — an empty accessibility tree and a screenshot 94.6% one flat colour — and with the fix
+  the same sequence lands on home.*
 
 ## [1.7] — 2026-10-02 (versionCode 8)
 
-
 ### Added
 
-- **Repeat the last workout in one tap.** Templates cover the planned session; this covers the
-  unplanned one, where "same as last time" is the most common thing a lifter does and used to cost
-  picking six exercises out of the library again. Home's start action offers **Repeat last workout**
-  whenever a finished one exists, and it copies the **exercises and their order — not the loads**:
-  progression and the "last time" prefill already answer what to lift next, and freezing a week's
-  numbers into a fresh session would put the two in conflict. An exercise deleted from the library
-  since is skipped while the rest repeat, and an exercise performed twice repeats twice, because that
-  is what was performed.
-- **A rest is now heard and felt, and a workout keeps the screen awake.** Removing the background alert
-  left the timer noticeable only while you were looking at it, so this is what replaces it: a
-  short tone and a tick when a rest ends, and the screen staying on while a workout is open. Both have
-  a switch in settings — *Chime when a rest ends* and *Keep the screen on* — and both default to on,
-  because an app that got quieter than it was would be a regression wearing a preference's clothes.
-- **Neither asks for a permission.** The cue is an in-process tone and *view-level* haptics;
-  keep-screen-on is a window flag rather than a wake lock. `Vibrator` would have been the obvious call
-  and it costs `android.permission.VIBRATE` — the one thing the app just stopped declaring, so the
-  constraint is recorded in [DECISIONS.md](DECISIONS.md) rather than left to be rediscovered.
-
-
-- **A warm-up ramp, in one tap.** A plan's exercise can now generate its warm-ups from the weight the
-  plan already names: four sets — 40%, 60%, 75% and 85% for five, three, two and one rep — written
-  into the plan as role-carrying warm-ups. N14 made a warm-up expressible and the plan editor let you
-  type one; this is what makes writing four of them a single action instead of four. It is offered
-  only where there is a weight to take a fraction of: a bodyweight or assisted exercise gets no ramp,
-  because a list of zeroes to load is worse than no control at all. Two screen tests hold the one
-  thing the dialog owns — that the control is drawn when it is given one and absent when it is not, and
-  an instrumented test writes the ramp through Room and reads it back: a column that dropped the role,
-  or a projection that forgot it, fails there rather than at the gym.
+- **Repeat the last workout in one tap.** It copies the **exercises and their order — not the
+  loads**, because progression and the "last time" prefill already answer what to lift next, and
+  freezing a week's numbers into a fresh session would put the two in conflict. An exercise
+  deleted from the library since is skipped, and one performed twice repeats twice.
+- **A rest is heard and felt, and a workout keeps the screen awake** (N27). A tone and a tick when
+  a rest ends, and screen-on while a workout is open, each with a switch in settings and both on
+  by default — an app that got quieter than it was would be a regression wearing a preference's
+  clothes. **Neither asks for a permission:** the cue is an in-process tone and *view-level*
+  haptics, and keep-screen-on is a window flag rather than a wake lock. `Vibrator` would have cost
+  `android.permission.VIBRATE`, the one thing the app had just stopped declaring.
+- **A warm-up ramp in one tap.** A plan's exercise can generate its warm-ups from the weight the
+  plan already names: four sets at 40%, 60%, 75% and 85% for five, three, two and one rep, written
+  as role-carrying warm-ups. Offered only where there is a weight to take a fraction of, because a
+  list of zeroes to load is worse than no control.
 
 ### Changed
 
-- **The app is called Workout, and so is the repository.** It had drifted into four names: the
-  launcher said *Workout Log*, the roadmap heading said *Workout Tracker*, the release assets said
-  `workout-log`, and the repository said `android-app` — which named the platform rather than the
-  app. Everything forward-looking now says **Workout**, which matches the `applicationId` it has
-  always had and, unlike "Log", will not go stale as the app does more than log. **This is a label,
-  not an identity change:** `applicationId` and the signing key are untouched, so the app updates in
-  place with no uninstall and no lost history. What deliberately still reads *Workout Log* is the
-  record — past release titles, the `workout-log-1.x.apk` assets and the changelog's own preamble —
-  because that is what the app was called when those shipped.
-- **A workout remembers the timezone it was performed in.** Timestamps were always UTC, and every
-  screen formatted them in the zone you are reading in — so a session logged in Tokyo showed the wrong
-  hour, and after a late flight the wrong day, the moment you landed. The offset is now captured once,
-  when the session opens, and every screen that shows a session's time uses it: history groups a
-  workout under the month *it* was performed in, not the month it is where you are, and the workout
-  detail and the finish review read it too. Sessions recorded before this show what they always did —
-  the current zone — because the data to say where they happened was never captured, and inventing one
-  would be a lie the rows cannot support.
-- **Two names that lied, corrected.** The review a finished workout shows was called `WorkoutSummary`,
-  which is also the name of the history row in the domain — two types, one name, and the reader left
-  to guess which. The review payload is `WorkoutReview` now, and the dialog that draws it is named
-  after it. `SettingsModule` moved out of `DatabaseModule.kt`: the file said database while binding a
-  `SharedPreferences` repository. The move also showed the new import gate working — it flagged the
-  three imports the moved code left behind, in the same commit that would have carried them.
-- **Unused imports are gated.** detekt's `UnusedImports` is off by default and the compiler does not
-  run with `-Werror`, so an import left behind by an implementation that landed elsewhere passed every
-  gate this project treats as authoritative. Turning the rule on found **fifty-one** across twenty-one
-  files — far more than the two that prompted it — which is the argument for the rule rather than
-  against it.
+- **The app is called Workout, and so is the repository.** It had drifted into four names — the
+  launcher said *Workout Log*, the roadmap heading *Workout Tracker*, the release assets
+  `workout-log`, the repository `android-app`. This is a label, not an identity change:
+  `applicationId` and the signing key are untouched, so the app updates in place with no uninstall
+  and no lost history. Past release titles, the `workout-log-1.x.apk` assets and this file's own
+  preamble keep the old name, because that is what they shipped as.
+- **A workout remembers the timezone it was performed in** (N25). Timestamps were always UTC and
+  every screen formatted them in the zone you are reading in, so a session logged in Tokyo showed
+  the wrong hour — and after a late flight the wrong day — the moment you landed. The offset is
+  captured once, when the session opens, and history, the workout detail and the finish review all
+  use it. Sessions recorded before this show the current zone, because the data to say where they
+  happened was never captured and inventing one would be a lie the rows cannot support.
+- **Two names that lied, corrected.** The review a finished workout shows was called
+  `WorkoutSummary`, which is also the name of the history row in the domain — two types, one name,
+  and the reader left to guess which. The review payload is `WorkoutReview` now, and the dialog that
+  draws it is named after it. `SettingsModule` moved out of `DatabaseModule.kt`, which said database
+  while binding a `SharedPreferences` repository; the move also showed the new import gate working,
+  flagging the three imports it left behind in the same commit.
+- **Unused imports are gated.** detekt's `UnusedImports` is off by default and the compiler does
+  not run with `-Werror`, so an import left behind by an implementation that landed elsewhere
+  passed every gate this project treats as authoritative. Turning the rule on found **fifty-one**
+  across twenty-one files.
 
 ### Removed
 
-- **The background rest alert, and with it the app's last permission.** The alarm, its receiver, the
-  notification, the ask-on-first-set prompt and both manifest permissions are gone —
-  `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`. The app now declares **no permissions at all**,
-  which is a stronger statement about your data than any wording could be. The rest timer itself is
-  untouched: the end instant still lives on the session row and survives the process dying; only the
-  way it reaches you changed, and since it can now be heard and felt in the app, nothing is lost.
+- **The background rest alert, and with it the app's last permission.** The alarm, its receiver,
+  the notification, the ask-on-first-set prompt and both manifest permissions are gone
+  (`POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`), so the app declares **no permissions at all**.
+  The rest timer itself is untouched: the end instant still lives on the session row and survives
+  the process dying, and the rest can now be heard and felt in the app.
 
 ### Fixed
 
-- **Two documents that had stopped describing the code.** A KDoc for the append helper was left
-  stranded above a different function when the helper moved, and the repeat port claimed an open
-  session is *refused* when it is in fact *resumed* — the opposite, and the kind of sentence a reader
-  plans around.
-- **The last trace of the rest alert is gone from the device too.** Android keeps a notification
-  channel across updates until uninstall, so a phone that ran a build before the alert was removed
-  still listed "Rest timer" in its notification settings — for an app that posts nothing and declares
-  no permissions. It is deleted on launch: one idempotent call, no permission needed, and the decision
-  is recorded in [DECISIONS.md](DECISIONS.md).
+- **The last trace of the rest alert is gone from the device too** (B37, B40). Android keeps a
+  notification channel across updates until uninstall, so a phone that ran an older build still
+  listed "Rest timer" — for an app that posts nothing and declares no permissions. It is deleted
+  on launch by one idempotent call that needs no permission.
 - **A date can no longer be rendered without saying which zone it is in.** The three formatters
-  defaulted their zone to the phone's, which is precisely what let the Home bug ship: omitting the
-  argument was the default and looked like ordinary code, so the compiler had nothing to object to.
-  The zone is now required, and every call site names it — a session's own offset, or the reading zone
-  for rows recorded before offsets existed. It is a small change that retires the whole class.
-- **The comments the removed rest alert left behind.** Six places still described permissions and
-  behaviour the app no longer has — including `AndroidManifest.xml`, the very file whose emptiness the
-  no-permissions promise rests on, and `AGENTS.md` naming a test fake that was deleted with the alert.
-  Documentation that contradicts the code is worse than none: a reader trusts the file nearest the
-  claim, which is how the stale comment outlives the change.
-- **Three tests that could not fail now can.** They were written for the background rest alert, and
-  when the alert was deleted their assertions went with it — leaving two empty-bodied tests whose names
-  described behaviour that no longer existed, and one that ran a whole finish flow to assert nothing.
-  Two of them were the only coverage of the actions they called. They now assert what remains: that
-  skipping a rest clears it, that adjusting one reaches the repository with the step the button sends,
-  and that a comment written on the way to finishing lands on the session.
-- **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working set
-  first and then the four warm-ups that exist to prepare for it — while its own description said it
-  wrote them in front. The ramp is now written to the head of the exercise in one transactional call.
-- **The repeat action is offered only when it would copy something.** It asked whether history was
-  non-empty, while the copy itself also requires exercises still in the library — so a last workout
-  whose exercises had all been deleted since offered a button indistinguishable from *Start workout*
-  that opened an empty session. Both now ask the same question, and Home answers it from a count the
-  history row already carries.
-- **The date formatter's zone is held by a test of its own.** N25's grouping was covered thoroughly and
-  the half that turned out to be wrong — what a screen renders — was not, so the formatter now has two
-  tests that compare two renderings of the same instant rather than asserting a string: near a day
-  boundary the zone changes the day, and away from one it does not. The second is the control that stops
-  the first passing for the wrong reason.
-- **The repeat action is absent while a workout is open.** The start choices hide themselves when one is
-  running, which is the only sane answer — a second way to start a workout mid-session is a way to lose
-  one — and nothing held it: the existing absence test passed an empty history, which is a different
-  rule.
-- **The repeat path is exercised end to end.** Its branch was never entered by a test: the route's
-  state handle carried only `templateId`, so `repeatLast` was always false, and the fake's field for
-  "what the last workout held" was never assigned — every part was tested, and the path between them
-  was not. Two tests now enter it in both directions, so "it repeats" cannot be passing because the
-  fake seeds something regardless.
-- **Repeating a workout keeps its rest, note and superset grouping.** Only the exercises were copied,
-  so a repeated superset arrived ungrouped — and with no group the round logic short-circuits, so the
-  pair degraded into unrelated exercises resting separately, which is the behaviour supersets exist to
-  prevent. The rest and the technique note were dropped the same way.
+  defaulted their zone to the phone's, which is precisely what let the wrong-day bug ship:
+  omitting the argument was the default and looked like ordinary code. The zone is now required
+  and every call site names it, which retires the whole class.
+- **Two documents that had stopped describing the code**, including a KDoc claiming an open
+  session is *refused* when it is *resumed* — the opposite, and the kind of sentence a reader
+  plans around — and comments the removed alert left behind in `AndroidManifest.xml`, the very
+  file whose emptiness the no-permissions promise rests on, and `AGENTS.md`.
+- **Three tests that could not fail now can.** Deleting the rest alert took their assertions with
+  it, leaving two empty-bodied tests and one that ran a whole finish flow to assert nothing; they
+  now assert that skipping a rest clears it, that adjusting one reaches the repository with the
+  step the button sends, and that a comment written on the way to finishing lands on the session.
+- **A warm-up ramp is written in front of the work.** It was appended, so a plan read the working
+  set first and then the four warm-ups that exist to prepare for it.
+- **The repeat action is offered only when it would copy something**, and is absent while a
+  workout is open. It asked whether history was non-empty while the copy also requires exercises
+  still in the library, so a last workout whose exercises had all been deleted offered a button
+  indistinguishable from *Start workout* that opened an empty session.
+- **Repeating a workout keeps its rest, note and superset grouping.** Only the exercises were
+  copied, so a repeated superset arrived ungrouped — and with no group the round logic
+  short-circuits, which is the behaviour supersets exist to prevent.
 - **Home shows a past workout's date in its own zone.** It was the one screen that dropped the
-  argument and fell back to the phone's zone, so the same workout read as two different dates on two
-  screens — differing by a day near midnight, which is exactly the case the stored offset exists for.
-  The argument was missing, not the data: the column and the accessor were both already there.
+  argument and fell back to the phone's, so the same workout read as two different dates on two
+  screens. The argument was missing, not the data.
+- **The repeat path is exercised end to end.** Its branch was never entered: the route's state
+  handle carried only `templateId`, so `repeatLast` was always false, and every part was tested
+  while the path between them was not.
+- **The date formatter's zone has a test of its own**, comparing two renderings of the same
+  instant rather than asserting a string — the half of N25 that turned out to be wrong had no
+  coverage, and the second case is the control that stops the first passing for the wrong reason.
 - **Finishing a workout leaves the screen again, and the undo offers are back.** Removing the
-  background rest alert took two things with it that sat beside the permission flow: the effect that
-  navigates away once a workout is closed, and the call that draws the undo offer for a deleted set
-  or a finished exercise. Neither is visible in a compile, and neither had a test — both were caught
-  by detekt's unused-parameter and unused-private-member rules, which is the second time in this batch
-  that a gate nobody was watching did the catching.
-
-
-- **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure, so a
-  failure — or the process dying — between writes could leave half a group: the exact state the
-  action exists to prevent, and one the screen would then show as a superset of one. The whole group
-  moves in a single statement now, and a partial result is reported instead of assumed.
-- **The superset tap is no longer drawn on the first exercise.** With nothing above it to pair with,
-  the group came out null — and the write then matched every ungrouped row and rewrote each to null,
-  churning `updatedAt` for no change. It is offered from the second exercise on, in the workout and in
-  the plan editor alike.
+  alert took the navigation effect and the call that draws the undo offer for a deleted set or a
+  finished exercise; neither is visible in a compile and neither had a test. Both were caught by
+  detekt's unused-parameter and unused-private-member rules.
+- **Pairing a superset is one write.** It wrote one row at a time and carried on after a failure,
+  so a failure — or the process dying — between writes could leave half a group, which the screen
+  would then show as a superset of one. The group moves in a single statement now.
+- **The superset tap is no longer drawn on the first exercise.** With nothing above to pair with,
+  the group came out null and the write matched every ungrouped row, churning `updatedAt` for no
+  change.
 - **Assisted work adds a rep before it takes help off.** The progression rule tested its assisted
-  branch before its rep ceiling, so an assisted lifter at the *bottom* of a 6–8 range was told to
-  reduce the machine's help and keep the reps — "add a rep first" was unreachable for assisted work,
-  contradicting the double-progression rule the file states in its own KDoc. The ceiling is tested
-  first now, and the rep to add carries the assistance rather than zeroing it, which would have
-  turned an assisted set into a bodyweight one.
+  branch before its rep ceiling, so an assisted lifter at the bottom of a 6–8 range was told to
+  reduce the machine's help, and "add a rep first" was unreachable for assisted work —
+  contradicting the double-progression rule the file states in its own KDoc (N22). The rep to add
+  now carries the assistance rather than zeroing it.
 
 ## [1.6] — 2026-10-01 (versionCode 7)
-
 
 ### Added
 
 - **Supersets and circuits.** Two or more exercises can be performed together: **Superset with
   above** groups an exercise with the one before it, the pair is labelled **A1/A2**, and the
-  **rest belongs to the round rather than the set** — the app only starts a rest once nothing
-  else in the group is behind, because resting between the pair would defeat the pairing the
-  user just asked for. Marking a member done counts as caught up, so a group does not wait for
-  an exercise that is finished, and leaving a superset takes the whole group apart: a group of
-  one is not a group. A circuit is the same thing with three or more members. **A plan can
-  prescribe one too**, so a workout started from a plan arrives already paired rather than being
-  grouped by hand every time. This is the first structural change since N14 — the schema goes to
-  v16, with the grouping carried in the backup file so a restored workout keeps its pairs.
-
-
+  **rest belongs to the round rather than the set** (N24) — a rest starts only once nothing else
+  in the group is behind, because resting between the pair would defeat the pairing the user just
+  asked for. Marking a member done counts as caught up, leaving takes the whole group apart, and
+  **a plan can prescribe one** so a workout started from a plan arrives already paired. Schema
+  **v16**, with the grouping carried in the backup file.
 - **Personal records, and noticing one when it happens.** A record here is a **rep max**: the
   heaviest working set at each rep count, so 100 kg × 5 is beaten only by more weight at five
-  reps — not by twelve reps at 90 kg. Log a set that beats your best and the app says so
-  straight away, above the work rather than in a dialog, and it says **what it beat**: "your
-  best before was 95 kg". The first time at a rep count says that instead, because there was
-  no bar to clear and claiming one would be a lie the data does not support.
-- **Records are only correct now.** Warm-up sets became excludable with N14's roles, so a
-  120 kg warm-up can no longer be mistaken for the work — which is why this could not have
-  been built honestly before.
-- **The app stops handing back the same number.** Until now a new session prefilled exactly
-  what was lifted last time, which made a written plan and a year of history worth nothing at
-  the moment they should count. The prefill now proposes the next step by **double
-  progression**: keep the load and add a rep until the plan's rep ceiling is reached, then
-  add 2.5 kg and start the range again. It says *why* — "One more rep than last time", "A step
-  heavier", "Less help than last time" — because a number the app chose is an instruction
-  unless it explains itself.
-- **It suggests; it never writes.** No plan and no stored set is changed: a suggestion the app
-  applied silently would be a programme decision taken without the person training. **With no
-  plan there is no ceiling**, so it proposes one more rep and stops rather than inventing a
-  weight. On assisted work the direction inverts — the machine doing less is the progress —
-  and warm-up sets are excluded, as they are everywhere a target is measured.
-- **A settings screen, and the default rest is finally editable.** There was no settings
-  screen at all, and the app-wide rest between sets was a hardcoded 90 seconds that nothing
-  could change: every workout that had no rest of its own was stuck with it. Settings now
-  holds a **Default rest**, chosen from a bounded set of options — an exercise's own rest
-  from the library or the template still wins, and a change made in settings reaches a
-  workout that is already open. The screen is deliberately small; it is the home that the
-  units, screen-on and rest-sound rows have been waiting for.
-- **A review when a workout finishes, with plan versus actual.** Finish used to be a dead
-  end: the ratings the user had just given, the readiness note and the totals went nowhere.
-  The workout now ends with a summary — sets, reps and volume, the notes, and each
-  exercise's feel and joint pain read back — and, when the workout came from a plan, **the
-  plan next to what was actually lifted**: prescribed 6×2 at 92.5, performed 6×2 at 92.5,
-  top single 2.5 kg over plan. That comparison is the entire payoff for planning, and the
-  app had never made it: a plan was write-only.
-- **The review says what was not done.** A prescribed exercise that was skipped is a fact
-  about the session, and an exercise added mid-workout is labelled as not in the plan — a
-  review that lists only what was done is a compliment, not a record.
-- **Choosing a set's role where the set is logged.** The role picker existed but sat behind
-  the editor, so three warm-ups cost three log-then-edit round trips. It is now beside
-  **Log set**: pick the role, tap, done — one tap each way. The choice clears itself once
-  the set is written, because a role is a decision about one set and leaving it armed would
-  mark the next one a warm-up without anyone asking.
-- **Start over, with a way out first.** The app had no way to let go of its data: deletes
-  are soft, an import can only add, and the only true wipe was `adb shell pm clear`, which
-  is not a phone feature. **Delete everything** now lives with export and import in the
-  home menu and removes every workout, set, template, planned set, custom exercise, rating
-  and comment — plus the crash logs, which are diagnostics about that same data. The seeded
-  exercise library stays: it is app content, and the seeder restores it.
-- **The order is the point: export, then type, then go.** Platform backup is off, so an
-  exported file is the only thing that can outlive the action — offering it is part of the
-  dialog, not a courtesy beside it. The confirmation is **typed** (`DELETE`), because
-  "delete everything" is a button someone presses by accident exactly once, and what cannot
-  be undone is said before the button is enabled rather than in the aftermath.
-- **Hard, not soft.** Every other delete here sets `deletedAt`, which is right for a
-  mistaken tap and wrong for starting over: a soft-deleted row survives, and an export
-  taken afterwards would still carry it. And clearing re-seeds explicitly, because the
-  seeder runs when the database is *opened* — a clear that only emptied tables would have
-  left an empty library until the process restarted, which looks broken rather than clean.
+  reps. Log a set that beats your best and the app says so straight away, above the work, and says
+  **what it beat**; the first time at a rep count says that instead, because there was no bar to
+  clear. Warm-up sets became excludable with N14's roles, which is why this could not have been
+  built honestly before.
+- **The app stops handing back the same number.** The prefill proposes the next step by **double
+  progression** and says *why* — "One more rep than last time", "A step heavier", "Less help than
+  last time" — because a number the app chose is an instruction unless it explains itself (N22).
+- **It suggests; it never writes** (N22). No plan and no stored set is changed. **With no plan
+  there is no ceiling**, so it proposes one more rep and stops rather than inventing a weight; on
+  assisted work the direction inverts, and warm-up sets are excluded as they are everywhere a
+  target is measured.
+- **A settings screen, and the default rest is finally editable** (N21). The app-wide rest between
+  sets was a hardcoded 90 seconds nothing could change. Settings now holds a **Default rest** from
+  a bounded set of options; an exercise's or template's own rest still wins, and a change reaches a
+  workout that is already open.
+- **A review when a workout finishes, with plan versus actual** (N20). Finish used to be a dead
+  end: the ratings, readiness note and totals went nowhere. The workout now ends with sets, reps
+  and volume, the notes, each exercise's feel and joint pain, and — when it came from a plan —
+  **the plan next to what was actually lifted** (prescribed 6×2 at 92.5, performed 6×2 at 92.5,
+  top single 2.5 kg over plan). It also says what was **not** done: a skipped prescribed exercise
+  is a fact about the session, and an exercise added mid-workout is labelled as not in the plan —
+  a review that lists only what was done is a compliment, not a record.
+- **Choosing a set's role where the set is logged** (N19). The picker sat behind the editor, so
+  three warm-ups cost three log-then-edit round trips; it is now beside **Log set**, and clears
+  itself once the set is written, because a role is a decision about one set.
+- **Start over, with a way out first.** Deletes are soft, an import can only add, and the only
+  true wipe was `adb shell pm clear`, which is not a phone feature. **Delete everything** lives
+  with export and import and removes every workout, set, template, planned set, custom exercise,
+  rating and comment, plus the crash logs; the seeded library stays, because the seeder restores
+  it. The order is the point — export is offered in the dialog, and the confirmation is **typed**
+  (`DELETE`) because what cannot be undone is said before the button is enabled. It is **hard**,
+  not soft: every other delete here sets `deletedAt`, and a soft-deleted row would survive — an
+  export taken afterwards would still carry it.
+  It also re-seeds explicitly, because a clear that only emptied tables would leave an empty
+  library until the process restarted.
 
 ### Changed
 
 - **The two reads and writes that only ever met fakes now meet a database.** `personalRecords` and
   `setSupersetGroup` were exercised through hand-written repositories, which cannot show what the
-  SQL does: that a heavier **warm-up** does not set a record, that the session in progress can be
-  excluded so a set is never compared against itself, and that a superset group written to a row
-  comes back through the projection that reads it. That last one is not hypothetical — the session
-  projection shipped once already without selecting the column, so a grouped exercise arrived
-  ungrouped while the write succeeded.
-
-- **The settings feature has tests.** It shipped with none in either source set, so three things it
-  promises were unverified: that the screen shows what is *stored* rather than what was tapped,
-  that a refused choice leaves the old value in force and says why, and that a preference survives
-  the object that wrote it. The store's round trip is covered on the JVM, including that an invalid
-  rest is refused *without* being written — the difference between reporting a failure and quietly
-  keeping it.
-
-- **A plan that names reps and no load now says why it proposes what it does.** The suggestion for
-  that case passed the rule's reason away, so a step heavier than last time arrived with no
-  explanation. It explains a *load* only: the plan already decides the reps, and "one more rep than
-  last time" beside a set the plan sized would be a sentence about the wrong number.
-- **The superset label and its tap have tests**, which they did not: giant-set notation is the only
-  thing on the workout screen that says two exercises are performed together, and the tap is the
-  only way to group them inside a session.
-
-- **The schema upgrade keeps the rows already in the tables, and now proves it.** `MIGRATION_15_16`
-  was amended after it had already run on development devices — a second column joined the same
-  version — so the question a chain test cannot answer is whether an upgrade preserves what is
-  there. A `MigrationTestHelper` case seeds a session exercise and a planned exercise at v15,
-  migrates, and asserts both survive with their new columns empty, which is what every exercise was
-  before supersets existed.
-
+  SQL does: that a heavier warm-up does not set a record, that the session in progress can be
+  excluded so a set is never compared against itself, and that a superset group comes back through
+  the projection that reads it — the session projection had already shipped once without selecting
+  the column.
+- **The settings feature has tests**, which it shipped without: that the screen shows what is
+  *stored* rather than what was tapped, that a refused choice leaves the old value in force and
+  says why, and that an invalid rest is refused *without* being written.
+- **A plan that names reps and no load now says why it proposes what it does** (N22). It explains
+  a *load* only: the plan already decides the reps, and "one more rep than last time" beside a set
+  the plan sized would be a sentence about the wrong number.
+- **The superset label and its tap have tests**, which they did not: giant-set notation is the
+  only thing on the workout screen that says two exercises are performed together, and the tap is
+  the only way to group them inside a session.
+- **The schema upgrade proves it keeps the rows already in the tables.** `MIGRATION_15_16` had been
+  amended after it ran on development devices, so a `MigrationTestHelper` case seeds a session
+  exercise and a planned exercise at v15, migrates, and asserts both survive with their new columns
+  empty.
 - **A route that is declared but never registered now fails the test suite.** Two bugs shipped from
-  that gap: a route missing `@Serializable`, and a route with no `composable<...>` registration —
-  the second is what made the settings screen crash on its first run. The old test named twelve
-  routes by hand, so a thirteenth was invisible to it; the list is now read out of `Routes.kt` and
-  compared against what `AppNavHost.kt` registers, with no hand-maintained list to forget. Verified
-  by adding a route and watching it fail, then removing it.
-
-- **A guard against the backup codec quietly losing a column.** The codec is hand-written,
-  listing each field by name, and it has silently dropped an unnamed column three times — a
-  set's location, a set's assistance, a template's weekday — each found by hand, on a device,
-  after shipping. A round trip with every field set to something distinctive now fails in the
-  ordinary test suite when a field stops surviving, so the next column this app adds fails
-  where it is added rather than turning up missing in someone's backup. The guard immediately
-  earned its place by surfacing one drop nobody had written down: a session's rest countdown
-  is deliberately not restored, and the line that drops it now says so.
+  that gap — a route missing `@Serializable`, and a route with no `composable<...>` registration,
+  the second of which made the settings screen crash on its first run. The old test named twelve
+  routes by hand, so a thirteenth was invisible; the list is now read out of `Routes.kt` and
+  compared against what `AppNavHost.kt` registers.
+- **A guard against the backup codec quietly losing a column** (N24's preparation). The
+  hand-written codec lists every field by name and had silently dropped an unnamed column three
+  times, each found by hand on a device after shipping. A round trip with every field set to
+  something distinctive now fails in the ordinary suite when a field stops surviving, which is how
+  one drop nobody had written down — a session's rest countdown, deliberately not restored — got
+  its line to say so.
 
 ## [1.5] — 2026-09-30 (versionCode 6)
 
-
 ### Added
 
-- **Trends for one exercise.** N13 reads the app's signals across everything; this
-  answers the narrower question a lifter actually asks — *how is my bench press going* —
-  from rows the app already writes. Over the last ten finished sessions that recorded the
-  lift: heaviest working set, estimated one-rep-max, volume, total reps, and that
-  exercise's own average RPE, muscle feel and joint pain, which the app has been
-  recording since N6 and N8 without ever showing them per lift. **Warm-up sets are
-  excluded from the load series**, which only became expressible when N14's roles
-  existed: a warm-up must not become the "heaviest set" on a chart. N13's hand-drawn
-  chart is now shared between the two screens, and nothing new is stored. Reached from
-  the exercise's own screen and by tapping a lift in a past workout.
-- **Assisted work says which way is forward.** On an assisted machine more help is not
-  progress, so that series is the least assistance of the session — the hardest set —
-  labelled "less is more", rather than a climb that reads as improvement.
-- **Tests for the gaps the review found** (B9–B11). The history detail's ViewModel had no
-  test at all, which is how B5 shipped, and its `volumeGrams` KDoc claimed a cross-check
-  against the SQL figure that no test made — both are real now. The trends repository,
-  the only place RPE halves are divided back into the points a chart shows, had no test
-  in either source set: a wrong divisor would have mislabelled every RPE chart silently.
-  And `ALL_MIGRATIONS` was consumed only by the database builder, so a migration written,
-  tested, and forgotten in the array left the suite green while crashing every install
-  with data — the array is now asserted against the runtime schema version, and the whole
-  chain is run once from the first schema.
+- **Trends for one exercise** — over the last ten finished sessions that recorded the lift:
+  heaviest working set, estimated one-rep-max, volume, total reps, and that exercise's own average
+  RPE, muscle feel and joint pain, which the app had been recording since N6 and N8 without ever
+  showing them per lift. **Warm-up sets are excluded from the load series** (N17), which only
+  became expressible when N14's roles existed; N13's hand-drawn chart is shared between the two
+  screens, and nothing new is stored.
+- **Assisted work says which way is forward.** More help is not progress, so that series is the
+  least assistance of the session — the hardest set — labelled "less is more", rather than a climb
+  that reads as improvement.
+- **Tests for the gaps the review found** (B9–B11): the history detail's ViewModel, which had none,
+  and its `volumeGrams` KDoc claiming a cross-check no test made; the trends repository, the only
+  place RPE halves are divided back into chart points, where a wrong divisor would have mislabelled
+  every RPE chart silently; and — most usefully — `ALL_MIGRATIONS` asserted against the runtime
+  schema version, because a migration written, tested and forgotten in the array had left the suite
+  green while crashing every install with data.
 
 ### Changed
 
-- **Tests assert with Truth, and Flow sequences with Turbine.** `assertEquals(expected,
-  actual)` puts two bare values side by side with nothing saying which is which, and the
-  arguments are easy to swap the wrong way round; `assertThat(actual).isEqualTo(expected)`
-  cannot be. Turbine covers what a polled `.value` cannot express at all — a sequence of
-  emissions, or an invariant across one — which is how the readiness note is now checked:
-  the note and the dismissed prompt must arrive in the *same* state, so no observer sees
-  one without the other. Both are JVM-only test dependencies. Existing files use JUnit and
-  migrate **as they are touched**, never in a sweep, so there is no half-converted file.
-- **The configuration cache is on for local builds too, and the wrapper retries a
-  distribution download.** CI already passed `--configuration-cache` on its combined
-  invocation; `gradle.properties` now sets it, so an ordinary `./gradlew` gets the same
-  reuse and the flag and the setting cannot drift apart. The wrapper's `retries` went
-  from 0 to 3, so a flaky connection fails a download rather than the build — the
-  distribution is still validated against Gradle's published checksum, so a retry cannot
-  substitute a different artifact.
-- **CI: one Gradle invocation where there were five, and a guard against a run that
-  skips tests.** The build job now names all five tasks in one `./gradlew` call with the
-  configuration cache on, because each separate call paid its own configuration. And the
-  emulator job — whose result XML once recorded 62 of 127 tests while reporting green —
-  now fails unless the executed count equals the count of `@Test` annotations in
-  `app/src/androidTest`, naming the classes that did not report. A result file older than
-  the sources is itself a failure, since that is what a replayed report looks like (B8,
-  B12).
-- **The review's rule violations are settled.** `HALVES_PER_POINT` is one constant on
-  `Rpe`; the two `DayOfWeek` formatters are one shared pair of composables; the two
-  `SetType` pickers are one `SetRoleSelector`; the duplicate `ActiveWorkoutInfo` went with
-  B13's dead state; and the three `CenteredMessage` copies are one composable, which
-  gained the spinner its callers needed — a shared component that cannot do what its
-  callers do is one they stop using. Four files are named for what they hold
-  (`DataErrorMessage.kt`, `NoteDialogs.kt`, `ExercisePickerRoute.kt`, and a
-  `RestAlarmReceiver.kt` of its own, since Android instantiates it by name).
+- **Tests assert with Truth, and Flow sequences with Turbine**, migrating as files are touched
+  rather than in a sweep. `assertEquals(expected, actual)` puts two bare values side by side with
+  nothing saying which is which, and the arguments are easy to swap, which
+  `assertThat(actual).isEqualTo(expected)` cannot be; Turbine covers what a polled `.value` cannot
+  express, such as the readiness note and its dismissed prompt arriving in the *same* state.
+- **The configuration cache is on for local builds too.** CI already passed
+  `--configuration-cache` on its combined invocation and `gradle.properties` now sets it, so an
+  ordinary `./gradlew` gets the same reuse and the flag and the setting cannot drift apart. The
+  wrapper's `retries` went from 0 to 3, and the distribution is still validated against Gradle's
+  published checksum, so a retry cannot substitute a different artifact.
+- **CI: one Gradle invocation where there were five**, because each separate call paid its own
+  configuration; and the emulator job now fails unless the executed test count equals the count of
+  `@Test` annotations in `app/src/androidTest`, naming the classes that did not report — the job
+  whose result XML once recorded 62 of 127 tests while reporting green (B8, B12).
+- **The review's rule violations are settled.** `HALVES_PER_POINT` is one constant on `Rpe`; the
+  two `DayOfWeek` formatters are one shared pair of composables; the two `SetType` pickers are one
+  `SetRoleSelector`; the duplicate `ActiveWorkoutInfo` went with B13's dead state; and the three
+  `CenteredMessage` copies are one composable, which gained the spinner its callers needed. Four
+  files are named for what they hold (`DataErrorMessage.kt`, `NoteDialogs.kt`,
+  `ExercisePickerRoute.kt`, and a `RestAlarmReceiver.kt` of its own, since Android instantiates it
+  by name).
 
 ### Removed
 
-- **Deleted what moved and left its shape behind** (B13). The exercise library's
-  ViewModel still carried the whole "workout in progress / resume clock" apparatus — a
-  state field, two flows, a per-second ticker, and the `TimeSource` and
-  `WorkoutRepository` dependencies that existed only to feed it — months after the resume
-  button moved to home, kept alive by a test asserting the dead state was null. With it:
-  `@ApplicationScope` and the module binding a scope nothing injects, and four
+- **Deleted what moved and left its shape behind** (B13). The exercise library's ViewModel still
+  carried the whole "workout in progress" apparatus — a state field, two flows, a per-second ticker,
+  and the `TimeSource` and `WorkoutRepository` dependencies that existed only to feed it — months
+  after the resume button moved to home, kept alive by a test asserting the dead state was null.
+  With it went `@ApplicationScope`, the module binding a scope nothing injects, and four
   declarations nothing called (`TemplateDao.findTemplateSets`, `WorkoutSession.isActive`,
   `WorkoutSummary.hasVolume`, `PreviousPerformance.isEmpty`). Per D2, `Weight.step`,
-  `DataResult.map` and `successUnit` went too — APIs whose only caller was the test that
-  tested them.
+  `DataResult.map` and `successUnit` went too — APIs whose only caller was the test that tested
+  them.
 
 ### Fixed
 
-- **The finish review's counts now agree with its reps.** "Prescribed 2×3" meant two sets, one of
-  them a warm-up, totalling three reps — the counts included warm-ups while the rep sums dropped
-  them. Both exclude warm-ups now, as the record and progression rules do, and the dialog says so.
-- **A plan that names no reps no longer reads "prescribed 2×0".** A guard tested the wrong list, so
-  a prescription with no rep ceiling produced a sum of zero and put it on screen, against the rule
-  that a field with nothing to say stays empty.
-- **The review tells two rows of the same exercise apart.** It matched exercises by display name,
-  so a movement performed twice collapsed to one row — the earlier one's sets vanished from the
-  review while the totals still counted them, which made the summary contradict itself. Matching is
-  by exercise id now.
-
-- **A warm-up can no longer raise a personal best.** The record rule never saw the set's role, so
-  a heavy warm-up at a rep count with no record — or above the existing one — raised the banner,
-  which the app's own documentation said could no longer happen. The rule takes the role now, so
-  it cannot be forgotten by a caller.
+- **The finish review's counts now agree with its reps.** "Prescribed 2×3" meant two sets, one a
+  warm-up, totalling three reps, because the counts included warm-ups while the rep sums dropped
+  them; both exclude warm-ups now, as the record and progression rules do. A plan that names no
+  reps no longer reads "prescribed 2×0" either.
+- **The review tells two rows of the same exercise apart.** It matched by display name, so a
+  movement performed twice collapsed to one row — the earlier one's sets vanished while the totals
+  still counted them. Matching is by exercise id now.
+- **A warm-up can no longer raise a personal best.** The record rule never saw the set's role, so a
+  heavy warm-up raised the banner the app's own documentation said could not happen; the rule takes
+  the role now, so a caller cannot forget it.
 - **A record says what it actually beat.** The banner read history alone, so a bar set earlier in
-  the same session was invisible to it: lifting 20 kg and then 22.5 kg at eight reps announced
-  "the first time at this rep count" while claiming a record over that very 20 kg. It reads the
-  merged view now — history plus what this session has already logged — which is what "what it
-  beat" was always supposed to mean.
-
-- **Editing a logged set no longer wipes its role or its assistance.** The set editor was never
-  told either, so it opened every set as a plain working set with no help — and saving wrote that
-  over the row. A one-rep correction on a `-20 kg` assisted warm-up silently destroyed both, and
-  in history the role was not even modelled, which made it unrecoverable. History now records the
-  role, both screens open the editor on what was stored, and a screen-level test holds it.
-- **A superset rests for the group's longest member.** The settled rule is that a round is paced
-  by its slowest member; the app instead rested from whichever exercise happened to log the
-  closing set, so a pair where one prescribed 180 s and the other 90 s rested 90 s whenever the
-  latter closed the round — the group's own rest was never consulted. The same pair rested
-  differently depending on the order it was logged in.
-
-- **Tapping a lift in a past workout showed no trends for it.** The history screen passed
-  the session's own row id to the trends screen, where a series exists only under the
-  *library* exercise's id — a query that silently matches nothing, so the screen said
-  "nothing recorded yet" for a lift just logged. Found by device verification against the
-  published 1.4 upgrade, and covered by a test now (N17).
-- **A cancelled export no longer reports a failed one.** The backup and restore
-  callbacks run in the screen's coroutine scope, and both wrapped their file IO in
-  `runCatching` — which catches `Throwable`, and so swallows the `CancellationException`
-  raised when the user leaves the screen mid-write. Leaving during an export could say
-  "couldn't write the backup file", and the coroutine refused to finish cancelling. Both
-  now rethrow cancellation, the rule `dataResultOf` already stated and this pair
-  contradicted.
-- **An assisted set no longer loses its help in history.** The live workout showed a set
-  on an assisted machine as `-20 kg`; the workout **detail** screen showed `0 kg`,
-  because its ViewModel built the row without passing the column and the screen rendered
-  the field's default. One tap into history and N15's feature read back wrong (B5).
-- **A plan's target RPE reads as a lifter writes it.** The plan dialog passed the stored
-  half-point count straight to the marker, so a plan saying 9.5 rendered as **"RPE 19"** —
-  the confusion the halves representation exists to prevent. The three screens that show
-  an RPE now share one formatter (B6).
-- **One-tap "Log set" writes the set its button described.** The button reads
-  *"Log set · -20 kg × 8"* and wrote a set with no assistance, because the value was in
-  the suggestion and simply not passed; undoing a deleted set dropped it too (B7).
-  Decided as D3: the button does what it says rather than saying less.
+  the same session was invisible: 20 kg then 22.5 kg at eight reps announced "the first time at
+  this rep count" while claiming a record over that very 20 kg. It reads history plus what this
+  session has already logged.
+- **Editing a logged set no longer wipes its role or its assistance.** The editor was never told
+  either, so it opened every set as a plain working set and saving wrote that over the row — a
+  one-rep correction on a `-20 kg` assisted warm-up destroyed both, and history did not model the
+  role, which made it unrecoverable. History records the role now.
+- **A superset rests for the group's longest member** (N24). The app rested from whichever exercise
+  happened to log the closing set, so a pair prescribing 180 s and 90 s rested 90 s whenever the
+  latter closed the round, and the same pair rested differently depending on the order it was
+  logged in.
+- **Tapping a lift in a past workout showed no trends for it** (N17). The history screen passed the
+  session's own row id where a series exists only under the *library* exercise's id — a query that
+  silently matches nothing, so a lift just logged read as "nothing recorded yet". Found by device
+  verification against the published 1.4 upgrade.
+- **A cancelled export no longer reports a failed one.** Both callbacks wrapped their file IO in
+  `runCatching`, which catches `Throwable` and so swallows the `CancellationException` raised when
+  the user leaves the screen mid-write, and the coroutine refused to finish cancelling. Both now
+  rethrow cancellation, the rule `dataResultOf` already stated.
+- **An assisted set no longer loses its help in history** (B5). The live workout showed `-20 kg`;
+  the workout **detail** built the row without passing the column and rendered the field's
+  default, so one tap into history read N15's feature back wrong.
+- **A plan's target RPE reads as a lifter writes it** (B6). The plan dialog passed the stored
+  half-point count straight to the marker, so a plan saying 9.5 rendered as **"RPE 19"** — the
+  confusion the halves representation exists to prevent; the three screens that show an RPE now
+  share one formatter.
+- **One-tap "Log set" writes the set its button described** (B7, D3). The button read *"Log set ·
+  -20 kg × 8"* and wrote a set with no assistance, because the value was in the suggestion and not
+  passed; undoing a deleted set dropped it too. The button does what it says rather than saying
+  less.
 
 ## [1.4] — 2026-09-30 (versionCode 5)
 
-
 ### Added
 
-- **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may
-  share a day — training twice on a Friday is a thing people do — and each is listed with
-  a Start action that goes straight into that plan's workout. A plan with no day is a
-  plan you start by hand, which is why "Not scheduled" is a value rather than an empty
-  state. **A living template, not a dated instance**: editing the Friday plan changes
-  every future Friday until it is edited again, and what you performed is already the
-  record. Dated instances would add a plan-per-date entity, generation and skipped-week
-  handling to support a comparison the logged sets already allow.
-- Migration **14→15** adds a nullable `templates.weekday`, stored by name like every
-  other enum: an existing plan is unscheduled until it is given a day, which is what it
-  already was, and reordering the enum could never reinterpret a row.
-- **Assisted load.** An assisted pull-up can be written down at last: the load field
-  takes a leading minus, so `-20` means the machine took 20 kg off. What is stored is a
-  separate `assistanceGrams` — a magnitude, never a signed weight — which is what keeps
-  an assisted set from reporting *negative* tonnage and corrupting every volume trend.
-  Volume stays `weight × reps`, so an assisted set contributes what it should: nothing,
-  exactly as bodyweight does. A plan can prescribe assistance too, and the prefill
-  carries it into the workout.
-- Migration **12→13** adds `set_entries.assistanceGrams`, defaulting to 0 so every set
-  already recorded keeps meaning what it meant, and a nullable `targetAssistanceGrams`
-  on a plan's sets.
-- **Templates are plans now.** A template exercise carries planned sets — a role,
-  a target weight, a target rep range, a target RPE and a note — plus the rest and cue
-  the plan prescribes for that exercise. Starting a workout from a template prefills
-  each set from the plan, so a written ramp is the numbers you actually see, and the
-  plan's rest replaces the library's for that session. **Copy forward** duplicates an
-  exercise's sets so a shape authored once becomes five sets in two taps, because
-  thirty sets of four fields on a phone is where a plan stops being written down.
-- **A set's role.** Planned and performed sets share one vocabulary — working, warm-up,
-  **top set** (the one new value), drop and failure. The set editor gains a role
-  selector, which is what finally makes `SetType`'s values reachable from the UI at
-  all, and a logged set shows its role when it is not a plain working set. That is the
-  half of this that is not about planning.
-- Targets only: nothing verifies a plan against what was lifted, and a logged set is a
-  separate row that is expected to differ. Declining to check the plan is what keeps
-  this a plan rather than a compliance feature.
-- Two migrations as the work landed: **10→11** adds `template_sets` and the plan's
-  `restSeconds`/`techniqueNote`, **11→12** adds those two to `session_exercises` so the
-  plan's rest and cue can reach a session. Both additive, nothing backfilled, and the
-  backup codec carries all three or an export would drop them in silence.
-- **A comment on the workout itself.** Finishing asks once, and skippably, how it
-  went — the moment you remember why — and the comment is shown in the workout detail
-  afterwards. No migration: `workout_sessions.notes` has been in the schema since v1,
-  already carried by export and import, and never had a domain field or a UI. This is
-  what it was reserved for.
-- **How it felt can be recorded at any time, not only at Done.** Each exercise in a
-  workout now carries a "How it felt" row — the same one the workout detail has — so
-  the two ratings and N9's location are written down while the set is fresh rather
-  than remembered afterwards. The Done prompt stays as the last chance rather than
-  the only one, and the row is still there on a done exercise, so a rating given in
-  passing is one tap from being corrected.
-- **Joint pain says where.** The joint-pain rating gained an optional free-text box —
-  "left shoulder", "right knee" — because a 4 means more a month later with a place
-  attached to it. Stored per session exercise, editable wherever the rating is (the
-  Done prompt and the workout detail), and shown beside it there. Adds migration
-  9→10: one nullable column, no backfill, and carried by the export file like every
-  other column — the hand-written codec drops anything the DTO does not name.
-- **Trends: what the app collects, read back.** A screen over the last ten finished
-  workouts showing RPE, muscle feel and joint pain — each as a line on the same fixed
-  1–10 axis, with its latest value and its average. The details are the honest part: a
-  metric recorded once is a number rather than a line, a workout that did not record
-  one leaves a gap instead of being interpolated across, "not recorded" is never drawn
-  as zero, and a workout with nine rated sets does not shout louder than one with a
-  single rated set. No charting dependency — three series over ten points did not earn
-  one, so the lines are drawn on a `Canvas`, which settles the approach P2.3 asked
-  about for these series. Reached from the home overflow. No migration.
+- **A plan can be pinned to a weekday, and home shows today's plan.** Several plans may share a
+  day — training twice on a Friday is a thing people do — and each is listed with a Start action; a
+  plan with no day is one you start by hand, which is why "Not scheduled" is a value rather than an
+  empty state. It is **a living template, not a dated instance** (N16). Migration **14→15** adds a
+  nullable `templates.weekday`, stored by name like every other enum.
+- **Assisted load.** The load field takes a leading minus, so `-20` means the machine took 20 kg
+  off. What is stored is a separate `assistanceGrams` — **a magnitude, never a signed weight** —
+  which keeps an assisted set from reporting negative tonnage and corrupting every volume trend
+  (N15); a plan can prescribe it, and the prefill carries it into the workout. Migration **12→13**
+  adds `set_entries.assistanceGrams`, defaulting to 0 so every set already recorded keeps meaning
+  what it meant, and a nullable `targetAssistanceGrams` on a plan's sets.
+- **Templates are plans now.** A template exercise carries planned sets — a role, a target weight,
+  a target rep range, a target RPE and a note — plus the rest and cue the plan prescribes for that
+  exercise, and starting a workout prefills each set from them. **Copy forward** duplicates an
+  exercise's sets, because thirty sets of four fields on a phone is where a plan stops being
+  written down. **A set's role** gives planned and performed sets one vocabulary — working,
+  warm-up, **top set**, drop and failure (N14). Migrations **10→11** add `template_sets` and the
+  plan's `restSeconds`/`techniqueNote`, and **11→12** adds those two to `session_exercises` so the
+  plan's rest and cue reach a session — both additive, nothing backfilled, with the backup codec
+  carrying all three or an export would drop them in silence.
+- **Targets only:** nothing verifies a plan against what was lifted, and a logged set is a separate
+  row expected to differ — declining to check is what keeps this a plan rather than a compliance
+  feature.
+- **A comment on the workout itself.** Finishing asks once, and skippably, how it went, at the
+  moment you remember why; it needed no migration, because `workout_sessions.notes` has been in the
+  schema since v1 and never had a UI.
+- **How it felt can be recorded at any time**, per exercise, rather than only at Done, so the two
+  ratings and the pain location are written down while the set is fresh. The Done prompt stays as
+  the last chance rather than the only one, and the row is still there on a done exercise.
+- **Joint pain says where** — an optional free-text box beside the rating, because a 4 means more a
+  month later with a place attached. Migration **9→10**.
+- **Trends: what the app collects, read back.** RPE, muscle feel and joint pain over the last ten
+  finished workouts, each on the same fixed 1–10 axis with its latest value and average. A metric
+  recorded once is a number rather than a line, a workout that did not record one leaves a gap
+  rather than being interpolated, "not recorded" is never drawn as zero, and a workout with nine
+  rated sets does not shout louder than one with a single rated set. No charting dependency — three
+  series over ten points did not earn one — so the lines are drawn on a `Canvas`.
 
 ### Changed
 
-- **RPE takes half steps.** `9.5` can be recorded, not just whole numbers. It is stored
-  as *halves in an integer* (`19` is 9.5) for the same reason weights are whole grams:
-  9.5 has no exact binary representation, and an RPE that compares as `9.499999` — or
-  drifts when a trend averages it — is worse than one unit of arithmetic. The field
-  accepts `9`, `9.5` and `9,5`, and refuses anything finer than a half (9.3 is not
-  rounded to 9.5; that would be a claim about the set nobody made). The muscle-feel and
-  joint-pain ratings are a different, whole-number scale and are unchanged.
-- Migration **13→14** carries RPE across: the columns are renamed to `rpeHalves` and
-  `targetRpeHalves` — re-using `rpe` for a different unit is how a silent corruption
-  starts — and existing values are doubled, so an 8 recorded before this is still 8.0.
-- The backup keeps reading the old whole-number field: renaming it would have dropped
-  the RPE out of every earlier export on restore, without a word.
-- **The 1–10 scales now say what their ends mean.** N8 shipped the muscle-feel and
-  joint-pain ratings unlabelled on purpose — an anchor for what 3 or 7 means would be
-  a claim the app has no basis for — and left labelling the ends as the obvious
-  refinement. Both fields now read "1 = barely worked, 10 = fully worked" and
-  "1 = none, 10 = severe" while the number is being picked, and only there: the
-  workout detail keeps showing a bare "Muscle feel 8" rather than repeating the
-  vocabulary on every past workout.
+- **RPE takes half steps.** It is stored as *halves in an integer* (`19` is 9.5) for the same
+  reason weights are whole grams: 9.5 has no exact binary representation and an RPE that compares
+  as `9.499999`, or drifts when a trend averages it, is worse than a unit of arithmetic (N6). The
+  field accepts `9`, `9.5` and `9,5` and refuses anything finer than a half — 9.3 is not rounded to
+  9.5, which would be a claim about the set nobody made — while the muscle-feel and joint-pain
+  ratings stay a different, whole-number scale. Migration **13→14** renames the columns to
+  `rpeHalves` and `targetRpeHalves` and doubles existing values, because re-using `rpe` for another
+  unit is how a silent corruption starts; the backup keeps reading the old whole-number field, since
+  renaming it would have dropped the RPE out of every earlier export on restore.
+- **The 1–10 scales now say what their ends mean** — "1 = barely worked, 10 = fully worked" and
+  "1 = none, 10 = severe" — while the number is being picked, and only there: the workout detail
+  keeps showing a bare "Muscle feel 8" rather than repeating the vocabulary on every past workout.
 
 ### Fixed
 
-- **Export and import are back where you start.** They lived two overflow menus
-  deep — home, then the exercise library N1 demoted to a reference screen — so the
-  feature read as missing. They are in the home overflow now, beside Library,
-  History and Templates, and the library's copy is gone: one path, not two.
-- **Removing an exercise asks first.** It takes the exercise's sets with it and has
-  no undo, so a mis-tap silently reshaped the workout. It now asks, and the dialog
-  says what goes rather than posing a bare question.
-- **An Undo can no longer act on something that is gone.** The deleted-set and Done
-  snackbars share one host, so a deleted set's Undo could outlive its exercise: the
-  row was gone, the button stayed, and tapping it failed the loggable-exercise guard
-  without saying anything. An undo is now offered only while its subject is still in
-  the session, and if one is tapped anyway the app says so instead of doing nothing.
-- **A library read that fails is a message, not a crash.** `observeExercises` and
-  `getExercise` were the last calls that could throw out of a flow and take a screen
-  down. Both return the same `DataResult` the writes do, and the failure is shown
-  where the list or the exercise would have been — "we could not read it" and "it is
-  not there" are different sentences, and they used to be the same one.
+- **Export and import are back where you start.** They lived two overflow menus deep, so the
+  feature read as missing; they are in the home overflow beside Library, History and Templates, and
+  the library's copy is gone — one path, not two.
+- **Removing an exercise asks first.** It takes the exercise's sets with it and has no undo, so a
+  mis-tap silently reshaped the workout; the dialog says what goes rather than posing a bare
+  question.
+- **An Undo can no longer act on something that is gone.** The deleted-set and Done snackbars share
+  one host, so a deleted set's Undo could outlive its exercise: the row was gone, the button
+  stayed, and tapping it failed the loggable-exercise guard without saying anything. An undo is
+  offered only while its subject is in the session, and one tapped anyway says so.
+- **A library read that fails is a message, not a crash.** `observeExercises` and `getExercise`
+  were the last calls that could throw out of a flow and take a screen down; both return the same
+  `DataResult` the writes do, and "we could not read it" is no longer the same sentence as "it is
+  not there".
 
 ## [1.3] — 2026-09-29 (versionCode 4)
 
-
 ### Added
 
-- **Workout templates: a plan you build once and start in one tap.** Name a
-  template, add exercises from the same picker the workout uses, and put them in the
-  order you train them. Home's start action now offers the choice — *Start workout*
-  or *Start from template* — and the overflow menu reaches the list for editing.
-  Starting from a template opens the session with its exercises already in order,
-  through the same append path a manual add-exercise takes, so the order is the same
-  one the picker would have produced; resuming an open workout never seeds a second
-  copy, and editing the session never touches the template. Templates ride along in
-  the export/import file, soft-deleted ones included. Adds migration 8→9: two new
-  sync-shaped tables, no backfill.
-- **How it felt: muscle feel and joint pain.** Marking an exercise done asks, once
-  and skippably, for two 1–10 ratings — how well the target muscle was worked, and
-  any joint or connective-tissue discomfort — stored per session exercise so the
-  same movement is measured differently on different days. They stay editable from
-  the workout detail, and are deliberately unlabelled: labelling what 1 and 10 mean
-  is the obvious first refinement rather than something to guess at now. Adds
-  migration 7→8: two nullable columns, no backfill.
-- **Done, so an exercise stops taking sets by accident.** A per-exercise **Done**
-  action hides its **Log set** button and dims its sets, which then cannot be
-  edited; it also stops any rest the exercise had running, and an **Undo** on the
-  snackbar takes it back. A **Reopen** button restores editing, because accident
-  protection must not become its own trap. The wording is deliberate — the
-  workout-level action is already *Finish*, so this is *Done*, never *Finish* — and
-  it is a session state, not a delete: the sets stay in history. Adds migration
-  6→7: one nullable column, no backfill.
-- **An RPE and a comment on every set.** The set editor gained an optional 1–10
-  RPE and a free-text comment; the one-tap **Log set** path still writes neither,
-  so logging stays fast. A set carrying either shows a small marker in the
-  workout, and the workout detail shows the RPE and the comment's text. Adds
-  migration 5→6: two nullable columns, no backfill. An RPE outside 1–10 blocks
-  Save rather than being clamped, because a silent 11 → 10 would misstate the set.
-- **A readiness note when a workout starts.** A new workout asks once, and
-  skippably, what is not recovered today — "shoulders still sore from Monday",
-  "slept badly, legs heavy". It is deliberately free text, stored on the session,
-  reachable again from the workout header after the prompt is gone, and it rides
-  through the workout detail and export. Adds migration 4→5: one nullable column,
-  no backfill — and a resumed workout is not asked again.
-- **Per-exercise rest and a technique cue.** An exercise now carries its own rest
-  between sets — falling back to the 90 s default when unset — and a short
-  "brace, sit back" cue shown under its name on the active workout screen. Both
-  are editable from the exercise detail screen, which now edits **seeded**
-  exercises too, not only custom ones; the seeder tops up with `INSERT OR IGNORE`
-  and never updates an existing row, so an edit survives every future top-up.
-  Adds migration 3→4: two nullable columns, no backfill.
-- **Create a custom exercise from inside a workout.** The exercise picker gained
-  **New exercise**, which asks for the name and immediately adds the entry to the
-  session, so a movement the library does not have is not a dead end mid-workout.
-  It is stored `isCustom = true` with a UUID id and an unspecified taxonomy
-  (`Other`), and then appears in the library and in search like any other exercise.
-- **Custom exercises are editable afterwards**, from the exercise detail screen:
-  name, muscle, equipment and movement pattern. Filling those in is what makes the
-  entry pickable in later workouts with real taxonomy rather than "Other".
-- **Fifteen more exercises**, mostly competition and paused variants (competition and
-  speed-day bench press, 3-second paused bench, paused squat, conventional deadlift,
-  push press) plus accessory work (machine and assisted rows, dumbbell fly, incline
-  dumbbell curl, dumbbell skullcrusher, rotator work, cable pushdown and cable curl).
-  The seeder tops up with `INSERT OR IGNORE` on every open, so an existing install
-  receives them without a migration.
+- **Workout templates: a plan you build once and start in one tap.** Home's start action offers
+  *Start workout* or *Start from template*, and starting one opens the session with its exercises
+  already in order, through the same append path a manual add takes. Resuming an open workout never
+  seeds a second copy, and editing the session never touches the template. Templates ride along in
+  the export file, soft-deleted ones included. Migration **8→9**.
+- **How it felt: muscle feel and joint pain.** Marking an exercise done asks once, and skippably,
+  for two 1–10 ratings, stored per session exercise so the same movement is measured differently on
+  different days; they stay editable from the detail, and are deliberately unlabelled at first.
+  Migration **7→8**.
+- **Done, so an exercise stops taking sets by accident.** A per-exercise **Done** hides its **Log
+  set** button, dims its sets so they cannot be edited, and stops any rest it had running, with an
+  **Undo** on the snackbar and a **Reopen** button, because accident protection must not become its
+  own trap. The workout-level action is already *Finish*, so this is *Done*, never *Finish* — and it
+  is a session state, not a delete: the sets stay in history. Migration **6→7**.
+- **An RPE and a comment on every set.** The one-tap **Log set** path writes neither, so logging
+  stays fast; a set carrying either shows a small marker in the workout, and an RPE outside 1–10
+  blocks Save rather than being clamped, because a silent 11 → 10 would misstate the set. Migration
+  **5→6**.
+- **A readiness note when a workout starts** — free text on the session, reachable again from the
+  workout header, riding through the detail and export; a resumed workout is not asked again.
+  Migration **4→5**.
+- **Per-exercise rest and a technique cue**, falling back to the 90 s default, both editable from
+  the exercise detail screen, which now edits **seeded** exercises too — the seeder tops up with
+  `INSERT OR IGNORE` and never updates an existing row, so an edit survives every future top-up.
+  Migration **3→4**.
+- **Create a custom exercise from inside a workout**, stored `isCustom = true` with a UUID id and
+  an unspecified taxonomy so it is not a dead end mid-workout, and **editable afterwards** so
+  filling in its taxonomy makes it pickable in later workouts.
+- **Fifteen more exercises**, mostly competition, paused and accessory variants; the seeder tops up
+  on every open, so an existing install receives them without a migration.
 
 ### Changed
 
-- **An exercise's subtitle no longer reads "Other · Other".** `Other` is the
-  "not filled in yet" value a custom exercise is created with, so the library row
-  and the workout's exercise header drop that part of the `Quads · Barbell` line —
-  an unedited custom exercise shows its name alone.
-- **The app opens on your workouts, not the exercise list.** Home is now a short
-  list of recent workouts with **Start workout** (or **Resume**) and a link to the
-  full history. The library became a screen you navigate to; it keeps search, and
-  stays the picker inside a workout.
+- **An exercise's subtitle no longer reads "Other · Other"**, since `Other` is the "not filled in
+  yet" value a custom exercise is created with — the library row and the workout's exercise header
+  drop that part of the `Quads · Barbell` line, so an unedited custom exercise shows its name alone.
+- **The app opens on your workouts, not the exercise list.** Home is a short list of recent
+  workouts with **Start workout** (or **Resume**) and a link to the full history; the library became
+  a screen you navigate to, and stays the picker inside a workout.
 
 ## [1.2] — 2026-09-29 (versionCode 3)
 
-
 ### Added
 
-- Set rows announce that they are editable, so a screen reader no longer reads a
-  row and leaves the user to guess (`onClickLabel`).
+- Set rows announce that they are editable, so a screen reader no longer reads a row and leaves the
+  user to guess (`onClickLabel`).
 
 ### Fixed
 
-- A duration of an hour or more rendered differently in the rest timer than in the
-  workout clock — `90:00` against `1:30:00`. Both now share one formatter and
-  agree; the rest timer gains the hours field.
+- A duration of an hour or more rendered differently in the rest timer than in the workout clock —
+  `90:00` against `1:30:00`. Both now share one formatter, and the rest timer gained the hours
+  field.
 
 ## [1.1] — 2026-09-29 (versionCode 2)
 
-
-The upgrade-test build: installed over 1.0 without uninstalling, and confirmed to
-keep the workout history. **No user-visible changes** — it exists to prove that the
-permanent signing key accepts an upgrade rather than demanding an uninstall, which
-would have cost the history.
+The upgrade-test build: installed over 1.0 without uninstalling, and confirmed to keep the workout
+history. **No user-visible changes** — it exists to prove that the permanent signing key accepts an
+upgrade rather than demanding an uninstall, which would have cost the history.
 
 ## [1.0] — 2026-09-28 (versionCode 1)
-
 
 First release. Sideloaded as a signed APK; there is no Play Store listing.
 
 ### Added
 
-- Exercise library: 30 seeded movements with primary and secondary muscles,
-  equipment and movement pattern. Search covers all of them on the display label
-  *and* a locale-stable key, so it survives translation.
-- Start a workout, log sets by reps and weight, with prefill from what you just did
-  or from last time, tap to edit, and delete with undo.
+- Exercise library: 30 seeded movements with primary and secondary muscles, equipment and movement
+  pattern. Search covers all of them on the display label *and* a locale-stable key, so it survives
+  translation.
+- Start a workout, log sets by reps and weight, with prefill from what you just did or from last
+  time, tap to edit, and delete with undo.
 - Rest timer with an in-app countdown and an optional background alert.
-- Workout history: a chronological list grouped by month, plus a detail view with
-  duration, volume and set count.
-- Correct or delete a past set, and delete a whole workout behind a confirmation —
-  so finishing a workout is no longer a one-way door.
-- Resume affordance: the library button shows the running workout and its elapsed
-  time instead of offering to start another.
-- Export and import the whole database as JSON, through the Storage Access
-  Framework. Import restores anything missing or deleted and never overwrites
-  what is still there.
+- Workout history: a chronological list grouped by month, plus a detail view with duration, volume
+  and set count.
+- Correct or delete a past set, and delete a whole workout behind a confirmation — so finishing a
+  workout is no longer a one-way door.
+- Resume affordance: the library button shows the running workout and its elapsed time instead of
+  offering to start another.
+- Export and import the whole database as JSON, through the Storage Access Framework. Import
+  restores anything missing or deleted and never overwrites what is still there.
 
 ### Notes
 
 - Local only. No `INTERNET` permission, no accounts, no ads, no analytics, and
   `allowBackup="false"` — the export file is the only way data leaves the device.
-- Sets are `reps × weight`. Bodyweight work is reps at 0 kg; duration and distance
-  are deliberately out of scope for this version.
+- Sets are `reps × weight`. Bodyweight work is reps at 0 kg; duration and distance are deliberately
+  out of scope for this version.
