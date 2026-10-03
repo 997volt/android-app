@@ -222,6 +222,11 @@
     <string name="adherence_day_trained">%1$s, trained</string>
     <string name="adherence_day_scheduled">%1$s, scheduled</string>
     <string name="adherence_day_rest">%1$s, rest</string>
+    <!-- Marking a week as a deload (ROADMAP P3.10): exempt from the ratio, not the calendar. -->
+    <string name="adherence_deload_title">Deload weeks</string>
+    <string name="adherence_deload_hint">A deload week is not scored — its days count as neither done, skipped nor missed — but they stay on the calendar.</string>
+    <string name="adherence_deload_week">Week of %1$s</string>
+    <string name="adherence_deload_mark">Deload</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
     <string name="home_plan_start">Start</string>

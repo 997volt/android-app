@@ -213,6 +213,12 @@ class ProgramStartGateViewModelTest {
 
         override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
+    override suspend fun setDeloadWeek(
+        programId: String,
+        weekStart: java.time.LocalDate,
+        marked: Boolean,
+    ): DataResult<Unit> = error("these tests do not mark a deload")
+
         override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
             error("these tests do not estimate a one-rep max")
 

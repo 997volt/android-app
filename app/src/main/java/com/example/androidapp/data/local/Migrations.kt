@@ -543,6 +543,21 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
     }
 }
 
+/**
+ * v22 -> v23: the weeks a program was deliberately backed off (ROADMAP P3.10).
+ *
+ * One new table, and what it does *not* do is the point: a program with no deload gets no rows,
+ * which is exactly the state it was in — every week counted, which is what an unmarked week means.
+ * The SQL is Room's own, copied from the exported schema rather than hand-written as an equivalent.
+ */
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(CREATE_PROGRAM_DELOADS)
+        db.execSQL(CREATE_PROGRAM_DELOADS_PROGRAM_INDEX)
+        db.execSQL(CREATE_PROGRAM_DELOADS_WEEK_INDEX)
+    }
+}
+
 private const val CREATE_PROGRAMS =
     "CREATE TABLE IF NOT EXISTS `programs` (" +
         "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, " +
@@ -615,6 +630,22 @@ private const val CREATE_PROGRAM_SLOT_SETS_EXERCISE_INDEX =
     "CREATE INDEX IF NOT EXISTS `index_program_slot_sets_slotExerciseId` " +
         "ON `program_slot_sets` (`slotExerciseId`)"
 
+private const val CREATE_PROGRAM_DELOADS =
+    "CREATE TABLE IF NOT EXISTS `program_deloads` (" +
+        "`id` TEXT NOT NULL, `programId` TEXT NOT NULL, `weekStart` INTEGER NOT NULL, " +
+        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, " +
+        "PRIMARY KEY(`id`), " +
+        "FOREIGN KEY(`programId`) REFERENCES `programs`(`id`) " +
+        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+
+private const val CREATE_PROGRAM_DELOADS_PROGRAM_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_deloads_programId` " +
+        "ON `program_deloads` (`programId`)"
+
+private const val CREATE_PROGRAM_DELOADS_WEEK_INDEX =
+    "CREATE INDEX IF NOT EXISTS `index_program_deloads_weekStart` " +
+        "ON `program_deloads` (`weekStart`)"
+
 /** Applied in order by the database builder. */
 val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_2_3,
@@ -637,4 +668,5 @@ val ALL_MIGRATIONS = arrayOf(    MIGRATION_1_2,
     MIGRATION_19_20,
     MIGRATION_20_21,
     MIGRATION_21_22,
+    MIGRATION_22_23,
 )

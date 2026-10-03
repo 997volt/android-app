@@ -17,28 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Six rows, planned together: they are everything the last two rounds deferred, and each one
+Five rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
-
-**P3.10 — Deloads, authored.**
-
-A deload is a week the lifter marks, never one the app computes — and marking it settles P3.5's
-open question by taking the week out of the ratio instead of guessing whether it counts.
-
-- **An event keyed by program and week**, the shape of a skip (the Monday), never a dated plan
-  (N16) and never a calculated week.
-- **Exempt from the ratio, not from the calendar**: a deload week's scheduled occurrences are
-  neither done, skipped nor missed, so a deliberate back-off cannot read as a failure, while
-  its sessions still mark their days. The missed-day question still asks in that week — the
-  week is exempt from judgement, not from the schedule.
-- **Nothing is scaled for you.** What a deload week prescribes is what the slot prescribes
-  (P3.8); the app does not reduce loads in silence, and the offer stays an offer (N22).
-- **Marked and unmarked on the adherence calendar**, for a week it can show. A week that has
-  not started cannot be marked, because the app has no forward view to hang it on (N16 rejected
-  the dated plan) and a deload is decided by how the block is going.
 
 **P3.11 — Substitute a workout for one occurrence.**
 

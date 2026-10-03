@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.data.local.ExerciseEntity
+import com.example.androidapp.data.local.ProgramDeloadEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramSlotExerciseEntity
@@ -419,6 +420,18 @@ class BackupRoundTripTest {
                 deletedAt = null,
             ),
         )
+        // A deload week (ROADMAP P3.10): authored setup the app cannot recompute, so losing it
+        // would restore every backed-off week as a miss.
+        database.programDeloadDao().insertDeload(
+            ProgramDeloadEntity(
+                id = "deload1",
+                programId = "p1",
+                weekStart = 20_305L,
+                createdAt = 1L,
+                updatedAt = 1L,
+                deletedAt = null,
+            ),
+        )
         database.programPrescriptionDao().insertSlotExercise(
             ProgramSlotExerciseEntity(
                 id = "pse1",
@@ -463,6 +476,10 @@ class BackupRoundTripTest {
         assertEquals(18, set.targetRpeHalves)
         assertEquals("the one target a template's planned set cannot carry", 85, set.targetPercentOf1Rm)
         assertEquals("grind", set.note)
+
+        val deload = database.programDeloadDao().observeDeloads().first().single()
+        assertEquals("the deloaded week survives", 20_305L, deload.weekStart)
+        assertEquals("p1", deload.programId)
     }
 
     @Test

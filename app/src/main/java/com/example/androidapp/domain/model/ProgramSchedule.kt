@@ -43,6 +43,14 @@ data class ProgramSession(
 /** A recorded skip: this slot's occurrence in this week was consciously passed over. */
 data class RecordedSkip(val slotId: String, val weekStart: LocalDate)
 
+/**
+ * A week a program marked as a deload (ROADMAP P3.10).
+ *
+ * Keyed by program and week, the shape of [RecordedSkip]: marking a week is a statement about how
+ * the block is going, so it is an event rather than a flag that would need clearing.
+ */
+data class RecordedDeload(val programId: String, val weekStart: LocalDate)
+
 /** A missed occurrence the app asks about, carrying everything the prompt shows. */
 data class PendingOccurrence(
     val slotId: String,
@@ -192,11 +200,19 @@ object ProgramSchedule {
      * occurrence counts whenever it fell — including early, which is how P3.3 matches it.
      *
      * A slot with no weekday is never scored: it has no day to miss and is order-only.
+     *
+     * **A deload week is exempt from the ratio, not from the calendar** (P3.10): its scheduled
+     * occurrences are neither done, skipped nor missed, so a deliberate back-off cannot read as a
+     * failure — while the day is still drawn as scheduled, and a session performed in it still
+     * marks its trained day. The missed-day question is unaffected: the week is exempt from
+     * judgement, not from the schedule.
      */
     fun monthAdherence(
         slots: List<ProgramSlot>,
         sessions: List<AdherenceSession>,
         skips: List<RecordedSkip>,
+        /** The deloaded weeks, or none — the common case, and the reason this one defaults (P3.10). */
+        deloads: List<RecordedDeload> = emptyList(),
         month: YearMonth,
         today: LocalDate,
     ): MonthAdherence {
@@ -221,6 +237,7 @@ object ProgramSchedule {
         }
         val resolved = resolvedOccurrences(slots, finished)
         val skipped = skips.toSet()
+        val deloaded = deloads.toSet()
 
         val scheduledDays = mutableSetOf<LocalDate>()
         var done = 0
@@ -233,6 +250,10 @@ object ProgramSchedule {
                 val date = occurrenceDate(week, weekday)
                 if (date !in first..last) return@forEach
                 scheduledDays += date
+
+                // Exempt from judgement, not from the calendar: the day is drawn as scheduled and a
+                // session in it still marks a trained day, but nothing here is scored (P3.10).
+                if (RecordedDeload(slot.programId, week) in deloaded) return@forEach
 
                 when {
                     SlotOccurrence(slot.id, week, date) in resolved -> done++

@@ -71,6 +71,14 @@ data class BackupFile(
     val programSlotExercises: List<ProgramSlotExerciseDto> = emptyList(),
     val programSlotSets: List<ProgramSlotSetDto> = emptyList(),
     /**
+     * The weeks a program was deliberately backed off (ROADMAP P3.10).
+     *
+     * Authored setup rather than something the app can recompute: without these rows a restored
+     * block cannot tell a deload week from a missed one, and every backed-off week would read as a
+     * failure that never happened.
+     */
+    val programDeloads: List<ProgramDeloadDto> = emptyList(),
+    /**
      * Body measurements (ROADMAP N32).
      *
      * Defaulted, like every added collection — and it must be here in the same change as the table,
@@ -314,6 +322,18 @@ data class ProgramSkipDto(
     val id: String,
     val slotId: String,
     /** Monday of the week, as `LocalDate.toEpochDay()`. */
+    val weekStart: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)
+
+/** A week a program was deliberately backed off (ROADMAP P3.10). */
+@Serializable
+data class ProgramDeloadDto(
+    val id: String,
+    val programId: String,
+    /** Monday of the deloaded week, as `LocalDate.toEpochDay()`. */
     val weekStart: Long,
     val createdAt: Long,
     val updatedAt: Long,

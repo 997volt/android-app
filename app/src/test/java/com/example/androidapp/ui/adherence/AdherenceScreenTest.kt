@@ -8,9 +8,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.theme.AndroidAppTheme
 import com.google.common.truth.Truth.assertThat
@@ -46,6 +48,7 @@ class AdherenceScreenTest {
         onPreviousMonth: () -> Unit = {},
         onNextMonth: () -> Unit = {},
         onBack: () -> Unit = {},
+        onToggleDeload: (String, LocalDate, Boolean) -> Unit = { _, _, _ -> },
     ) {
         composeTestRule.setContent {
             AndroidAppTheme {
@@ -54,6 +57,7 @@ class AdherenceScreenTest {
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
                     onBack = onBack,
+                    onToggleDeload = onToggleDeload,
                 )
             }
         }
@@ -205,5 +209,56 @@ class AdherenceScreenTest {
         composeTestRule.onNodeWithText("Couldn’t save that. Your last change may not be stored.")
             .assertExists()
         composeTestRule.onNodeWithTag(TestTags.Adherence.dayCell("2026-10-01")).assertDoesNotExist()
+    }
+
+    @Test
+    fun aStartedWeek_canBeMarkedAsADeload_forItsProgram() {
+        // ROADMAP P3.10: an event keyed by program and week, marked where the ratio is read.
+        val week = LocalDate.of(2026, 10, 5)
+        var toggled: Triple<String, LocalDate, Boolean>? = null
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                programs = listOf(WorkoutProgram(id = "p1", name = "Upper/Lower", isActive = true)),
+                markableWeeks = listOf(week),
+            ),
+            onToggleDeload = { programId, weekStart, marked ->
+                toggled = Triple(programId, weekStart, marked)
+            },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.DELOAD_TITLE).assertExists()
+        composeTestRule.onNodeWithText("Week of Oct 5, 2026").assertExists()
+        // The section is below the calendar in a scrolling column, so the click scrolls first.
+        composeTestRule.onNodeWithTag(TestTags.Adherence.deloadWeek("2026-10-05", "p1"))
+            .performScrollTo()
+            .performClick()
+
+        assertThat(toggled).isEqualTo(Triple("p1", week, true))
+    }
+
+    @Test
+    fun aWeekAlreadyMarked_isToggledOff() {
+        val week = LocalDate.of(2026, 10, 5)
+        var marked: Boolean? = null
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                programs = listOf(WorkoutProgram(id = "p1", name = "Upper/Lower", isActive = true)),
+                deloadWeeks = mapOf("p1" to setOf(week)),
+                markableWeeks = listOf(week),
+            ),
+            onToggleDeload = { _, _, isMarked -> marked = isMarked },
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.deloadWeek("2026-10-05", "p1"))
+            .performScrollTo()
+            .performClick()
+
+        assertThat(marked).isFalse()
     }
 }

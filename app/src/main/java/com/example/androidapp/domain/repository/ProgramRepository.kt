@@ -69,6 +69,16 @@ interface ProgramRepository {
     suspend fun moveProgram(programId: String, delta: Int): DataResult<Unit>
 
     /**
+     * Marks or unmarks a week as a deload for one program (ROADMAP P3.10).
+     *
+     * Keyed by program and week, the shape of a skip. Idempotent either way — marking a marked week
+     * changes nothing, unmarking is a soft delete — and **only a week that has started is offered**
+     * by the screen, because the app has no forward view and a deload is decided by how the block is
+     * going.
+     */
+    suspend fun setDeloadWeek(programId: String, weekStart: LocalDate, marked: Boolean): DataResult<Unit>
+
+    /**
      * Appends a slot for [templateId], on [weekday] or order-only when it is null.
      *
      * The template must be a live one: a slot pointing at nothing would be invisible on

@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,12 +43,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
 import com.example.androidapp.ui.components.dataErrorMessage
 import com.example.androidapp.ui.components.shortLabel
 import com.example.androidapp.ui.history.HistoryFormat
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import kotlin.math.roundToInt
@@ -62,13 +67,15 @@ fun AdherenceRoute(
         state = state,
         onPreviousMonth = viewModel::onPreviousMonth,
         onNextMonth = viewModel::onNextMonth,
+        onToggleDeload = viewModel::onToggleDeload,
         onBack = onBack,
         modifier = modifier,
     )
 }
 
 /**
- * How often the scheduled days happened, and a month of days trained (ROADMAP P3.5).
+ * How often the scheduled days happened, a month of days trained, and the weeks marked as a deload
+ * (ROADMAP P3.5, P3.10).
  *
  * A pushed destination rather than a sixth tab (N34): it answers "how is everything going"
  * about one thing, and Statistics is the tab that asks that question.
@@ -81,6 +88,7 @@ fun AdherenceScreen(
     onNextMonth: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onToggleDeload: (String, LocalDate, Boolean) -> Unit = { _, _, _ -> },
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -121,7 +129,7 @@ fun AdherenceScreen(
 
                 state.error != null -> CenteredMessage(text = dataErrorMessage(state.error))
 
-                else -> AdherenceBody(state = state)
+                else -> AdherenceBody(state = state, onToggleDeload = onToggleDeload)
             }
         }
     }
@@ -175,7 +183,10 @@ private fun MonthHeader(
  * elapsed this month — and they are worded apart because only one of them is the user's to fix.
  */
 @Composable
-private fun AdherenceBody(state: AdherenceUiState) {
+private fun AdherenceBody(
+    state: AdherenceUiState,
+    onToggleDeload: (String, LocalDate, Boolean) -> Unit,
+) {
     val ratio = state.adherence.ratio
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (ratio == null) {
@@ -195,6 +206,79 @@ private fun AdherenceBody(state: AdherenceUiState) {
         }
 
         Calendar(month = state.month, adherence = state.adherence)
+
+        DeloadWeeks(
+            programs = state.programs,
+            weeks = state.markableWeeks,
+            deloadWeeks = state.deloadWeeks,
+            onToggle = onToggleDeload,
+        )
+    }
+}
+
+/**
+ * The started weeks of the shown month, each markable as a deload (ROADMAP P3.10).
+ *
+ * One chip per active program, labelled by name when there is more than one: a deload is keyed by
+ * program and week, so with two programs followed the toggle has to say whose week it is. A week
+ * that has not started is not offered at all, because the app has no forward view to hang it on.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DeloadWeeks(
+    programs: List<WorkoutProgram>,
+    weeks: List<LocalDate>,
+    deloadWeeks: Map<String, Set<LocalDate>>,
+    onToggle: (String, LocalDate, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (programs.isEmpty() || weeks.isEmpty()) return
+
+    val zone = ZoneId.systemDefault()
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.adherence_deload_title),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.testTag(TestTags.Adherence.DELOAD_TITLE),
+        )
+        Text(
+            text = stringResource(R.string.adherence_deload_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        weeks.forEach { week ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(
+                        R.string.adherence_deload_week,
+                        HistoryFormat.date(week.atStartOfDay(zone).toInstant(), zone),
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    programs.forEach { program ->
+                        val marked = week in deloadWeeks[program.id].orEmpty()
+                        FilterChip(
+                            selected = marked,
+                            onClick = { onToggle(program.id, week, !marked) },
+                            label = {
+                                Text(
+                                    if (programs.size == 1) {
+                                        stringResource(R.string.adherence_deload_mark)
+                                    } else {
+                                        program.name
+                                    },
+                                )
+                            },
+                            modifier = Modifier.testTag(
+                                TestTags.Adherence.deloadWeek(week.toString(), program.id),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

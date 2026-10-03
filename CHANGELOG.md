@@ -50,6 +50,15 @@ repeated here.
   because the cursor, not a day, attributes an order-only session to its slot. Home shows a
   **next up** row for a program with nothing scheduled today, and the editor marks the slot the run
   is at. Rotation is by what was done, never by load.
+- **A deload is a week the lifter marks, schema v23** (P3.10). It is an event keyed by **program and
+  week** — the shape of a skip — never a dated plan and never a week the app computes, because a
+  deload is decided by how the block is going. **Exempt from the ratio, not from the calendar**: a
+  deload week's scheduled occurrences count as neither done, skipped nor missed, so a deliberate
+  back-off cannot read as a failure, while its sessions still mark their days and the missed-day
+  question still asks. Nothing is scaled for you: what a deload week prescribes is what the slot
+  prescribes (P3.8). Weeks are marked and unmarked on the Adherence screen, one chip per active
+  program, and only a week that has started can be marked — the app has no forward view to hang a
+  future week on. The new rows join the backup codec, guarded by a round trip.
 
 ## [1.9] — 2026-10-03 (versionCode 10)
 

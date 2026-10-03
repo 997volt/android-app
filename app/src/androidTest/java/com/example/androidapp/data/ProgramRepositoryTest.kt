@@ -599,6 +599,32 @@ class ProgramRepositoryTest {
         assertEquals(slots[1].id, repository.observeProgramRun(program).first()?.slot?.id)
     }
 
+    @Test
+    fun aDeloadWeek_isNotScored_untilItIsUnmarked() = runTest {
+        // ROADMAP P3.10: a deliberate back-off must not read as a failure, and unmarking restores
+        // the ordinary reading.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+
+        repository.setDeloadWeek(program, monday, marked = true)
+        // Idempotent: marking a marked week must not double-record.
+        repository.setDeloadWeek(program, monday, marked = true)
+        assertEquals(1, database.programDeloadDao().countDeload(program, monday.toEpochDay()))
+
+        val marked = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        assertEquals(0, marked!!.adherence.scored)
+        assertEquals(setOf(monday), marked.deloadWeeks[program])
+        assertTrue(marked.programs.any { it.id == program })
+
+        repository.setDeloadWeek(program, monday, marked = false)
+
+        val unmarked = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        assertEquals(1, unmarked!!.adherence.missed)
+        assertTrue(unmarked.deloadWeeks[program].isNullOrEmpty())
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

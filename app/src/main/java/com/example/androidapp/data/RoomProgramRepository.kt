@@ -2,6 +2,8 @@ package com.example.androidapp.data
 
 import androidx.room.withTransaction
 import com.example.androidapp.data.local.ProgramDao
+import com.example.androidapp.data.local.ProgramDeloadDao
+import com.example.androidapp.data.local.ProgramDeloadEntity
 import com.example.androidapp.data.local.ProgramPrescriptionDao
 import com.example.androidapp.data.local.ProgramRunDao
 import com.example.androidapp.data.local.ProgramSkipEntity
@@ -28,6 +30,7 @@ import com.example.androidapp.domain.model.PreviousPerformance
 import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
+import com.example.androidapp.domain.model.RecordedDeload
 import com.example.androidapp.domain.model.RecordedSkip
 import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SlotPrescription
@@ -72,6 +75,8 @@ class RoomProgramRepository @Inject constructor(
     private val prescriptionDao: ProgramPrescriptionDao = database.programPrescriptionDao()
 
     private val runDao: ProgramRunDao = database.programRunDao()
+
+    private val deloadDao: ProgramDeloadDao = database.programDeloadDao()
 
     override fun observePrograms(): Flow<List<WorkoutProgram>> =
         dao.observePrograms().map { rows -> rows.map { it.toDomain() } }
@@ -479,6 +484,11 @@ class RoomProgramRepository @Inject constructor(
         val sessions = dao.finishedSessionsBetween(from, to).map { it.toAdherenceSession(zone) }
 
         val active = dao.findActivePrograms()
+        // Read once, whether or not a program is active: the trained days are still drawn, and a
+        // deload week's days are still scheduled (P3.10).
+        val deloads = deloadDao.findDeloadsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay())
+            .map { RecordedDeload(programId = it.programId, weekStart = LocalDate.ofEpochDay(it.weekStart)) }
+
         if (active.isEmpty()) {
             // A trained day needs no schedule, so the calendar is still drawn; there is simply
             // nothing to score it against.
@@ -488,6 +498,7 @@ class RoomProgramRepository @Inject constructor(
                     slots = emptyList(),
                     sessions = sessions,
                     skips = emptyList(),
+                    deloads = emptyList(),
                     month = month,
                     today = today,
                 ),
@@ -504,11 +515,47 @@ class RoomProgramRepository @Inject constructor(
         val skips = dao.findSkipsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay()).map {
             RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
         }
+        val activeIds = active.map { it.id }.toSet()
 
         AdherenceReport(
             hasActiveProgram = true,
-            adherence = ProgramSchedule.monthAdherence(slots, sessions, skips, month, today),
+            adherence = ProgramSchedule.monthAdherence(slots, sessions, skips, deloads, month, today),
+            programs = active.map { it.toDomain() },
+            // Only the active programs' weeks: a program no longer followed has nothing to toggle.
+            deloadWeeks = deloads
+                .filter { it.programId in activeIds }
+                .groupBy({ it.programId }, { it.weekStart })
+                .mapValues { (_, weeks) -> weeks.toSet() },
         )
+    }
+
+    override suspend fun setDeloadWeek(
+        programId: String,
+        weekStart: LocalDate,
+        marked: Boolean,
+    ): DataResult<Unit> = dataResultOf {
+        val epochDay = weekStart.toEpochDay()
+        val now = timeSource.nowEpochMillis()
+        if (marked) {
+            if (dao.findProgram(programId) == null) throw NotFoundException("program $programId")
+            // Idempotent: marking a marked week is not an error and must not double-record.
+            if (deloadDao.countDeload(programId, epochDay) == 0) {
+                deloadDao.insertDeload(
+                    ProgramDeloadEntity(
+                        id = UUID.randomUUID().toString(),
+                        programId = programId,
+                        weekStart = epochDay,
+                        createdAt = now,
+                        updatedAt = now,
+                        deletedAt = null,
+                    ),
+                )
+            }
+        } else {
+            // Unmarking an unmarked week is a no-op rather than a failure: the state asked for is
+            // the state it is in.
+            deloadDao.softDeleteDeload(programId, epochDay, now)
+        }
     }
 
     private companion object {

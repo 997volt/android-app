@@ -298,6 +298,14 @@ the rule; that one argues it.
   marks the place. **Rotation is by what was done, never by load**: choosing the next template from
   fatigue, soreness or accumulated load was rejected, because nothing the app records measures
   recovery and a rotation whose reason the lifter cannot see is a coach, not a log (N22's rule).
+- **A deload is a week the lifter marks, never one the app computes** (P3.10). It is an event keyed
+  by program and week, the shape of a skip, so it records a decision about how the block is going
+  rather than being a dated plan (N16) or a derived week. **Exempt from the ratio, not from the
+  calendar**: a deload week's scheduled occurrences are neither done, skipped nor missed, so a
+  deliberate back-off cannot read as a failure, while its sessions still mark their days and the
+  missed-day question still asks in that week. **Nothing is scaled for you** — what a deload week
+  prescribes is what the slot prescribes (P3.8) — and a week that has not started cannot be marked,
+  because the app has no forward view and a deload is decided by how the block is going.
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's

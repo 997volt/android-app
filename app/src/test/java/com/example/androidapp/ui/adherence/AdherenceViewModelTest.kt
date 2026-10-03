@@ -89,6 +89,39 @@ class AdherenceViewModelTest {
     }
 
     @Test
+    fun markableWeeks_areTheStartedWeeksOfTheShownMonth() = runTest(dispatcher) {
+        // ROADMAP P3.10: a week that has not started cannot be marked, because the app has no
+        // forward view and a deload is decided by how the block is going.
+        val viewModel = viewModel(FakeProgramRepository())
+        observe(viewModel)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.markableWeeks).containsExactly(
+            LocalDate.of(2026, 9, 28),
+            LocalDate.of(2026, 10, 5),
+            LocalDate.of(2026, 10, 12),
+            LocalDate.of(2026, 10, 19),
+        ).inOrder()
+    }
+
+    @Test
+    fun markingADeload_writesIt_andReadsTheShownMonthAgain() = runTest(dispatcher) {
+        val repository = FakeProgramRepository()
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+        advanceUntilIdle()
+        val readsBefore = repository.asked.size
+
+        viewModel.onToggleDeload("p1", LocalDate.of(2026, 10, 5), marked = true)
+        advanceUntilIdle()
+
+        assertThat(repository.deloads)
+            .containsExactly(Triple("p1", LocalDate.of(2026, 10, 5), true))
+        // The ratio and the toggle have to agree, and one is derived from the other's rows.
+        assertThat(repository.asked.size).isEqualTo(readsBefore + 1)
+    }
+
+    @Test
     fun theCalendar_neverGoesPastTheCurrentMonth() = runTest(dispatcher) {
         // A month that has not happened has nothing to score, so there is nothing there to see.
         val repository = FakeProgramRepository()
@@ -217,6 +250,18 @@ class AdherenceViewModelTest {
             flowOf(emptyList())
 
         override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
+
+    /** Every deload write, as the program, week and state it claimed (ROADMAP P3.10). */
+    val deloads = mutableListOf<Triple<String, LocalDate, Boolean>>()
+
+    override suspend fun setDeloadWeek(
+        programId: String,
+        weekStart: java.time.LocalDate,
+        marked: Boolean,
+    ): DataResult<Unit> {
+        deloads += Triple(programId, weekStart, marked)
+        return DataResult.Success(Unit)
+    }
 
         override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
             error("these tests do not estimate a one-rep max")

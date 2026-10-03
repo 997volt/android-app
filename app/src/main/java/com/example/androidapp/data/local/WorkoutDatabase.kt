@@ -29,8 +29,9 @@ import androidx.room.TypeConverters
         ProgramSkipEntity::class,
         ProgramSlotExerciseEntity::class,
         ProgramSlotSetEntity::class,
+        ProgramDeloadEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -57,6 +58,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
 
     /** The sessions and skips a program's run is derived from (ROADMAP P3.9). */
     abstract fun programRunDao(): ProgramRunDao
+
+    /** The weeks a program was deliberately backed off (ROADMAP P3.10). */
+    abstract fun programDeloadDao(): ProgramDeloadDao
 
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao

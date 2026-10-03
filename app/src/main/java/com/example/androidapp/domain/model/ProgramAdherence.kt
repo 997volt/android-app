@@ -68,4 +68,17 @@ data class MonthAdherence(
 data class AdherenceReport(
     val hasActiveProgram: Boolean,
     val adherence: MonthAdherence,
+    /**
+     * The active programs, in their authored order (ROADMAP P3.12).
+     *
+     * The screen needs them because a deload is keyed by program and week (P3.10): with more than
+     * one program followed, the toggle has to say which program's week it is marking.
+     */
+    val programs: List<WorkoutProgram> = emptyList(),
+    /**
+     * Which weeks of the window each program marked as a deload, keyed by program id (P3.10).
+     *
+     * Only weeks the window touches, so a toggle can be drawn as on or off without a second read.
+     */
+    val deloadWeeks: Map<String, Set<LocalDate>> = emptyMap(),
 )

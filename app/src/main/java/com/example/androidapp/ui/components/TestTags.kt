@@ -413,6 +413,11 @@ object TestTags {
         /** Shown in place of the ratio when there is no elapsed schedule to score. */
         const val NO_RATIO = "adherence_no_ratio"
 
+        /** The weeks that can be marked as a deload (ROADMAP P3.10). */
+        const val DELOAD_TITLE = "adherence_deload_title"
+
         fun dayCell(date: String) = "adherence_day_$date"
+
+        fun deloadWeek(date: String, programId: String) = "adherence_deload_${date}_$programId"
     }
 }

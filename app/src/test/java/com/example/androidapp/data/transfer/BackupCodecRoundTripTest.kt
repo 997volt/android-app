@@ -6,6 +6,7 @@ import com.example.androidapp.domain.model.Equipment
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.data.local.ExerciseEntity
 import com.example.androidapp.data.local.MeasurementEntity
+import com.example.androidapp.data.local.ProgramDeloadEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
@@ -260,6 +261,22 @@ class BackupCodecRoundTripTest {
             targetRpeHalves = 19,
             targetPercentOf1Rm = 85,
             note = "leave one in the tank",
+            createdAt = 1_600_000_000_000L,
+            updatedAt = 1_600_000_000_001L,
+            deletedAt = null,
+        )
+
+        assertThat(entity.toDto().toEntity()).isEqualTo(entity)
+    }
+
+    @Test
+    fun aProgramDeload_survivesTheCodec() {
+        // The row P3.10 added: a deload week is authored setup the app cannot recompute, so a codec
+        // that forgot it would restore every backed-off week as a miss.
+        val entity = ProgramDeloadEntity(
+            id = "deload1",
+            programId = "p1",
+            weekStart = 20_345L,
             createdAt = 1_600_000_000_000L,
             updatedAt = 1_600_000_000_001L,
             deletedAt = null,

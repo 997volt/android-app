@@ -996,4 +996,32 @@ class WorkoutDatabaseMigrationTest {
 
         migrated.close()
     }
+
+    @Test
+    fun migration22To23_addsDeloads_withoutInventingOne() {
+        // ROADMAP P3.10. A program with no deload gets no rows, which is exactly the state it was
+        // in: every week counted, which is what an unmarked week means.
+        helper.createDatabase(TEST_DB, 22).apply {
+            execSQL(
+                """
+                INSERT INTO programs (id, name, isActive, position, createdAt, updatedAt, deletedAt)
+                VALUES ('p1', 'Upper/Lower', 1, 1, 100, 100, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 23, true, MIGRATION_22_23)
+
+        migrated.query("SELECT id FROM programs").use { cursor ->
+            assertTrue("the program already there survived", cursor.moveToFirst())
+            assertEquals("p1", cursor.getString(0))
+        }
+        migrated.query("SELECT COUNT(*) FROM program_deloads").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("no deload is invented by the upgrade", 0, cursor.getInt(0))
+        }
+
+        migrated.close()
+    }
 }

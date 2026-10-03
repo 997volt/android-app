@@ -1,5 +1,6 @@
 package com.example.androidapp.data.transfer
 
+import com.example.androidapp.data.local.ProgramDeloadEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
@@ -126,6 +127,24 @@ internal fun ProgramSlotSetDto.toEntity() = ProgramSlotSetEntity(
     targetRpeHalves = targetRpeHalves,
     targetPercentOf1Rm = targetPercentOf1Rm,
     note = note,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramDeloadEntity.toDto() = ProgramDeloadDto(
+    id = id,
+    programId = programId,
+    weekStart = weekStart,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deletedAt = deletedAt,
+)
+
+internal fun ProgramDeloadDto.toEntity() = ProgramDeloadEntity(
+    id = id,
+    programId = programId,
+    weekStart = weekStart,
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,

@@ -58,6 +58,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = listOf(session("t-tue", monday.plusDays(1))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -76,6 +77,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = emptyList(),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -91,6 +93,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = emptyList(),
             skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday)),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -106,6 +109,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = emptyList(),
             skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday.minusWeeks(1))),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -122,6 +126,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = listOf(session("t-tue", monday.plusDays(1))),
             skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday)),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -141,6 +146,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("fri", DayOfWeek.FRIDAY)),
             sessions = emptyList(),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = firstOfOctober,
         )
@@ -161,6 +167,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("thu", DayOfWeek.THURSDAY)),
             sessions = emptyList(),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = firstOfOctober,
         )
@@ -180,6 +187,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("thu", DayOfWeek.THURSDAY)),
             sessions = listOf(session("t-thu", firstOfOctober)),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = firstOfOctober,
         )
@@ -201,6 +209,7 @@ class ProgramAdherenceTest {
             slots = slots,
             sessions = listOf(session("t", monday.plusDays(1))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -217,6 +226,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("any", weekday = null)),
             sessions = emptyList(),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -234,6 +244,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = listOf(session(templateId = null, date = monday.plusDays(1))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -249,6 +260,7 @@ class ProgramAdherenceTest {
             slots = emptyList(),
             sessions = listOf(session(templateId = null, date = LocalDate.of(2026, 10, 7))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -268,6 +280,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = listOf(AdherenceSession("tokyo", "t-tue", lateMondayUtc, tokyo)),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -288,6 +301,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("sun", DayOfWeek.SUNDAY)),
             sessions = listOf(session("t-sun", LocalDate.of(2026, 10, 30))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = november,
             today = LocalDate.of(2026, 11, 15),
         )
@@ -304,6 +318,7 @@ class ProgramAdherenceTest {
             slots = emptyList(),
             sessions = listOf(session(templateId = null, date = LocalDate.of(2026, 9, 30))),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -329,6 +344,7 @@ class ProgramAdherenceTest {
                 session("t", monday.plusDays(8)),
             ),
             skips = listOf(RecordedSkip(slotId = "fri", weekStart = monday)),
+            deloads = emptyList(),
             month = october,
             today = midMonth,
         )
@@ -349,6 +365,7 @@ class ProgramAdherenceTest {
             slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
             sessions = emptyList(),
             skips = emptyList(),
+            deloads = emptyList(),
             month = nextMonth,
             today = LocalDate.of(2026, 10, 15),
         )
@@ -369,6 +386,7 @@ class ProgramAdherenceTest {
                 session("t", monday.plusDays(2)),
             ),
             skips = emptyList(),
+            deloads = emptyList(),
             month = october,
             today = today,
         )
@@ -377,6 +395,39 @@ class ProgramAdherenceTest {
         assertThat(adherence.missed).isEqualTo(0)
         assertThat(adherence.trainedDays)
             .containsExactly(monday.plusDays(1), monday.plusDays(2))
+    }
+
+    @Test
+    fun aDeloadWeek_isNeitherDoneSkippedNorMissed_butItsDaysAreStillDrawn() {
+        // ROADMAP P3.10: exempt from the ratio, not from the calendar.
+        val adherence = ProgramSchedule.monthAdherence(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = listOf(session("t-tue", monday.plusDays(1))),
+            skips = emptyList(),
+            deloads = listOf(RecordedDeload(programId = "p1", weekStart = monday)),
+            month = october,
+            today = today,
+        )
+
+        assertThat(adherence.scored).isEqualTo(0)
+        // The day is still scheduled, and the session in it still marks the day trained.
+        assertThat(adherence.scheduledDays).contains(monday.plusDays(1))
+        assertThat(adherence.trainedDays).contains(monday.plusDays(1))
+    }
+
+    @Test
+    fun aDeloadOfAnotherProgram_doesNotExemptThisOne() {
+        // The event is keyed by program as well as week: one block backing off is not another's.
+        val adherence = ProgramSchedule.monthAdherence(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            deloads = listOf(RecordedDeload(programId = "other", weekStart = monday)),
+            month = october,
+            today = today,
+        )
+
+        assertThat(adherence.missed).isEqualTo(1)
     }
 
     private companion object {

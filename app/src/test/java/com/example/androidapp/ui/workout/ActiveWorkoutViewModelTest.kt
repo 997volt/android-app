@@ -2010,6 +2010,12 @@ private class FakeProgramRepository : ProgramRepository {
 
     override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
+    override suspend fun setDeloadWeek(
+        programId: String,
+        weekStart: java.time.LocalDate,
+        marked: Boolean,
+    ): DataResult<Unit> = error("these tests do not mark a deload")
+
     /** N17's estimate a slot's percentage resolves against (ROADMAP P3.8). */
     var oneRepMax: Long? = null
 
