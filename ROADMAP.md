@@ -18,34 +18,173 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Nothing. A candidate graduates here from *Later* — gaining an id and a spelled-out decision —
-when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
-
-## Later (still self-contained)
-
-Post-MVP on the same local-only premise, grouped by theme and ordered by value inside each.
-This is where candidates live: one graduates to *Next* — gaining an id and a spelled-out
-decision — when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
+Nine rows, planned together: they are everything the last two rounds deferred, and each one
+carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
+not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
 
-**The rest of programs — what v1 deliberately leaves out.** P3.3 shipped as the ordered
-schedule, and the scope it does not build is the future of the same feature, deferred rather
-than rejected: no deloads (a deload will be *authored* when it arrives, not calculated), no
-auto-progression (a program decides *which* template; the lifter decides the numbers — this
-depends on **N33**), no intensity modifiers, no percentage-of-1RM programming, no automatic
-anything, no dated instances (N16 rejected the entity a calendar of planned sessions would
-reintroduce), one active program only (any others fall back to the template pins), a
-weekday-less slot is never "missed" because it has no day to miss and is order-only, and no
-per-slot template substitution mid-cycle beyond editing the program, nor load-based rotation.
+**P3.8 — A slot prescribes its own intensity.**
 
-**Adherence beyond a ratio and a grid — what P3.5 deliberately leaves out.** P3.5 shipped the
-month's ratio and the days trained, and the scope it does not build is the future of the same
-view, deferred rather than rejected: no streaks and no per-lift or per-template breakdown (a
-ratio and a grid are the whole view), no editing or back-filling a skip (a skip is a decision
-taken at the moment of starting, and P3.3's prompt is its only writer), and no rolling
-multi-month chart, because the month is the window. Exempting a deload week waits on deloads
-being authored at all, and none of this arrives without a reason to widen the window.
+A program that names only templates is a schedule: the numbers still come from the plan, and
+two slots pointing at one template cannot train it differently. A slot gains a prescription of
+its own — per exercise, sets × reps at a load, at a **percentage of the estimated 1RM**, or up
+to an **RPE** — and an empty one leaves the template's targets standing (N14).
+
+- **A target, not a claim** (N14): nothing verifies it, every part is nullable, and a set that
+  differs is expected. The modifier vocabulary is the one already there — set roles, the RPE
+  target, rest and cue — and a prescription with a floor and no ceiling is the AMRAP a plan can
+  already write (`targetRepsMin`/`targetRepsMax`), not a second way to say it.
+- **A percentage is derived, never assumed**: the kilograms come from N17's Epley estimate, and
+  an exercise with nothing estimable — no working set at twelve reps or fewer — has no number
+  and says so rather than borrowing one.
+- **Progression stays offered, not applied** (N22, N33), and the offer is made per slot from
+  that slot's own history: a heavy Monday and a light Friday progress apart, which is the part
+  of "auto-progression" P3.3 deferred. Nothing is written unless the lifter accepts it.
+- **The slot id travels as a start argument, not as a stored fact.** Home already knows which
+  slot it is starting; passing it seeds the prescription, and the session still records only
+  the template (P3.3), so provenance and matching are unchanged.
+- **A schema change, done by the book** (N24): a slot's prescribed sets are rows of their own,
+  so the migration is numbered as it ships and the new rows join the backup codec in the same
+  change, with the round trip guarded.
+
+**P3.9 — The run, and what is next.**
+
+P3.3's order is real in the editor and nowhere else: home asks each slot for its weekday, so an
+order-only slot is never surfaced and "which one is next" has no answer on any screen.
+
+- **The order is a run and the app keeps the place**, derived from finished sessions rather
+  than a stored cursor: the next slot follows the last slot trained, so a program with no
+  weekdays still runs A → B → C and an edited program re-derives its place.
+- **The run advances when a slot is trained or consciously skipped**, not when its day passes:
+  training it moves on, a recorded skip moves on (P3.3), and a day simply missed leaves the run
+  where it is — which is what the missed-day question is for.
+- **Home shows it** as a *next up* row when no weekday slot is scheduled today, and the program
+  editor marks the slot the run is at.
+- **Rotation is by what was done, never by load.** Choosing the next template from fatigue,
+  soreness or accumulated load was rejected: nothing the app records measures recovery, and a
+  rotation whose reason the lifter cannot see is a coach, not a log (N22's rule).
+
+**P3.10 — Deloads, authored.**
+
+A deload is a week the lifter marks, never one the app computes — and marking it settles P3.5's
+open question by taking the week out of the ratio instead of guessing whether it counts.
+
+- **An event keyed by program and week**, the shape of a skip (the Monday), never a dated plan
+  (N16) and never a calculated week.
+- **Exempt from the ratio, not from the calendar**: a deload week's scheduled occurrences are
+  neither done, skipped nor missed, so a deliberate back-off cannot read as a failure, while
+  its sessions still mark their days. The missed-day question still asks in that week — the
+  week is exempt from judgement, not from the schedule.
+- **Nothing is scaled for you.** What a deload week prescribes is what the slot prescribes
+  (P3.8); the app does not reduce loads in silence, and the offer stays an offer (N22).
+- **Marked and unmarked on the adherence calendar**, for a week it can show. A week that has
+  not started cannot be marked, because the app has no forward view to hang it on (N16 rejected
+  the dated plan) and a deload is decided by how the block is going.
+
+**P3.11 — Substitute a workout for one occurrence.**
+
+An event keyed by slot and week, the shape of a skip: "the rack is taken today, do the dumbbell
+version" cannot be answered by editing the program, which changes every week that references
+the template (N16, inherited by P3.3).
+
+- **Chosen at the point of starting**, like the missed-day question: the slot's row in today's
+  plan offers *substitute*, and the pick is recorded for that slot and week before the session
+  opens. No other week changes, which is the whole point.
+- **A session started from the substitute settles the substituted occurrence** — P3.3's
+  matching by template and date extends to the substitute, or the app would keep asking about a
+  day already trained.
+- **Adherence scores it against the slot** (P3.14): the day was scheduled, and it was done,
+  whatever it was done with.
+
+**P3.12 — More than one active program.**
+
+One active program is P3.3's rule and stays the default; what it forbids is running two
+schedules at once — a lifting block and a conditioning one — which today means editing one or
+giving the other up.
+
+- **It amends P3.3 deliberately**: `programs.isActive` stops being exclusive, home's today plan
+  becomes the union of every active program's slots for the day, and the rule moves to
+  [DECISIONS.md](DECISIONS.md) when this ships.
+- **Everything downstream reads the union**: the missed-day question walks every active
+  program's pending occurrences, and adherence scores them together while the breakdown (P3.14)
+  can separate them.
+- **A program gains an explicit position**, so which one comes first is authored rather than
+  alphabetical or by creation time.
+- **A program stays the unit of editing, deloads and substitutions** (P3.10, P3.11): a skip is
+  still a slot and a week, so none of P3.3's events changes shape.
+
+**Adherence** — how often the plan happened
+
+**P3.13 — Correcting a skip.**
+
+P3.3's prompt is the only thing that ever records a skip, and *Continue* silences a whole week
+in one tap: a mis-tap is wrong forever, and a week the app never asked about reads as misses it
+did not earn (P3.5's stated limit).
+
+- **The lifter can add or remove a skip**, because a skip is their statement rather than the
+  app's: tapping a scheduled day opens what that day scheduled — one row per occurrence, with
+  its state — and each row can be marked skipped or unmarked, using the same `program_skips`
+  row.
+- **Adding looks backwards only**: a day passed over is behind you, so a future day cannot be
+  skipped (P3.3's rule), and the toggle appears only for today or earlier.
+- **Removing is always allowed** and soft-deletes the row, as every table here does, returning
+  the day to done, missed or pending by P3.5's same definitions.
+- **The app never removes one itself**, and *Continue* keeps writing a whole week (P3.3): a
+  correction is a second, explicit writer, not a second opinion.
+
+**P3.14 — Adherence, broken down.**
+
+A month's ratio says the program is at 70%; it does not say that the squat day is what keeps
+being skipped. This is the same aggregate, read per slot and per lift.
+
+- **Per slot first**: each of the active program's slots gets its own done / skipped / missed
+  over the window, so the parts sum to the whole by construction.
+- **Per lift second**: an exercise gets the occurrences of the slots whose template prescribes
+  it — which answers "am I skipping this lift, or this day" from the joins N14 already has.
+- **Counts, not a per-row percentage**: two of three is not 67% of anything worth printing.
+- **It needs an active program**, for the ratio's reason (P3.5): the pins carry no skip record.
+
+**P3.15 — A streak of scheduled work.**
+
+The one adherence number a lifter reads without thinking — and the obvious version of it is
+wrong here, because consecutive calendar days would break on every rest day, and an unscheduled
+day is rest by P3.5's rule.
+
+- **It counts scheduled occurrences, not days** — the ratio's unit (P3.5) — walking back from
+  the most recent elapsed occurrence while each was done.
+- **A skip and a miss both break it** (scheduled, and not done); an unscheduled day is
+  invisible to it; a deload week (P3.10) neither extends nor breaks it, because it is not
+  scored.
+- **No program, no streak**, for the ratio's reason: the pins cannot tell a rest from a miss.
+- **Shown as a number with its start**, never as a nudge: the app has no notifications (P4.7 is
+  parked) and a streak that pushes is a coach (N22's rule).
+
+**P3.16 — A window wider than a month.**
+
+A month is the right grid and too short a judgement: a block is four to six weeks, so a change
+that took one reads as one flat month after another.
+
+- **The grid keeps its month and the ratio gains a history**: a chart with one point per month,
+  so a point and the grid it came from cannot disagree, and P3.5's one-window rule holds.
+- **A month with nothing scored is a gap, not a zero** — N37's rule for a trend line, and
+  P3.5's rule for the ratio said again.
+- **It arrives when a month proves too short**, which is a block the lifter is actually running
+  and not a date: that is the trigger the deferred row named, and why this row is last.
+- **The window is not the statistics range** (N21): that setting is a chart's window on another
+  screen, and reusing it would make one number mean two things.
+
+## Later (still self-contained)
+
+Post-MVP on the same local-only premise, grouped by theme and ordered by value inside each: a
+candidate graduates to *Next* — gaining an id and a spelled-out decision — when it is picked
+up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
+
+Nothing is waiting here. Both paragraphs of deferred scope — P3.3's and P3.5's — are planned in
+*Next* above, and what they named that is not a feature is already a settled decision: no dated
+instances (N16), nothing automatic (N22's "the app suggests; it never writes"), a weekday-less
+slot that is never missed and is order-only, and one active program, which P3.12 amends. The
+next candidate comes from a parked row's trigger or a new reason, not from this queue.
 
 ## Parked — deliberately not planned
 
