@@ -48,6 +48,10 @@ with `EACCES`. Source the workspace toolchain first (a no-op without `.toolchain
 Use `tools/bin/adb`, not a system `adb`. Starting an emulator needs wider sandbox access
 (it opens `/dev/kvm`); everything after that runs normally.
 
+One write under `$HOME` fails harmlessly, even with the env sourced: the Kotlin daemon
+logs `AccessDeniedException` for `~/.local/share/kotlin/daemon`, and compilation falls back
+in-process. The build succeeds — do not chase it.
+
 ## Conventions that are easy to get wrong
 
 Match these — they are the existing ones. Reasons, scope and rejected alternatives are in
