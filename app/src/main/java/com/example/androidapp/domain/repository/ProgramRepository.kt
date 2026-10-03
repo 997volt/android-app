@@ -4,6 +4,7 @@ import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SetType
 import com.example.androidapp.domain.model.SlotPrescription
@@ -141,6 +142,15 @@ interface ProgramRepository {
      * rather than a borrowed one.
      */
     suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?>
+
+    /**
+     * Where one program's run is, or null when it has no slots (ROADMAP P3.9).
+     *
+     * Derived from finished sessions and recorded skips, never a stored cursor, so editing the
+     * program re-derives its place rather than leaving a pointer at a slot that is gone. It
+     * re-emits as either source changes.
+     */
+    fun observeProgramRun(programId: String): Flow<ProgramRun?>
 
     /**
      * The occurrences of every active program's current week that were missed (P3.3, unioned

@@ -4,6 +4,7 @@ import java.time.ZoneId
 import java.time.DayOfWeek
 import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.TemplateRepository
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -70,6 +71,20 @@ data class TodayPlan(
     val slotId: String? = null,
 )
 
+/**
+ * A program's run, offered as home's next-up row (ROADMAP P3.9).
+ *
+ * [plan] is what a start needs — the slot's id travels with it so the slot's prescription seeds
+ * the workout (P3.8) — and [programName] is there because more than one program may be active
+ * (P3.12), so two next-up rows have to be tellable apart.
+ */
+data class NextUp(
+    val plan: TodayPlan,
+    val programName: String,
+    /** True when nothing has been done yet, so the row words itself as a start (P3.9). */
+    val isAtStart: Boolean,
+)
+
 data class WorkoutsHomeUiState(
     val isLoading: Boolean = true,
     val recent: List<WorkoutSummary> = emptyList(),
@@ -81,6 +96,13 @@ data class WorkoutsHomeUiState(
      * with no program active — the plans pinned to it (ROADMAP P3.3, unioned by P3.12).
      */
     val todaysPlan: List<TodayPlan> = emptyList(),
+    /**
+     * Where each active program's run is, for a program with nothing scheduled today (ROADMAP P3.9).
+     *
+     * Empty when every active program has a weekday slot today: the today plan is then the answer,
+     * and a next-up row would be a second, contradictory one.
+     */
+    val nextUp: List<NextUp> = emptyList(),
     /** Whether repeating the last workout would copy something (ROADMAP B43's tail). */
     val canRepeatLast: Boolean = false,
 ) {
@@ -157,13 +179,38 @@ class WorkoutsHomeViewModel @Inject constructor(
             }
         }
 
+    /** Each active program's run, keyed by program id (ROADMAP P3.9). */
+    private val programRuns: Flow<Map<String, ProgramRun?>> = activePrograms
+        .flatMapLatest { programs ->
+            if (programs.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                combine(
+                    programs.map { program ->
+                        programRepository.observeProgramRun(program.id).map { run -> program.id to run }
+                    },
+                ) { perProgram -> perProgram.toMap() }
+            }
+        }
+
+    /** The three program-shaped sources, kept together so the combine below stays four deep. */
+    private data class ProgramsPart(
+        val programs: List<WorkoutProgram>,
+        val slots: List<ProgramSlot>,
+        val runs: Map<String, ProgramRun?>,
+    )
+
+    private val programsPart: Flow<ProgramsPart> =
+        combine(activePrograms, activeProgramSlots, programRuns) { programs, slots, runs ->
+            ProgramsPart(programs, slots, runs)
+        }
+
     val uiState: StateFlow<WorkoutsHomeUiState> = combine(
         workoutRepository.observeHistory(),
         activeWorkout,
         templateRepository.observeTemplates(),
-        activePrograms,
-        activeProgramSlots,
-    ) { history, workout, templates, programs, slots ->
+        programsPart,
+    ) { history, workout, templates, programs ->
         WorkoutsHomeUiState(
             isLoading = false,
             recent = history.take(RECENT_LIMIT),
@@ -173,9 +220,15 @@ class WorkoutsHomeViewModel @Inject constructor(
             activeWorkout = workout,
             today = today,
             todaysPlan = todaysPlanFor(
-                programs = programs,
-                slots = slots,
+                programs = programs.programs,
+                slots = programs.slots,
                 templates = templates,
+                day = today,
+            ),
+            nextUp = nextUpFor(
+                programs = programs.programs,
+                slots = programs.slots,
+                runs = programs.runs,
                 day = today,
             ),
         )
@@ -238,6 +291,38 @@ internal fun todaysPlanFor(
     slots.scheduledFor(day, programs)
 } else {
     templates.pinnedFor(day)
+}
+
+/**
+ * Where each active program's run is, as home's next-up rows (ROADMAP P3.9).
+ *
+ * A program with a weekday slot today is left out: the today plan already says what to do, and a
+ * next-up row beside it would be a second, contradictory answer. The order follows the programs'
+ * authored order (P3.12), so several rows read the way the union does.
+ *
+ * File-level and pure so the rule can be tested without a database or a ViewModel.
+ */
+internal fun nextUpFor(
+    programs: List<WorkoutProgram>,
+    slots: List<ProgramSlot>,
+    runs: Map<String, ProgramRun?>,
+    day: DayOfWeek,
+): List<NextUp> = programs.mapNotNull { program ->
+    val programSlots = slots.filter { it.programId == program.id }
+    if (programSlots.any { it.weekday == day }) return@mapNotNull null
+    val run = runs[program.id] ?: return@mapNotNull null
+    NextUp(
+        plan = TodayPlan(
+            id = run.slot.id,
+            templateId = run.slot.templateId,
+            name = run.slot.templateName,
+            exerciseCount = run.slot.exerciseCount,
+            // The slot travels with the start, so its prescription seeds the workout (P3.8).
+            slotId = run.slot.id,
+        ),
+        programName = program.name,
+        isAtStart = run.isAtStart,
+    )
 }
 
 /**

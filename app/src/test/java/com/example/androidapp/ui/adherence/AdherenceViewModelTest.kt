@@ -7,6 +7,7 @@ import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -214,6 +215,8 @@ class AdherenceViewModelTest {
 
         override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
             flowOf(emptyList())
+
+        override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
         override suspend fun estimatedOneRepMax(exerciseId: String): DataResult<Long?> =
             error("these tests do not estimate a one-rep max")

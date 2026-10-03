@@ -225,6 +225,8 @@
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
     <string name="home_plan_start">Start</string>
+    <!-- Where a program's run is, for a day it schedules nothing (ROADMAP P3.9). -->
+    <string name="home_next_up">Next up</string>
     <plurals name="home_plan_exercises">
         <item quantity="one">%1$d exercise</item>
         <item quantity="other">%1$d exercises</item>
@@ -440,6 +442,7 @@
     <string name="program_name_label">Name</string>
     <string name="program_save_name">Save name</string>
     <string name="program_active">Active program</string>
+    <string name="program_next_up">Next up</string>
     <string name="program_active_hint">Home follows this program’s days. More than one can be active at once; with none active it falls back to each plan’s own weekday.</string>
     <string name="program_no_slots">No workouts yet</string>
     <string name="program_no_slots_hint">Add the workouts you train, in order, and give each one a day.</string>

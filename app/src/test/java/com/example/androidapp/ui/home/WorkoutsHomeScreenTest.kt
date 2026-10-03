@@ -266,6 +266,39 @@ class WorkoutsHomeScreenTest {
     }
 
     @Test
+    fun aProgramWithNothingToday_offersWhereItsRunIs() {
+        // ROADMAP P3.9: the run gives "which one is next" an answer on a day nothing is scheduled.
+        val started = mutableListOf<TodayPlan>()
+        setScreen(
+            state = WorkoutsHomeUiState(
+                isLoading = false,
+                nextUp = listOf(
+                    NextUp(
+                        plan = TodayPlan(
+                            id = "slot-2",
+                            templateId = "t2",
+                            name = "Push",
+                            exerciseCount = 5,
+                            slotId = "slot-2",
+                        ),
+                        programName = "Upper/Lower",
+                        isAtStart = true,
+                    ),
+                ),
+            ),
+            actions = Actions(onStartTemplate = { started += it }),
+        )
+
+        composeTestRule.onNodeWithText("Next up").assertExists()
+        composeTestRule.onNodeWithText("Upper/Lower · 5 exercises").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.homeNextUp("slot-2")).performClick()
+
+        // The slot travels with the start, so its prescription seeds the workout (P3.8).
+        assertThat(started.single().slotId).isEqualTo("slot-2")
+        assertThat(started.single().templateId).isEqualTo("t2")
+    }
+
+    @Test
     fun severalPlansOnADay_areAllListed() {
         setScreen(
             state = WorkoutsHomeUiState(

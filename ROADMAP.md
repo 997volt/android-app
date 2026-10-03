@@ -17,28 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Seven rows, planned together: they are everything the last two rounds deferred, and each one
+Six rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
-
-**P3.9 — The run, and what is next.**
-
-P3.3's order is real in the editor and nowhere else: home asks each slot for its weekday, so an
-order-only slot is never surfaced and "which one is next" has no answer on any screen.
-
-- **The order is a run and the app keeps the place**, derived from finished sessions rather
-  than a stored cursor: the next slot follows the last slot trained, so a program with no
-  weekdays still runs A → B → C and an edited program re-derives its place.
-- **The run advances when a slot is trained or consciously skipped**, not when its day passes:
-  training it moves on, a recorded skip moves on (P3.3), and a day simply missed leaves the run
-  where it is — which is what the missed-day question is for.
-- **Home shows it** as a *next up* row when no weekday slot is scheduled today, and the program
-  editor marks the slot the run is at.
-- **Rotation is by what was done, never by load.** Choosing the next template from fatigue,
-  soreness or accumulated load was rejected: nothing the app records measures recovery, and a
-  rotation whose reason the lifter cannot see is a coach, not a log (N22's rule).
 
 **P3.10 — Deloads, authored.**
 

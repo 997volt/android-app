@@ -64,6 +64,25 @@ internal fun ProgramSlotSetEntity.toDomain(): SlotSet = SlotSet(
 )
 
 /**
+ * A finished session as the run reads it, or null when it carries no template (ROADMAP P3.9).
+ *
+ * The run is a rotation of slots, and a session started by hand named none — it moves no run.
+ * The zone rule is the same as everywhere else: the session's own (N25), with [fallbackZone] only
+ * for rows written before that column existed.
+ */
+internal fun FinishedSessionRow.toRunSession(fallbackZone: ZoneId): ProgramSession? =
+    templateId?.let { template ->
+        ProgramSession(
+            sessionId = sessionId,
+            templateId = template,
+            startedAt = Instant.ofEpochMilli(startedAt),
+            zone = zoneOffsetMinutes
+                ?.let { minutes -> ZoneOffset.ofTotalSeconds(minutes * SECONDS_PER_MINUTE) }
+                ?: fallbackZone,
+        )
+    }
+
+/**
  * One trend row as N17's per-exercise series reads it (ROADMAP P3.8).
  *
  * The projection keeps `setType` as its stored name — a database column, not an entity — so it is

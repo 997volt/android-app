@@ -174,6 +174,9 @@ object TestTags {
     /** Today's plan on home (ROADMAP N16). */
     fun homeStartPlan(id: String) = "home_start_plan_$id"
 
+    /** The run's next-up row on home (ROADMAP P3.9). */
+    fun homeNextUp(id: String) = "home_next_up_$id"
+
     /** A plan's sets (ROADMAP N14): the list, one target, and its rest and cue. */
     const val TEMPLATE_PLAN_ROW = "template_plan_row"
     const val TEMPLATE_PLAN_EMPTY = "template_plan_empty"
@@ -299,6 +302,9 @@ object TestTags {
 
         /** The control that opens a slot's prescription. */
         fun prescription(slotId: String) = "program_prescription_$slotId"
+
+        /** The slot the run is at, marked in the editor (ROADMAP P3.9). */
+        fun runSlot(id: String) = "program_run_$id"
 
         fun prescriptionAddSet(exerciseId: String) = "program_prescription_add_set_$exerciseId"
 

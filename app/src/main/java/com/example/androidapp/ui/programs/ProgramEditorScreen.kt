@@ -344,6 +344,8 @@ private fun ProgramEditorBody(
                         slot = slot,
                         isFirst = index == 0,
                         isLast = index == state.slots.lastIndex,
+                        // The place the run is at, marked where the order is authored (P3.9).
+                        isRunPlace = slot.id == state.runSlotId,
                         onMoveUp = { onMoveSlot(slot.id, -1) },
                         onMoveDown = { onMoveSlot(slot.id, 1) },
                         onRemove = { onRemoveSlot(slot.id) },
@@ -436,6 +438,7 @@ private fun ProgramSlotBlock(
     slot: ProgramSlot,
     isFirst: Boolean,
     isLast: Boolean,
+    isRunPlace: Boolean,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
@@ -447,13 +450,23 @@ private fun ProgramSlotBlock(
         ListItem(
             headlineContent = { Text(slot.templateName) },
             supportingContent = {
-                Text(
-                    pluralStringResource(
-                        R.plurals.template_exercises,
-                        slot.exerciseCount,
-                        slot.exerciseCount,
-                    ),
-                )
+                Column {
+                    Text(
+                        pluralStringResource(
+                            R.plurals.template_exercises,
+                            slot.exerciseCount,
+                            slot.exerciseCount,
+                        ),
+                    )
+                    if (isRunPlace) {
+                        Text(
+                            text = stringResource(R.string.program_next_up),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag(TestTags.Programs.runSlot(slot.id)),
+                        )
+                    }
+                }
             },
             trailingContent = {
                 SlotActions(

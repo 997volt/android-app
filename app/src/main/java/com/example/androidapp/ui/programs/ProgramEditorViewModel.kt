@@ -50,6 +50,13 @@ data class ProgramEditorUiState(
     val templates: List<WorkoutTemplate> = emptyList(),
     /** The slot whose prescription is open for editing, or null (ROADMAP P3.8). */
     val prescription: SlotPrescriptionEditor? = null,
+    /**
+     * The slot the program's run is at, or null (ROADMAP P3.9).
+     *
+     * The order was real in this editor and nowhere else; this is what marks the place the rotation
+     * is up to, derived from what was done rather than stored.
+     */
+    val runSlotId: String? = null,
     val error: DataError? = null,
 ) {
     /** The program was deleted, or never existed — either way there is no editor. */
@@ -111,19 +118,36 @@ class ProgramEditorViewModel @Inject constructor(
             }
         }
 
+    /**
+     * The two things the editor overlays on the program: the open prescription and the run's place
+     * (ROADMAP P3.8, P3.9).
+     *
+     * Kept together so the state combine stays at the arity the rest of the screen uses.
+     */
+    private data class EditorExtras(
+        val prescription: SlotPrescriptionEditor?,
+        val runSlotId: String?,
+    )
+
+    private val extras: kotlinx.coroutines.flow.Flow<EditorExtras> =
+        combine(prescription, repository.observeProgramRun(programId)) { open, run ->
+            EditorExtras(prescription = open, runSlotId = run?.slot?.id)
+        }
+
     val uiState: StateFlow<ProgramEditorUiState> = combine(
         repository.observeProgram(programId),
         repository.observeSlots(programId),
         templateRepository.observeTemplates(),
         error,
-        prescription,
-    ) { program, slots, templates, currentError, openPrescription ->
+        extras,
+    ) { program, slots, templates, currentError, openExtras ->
         ProgramEditorUiState(
             isLoading = false,
             program = program,
             slots = slots,
             templates = templates,
-            prescription = openPrescription,
+            prescription = openExtras.prescription,
+            runSlotId = openExtras.runSlotId,
             error = currentError,
         )
     }.stateIn(

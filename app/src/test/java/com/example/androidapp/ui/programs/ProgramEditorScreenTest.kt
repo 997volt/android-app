@@ -79,6 +79,19 @@ class ProgramEditorScreenTest {
     }
 
     @Test
+    fun theRunPlace_isMarked_onItsOwnSlot() {
+        // ROADMAP P3.9: the order is a run, and the editor is where the order is authored.
+        setScreen(twoSlots.copy(runSlotId = "s2"))
+
+        // The unmerged tree: the marker lives inside the row, whose semantics are merged into the
+        // list item, so the default finder cannot see it. Which slot it is on is the behaviour.
+        composeTestRule.onNodeWithTag(TestTags.Programs.runSlot("s2"), useUnmergedTree = true)
+            .assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Programs.runSlot("s1"), useUnmergedTree = true)
+            .assertDoesNotExist()
+    }
+
+    @Test
     fun anEmptyProgram_explainsWhatASlotIs() {
         setScreen(twoSlots.copy(slots = emptyList()))
 

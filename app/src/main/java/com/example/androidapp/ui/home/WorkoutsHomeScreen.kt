@@ -8,6 +8,7 @@ import com.example.androidapp.ui.transfer.ClearOutcome
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -245,62 +246,127 @@ private fun TodayAndRecent(
     onStartTemplate: (TodayPlan) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 88.dp), // clear the FAB
-        ) {
-            item(key = "today") {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 88.dp), // clear the FAB
+    ) {
+        todayPlanItems(state = state, onStartTemplate = onStartTemplate)
+        nextUpItems(state = state, onStartTemplate = onStartTemplate)
+        recentItems(state = state, onOpenWorkout = onOpenWorkout)
+    }
+}
+
+/** Today's scheduled plans, headed by the weekday (ROADMAP N16, P3.3). */
+private fun LazyListScope.todayPlanItems(
+    state: WorkoutsHomeUiState,
+    onStartTemplate: (TodayPlan) -> Unit,
+) {
+    if (state.todaysPlan.isEmpty()) return
+    item(key = "today") {
+        SectionHeader(text = stringResource(R.string.home_today, state.today.longLabel()))
+    }
+    items(state.todaysPlan.size, key = { state.todaysPlan[it].id }) { index ->
+        val plan = state.todaysPlan[index]
+        ListItem(
+            headlineContent = { Text(plan.name) },
+            supportingContent = {
                 Text(
-                    text = stringResource(R.string.home_today, state.today.longLabel()),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    pluralStringResource(
+                        R.plurals.home_plan_exercises,
+                        plan.exerciseCount,
+                        plan.exerciseCount,
+                    ),
                 )
-            }
-            items(state.todaysPlan.size, key = { state.todaysPlan[it].id }) { index ->
-                val plan = state.todaysPlan[index]
-                ListItem(
-                    headlineContent = { Text(plan.name) },
-                    supportingContent = {
-                        Text(
-                            pluralStringResource(
-                                R.plurals.home_plan_exercises,
-                                plan.exerciseCount,
-                                plan.exerciseCount,
-                            ),
-                        )
-                    },
-                    trailingContent = {
-                        TextButton(
-                            // The row's identity is the slot's, and the whole row travels: what
-                            // starts is the template, and the slot carries its prescription
-                            // (ROADMAP P3.3, P3.8).
-                            onClick = { onStartTemplate(plan) },
-                            modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
-                        ) {
-                            Text(stringResource(R.string.home_plan_start))
-                        }
-                    },
-                )
-                HorizontalDivider()
-            }
-            if (state.recent.isNotEmpty()) {
-                item(key = "recent") {
-                    Text(
-                        text = stringResource(R.string.home_recent),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
+            },
+            trailingContent = {
+                TextButton(
+                    // The row's identity is the slot's, and the whole row travels: what starts is
+                    // the template, and the slot carries its prescription (ROADMAP P3.3, P3.8).
+                    onClick = { onStartTemplate(plan) },
+                    modifier = Modifier.testTag(TestTags.homeStartPlan(plan.id)),
+                ) {
+                    Text(stringResource(R.string.home_plan_start))
                 }
-                items(state.recent.size, key = { state.recent[it].id }) { index ->
-                    RecentWorkoutRow(
-                        workout = state.recent[index],
-                        onClick = { onOpenWorkout(state.recent[index].id) },
-                    )
-                }
+            },
+        )
+        HorizontalDivider()
+    }
+}
+
+/** Where each active program's run is, for a program with nothing scheduled today (ROADMAP P3.9). */
+private fun LazyListScope.nextUpItems(
+    state: WorkoutsHomeUiState,
+    onStartTemplate: (TodayPlan) -> Unit,
+) {
+    if (state.nextUp.isEmpty()) return
+    item(key = "next-up") {
+        SectionHeader(text = stringResource(R.string.home_next_up))
+    }
+    items(state.nextUp.size, key = { state.nextUp[it].plan.id }) { index ->
+        val nextUp = state.nextUp[index]
+        NextUpRow(nextUp = nextUp, onStart = { onStartTemplate(nextUp.plan) })
+        HorizontalDivider()
+    }
+}
+
+/** The recent workouts, newest first (ROADMAP N1). */
+private fun LazyListScope.recentItems(
+    state: WorkoutsHomeUiState,
+    onOpenWorkout: (String) -> Unit,
+) {
+    if (state.recent.isEmpty()) return
+    item(key = "recent") {
+        SectionHeader(text = stringResource(R.string.home_recent))
+    }
+    items(state.recent.size, key = { state.recent[it].id }) { index ->
+        RecentWorkoutRow(
+            workout = state.recent[index],
+            onClick = { onOpenWorkout(state.recent[index].id) },
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+/**
+ * One program's next-up row (ROADMAP P3.9).
+ *
+ * The program's name is part of the supporting line because more than one program may be active
+ * (P3.12), so two next-up rows have to be tellable apart.
+ */
+@Composable
+private fun NextUpRow(
+    nextUp: NextUp,
+    onStart: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val exercises = pluralStringResource(
+        R.plurals.home_plan_exercises,
+        nextUp.plan.exerciseCount,
+        nextUp.plan.exerciseCount,
+    )
+    ListItem(
+        headlineContent = { Text(nextUp.plan.name) },
+        supportingContent = { Text(listOf(nextUp.programName, exercises).joinToString(" · ")) },
+        trailingContent = {
+            TextButton(
+                onClick = onStart,
+                modifier = Modifier.testTag(TestTags.homeNextUp(nextUp.plan.id)),
+            ) {
+                Text(stringResource(R.string.home_plan_start))
             }
-        }}
+        },
+        modifier = modifier,
+    )
+}
 
 /** The list body, split out so the screen itself stays a scaffold and a state. */
 @Composable
@@ -318,7 +384,7 @@ private fun HomeContent(
             )
 
             // First run: an empty list with no explanation tells the user nothing.
-            state.todaysPlan.isNotEmpty() -> TodayAndRecent(
+            state.todaysPlan.isNotEmpty() || state.nextUp.isNotEmpty() -> TodayAndRecent(
                 state = state,
                 onOpenWorkout = onOpenWorkout,
                 onStartTemplate = onStartTemplate,

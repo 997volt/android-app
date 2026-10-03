@@ -289,6 +289,15 @@ the rule; that one argues it.
   `sessionAssignments`, read where the session rather than the occurrence matters — and a heavy
   Monday and a light Friday progress apart. Keying the history by template alone was rejected: it is
   exactly what makes two slots progress together. Nothing is written unless the lifter accepts it.
+- **A program's order is a run, derived from what was done rather than a stored cursor** (P3.9).
+  The next slot follows the last slot trained or consciously skipped; a day simply missed leaves the
+  run where it is, which is what the missed-day question is for, and an edited program re-derives
+  its place rather than leaving a pointer at a slot that is gone. A program with **no weekdays**
+  still runs A → B → C, because a cursor rather than a day attributes an order-only session to its
+  slot. Home offers it as a next-up row for a program with nothing scheduled today, and the editor
+  marks the place. **Rotation is by what was done, never by load**: choosing the next template from
+  fatigue, soreness or accumulated load was rejected, because nothing the app records measures
+  recovery and a rotation whose reason the lifter cannot see is a coach, not a log (N22's rule).
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's

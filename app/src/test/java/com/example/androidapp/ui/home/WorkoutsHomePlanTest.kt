@@ -1,5 +1,6 @@
 package com.example.androidapp.ui.home
 
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -104,5 +105,70 @@ class WorkoutsHomePlanTest {
         assertThat(plan.map { it.id }).containsExactly("a", "c")
         // A pinned plan starts itself, so the row's own id is also its template.
         assertThat(plan.map { it.templateId }).containsExactly("a", "c")
+    }
+
+    @Test
+    fun aProgramWithNothingToday_showsWhereItsRunIs() {
+        // ROADMAP P3.9: the order is a run, so a day the program schedules nothing still has an
+        // answer to "which one is next".
+        val slots = listOf(slot("s2", weekday = null, position = 1, templateId = "t2"))
+        val run = ProgramRun(slot = slots.single(), isAtStart = false)
+
+        val nextUp = nextUpFor(
+            programs = listOf(program),
+            slots = slots,
+            runs = mapOf("p1" to run),
+            day = DayOfWeek.FRIDAY,
+        )
+
+        assertThat(nextUp.map { it.plan.slotId }).containsExactly("s2")
+        assertThat(nextUp.single().programName).isEqualTo("Upper/Lower")
+        assertThat(nextUp.single().isAtStart).isFalse()
+    }
+
+    @Test
+    fun aProgramWithASlotToday_hasNoNextUpRow() {
+        // The today plan is then the answer; a next-up row beside it would contradict it.
+        val slots = listOf(slot("s1", DayOfWeek.FRIDAY, position = 0, templateId = "t1"))
+
+        val nextUp = nextUpFor(
+            programs = listOf(program),
+            slots = slots,
+            runs = mapOf("p1" to ProgramRun(slot = slots.single(), isAtStart = true)),
+            day = DayOfWeek.FRIDAY,
+        )
+
+        assertThat(nextUp).isEmpty()
+    }
+
+    @Test
+    fun aProgramWithNoRunYet_hasNoNextUpRow() {
+        val nextUp = nextUpFor(
+            programs = listOf(program),
+            slots = emptyList(),
+            runs = mapOf("p1" to null),
+            day = DayOfWeek.FRIDAY,
+        )
+
+        assertThat(nextUp).isEmpty()
+    }
+
+    @Test
+    fun twoPrograms_offerTheirRuns_inTheAuthoredOrder() {
+        val slotA = slot("a", weekday = null, position = 0, templateId = "ta", programId = "p1")
+        val slotB = slot("b", weekday = null, position = 0, templateId = "tb", programId = "p2")
+
+        val nextUp = nextUpFor(
+            programs = listOf(program, second),
+            slots = listOf(slotA, slotB),
+            runs = mapOf(
+                "p1" to ProgramRun(slot = slotA, isAtStart = true),
+                "p2" to ProgramRun(slot = slotB, isAtStart = true),
+            ),
+            day = DayOfWeek.FRIDAY,
+        )
+
+        assertThat(nextUp.map { it.plan.slotId }).containsExactly("a", "b").inOrder()
+        assertThat(nextUp.map { it.programName }).containsExactly("Upper/Lower", "Conditioning").inOrder()
     }
 }

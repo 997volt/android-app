@@ -41,6 +41,15 @@ repeated here.
   which seeds the session's rest, cue and targets; the session still records only the template
   (P3.3), so provenance and matching are unchanged. The prescribed rows join the backup codec, with
   the round trip guarded by a field-for-field test.
+- **A program's order is a run, and the app keeps the place** (P3.9). P3.3's order was real in the
+  editor and nowhere else: home asked each slot for its weekday, so an order-only slot was never
+  surfaced and "which one is next" had no answer on any screen. The run now follows the last slot
+  **trained or consciously skipped**, derived from finished sessions and recorded skips rather than
+  a stored cursor — so a day simply missed leaves it where it is (that is the missed-day question's
+  job) and an edited program re-derives its place. A program with no weekdays runs A → B → C,
+  because the cursor, not a day, attributes an order-only session to its slot. Home shows a
+  **next up** row for a program with nothing scheduled today, and the editor marks the slot the run
+  is at. Rotation is by what was done, never by load.
 
 ## [1.9] — 2026-10-03 (versionCode 10)
 

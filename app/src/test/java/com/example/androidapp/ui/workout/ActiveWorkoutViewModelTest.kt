@@ -5,6 +5,7 @@ import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.PersonalRecords
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -2006,6 +2007,8 @@ private class FakeProgramRepository : ProgramRepository {
 
     override fun observeSlotPrescriptions(slotId: String): Flow<List<SlotPrescription>> =
         flowOf(prescriptions)
+
+    override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
     /** N17's estimate a slot's percentage resolves against (ROADMAP P3.8). */
     var oneRepMax: Long? = null

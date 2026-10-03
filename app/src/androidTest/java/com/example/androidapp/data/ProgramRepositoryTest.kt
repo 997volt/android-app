@@ -565,6 +565,40 @@ class ProgramRepositoryTest {
         assertNull(repository.estimatedOneRepMax("front-squat").getOrNull())
     }
 
+    @Test
+    fun theRun_followsTheLastSlotTrained_notTheDay() = runTest {
+        // ROADMAP P3.9: an order-only program still runs A -> B, and a day passing moves nothing.
+        val program = create("Upper/Lower")
+        val first = createTemplate("Workout A")
+        val second = createTemplate("Workout B")
+        repository.addSlot(program, first)
+        repository.addSlot(program, second)
+        val slots = repository.observeSlots(program).first()
+
+        val atStart = repository.observeProgramRun(program).first()
+        assertEquals(slots[0].id, atStart?.slot?.id)
+        assertEquals(true, atStart?.isAtStart)
+
+        insertSessionWithSet("a-session", "2026-10-06T09:00:00Z", first, weightGrams = 100_000L)
+
+        val moved = repository.observeProgramRun(program).first()
+        assertEquals(slots[1].id, moved?.slot?.id)
+        assertEquals(false, moved?.isAtStart)
+    }
+
+    @Test
+    fun aSkip_movesTheRunOn_too() = runTest {
+        val program = create("Upper/Lower")
+        val first = createTemplate("Workout A")
+        repository.addSlot(program, first)
+        repository.addSlot(program, createTemplate("Workout B"))
+        val slots = repository.observeSlots(program).first()
+
+        repository.skipOccurrences(listOf(slots[0].id), monday)
+
+        assertEquals(slots[1].id, repository.observeProgramRun(program).first()?.slot?.id)
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

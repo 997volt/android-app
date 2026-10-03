@@ -3,6 +3,7 @@ package com.example.androidapp.data
 import androidx.room.withTransaction
 import com.example.androidapp.data.local.ProgramDao
 import com.example.androidapp.data.local.ProgramPrescriptionDao
+import com.example.androidapp.data.local.ProgramRunDao
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramSlotExerciseEntity
@@ -13,6 +14,7 @@ import com.example.androidapp.data.local.toAdherenceSession
 import com.example.androidapp.data.local.toDomain
 import com.example.androidapp.data.local.toExerciseTrendRow
 import com.example.androidapp.data.local.toProgramSession
+import com.example.androidapp.data.local.toRunSession
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.InvalidInputException
 import com.example.androidapp.domain.NotFoundException
@@ -23,6 +25,7 @@ import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.ExerciseTrendMetric
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.PreviousPerformance
+import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedSkip
@@ -30,6 +33,7 @@ import com.example.androidapp.domain.model.Rpe
 import com.example.androidapp.domain.model.SlotPrescription
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.latestValue
+import com.example.androidapp.domain.model.programRun
 import com.example.androidapp.domain.model.toExerciseTrendPoints
 import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.SlotSetEdit
@@ -41,9 +45,12 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.roundToLong
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
@@ -63,6 +70,8 @@ class RoomProgramRepository @Inject constructor(
     private val dao: ProgramDao = database.programDao()
 
     private val prescriptionDao: ProgramPrescriptionDao = database.programPrescriptionDao()
+
+    private val runDao: ProgramRunDao = database.programRunDao()
 
     override fun observePrograms(): Flow<List<WorkoutProgram>> =
         dao.observePrograms().map { rows -> rows.map { it.toDomain() } }
@@ -367,6 +376,31 @@ class RoomProgramRepository @Inject constructor(
             ?.roundToLong()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeProgramRun(programId: String): Flow<ProgramRun?> =
+        dao.observeSlotDetails(programId).flatMapLatest { rows ->
+            val slots = rows.map { it.toDomain() }
+            if (slots.isEmpty()) {
+                flowOf(null)
+            } else {
+                combine(
+                    runDao.observeFinishedSessions(slots.map { it.templateId }.distinct()),
+                    runDao.observeSkipsForSlots(slots.map { it.id }),
+                ) { sessions, skips ->
+                    // The zone is read when the data arrives rather than captured (B45); it is the
+                    // fallback only for a session recorded before N25.
+                    val zone = ZoneId.systemDefault()
+                    programRun(
+                        slots = slots,
+                        sessions = sessions.mapNotNull { it.toRunSession(zone) },
+                        skips = skips.map {
+                            RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
+                        },
+                    )
+                }
+            }
+        }
+
     override suspend fun pendingOccurrences(
         today: LocalDate,
         zone: ZoneId,
@@ -477,13 +511,6 @@ class RoomProgramRepository @Inject constructor(
         )
     }
 
-    /** A program with no name is a list row nobody can tell apart from the next. */
-    private fun requireName(name: String): String {
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) throw InvalidInputException("Give the program a name.")
-        return trimmed
-    }
-
     private companion object {
         /** One day of slack at each end of the week, for sessions in another zone. */
         const val SLACK_DAYS = 1L
@@ -559,6 +586,13 @@ private fun validateSlotSetEffort(edit: SlotSetEdit) {
 
 /** Above this, a "percentage of the max" is no longer a percentage of a max. */
 private const val MAX_SLOT_PERCENT = 100
+
+/** A program with no name is a list row nobody can tell apart from the next (ROADMAP P3.3). */
+private fun requireName(name: String): String {
+    val trimmed = name.trim()
+    if (trimmed.isEmpty()) throw InvalidInputException("Give the program a name.")
+    return trimmed
+}
 
 /** A stand-in for "all of them": no exercise has anywhere near this many sessions (N17). */
 private const val ALL_TREND_SESSIONS = 100_000

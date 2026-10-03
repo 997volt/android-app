@@ -55,6 +55,9 @@ abstract class WorkoutDatabase : RoomDatabase() {
     /** What each slot prescribes, per exercise (ROADMAP P3.8). */
     abstract fun programPrescriptionDao(): ProgramPrescriptionDao
 
+    /** The sessions and skips a program's run is derived from (ROADMAP P3.9). */
+    abstract fun programRunDao(): ProgramRunDao
+
     /** Whole-table reads and additive inserts for backup/restore (P1.12). */
     abstract fun backupDao(): BackupDao
 
