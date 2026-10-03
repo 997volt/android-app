@@ -49,6 +49,9 @@ class BackupRoundTripTest {
     /** Kept so a clear can be asserted against the diagnostics as well as the rows. */
     private lateinit var crashLogs: CrashLogStore
 
+    /** The real settings, because goals are the one thing in the file that is not a database row. */
+    private lateinit var settings: PreferencesSettingsRepository
+
     private val clock = TimeSource { Instant.parse("2026-09-28T08:00:00Z") }
 
     @Before
@@ -57,9 +60,11 @@ class BackupRoundTripTest {
             ApplicationProvider.getApplicationContext(),
             WorkoutDatabase::class.java,
         ).build()
+        settings = PreferencesSettingsRepository(ApplicationProvider.getApplicationContext())
         repository = RoomBackupRepository(
             database = database,
             timeSource = clock,
+            settings = settings,
             // Nothing is recorded here, but the export path has to be built the
             // same way the app builds it.
             crashLogStore = CrashLogStore(Files.createTempDirectory("crash-logs").toFile()).also {
@@ -187,6 +192,27 @@ class BackupRoundTripTest {
             20,
             database.backupDao().allSets().single().reps,
         )
+    }
+
+    @Test
+    fun metricTargets_comeBackFromTheFile_butOneAlreadyHereIsLeftAlone() = runTest {
+        // Goals are settings rather than rows, so they are the one thing the database round trip
+        // cannot prove — and they were absent from every export, so a restore dropped them (N39).
+        val restoredGoal = "body.weight"
+        val keptGoal = "workout.rpe"
+        settings.setGoal(restoredGoal, 82.0)
+        settings.setGoal(keptGoal, 7.0)
+        val json = exportedJson()
+
+        // The reinstall: one target is gone locally, and another was changed after the export.
+        settings.setGoal(restoredGoal, null)
+        settings.setGoal(keptGoal, 9.5)
+
+        repository.import(json)
+
+        val goals = settings.observeGoals().first()
+        assertEquals("a target the file had and the device did not", 82.0, goals[restoredGoal]!!, 0.0001)
+        assertEquals("a target changed locally is newer than the file", 9.5, goals[keptGoal]!!, 0.0001)
     }
 
     private suspend fun exportedJson(): String =
@@ -362,6 +388,7 @@ class BackupRoundTripTest {
         // *open*, so a clear that only emptied tables would leave the library empty until
         // the process restarted — a clean start that looks broken.
         seedAWorkout()
+        settings.setGoal("body.weight", 80.0)
         crashLogs.record(
             CrashLog(
                 timestamp = 1_000L,
@@ -391,6 +418,11 @@ class BackupRoundTripTest {
             after.exercises >= SEEDED_LIBRARY_MINIMUM,
         )
         assertEquals("and the crash logs are diagnostics about what just went", 0, crashLogs.all().size)
+        assertEquals(
+            "a target is authored content rather than a display preference, so clearing takes it too",
+            emptyMap<String, Double>(),
+            settings.observeGoals().first(),
+        )
     }
 
     @Test

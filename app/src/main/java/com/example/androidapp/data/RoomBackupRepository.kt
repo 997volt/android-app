@@ -1,6 +1,7 @@
 package com.example.androidapp.data
 
 import java.io.IOException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import com.example.androidapp.data.local.seedMissingExercises
@@ -16,6 +17,7 @@ import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.nowEpochMillis
 import com.example.androidapp.domain.repository.BackupRepository
 import com.example.androidapp.domain.repository.ImportSummary
+import com.example.androidapp.domain.repository.SettingsRepository
 import com.example.androidapp.platform.CrashLogStore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +33,7 @@ import javax.inject.Singleton
 class RoomBackupRepository @Inject constructor(
     private val database: WorkoutDatabase,
     private val timeSource: TimeSource,
+    private val settings: SettingsRepository,
     private val crashLogStore: CrashLogStore,
 ) : BackupRepository {
 
@@ -51,6 +54,10 @@ class RoomBackupRepository @Inject constructor(
                 // A plan's sets are the plan (ROADMAP N14).
                 templateSets = dao.allTemplateSets().map { it.toDto() },
                 measurements = database.measurementDao().allForExport().map { it.toDto() },
+                // The user's metric targets (ROADMAP N39). They are settings rather than rows,
+                // which is exactly why they need naming here: the codec drops whatever it is not
+                // told about, and a restore was losing every target in silence.
+                goals = settings.observeGoals().first(),
                 // Diagnostics ride along so they are reachable on a release
                 // build; import ignores them, deliberately.
                 crashLogs = crashLogStore.all(),
@@ -78,6 +85,15 @@ class RoomBackupRepository @Inject constructor(
             if (!crashLogStore.clear()) {
                 throw IOException("the crash logs could not be removed")
             }
+
+            // Metric targets are the one setting the user *authored* rather than chose as a display
+            // preference — which is why they are exported — so "delete everything" has to take them
+            // too, or a clean start would still draw the old goal lines (N39, N18).
+            settings.observeGoals().first().keys.forEach { metricId ->
+                if (settings.setGoal(metricId, null) is DataResult.Failure) {
+                    throw IOException("the goal for $metricId was not cleared")
+                }
+            }
         }
     }
 
@@ -88,7 +104,7 @@ class RoomBackupRepository @Inject constructor(
 
         // One transaction, so a failure part-way cannot leave sessions without
         // their sets.
-        database.withTransaction {
+        val summary = database.withTransaction {
             // A delete in this app is a *soft* delete, so a deleted row is still
             // present under its own id and an insert-only import skips it. That is
             // the bug this shape fixes: restoring a workout you deleted reported
@@ -161,6 +177,29 @@ class RoomBackupRepository @Inject constructor(
                     addedTemplates + addedTemplateExercises + addedTemplateSets + addedMeasurements,
                 restored = restored,
             )
+        }
+
+        restoreMissingGoals(file.goals)
+
+        summary
+    }
+
+    /**
+     * Adds the targets in [goals] that this device does not already have.
+     *
+     * Outside the database transaction because goals live outside the database, and *missing-only*
+     * for the reason a live row is left alone: a target set after the export was taken is newer
+     * than the file, and guessing the other way would overwrite a deliberate change.
+     */
+    private suspend fun restoreMissingGoals(goals: Map<String, Double>) {
+        val alreadyHere = settings.observeGoals().first()
+        goals.forEach { (metricId, value) ->
+            if (metricId !in alreadyHere) {
+                val stored = settings.setGoal(metricId, value)
+                if (stored is DataResult.Failure) {
+                    throw IOException("the goal for $metricId was not stored")
+                }
+            }
         }
     }
 

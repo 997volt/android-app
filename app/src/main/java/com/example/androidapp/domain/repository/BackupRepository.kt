@@ -30,6 +30,10 @@ interface BackupRepository {
      * *soft* delete, so the row and its id survive: an insert-only import skipped
      * exactly the rows a restore is for, and reported "nothing to do" — the bug
      * that motivated this shape.
+     *
+     * The file's metric targets (N39) follow the same rule even though they are settings rather
+     * than rows: one this device lacks comes back, one it already has is left alone. The other
+     * settings are device preferences and are not in the file at all (N21).
      */
     suspend fun import(text: String): DataResult<ImportSummary>
 

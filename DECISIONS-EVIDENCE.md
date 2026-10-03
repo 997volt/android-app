@@ -116,20 +116,25 @@ the role as an argument to `onLogSet`, so nothing there has to remember to clear
 
 Settings live in `SharedPreferences`, not DataStore.
 
-What is stored is a handful of integers and booleans owned by one process, which is the case
-`SharedPreferences` is still the right tool for — and DataStore would be a new dependency
-for it. The move is warranted the moment settings need a collection, a schema or a
-migration; until then this is one file, one key and no ceremony.
+What is stored is a handful of integers, booleans and two small maps owned by one process,
+which is the case `SharedPreferences` is still the right tool for — and DataStore would be a new
+dependency for it. The move is warranted when a setting needs a schema or a migration. The goal
+map is the closest thing to one and is still a line per metric, so the boundary has not been
+reached: a hand-written `id=value` line is smaller than a dependency.
 
 Writes are **committed**, not applied, because the screen reports a real result: a
 fire-and-forget write would let it say "saved" about something that never reached disk.
-Settings are therefore not in the export file, so restoring onto a fresh install returns the
-default rest to 90 s. That is a decision — a device preference is not training history —
-rather than the omission it would otherwise look like.
 
-The default rest is a bounded choice because the value becomes an alarm: a typed zero would
-fire instantly and a typed negative would not be a setting at all, so the repository refuses
-anything outside 5–3600 seconds as `DataError.Invalid`.
+Not all of it is a preference, which is the part this entry got wrong. A metric target (N39) is
+something the user *authored*, so it rides in the backup file and "delete everything" clears it,
+while the rest, the cue, keep-screen-on and the statistics range stay device preferences and are
+deliberately not exported. Calling a target a device preference was losing it on every restore,
+in silence — the codec trap (N24) wearing a different hat, and invisible for the same reason.
+
+The default rest is a bounded choice: a typed zero would be no rest at all and a typed negative
+is not a setting, so the repository refuses anything outside 5–3600 seconds as `DataError.Invalid`.
+(This used to argue from the value becoming an alarm; the alert is gone with N26, and the bounds
+are still right — they are about what a rest means.)
 
 ## N22
 

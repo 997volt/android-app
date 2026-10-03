@@ -414,4 +414,25 @@ class BackupCodecTest {
 
         assertEquals(DayOfWeek.FRIDAY, restored.templates.first().weekday)
     }
+
+    @Test
+    fun metricTargets_surviveTheRoundTrip() {
+        // Goals live in settings rather than the database, so the entity-by-entity round trip
+        // cannot cover them — and they were absent from every export until this field existed
+        // (N39). The keys are `MetricKey.id` values, which is what the screen looks them up by.
+        val withGoals = sample.copy(goals = mapOf("body.weight" to 80.0, "workout.rpe" to 7.5))
+
+        val restored = BackupCodec.decode(BackupCodec.encode(withGoals))
+
+        assertEquals(withGoals.goals, restored.goals)
+    }
+
+    @Test
+    fun aFileWrittenBeforeGoalsExisted_stillDecodes_seeingNone() {
+        val json = Json { prettyPrint = false }
+        val tree = json.parseToJsonElement(BackupCodec.encode(sample)).jsonObject
+        val olderFile = JsonObject(tree - "goals")
+
+        assertEquals(emptyMap<String, Double>(), BackupCodec.decode(olderFile.toString()).goals)
+    }
 }

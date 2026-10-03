@@ -104,14 +104,19 @@ the rule; that one argues it.
   revisitable from history, and the honest fix for that is storing the plan with the
   session rather than re-deriving it.
 
-- **Settings live in `SharedPreferences`, not DataStore** (N21) — integers and booleans
-  owned by one process; writes are **committed**, so the screen never reports a save that
-  did not reach disk. Settings are not in the export, so a fresh install returns the
-  default rest to 90 s: a device preference, not training history.
+- **Settings live in `SharedPreferences`, not DataStore** (N21) — integers, booleans and two
+  small maps owned by one process; writes are **committed**, so the screen never reports a
+  save that did not reach disk. The move is warranted when a setting needs a schema or a
+  migration, and the goal map — one line per metric — is still short of that.
   ([evidence](DECISIONS-EVIDENCE.md#n21))
-- **The default rest is a bounded choice, not a number field** (N21) — the value becomes
-  an alarm, so the repository refuses anything outside 5–3600 seconds as
-  `DataError.Invalid`.
+- **A setting is a device preference; a metric target is training data** (N21, N39). The rest,
+  the cue, keep-screen-on and the statistics range are not exported, so a fresh install returns
+  the default rest to 90 s. A target is authored rather than chosen, so it rides in the backup
+  and "delete everything" clears it; leaving it out was losing it on every restore, in silence.
+- **The default rest is a bounded choice, not a number field** (N21) — zero or a negative is
+  not a rest and longer than the session is a mistake, so the repository refuses anything
+  outside 5–3600 seconds as `DataError.Invalid`. (It used to argue from the value becoming an
+  alarm; the alert is gone with N26, and the bounds are still right.)
 
 - **Progression is double progression, and it only ever suggests** (N22). Add reps to the
   plan's rep ceiling, then the smallest loadable step (2.5 kg) and start the range again;

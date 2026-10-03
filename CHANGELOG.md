@@ -12,6 +12,14 @@ repeated here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Metric targets survive a backup** (N39). A target is a setting rather than a row, and the
+  export did not carry settings — so restoring a backup dropped every target in silence, which
+  is the hand-written codec's trap wearing a different hat. Targets now ride in the file, and
+  "delete everything" clears them; the rest of settings (rest, cue, keep-screen-on, the
+  statistics range) stays a device preference and is deliberately still not exported (N21).
+
 ## [1.8] — 2026-10-02 (versionCode 9)
 
 ### Added

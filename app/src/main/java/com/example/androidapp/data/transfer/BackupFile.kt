@@ -55,6 +55,18 @@ data class BackupFile(
      */
     val measurements: List<MeasurementDto> = emptyList(),
     /**
+     * The user's metric targets, keyed by `MetricKey.id` in each metric's own units (ROADMAP N39).
+     *
+     * They live in settings rather than the database, which is why they needed naming here: a codec
+     * that lists every field by hand drops what it is not told about — three columns were lost that
+     * way (N9, N15, N16) — and restoring a backup was losing every target in silence. The rest of
+     * settings (rest, cue, keep-screen-on, the statistics range) stays a device preference and is
+     * deliberately not in this file (N21).
+     *
+     * Defaulted so a file written before this field existed still decodes.
+     */
+    val goals: Map<String, Double> = emptyMap(),
+    /**
      * Diagnostics, not user data (ROADMAP F11). They ride along with an export
      * because a release build is not debuggable and this is the only way a crash log
      * reaches the user; import deliberately ignores them.
