@@ -12,6 +12,9 @@ import org.junit.Test
  * at a heading that did not exist. A green build says nothing about any of them, so they are
  * asserted rather than trusted — the same reasoning as `tools/ci-check-instrumented.py`,
  * which exists because a report with no failures looks exactly like a complete one.
+ *
+ * [DOCS] reaches past the repo-root docs into the on-demand skill, because a gate that only
+ * guards the always-loaded files is a gate on the files nobody had to be reminded to read.
  */
 class DocsConsistencyTest {
 
@@ -37,7 +40,9 @@ class DocsConsistencyTest {
     @Test
     fun every_path_the_docs_link_resolves() {
         val missing = DOCS.flatMap { doc ->
-            linkTargets(read(doc)).filterNot { File(repoRoot, it).exists() }.map { "$doc -> $it" }
+            linkTargets(read(doc))
+                .filterNot { resolveRelative(doc, it).exists() }
+                .map { "$doc -> $it" }
         }
 
         assertThat(missing).isEmpty()
@@ -47,8 +52,8 @@ class DocsConsistencyTest {
     fun every_doc_anchor_resolves() {
         val headings = mutableMapOf<String, Set<String>>()
         fun headingsOf(path: String): Set<String>? {
-            if (path.isNotEmpty() && !path.endsWith(".md")) return null
-            return headings.getOrPut(path) {
+            if (!path.endsWith(".md")) return null
+            return headings.getOrPut(relativeToRepo(path)) {
                 HEADING.findAll(read(path)).map { slug(it.groupValues[1]) }.toSet()
             }
         }
@@ -57,8 +62,10 @@ class DocsConsistencyTest {
         var checked = 0
         DOCS.forEach { doc ->
             ANCHOR.findAll(read(doc)).forEach { match ->
+                // A same-document anchor names no path, so it points at `doc` itself.
                 val targetDoc = match.groupValues[1].ifEmpty { doc }
-                val known = headingsOf(targetDoc) ?: return@forEach
+                val known = headingsOf(resolveRelative(doc, targetDoc).invariantSeparatorsPath)
+                    ?: return@forEach
                 val fragment = match.groupValues[2]
                 checked++
                 if (fragment !in known) broken += "$doc -> $targetDoc#$fragment"
@@ -100,7 +107,51 @@ class DocsConsistencyTest {
             .filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
             .replace(' ', '-')
 
-    private fun read(name: String): String = File(repoRoot, name).readText()
+    /**
+     * Read a doc by a path that is either repository-relative (`AGENTS.md`, what [DOCS]
+     * holds) or canonical (`resolveRelative` hands those out). Idempotent for both, so the
+     * two shapes cannot disagree about which file a path names — the first cut of this
+     * resolved the absolute form a second time and read
+     * `<repo>/home/dev/android-app/DECISIONS.md` instead of the file.
+     */
+    private fun read(name: String): String {
+        val f = if (name.isEmpty()) repoRoot else File(name).let { if (it.isAbsolute) it else File(repoRoot, name) }
+        return f.readText()
+    }
+
+    /**
+     * Resolve a link/anchor target the way a markdown reader does: relative to the
+     * directory of the document that contains it, not to the repository root. Only the
+     * repo-root docs live in the root, so the root-relative reading worked for them and
+     * broke the moment a nested one (`.dsh/skills/.../SKILL.md`, whose README link is
+     * `../../../README.md`) joined [DOCS] — the file it names exists, the root-relative
+     * reading just looks for it three directories above the repo. The result stays a
+     * repository-relative path, so `read`/`exists` keep working unchanged.
+     */
+    private fun resolveRelative(doc: String, target: String): File {
+        // A doc in DOCS always has a directory to resolve against; the repo root has no parent.
+        val containing = requireNotNull(File(repoRoot, doc).parentFile) { "$doc has no parent directory" }
+        val resolved = containing
+            .resolve(target.replace('/', File.separatorChar))
+            .canonicalFile
+        // A target that climbs out of the repository is a broken link, not a file to read.
+        check(resolved.toPath().startsWith(repoRoot.canonicalFile.toPath())) {
+            "$doc links outside the repository: $target"
+        }
+        return resolved
+    }
+
+    /**
+     * A repository-relative [path], canonicalised so the same file has one cache key.
+     * Relative inputs are rooted at [repoRoot] rather than at the process working
+     * directory, which is the module directory under Gradle — `Path.relativize` needs two
+     * absolute paths and silently produces nonsense when one is not.
+     */
+    private fun relativeToRepo(path: String): String {
+        val root = repoRoot.canonicalFile.toPath()
+        val absolute = File(path).let { if (it.isAbsolute) it else File(repoRoot, path) }.canonicalFile
+        return root.relativize(absolute.toPath()).toString().replace(File.separatorChar, '/')
+    }
 
     private companion object {
         val DOCS = listOf(
@@ -111,6 +162,9 @@ class DocsConsistencyTest {
             "ROADMAP.md",
             "CHANGELOG.md",
             "RELEASING.md",
+            // Loaded on demand, so its links and anchors rot with nothing to notice. Nested,
+            // which is what resolveRelative exists for.
+            ".dsh/skills/android-device-loop/SKILL.md",
         )
         val WHITESPACE = Regex("\\s+")
         val LINK = Regex("""\]\(([^)]+)\)""")
