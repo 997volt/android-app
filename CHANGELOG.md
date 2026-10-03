@@ -88,6 +88,14 @@ repeated here.
   I skipping this lift, or this day". A lift trained by two slots is counted in both on purpose.
   Counts, not a per-row percentage. No schema change.
 
+- **A streak of scheduled work, with where it started** (P3.15). The obvious version — consecutive
+  calendar days — is wrong here: it would break on every rest day, and by P3.5's rule an unscheduled
+  day *is* rest. So the streak counts **scheduled occurrences, not days**, walking back from the
+  most recent elapsed one while each was done. A skip and a miss both break it; an unscheduled day
+  is invisible to it; a deload week neither extends nor breaks it, because it is not scored (P3.10);
+  and an untrained today is stepped over rather than counted as a break. It is shown as a number
+  **with its start** and never as a nudge. No schema change.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

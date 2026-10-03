@@ -762,6 +762,39 @@ class ProgramRepositoryTest {
         assertTrue(squat.exerciseName != "back-squat")
     }
 
+    @Test
+    fun aRunOfDoneOccurrences_isCountedFromTheProgramsFirstWeek() = runTest {
+        // ROADMAP P3.15: occurrences, not days. The program was created today, so the walk starts
+        // at this week's Monday and Tuesday the 6th is the only occurrence in it.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+        insertSessionWithSet("done", "2026-10-06T09:00:00Z", template, weightGrams = 100_000L)
+
+        val streak = adherence.streak(today, utc).getOrNull()
+
+        assertEquals(1, streak?.count)
+        assertEquals(monday.plusDays(1), streak?.startedOn)
+    }
+
+    @Test
+    fun anUntrainedTuesday_leavesNoRunGoing() = runTest {
+        val program = create("Upper/Lower")
+        repository.addSlot(program, createTemplate("Heavy lower"), DayOfWeek.TUESDAY)
+        repository.activateProgram(program)
+
+        val streak = adherence.streak(today, utc).getOrNull()
+
+        assertEquals(0, streak?.count)
+        assertNull(streak?.startedOn)
+    }
+
+    @Test
+    fun withNoActiveProgram_thereIsNoRun() = runTest {
+        assertNull(adherence.streak(today, utc).getOrNull())
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

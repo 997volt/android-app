@@ -374,6 +374,18 @@ the rule; that one argues it.
   printing. It needs an active program, for the ratio's reason (P3.5): the pins carry no skip
   record to break down. No schema change — every row is the aggregate P3.5 already reads.
 
+- **A streak counts scheduled occurrences, not days, and is shown with its start** (P3.15).
+  Consecutive calendar days was rejected because it would break on every rest day, and by P3.5's
+  rule an unscheduled day *is* rest, so it is invisible here rather than a gap. A skip and a miss
+  both break the run — the occurrence was scheduled and it was not done — while a deload week
+  neither extends nor breaks it, because it is not scored (P3.10). Today is the one case that is
+  neither: an untrained today is stepped over rather than counted as a break, or the number would
+  be wrong for most of the day. The walk is bounded by the Monday the earliest active program was
+  created, because a slot day before the program existed was not an occurrence; an order-only
+  program and no program at all both report no run, the second for the ratio's reason (P3.5). It is
+  a number with its start and never a nudge: the app has no notifications (P4.7 is parked), and a
+  streak that pushes is a coach.
+
 ## Rules that apply to every change
 
 - **A range is a window in the current zone; a session's date is where it happened**

@@ -3,6 +3,7 @@ package com.example.androidapp.domain.repository
 import com.example.androidapp.domain.DataResult
 import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
+import com.example.androidapp.domain.model.Streak
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -57,6 +58,16 @@ interface AdherenceRepository {
         today: LocalDate,
         zone: ZoneId,
     ): DataResult<List<DayOccurrence>>
+
+    /**
+     * How many scheduled occurrences in a row were done, and when the run began (ROADMAP P3.15).
+     *
+     * The window is the program's own history rather than a month: a run is not a month's property,
+     * and the walk stops at the Monday the earliest active program was created. Null when no program
+     * is active, for the ratio's reason (P3.5) — the pins carry no skip record, so a rest on a
+     * pinned day cannot be told from a miss and a run built on it would not be trustworthy.
+     */
+    suspend fun streak(today: LocalDate, zone: ZoneId): DataResult<Streak?>
 
     /**
      * Marks or unmarks one occurrence as skipped (ROADMAP P3.13).

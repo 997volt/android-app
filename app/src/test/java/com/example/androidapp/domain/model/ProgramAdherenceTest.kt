@@ -578,6 +578,98 @@ class ProgramAdherenceTest {
         assertThat(adherence.bySlot).hasSize(1)
     }
 
+    @Test
+    fun theStreak_countsScheduledOccurrencesDoneInARow() {
+        // ROADMAP P3.15: occurrences, not days — an unscheduled day is rest, so it is invisible
+        // here rather than a gap that breaks the run.
+        val streak = ProgramSchedule.streak(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = listOf(
+                session("t-tue", monday.minusWeeks(2)),
+                session("t-tue", monday.minusWeeks(1)),
+                session("t-tue", monday.plusDays(1)),
+            ),
+            skips = emptyList(),
+            since = monday.minusWeeks(2),
+            today = today,
+        )
+
+        assertThat(streak?.count).isEqualTo(3)
+        assertThat(streak?.startedOn).isEqualTo(monday.minusWeeks(2).plusDays(1))
+    }
+
+    @Test
+    fun aMissAndASkip_bothBreakTheRun() {
+        val missed = ProgramSchedule.streak(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            since = monday,
+            today = today,
+        )
+        // Tuesday the 6th is behind us and untrained.
+        assertThat(missed?.count).isEqualTo(0)
+        assertThat(missed?.startedOn).isNull()
+
+        val skipped = ProgramSchedule.streak(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = emptyList(),
+            skips = listOf(RecordedSkip(slotId = "tue", weekStart = monday)),
+            since = monday,
+            today = today,
+        )
+        // A skip is the same to a run as a miss: scheduled, and not done.
+        assertThat(skipped?.count).isEqualTo(0)
+    }
+
+    @Test
+    fun aDeloadWeek_neitherExtendsNorBreaksTheRun() {
+        val streak = ProgramSchedule.streak(
+            slots = listOf(slot("tue", DayOfWeek.TUESDAY)),
+            sessions = listOf(
+                session("t-tue", monday.minusWeeks(2)),
+                session("t-tue", monday.minusWeeks(1)),
+            ),
+            skips = emptyList(),
+            since = monday.minusWeeks(2),
+            today = today,
+            deloads = listOf(RecordedDeload(programId = "p1", weekStart = monday)),
+        )
+
+        // The 6th is exempt, so the run reaches back through it to the 22nd.
+        assertThat(streak?.count).isEqualTo(2)
+        assertThat(streak?.startedOn).isEqualTo(monday.minusWeeks(2).plusDays(1))
+    }
+
+    @Test
+    fun anUntrainedToday_neitherExtendsNorBreaksTheRun() {
+        val streak = ProgramSchedule.streak(
+            slots = listOf(slot("thu", DayOfWeek.THURSDAY)),
+            sessions = listOf(session("t-thu", monday.minusDays(4))),
+            skips = emptyList(),
+            since = monday.minusDays(4),
+            today = today,
+        )
+
+        // Today is Thursday the 8th, not yet trained and not passed over; the 1st was done.
+        assertThat(streak?.count).isEqualTo(1)
+        assertThat(streak?.startedOn).isEqualTo(monday.minusDays(4))
+    }
+
+    @Test
+    fun anOrderOnlyProgram_hasNoStreak() {
+        // No weekday slot means no day to miss; the pins carry no skip record either.
+        val streak = ProgramSchedule.streak(
+            slots = listOf(slot("a", weekday = null)),
+            sessions = emptyList(),
+            skips = emptyList(),
+            since = monday,
+            today = today,
+        )
+
+        assertThat(streak).isNull()
+    }
+
     private companion object {
         /** A ratio of thirds is not exact in binary floating point. */
         const val TOLERANCE = 1e-9

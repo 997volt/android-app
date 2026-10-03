@@ -390,6 +390,119 @@ object ProgramSchedule {
     )
 
     /**
+     * Scheduled occurrences done in a row, walking back from the most recent one (ROADMAP P3.15).
+     *
+     * **Occurrences, not days**: consecutive calendar days would break on every rest day, and by
+     * P3.5's rule an unscheduled day is rest, so it is invisible here rather than a gap. A skip and
+     * a miss both break the run — the occurrence was scheduled and it was not done — while a deload
+     * week (P3.10) neither extends nor breaks it, because it is not scored at all.
+     *
+     * Today's occurrence is the one case that is neither: it has not been passed over yet, so an
+     * untrained today is skipped over rather than counted as a break. [since] bounds the walk — the
+     * Monday the earliest active program was created, because a slot day before the program existed
+     * was not an occurrence — and a program with no weekday slot returns null rather than zero: an
+     * order-only program has no days to run, and the pins carry no skip record to trust.
+     */
+    fun streak(
+        slots: List<ProgramSlot>,
+        sessions: List<AdherenceSession>,
+        skips: List<RecordedSkip>,
+        since: LocalDate,
+        today: LocalDate,
+        /** The deloaded weeks across the walk, or none (P3.10). */
+        deloads: List<RecordedDeload> = emptyList(),
+        /** The occurrences trained with another workout, or none (P3.11). */
+        substitutions: List<RecordedSubstitution> = emptyList(),
+    ): Streak? {
+        if (slots.none { it.weekday != null }) return null
+
+        val finished = sessions.mapNotNull { session ->
+            session.templateId?.let {
+                ProgramSession(
+                    sessionId = session.sessionId,
+                    templateId = it,
+                    startedAt = session.startedAt,
+                    zone = session.zone,
+                )
+            }
+        }
+        val resolved = resolvedOccurrences(slots, finished, substitutions)
+        val skipped = skips.toSet()
+        val deloaded = deloads.toSet()
+
+        val recorded = Recorded(resolved = resolved, skipped = skipped, deloaded = deloaded)
+        var count = 0
+        var startedOn: LocalDate? = null
+        for ((date, week, slot) in streakOccurrences(slots, since, today).asReversed()) {
+            when (streakStep(date, week, slot, recorded, today)) {
+                StreakStep.DONE -> {
+                    count++
+                    startedOn = date
+                }
+
+                StreakStep.INVISIBLE -> Unit
+                StreakStep.BROKEN -> break
+            }
+        }
+
+        return Streak(count = count, startedOn = if (count == 0) null else startedOn)
+    }
+
+    /**
+     * Every occurrence of [slots] from [since]'s week to [today], oldest first (ROADMAP P3.15).
+     *
+     * Oldest first so the walk back is the reversed list, and a stable sort keeps the program's own
+     * order within a day.
+     */
+    private fun streakOccurrences(
+        slots: List<ProgramSlot>,
+        since: LocalDate,
+        today: LocalDate,
+    ): List<Triple<LocalDate, LocalDate, ProgramSlot>> {
+        val occurrences = mutableListOf<Triple<LocalDate, LocalDate, ProgramSlot>>()
+        generateSequence(weekStartOf(since)) { it.plusWeeks(1) }
+            .takeWhile { !it.isAfter(weekStartOf(today)) }
+            .forEach { week ->
+                slots.forEach { slot ->
+                    val weekday = slot.weekday ?: return@forEach
+                    val date = occurrenceDate(week, weekday)
+                    if (date.isAfter(today)) return@forEach
+                    occurrences += Triple(date, week, slot)
+                }
+            }
+        occurrences.sortBy { it.first }
+        return occurrences
+    }
+
+    /** How one occurrence reads to the streak walk (ROADMAP P3.15). */
+    private enum class StreakStep {
+        DONE,
+
+        /** Exempt or not yet passed over: the run neither gains nor loses a step. */
+        INVISIBLE,
+
+        /** Scheduled and not done: the run stops here. */
+        BROKEN,
+    }
+
+    private fun streakStep(
+        date: LocalDate,
+        week: LocalDate,
+        slot: ProgramSlot,
+        recorded: Recorded,
+        today: LocalDate,
+    ): StreakStep = when {
+        // Exempt from judgement, and therefore invisible to a run (P3.10).
+        RecordedDeload(slot.programId, week) in recorded.deloaded -> StreakStep.INVISIBLE
+        SlotOccurrence(slot.id, week, date) in recorded.resolved -> StreakStep.DONE
+        // A skip and a miss are the same to a streak: scheduled, and not done.
+        RecordedSkip(slot.id, week) in recorded.skipped -> StreakStep.BROKEN
+        date.isBefore(today) -> StreakStep.BROKEN
+        // Today, not yet trained and not passed over: neither an extension nor a break.
+        else -> StreakStep.INVISIBLE
+    }
+
+    /**
      * The month's counts, read per lift (ROADMAP P3.14).
      *
      * [exercisesByTemplate] is the join N14 already has — a template's planned exercise ids — and

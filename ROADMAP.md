@@ -17,26 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Two rows, planned together: they are everything the last two rounds deferred, and each one
+One row, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Adherence** — how often the plan happened
-
-**P3.15 — A streak of scheduled work.**
-
-The one adherence number a lifter reads without thinking — and the obvious version of it is
-wrong here, because consecutive calendar days would break on every rest day, and an unscheduled
-day is rest by P3.5's rule.
-
-- **It counts scheduled occurrences, not days** — the ratio's unit (P3.5) — walking back from
-  the most recent elapsed occurrence while each was done.
-- **A skip and a miss both break it** (scheduled, and not done); an unscheduled day is
-  invisible to it; a deload week (P3.10) neither extends nor breaks it, because it is not
-  scored.
-- **No program, no streak**, for the ratio's reason: the pins cannot tell a rest from a miss.
-- **Shown as a number with its start**, never as a nudge: the app has no notifications (P4.7 is
-  parked) and a streak that pushes is a coach (N22's rule).
 
 **P3.16 — A window wider than a month.**
 

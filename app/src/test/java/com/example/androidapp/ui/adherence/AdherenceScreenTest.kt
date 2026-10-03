@@ -14,6 +14,7 @@ import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.SlotAdherence
+import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.model.ExerciseAdherence
 import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -270,6 +271,38 @@ class AdherenceScreenTest {
             .performClick()
 
         assertThat(marked).isFalse()
+    }
+
+    @Test
+    fun theRunOfScheduledWork_isShownWithItsStart() {
+        // ROADMAP P3.15: a number with its start, never a nudge.
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                adherence = MonthAdherence(scheduledDays = setOf(LocalDate.of(2026, 10, 6))),
+                streak = Streak(count = 3, startedOn = LocalDate.of(2026, 10, 1)),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.STREAK).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.STREAK_START).assertExists()
+        composeTestRule.onNodeWithText("3 sessions done in a row").assertExists()
+    }
+
+    @Test
+    fun withNoProgram_thereIsNoRunToShow() {
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                hasActiveProgram = false,
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.STREAK).assertDoesNotExist()
     }
 
     @Test

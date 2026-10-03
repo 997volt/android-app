@@ -105,6 +105,16 @@ data class MonthAdherence(
 }
 
 /**
+ * Scheduled occurrences done in a row, and when the run began (ROADMAP P3.15).
+ *
+ * [startedOn] is the date of the oldest occurrence in the run, which is what makes the number
+ * checkable rather than a bare claim; it is null when nothing has been done in a row. A streak is
+ * shown as a number with its start and never as a nudge: the app has no notifications and a streak
+ * that pushes is a coach.
+ */
+data class Streak(val count: Int, val startedOn: LocalDate? = null)
+
+/**
  * One slot's share of the month (ROADMAP P3.14).
  *
  * Counts rather than a percentage: two of three is not 67% of anything worth printing, and the

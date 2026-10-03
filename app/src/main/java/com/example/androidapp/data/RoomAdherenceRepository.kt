@@ -23,7 +23,9 @@ import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.RecordedDeload
 import com.example.androidapp.domain.model.RecordedSkip
 import com.example.androidapp.domain.model.RecordedSubstitution
+import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.repository.AdherenceRepository
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -162,6 +164,33 @@ class RoomAdherenceRepository @Inject constructor(
             today = today,
             deloads = deloadsBetween(weekStart, weekStart),
             substitutions = substitutionsBetween(weekStart, weekStart),
+        )
+    }
+
+    override suspend fun streak(today: LocalDate, zone: ZoneId): DataResult<Streak?> = dataResultOf {
+        val active = programDao.findActivePrograms()
+        if (active.isEmpty()) return@dataResultOf null
+
+        // The walk cannot start before the earliest active program existed: a slot day before that
+        // was not an occurrence (P3.15).
+        val created = programDao.earliestActiveProgramCreatedAt() ?: return@dataResultOf null
+        val since = ProgramSchedule.weekStartOf(
+            Instant.ofEpochMilli(created).atZone(zone).toLocalDate(),
+        )
+        val lastWeek = ProgramSchedule.weekStartOf(today)
+        val from = since.minusDays(SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = today.plusDays(DAYS_IN_WEEK + SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+
+        ProgramSchedule.streak(
+            slots = activeSlots(active.map { it.id }),
+            sessions = programDao.finishedSessionsBetween(from, to).map { it.toAdherenceSession(zone) },
+            skips = skipDao.findSkipsBetween(since.toEpochDay(), lastWeek.toEpochDay()).map {
+                RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
+            },
+            since = since,
+            today = today,
+            deloads = deloadsBetween(since, lastWeek),
+            substitutions = substitutionsBetween(since, lastWeek),
         )
     }
 

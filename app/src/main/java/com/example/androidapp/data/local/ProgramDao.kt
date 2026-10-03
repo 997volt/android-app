@@ -100,6 +100,15 @@ interface ProgramDao {
     )
     suspend fun findActivePrograms(): List<ProgramSummaryRow>
 
+    /**
+     * When the earliest active program was created, or null when none is (ROADMAP P3.15).
+     *
+     * Read on its own rather than added to [ProgramSummaryRow]: only the streak's walk needs it, and
+     * every other screen would carry a column it never reads.
+     */
+    @Query("SELECT MIN(createdAt) FROM programs WHERE isActive = 1 AND deletedAt IS NULL")
+    suspend fun earliestActiveProgramCreatedAt(): Long?
+
     @Query(
         """
         SELECT p.id AS id,

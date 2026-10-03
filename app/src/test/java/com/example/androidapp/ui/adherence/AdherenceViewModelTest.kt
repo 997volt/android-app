@@ -7,6 +7,7 @@ import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.OccurrenceState
+import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.repository.AdherenceRepository
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
@@ -267,6 +268,35 @@ class AdherenceViewModelTest {
         assertThat(repository.daysAsked.size).isEqualTo(readsBefore + 1)
     }
 
+    @Test
+    fun theRunOfScheduledWork_reachesTheState() = runTest(dispatcher) {
+        // ROADMAP P3.15: measured to today, so it reads the same while the grid shows history.
+        val repository = FakeAdherenceRepository()
+        repository.streak = DataResult.Success(
+            Streak(count = 4, startedOn = LocalDate.of(2026, 10, 1)),
+        )
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.streak?.count).isEqualTo(4)
+        assertThat(viewModel.uiState.value.streak?.startedOn).isEqualTo(LocalDate.of(2026, 10, 1))
+    }
+
+    @Test
+    fun aFailedStreakRead_leavesTheMonthsNumbersOnScreen() = runTest(dispatcher) {
+        val repository = FakeAdherenceRepository()
+        repository.streak = DataResult.Failure(DataError.Storage(IOException("disk full")))
+        val viewModel = viewModel(repository)
+        observe(viewModel)
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.streak).isNull()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
     private fun viewModel(repository: FakeAdherenceRepository) =
         AdherenceViewModel(repository, TimeSource { now })
 
@@ -294,6 +324,11 @@ class AdherenceViewModelTest {
             asked += month
             return report
         }
+
+        /** What the streak read answers with; none unless a test sets one (ROADMAP P3.15). */
+        var streak: DataResult<Streak?> = DataResult.Success(null)
+
+        override suspend fun streak(today: LocalDate, zone: ZoneId): DataResult<Streak?> = streak
 
         override suspend fun setDeloadWeek(
             programId: String,

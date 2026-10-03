@@ -8,6 +8,7 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.ProgramSchedule
+import com.example.androidapp.domain.model.Streak
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.repository.AdherenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,6 +56,13 @@ data class AdherenceUiState(
     val markableWeeks: List<LocalDate> = emptyList(),
     /** The day whose correction dialog is open, or null (ROADMAP P3.13). */
     val day: DayCorrection? = null,
+    /**
+     * The run of scheduled occurrences done in a row, or null (ROADMAP P3.15).
+     *
+     * Measured to today rather than to [month]: a run is not a month's property, so it reads the
+     * same while the grid is showing history.
+     */
+    val streak: Streak? = null,
     val error: DataError? = null,
 ) {
     /** False on the current month: the calendar navigates back through history, never forward. */
@@ -231,6 +239,7 @@ class AdherenceViewModel @Inject constructor(
                 programs = result.data.programs,
                 deloadWeeks = result.data.deloadWeeks,
                 markableWeeks = markableWeeksOf(month, today),
+                streak = streakOrNull(today, zone),
             )
 
             is DataResult.Failure -> AdherenceUiState(
@@ -241,6 +250,15 @@ class AdherenceViewModel @Inject constructor(
             )
         }
     }
+
+    /**
+     * The run, or null when there is none to report (ROADMAP P3.15).
+     *
+     * A failed streak read leaves the month's numbers on screen rather than failing the screen: the
+     * run is a headline, and nothing else here is derived from it.
+     */
+    private suspend fun streakOrNull(today: LocalDate, zone: ZoneId): Streak? =
+        (adherence.streak(today, zone) as? DataResult.Success)?.data
 
     private fun today(zone: ZoneId = ZoneId.systemDefault()): LocalDate =
         timeSource.now().atZone(zone).toLocalDate()

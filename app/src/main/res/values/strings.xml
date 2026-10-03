@@ -234,6 +234,13 @@
     <string name="adherence_state_missed">Missed</string>
     <string name="adherence_state_pending">Not yet</string>
     <string name="adherence_state_deload">Deload week — not scored</string>
+    <!-- The run of scheduled work in a row (ROADMAP P3.15). -->
+    <plurals name="adherence_streak">
+        <item quantity="one">%1$d session done in a row</item>
+        <item quantity="other">%1$d sessions done in a row</item>
+    </plurals>
+    <string name="adherence_streak_since">since %1$s</string>
+    <string name="adherence_streak_none">No run going yet</string>
     <!-- The month read per slot and per lift (ROADMAP P3.14). -->
     <string name="adherence_by_slot">By day</string>
     <string name="adherence_by_lift">By lift</string>

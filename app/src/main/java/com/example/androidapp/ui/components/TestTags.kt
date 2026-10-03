@@ -437,6 +437,10 @@ object TestTags {
 
         fun daySkipped(slotId: String) = "adherence_skipped_$slotId"
 
+        /** The run of work in a row (ROADMAP P3.15). */
+        const val STREAK = "adherence_streak"
+        const val STREAK_START = "adherence_streak_start"
+
         /** The month read per slot and per lift (ROADMAP P3.14). */
         const val BY_SLOT_TITLE = "adherence_by_slot_title"
         const val BY_EXERCISE_TITLE = "adherence_by_lift_title"
