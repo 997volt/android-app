@@ -12,6 +12,8 @@ repeated here.
 
 ## [Unreleased]
 
+## [1.10] — 2026-10-03 (versionCode 11)
+
 ### Added
 
 - **More than one program can be active at once, and a program's place is authored** (P3.12,

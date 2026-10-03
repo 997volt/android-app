@@ -18,7 +18,7 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 ## Next
 
 Nothing is planned. The deferred scope of the last two rounds — P3.3's and P3.5's, programmed as
-P3.8-P3.16 — is built and waiting in [CHANGELOG.md](CHANGELOG.md)'s Unreleased section. A candidate
+P3.8-P3.16 — was built and shipped at 1.10, with its entries in [CHANGELOG.md](CHANGELOG.md). A candidate
 graduates to this section — gaining an id and a spelled-out decision rather than a wish — when it is
 picked up, so an empty *Next* is a state rather than a gap: the two queues below are where unplanned
 work lives, *Later* for what is self-contained and *Parked* for what is a product in its own right.
