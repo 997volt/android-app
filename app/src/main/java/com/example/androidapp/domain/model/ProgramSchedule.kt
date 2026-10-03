@@ -3,6 +3,7 @@ package com.example.androidapp.domain.model
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 
 /**
@@ -151,5 +152,86 @@ object ProgramSchedule {
             }
             // Stable, so slots sharing a day keep the program's order.
             .sortedBy { it.date }
+    }
+
+    /**
+     * One month of adherence: which scheduled occurrences happened, which were skipped, which
+     * were missed, and which days were trained (ROADMAP P3.5).
+     *
+     * **Done, skipped and missed come from one set of definitions.** *Done* is an occurrence
+     * settled by a session that was **finished** — [resolvedOccurrences] over the window's
+     * finished sessions, which is deliberately stricter than the prompt, where a started
+     * session silences a day P3.3 would otherwise nag about. *Skipped* is a [RecordedSkip] for
+     * that slot and week. *Missed* is elapsed and scheduled and neither of the others.
+     *
+     * **Only the occurrence's own day is scored, and only a day strictly before [today] can
+     * have been missed.** A Friday slot on a Wednesday has not been missed yet, and a done
+     * occurrence counts whenever it fell — including early, which is how P3.3 matches it.
+     *
+     * A slot with no weekday is never scored: it has no day to miss and is order-only.
+     */
+    fun monthAdherence(
+        slots: List<ProgramSlot>,
+        sessions: List<AdherenceSession>,
+        skips: List<RecordedSkip>,
+        month: YearMonth,
+        today: LocalDate,
+    ): MonthAdherence {
+        val first = month.atDay(1)
+        val last = month.atEndOfMonth()
+
+        // A trained day is a finished session's own day, and needs no schedule: a workout
+        // started by hand marks its day whether or not a program is active.
+        val trained = sessions.map { it.date }.filter { it in first..last }.toSet()
+
+        // Only a finished session settles an occurrence here. An abandoned start is a miss
+        // (P3.5): what this asks is whether the training happened, not whether to nag.
+        val finished = sessions.mapNotNull { session ->
+            session.templateId?.let { ProgramSession(it, session.startedAt, session.zone) }
+        }
+        val resolved = resolvedOccurrences(slots, finished)
+        val skipped = skips.toSet()
+
+        val scheduledDays = mutableSetOf<LocalDate>()
+        var done = 0
+        var skipCount = 0
+        var missed = 0
+
+        for (week in weeksOf(month)) {
+            slots.forEach { slot ->
+                val weekday = slot.weekday ?: return@forEach
+                val date = occurrenceDate(week, weekday)
+                if (date !in first..last) return@forEach
+                scheduledDays += date
+
+                when {
+                    SlotOccurrence(slot.id, week, date) in resolved -> done++
+                    RecordedSkip(slot.id, week) in skipped -> skipCount++
+                    date.isBefore(today) -> missed++
+                }
+            }
+        }
+
+        return MonthAdherence(
+            done = done,
+            skipped = skipCount,
+            missed = missed,
+            trainedDays = trained,
+            scheduledDays = scheduledDays,
+        )
+    }
+
+    /**
+     * The Monday-start weeks that contain at least one day of [month], in order.
+     *
+     * Every scored occurrence falls in one of them, and a skip row is keyed by exactly one of
+     * these Mondays, so this is the range the repository has to read skips for.
+     */
+    private fun weeksOf(month: YearMonth): List<LocalDate> {
+        val firstWeek = weekStartOf(month.atDay(1))
+        val lastWeek = weekStartOf(month.atEndOfMonth())
+        return generateSequence(firstWeek) { it.plusWeeks(1) }
+            .takeWhile { !it.isAfter(lastWeek) }
+            .toList()
     }
 }
