@@ -1,11 +1,13 @@
 package com.example.androidapp.domain.repository
 
 import com.example.androidapp.domain.DataResult
+import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 
@@ -90,4 +92,23 @@ interface ProgramRepository {
      * Idempotent, so a repeated continue cannot double-record.
      */
     suspend fun skipOccurrences(slotIds: List<String>, weekStart: LocalDate): DataResult<Unit>
+
+    /**
+     * One month of adherence: what the active program scheduled, what happened, and the days
+     * trained (ROADMAP P3.5).
+     *
+     * [month] is the calendar month the grid shows; [today] and [zone] are the *device's* own day
+     * and zone, which is what "elapsed" means when that month is the current one. A session's own
+     * day and week still come from its own zone (N25), so a workout performed abroad marks the day
+     * it happened.
+     *
+     * With **no active program** the days trained are still read — that needs no schedule — and
+     * every count is zero, which the screen reports as "no ratio" rather than as a schedule
+     * nobody followed.
+     */
+    suspend fun monthAdherence(
+        month: YearMonth,
+        today: LocalDate,
+        zone: ZoneId,
+    ): DataResult<AdherenceReport>
 }

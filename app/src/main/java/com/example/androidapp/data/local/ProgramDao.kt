@@ -266,6 +266,35 @@ interface ProgramDao {
     )
     suspend fun sessionsStartedBetween(fromMillis: Long, toMillis: Long): List<ProgramSessionRow>
 
+    /**
+     * Every **finished** session that began in [fromMillis, toMillis), template or not (P3.5).
+     *
+     * Unlike [sessionsStartedBetween] this does not filter on `templateId`: a session started by
+     * hand still marks a trained day, and the calendar needs no schedule to draw it. It does
+     * filter on `finishedAt`, because adherence asks whether the training happened — an
+     * abandoned start is a miss, which is deliberately stricter than the prompt's "did you
+     * start it". A null `templateId` resolves no occurrence; the caller decides that.
+     */
+    @Query(
+        """
+        SELECT id AS sessionId,
+               templateId AS templateId,
+               startedAt AS startedAt,
+               zoneOffsetMinutes AS zoneOffsetMinutes
+        FROM workout_sessions
+        WHERE deletedAt IS NULL
+          AND finishedAt IS NOT NULL
+          AND startedAt >= :fromMillis
+          AND startedAt < :toMillis
+        ORDER BY startedAt ASC
+        """,
+    )
+    suspend fun finishedSessionsBetween(fromMillis: Long, toMillis: Long): List<FinishedSessionRow>
+
+    /** The skips recorded for any week in [from, to] inclusive, both epoch days (P3.5). */
+    @Query("SELECT * FROM program_skips WHERE weekStart >= :from AND weekStart <= :to AND deletedAt IS NULL")
+    suspend fun findSkipsBetween(from: Long, to: Long): List<ProgramSkipEntity>
+
     /** The skips recorded for one week, live rows only. */
     @Query("SELECT * FROM program_skips WHERE weekStart = :weekStart AND deletedAt IS NULL")
     suspend fun findSkipsForWeek(weekStart: Long): List<ProgramSkipEntity>

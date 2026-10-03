@@ -1,5 +1,6 @@
 package com.example.androidapp.data.local
 
+import com.example.androidapp.domain.model.AdherenceSession
 import com.example.androidapp.domain.model.ProgramSession
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
@@ -38,6 +39,21 @@ internal fun ProgramSlotDetail.toDomain(): ProgramSlot = ProgramSlot(
  */
 internal fun ProgramSessionRow.toProgramSession(fallbackZone: ZoneId): ProgramSession =
     ProgramSession(
+        templateId = templateId,
+        startedAt = Instant.ofEpochMilli(startedAt),
+        zone = zoneOffsetMinutes
+            ?.let { minutes -> ZoneOffset.ofTotalSeconds(minutes * SECONDS_PER_MINUTE) }
+            ?: fallbackZone,
+    )
+
+/**
+ * A finished session as adherence reads it (ROADMAP P3.5).
+ *
+ * The same zone rule as [toProgramSession]: the session's own where it has one, the reading zone
+ * only for rows written before N25 recorded it.
+ */
+internal fun FinishedSessionRow.toAdherenceSession(fallbackZone: ZoneId): AdherenceSession =
+    AdherenceSession(
         templateId = templateId,
         startedAt = Instant.ofEpochMilli(startedAt),
         zone = zoneOffsetMinutes

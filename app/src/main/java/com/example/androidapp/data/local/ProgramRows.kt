@@ -45,3 +45,16 @@ data class ProgramSessionRow(
     val startedAt: Long,
     val zoneOffsetMinutes: Int?,
 )
+
+/**
+ * A finished session as adherence reads it (ROADMAP P3.5).
+ *
+ * [templateId] is nullable here where [ProgramSessionRow]'s is not: a session started by hand
+ * settles no occurrence but still marks a trained day, which is half of what the calendar draws.
+ */
+data class FinishedSessionRow(
+    val sessionId: String,
+    val templateId: String?,
+    val startedAt: Long,
+    val zoneOffsetMinutes: Int?,
+)

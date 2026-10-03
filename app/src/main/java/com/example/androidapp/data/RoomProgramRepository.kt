@@ -6,6 +6,7 @@ import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSlotEntity
 import com.example.androidapp.data.local.ProgramEntity
 import com.example.androidapp.data.local.WorkoutDatabase
+import com.example.androidapp.data.local.toAdherenceSession
 import com.example.androidapp.data.local.toDomain
 import com.example.androidapp.data.local.toProgramSession
 import com.example.androidapp.domain.DataResult
@@ -14,6 +15,7 @@ import com.example.androidapp.domain.NotFoundException
 import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.dataResultOf
 import com.example.androidapp.domain.nowEpochMillis
+import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.ProgramSlot
@@ -22,6 +24,7 @@ import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.repository.ProgramRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
@@ -208,6 +211,49 @@ class RoomProgramRepository @Inject constructor(
                 }
             }
         }
+    }
+
+    override suspend fun monthAdherence(
+        month: YearMonth,
+        today: LocalDate,
+        zone: ZoneId,
+    ): DataResult<AdherenceReport> = dataResultOf {
+        val firstWeek = ProgramSchedule.weekStartOf(month.atDay(1))
+        val lastWeek = ProgramSchedule.weekStartOf(month.atEndOfMonth())
+
+        // The read covers whole weeks rather than the month's days: a slot inside the month can
+        // be settled by a session earlier or later in its own week (P3.3), and a skip is keyed by
+        // that week's Monday. The day of slack at each end is for sessions performed in another
+        // zone, whose week the device clock does not name (N25).
+        val from = firstWeek.minusDays(SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = lastWeek.plusDays(DAYS_IN_WEEK + SLACK_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+        val sessions = dao.finishedSessionsBetween(from, to).map { it.toAdherenceSession(zone) }
+
+        val active = dao.findActiveProgram()
+        if (active == null) {
+            // A trained day needs no schedule, so the calendar is still drawn; there is simply
+            // nothing to score it against.
+            return@dataResultOf AdherenceReport(
+                hasActiveProgram = false,
+                adherence = ProgramSchedule.monthAdherence(
+                    slots = emptyList(),
+                    sessions = sessions,
+                    skips = emptyList(),
+                    month = month,
+                    today = today,
+                ),
+            )
+        }
+
+        val slots = dao.findSlotDetails(active.id).map { it.toDomain() }
+        val skips = dao.findSkipsBetween(firstWeek.toEpochDay(), lastWeek.toEpochDay()).map {
+            RecordedSkip(slotId = it.slotId, weekStart = LocalDate.ofEpochDay(it.weekStart))
+        }
+
+        AdherenceReport(
+            hasActiveProgram = true,
+            adherence = ProgramSchedule.monthAdherence(slots, sessions, skips, month, today),
+        )
     }
 
     /** A program with no name is a list row nobody can tell apart from the next. */

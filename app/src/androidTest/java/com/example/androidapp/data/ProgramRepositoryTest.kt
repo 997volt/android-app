@@ -17,6 +17,7 @@ import com.example.androidapp.domain.model.ProgramSlot
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -217,6 +218,95 @@ class ProgramRepositoryTest {
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
 
         assertTrue(repository.pendingOccurrences(today, utc).getOrNull().isNullOrEmpty())
+    }
+
+    @Test
+    fun aFinishedSession_isDone_andAnAbandonedStart_isMissed() = runTest {
+        // The rule that makes adherence stricter than the prompt: a session that was started
+        // silences P3.3's question, but only one that was *finished* counts as training here.
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.setActiveProgram(program)
+        insertSession(id = "done", date = "2026-10-06T09:00:00Z", finished = true, templateId = template)
+        insertSession(id = "abandoned", date = "2026-10-13T09:00:00Z", finished = false, templateId = template)
+
+        val report = repository.monthAdherence(
+            month = YearMonth.of(2026, 10),
+            today = LocalDate.of(2026, 10, 15),
+            zone = utc,
+        ).getOrNull()
+
+        assertTrue(report!!.hasActiveProgram)
+        assertEquals(1, report.adherence.done)
+        assertEquals(1, report.adherence.missed)
+        // The unfinished session marks no trained day at all.
+        assertEquals(setOf(LocalDate.of(2026, 10, 6)), report.adherence.trainedDays)
+        assertEquals(
+            setOf(
+                LocalDate.of(2026, 10, 6),
+                LocalDate.of(2026, 10, 13),
+                LocalDate.of(2026, 10, 20),
+                LocalDate.of(2026, 10, 27),
+            ),
+            report.adherence.scheduledDays,
+        )
+    }
+
+    @Test
+    fun aRecordedSkip_reachesTheMonth_asSkipped_notMissed() = runTest {
+        val program = create("Upper/Lower")
+        val template = createTemplate("Heavy lower")
+        repository.addSlot(program, template, DayOfWeek.TUESDAY)
+        repository.setActiveProgram(program)
+        repository.skipOccurrences(listOf(slot(program).id), monday)
+
+        val report = repository.monthAdherence(
+            month = YearMonth.of(2026, 10),
+            today = today,
+            zone = utc,
+        ).getOrNull()
+
+        assertEquals(1, report!!.adherence.skipped)
+        assertEquals(0, report.adherence.missed)
+    }
+
+    @Test
+    fun withNoActiveProgram_theDaysTrainedAreStillRead_butNothingIsScored() = runTest {
+        // The calendar needs no schedule; the pins home falls back to carry no skip record, so
+        // there is deliberately no ratio to compute.
+        insertSession(id = "hand-started", date = "2026-10-06T09:00:00Z", finished = true, templateId = null)
+
+        val report = repository.monthAdherence(
+            month = YearMonth.of(2026, 10),
+            today = today,
+            zone = utc,
+        ).getOrNull()
+
+        assertEquals(false, report!!.hasActiveProgram)
+        assertEquals(0, report.adherence.scored)
+        assertEquals(null, report.adherence.ratio)
+        assertEquals(setOf(LocalDate.of(2026, 10, 6)), report.adherence.trainedDays)
+    }
+
+    /** A session row, finished or abandoned, started from [templateId] or by hand. */
+    private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {
+        val startedAt = Instant.parse(date).toEpochMilli()
+        database.workoutDao().insertSession(
+            WorkoutSessionEntity(
+                id = id,
+                startedAt = startedAt,
+                finishedAt = if (finished) startedAt + 3_600_000 else null,
+                notes = null,
+                restEndsAt = null,
+                readinessNote = null,
+                zoneOffsetMinutes = 0,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+                templateId = templateId,
+            ),
+        )
     }
 
     private suspend fun create(name: String): String =
