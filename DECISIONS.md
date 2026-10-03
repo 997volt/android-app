@@ -363,6 +363,17 @@ the rule; that one argues it.
   correctable — it is the record — and a deload week offers nothing to correct, because it is not
   scored (P3.10).
 
+- **The breakdown is the same aggregate, read two ways, and the parts are the whole** (P3.14).
+  The per-slot counts are accumulated in the same pass as the totals rather than recomputed, so
+  there is one definition of done, skipped and missed and the rows cannot drift from the ratio
+  above them; a slot with nothing scored is left out, because a row of zeros answers nothing. The
+  per-lift rows are a second grouping over N14's join — a slot's template names the exercises it
+  trains — which is what answers "am I skipping *this lift*, or this day": a lift trained by two
+  slots is counted in both, so those rows deliberately do **not** sum to the month's total the way
+  the per-slot rows do. Counts, not a per-row percentage: two of three is not 67% of anything worth
+  printing. It needs an active program, for the ratio's reason (P3.5): the pins carry no skip
+  record to break down. No schema change — every row is the aggregate P3.5 already reads.
+
 ## Rules that apply to every change
 
 - **A range is a window in the current zone; a session's date is where it happened**

@@ -740,6 +740,28 @@ class ProgramRepositoryTest {
         assertFalse("a finished session is the record", occurrence.canCorrect)
     }
 
+    @Test
+    fun theMonthIsBrokenDownBySlotAndByLift() = runTest {
+        // ROADMAP P3.14: the same aggregate, read per slot and per lift over the N14 join.
+        val program = create("Upper/Lower")
+        val lower = createTemplate("Heavy lower")
+        repository.addSlot(program, lower, DayOfWeek.MONDAY)
+        repository.activateProgram(program)
+
+        val report = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()!!
+
+        val slotRow = report.adherence.bySlot.single { it.templateId == lower }
+        // The parts are the whole.
+        assertEquals(report.adherence.missed, report.adherence.bySlot.sumOf { it.missed })
+        // createTemplate plans back-squat, so the lift's counts are that one slot's.
+        val squat = report.adherence.byExercise.single { it.exerciseId == "back-squat" }
+        assertEquals(slotRow.missed, squat.missed)
+        assertEquals(slotRow.done, squat.done)
+        // Named from the library, not the id: the row is read, not parsed.
+        assertTrue(squat.exerciseName.isNotBlank())
+        assertTrue(squat.exerciseName != "back-squat")
+    }
+
     /** A session row, finished or abandoned, started from [templateId] or by hand. */
     private suspend fun insertSession(id: String, date: String, finished: Boolean, templateId: String?) {        val startedAt = Instant.parse(date).toEpochMilli()
         database.workoutDao().insertSession(

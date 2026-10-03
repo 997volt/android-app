@@ -509,6 +509,75 @@ class ProgramAdherenceTest {
         assertThat(occurrences.single().canCorrect).isFalse()
     }
 
+    @Test
+    fun thePerSlotBreakdown_sumsToTheWhole() {
+        // ROADMAP P3.14: the parts are the whole, accumulated in one pass rather than recomputed.
+        val adherence = ProgramSchedule.monthAdherence(
+            slots = listOf(
+                slot("mon", DayOfWeek.MONDAY, position = 0, templateId = "t-mon"),
+                slot("thu", DayOfWeek.THURSDAY, position = 1, templateId = "t-thu"),
+            ),
+            sessions = emptyList(),
+            skips = emptyList(),
+            month = october,
+            today = today,
+        )
+
+        // Monday the 5th is behind us and untrained, as is Thursday the 1st; Thursday the 8th is
+        // today, so it is drawn but not yet scored.
+        assertThat(adherence.bySlot.map { it.slotId }).containsExactly("mon", "thu").inOrder()
+        assertThat(adherence.missed).isEqualTo(2)
+        assertThat(adherence.bySlot.sumOf { it.done }).isEqualTo(adherence.done)
+        assertThat(adherence.bySlot.sumOf { it.skipped }).isEqualTo(adherence.skipped)
+        assertThat(adherence.bySlot.sumOf { it.missed }).isEqualTo(adherence.missed)
+        // The slot's own template travels with the row — the join the per-lift rollup needs, and
+        // what names the day on screen.
+        assertThat(adherence.bySlot.single { it.slotId == "mon" }.templateId).isEqualTo("t-mon")
+    }
+
+    @Test
+    fun thePerLiftBreakdown_rollsUpTheSlotsThatPrescribeTheLift() {
+        val adherence = ProgramSchedule.monthAdherence(
+            slots = listOf(
+                slot("mon", DayOfWeek.MONDAY, position = 0, templateId = "t-a"),
+                slot("tue", DayOfWeek.TUESDAY, position = 1, templateId = "t-b"),
+            ),
+            sessions = emptyList(),
+            skips = emptyList(),
+            exercisesByTemplate = mapOf(
+                "t-a" to listOf("squat"),
+                "t-b" to listOf("squat", "bench"),
+            ),
+            exerciseNames = mapOf("squat" to "Squat", "bench" to "Bench press"),
+            month = october,
+            today = today,
+        )
+
+        // Ordered by name, so the list does not reorder itself month to month.
+        assertThat(adherence.byExercise.map { it.exerciseName })
+            .containsExactly("Bench press", "Squat")
+            .inOrder()
+        // A lift trained by two slots is counted in both on purpose: the question is whether this
+        // lift keeps being skipped, not whether this day does.
+        assertThat(adherence.byExercise.single { it.exerciseId == "squat" }.scored).isEqualTo(2)
+        assertThat(adherence.byExercise.single { it.exerciseId == "bench" }.scored).isEqualTo(1)
+    }
+
+    @Test
+    fun withNoJoinToRollUp_thereIsNoPerLiftBreakdown() {
+        val adherence = ProgramSchedule.monthAdherence(
+            slots = listOf(slot("mon", DayOfWeek.MONDAY, templateId = "t-a")),
+            sessions = emptyList(),
+            skips = emptyList(),
+            month = october,
+            today = today,
+        )
+
+        assertThat(adherence.byExercise).isEmpty()
+        // The per-slot rows are still there: only the lift join was missing.
+        assertThat(adherence.bySlot).hasSize(1)
+    }
+
     private companion object {
         /** A ratio of thirds is not exact in binary floating point. */
         const val TOLERANCE = 1e-9

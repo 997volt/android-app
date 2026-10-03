@@ -436,5 +436,13 @@ object TestTags {
         fun dayOccurrence(slotId: String) = "adherence_occurrence_$slotId"
 
         fun daySkipped(slotId: String) = "adherence_skipped_$slotId"
+
+        /** The month read per slot and per lift (ROADMAP P3.14). */
+        const val BY_SLOT_TITLE = "adherence_by_slot_title"
+        const val BY_EXERCISE_TITLE = "adherence_by_lift_title"
+
+        fun slotBreakdown(slotId: String) = "adherence_slot_$slotId"
+
+        fun exerciseBreakdown(exerciseId: String) = "adherence_lift_$exerciseId"
     }
 }

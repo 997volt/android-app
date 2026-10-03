@@ -17,23 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Three rows, planned together: they are everything the last two rounds deferred, and each one
+Two rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Adherence** — how often the plan happened
-
-**P3.14 — Adherence, broken down.**
-
-A month's ratio says the program is at 70%; it does not say that the squat day is what keeps
-being skipped. This is the same aggregate, read per slot and per lift.
-
-- **Per slot first**: each of the active program's slots gets its own done / skipped / missed
-  over the window, so the parts sum to the whole by construction.
-- **Per lift second**: an exercise gets the occurrences of the slots whose template prescribes
-  it — which answers "am I skipping this lift, or this day" from the joins N14 already has.
-- **Counts, not a per-row percentage**: two of three is not 67% of anything worth printing.
-- **It needs an active program**, for the ratio's reason (P3.5): the pins carry no skip record.
 
 **P3.15 — A streak of scheduled work.**
 

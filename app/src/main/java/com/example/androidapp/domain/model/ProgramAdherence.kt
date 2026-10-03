@@ -75,6 +75,22 @@ data class MonthAdherence(
     val trainedDays: Set<LocalDate> = emptySet(),
     /** A day a weekday slot of the active program falls on; a rest day is not one of these. */
     val scheduledDays: Set<LocalDate> = emptySet(),
+    /**
+     * The same counts, one row per slot (ROADMAP P3.14).
+     *
+     * Accumulated in the same pass as the totals rather than recomputed, so **the parts sum to the
+     * whole by construction**: there is no second definition of done, skipped or missed to drift.
+     * A slot with nothing scored in the window is left out — a row of zeros answers nothing, and a
+     * slot with no weekday is never scheduled at all — which does not change the sum.
+     */
+    val bySlot: List<SlotAdherence> = emptyList(),
+    /**
+     * The same counts, read per lift (ROADMAP P3.14).
+     *
+     * Rolled up over the slots that prescribe each exercise, so unlike [bySlot] these rows do not
+     * sum to the month's total: a lift trained by two slots is counted in both on purpose.
+     */
+    val byExercise: List<ExerciseAdherence> = emptyList(),
 ) {
     /** Every scored occurrence: what the ratio is taken over. */
     val scored: Int get() = done + skipped + missed
@@ -86,6 +102,44 @@ data class MonthAdherence(
      * not there: a month with no elapsed scheduled day says so instead (ROADMAP P3.5).
      */
     val ratio: Double? get() = if (scored == 0) null else done.toDouble() / scored
+}
+
+/**
+ * One slot's share of the month (ROADMAP P3.14).
+ *
+ * Counts rather than a percentage: two of three is not 67% of anything worth printing, and the
+ * counts are what a lifter reads to see *which* day keeps being skipped.
+ */
+data class SlotAdherence(
+    val slotId: String,
+    val templateId: String,
+    val templateName: String,
+    val done: Int = 0,
+    val skipped: Int = 0,
+    val missed: Int = 0,
+) {
+    val scored: Int get() = done + skipped + missed
+}
+
+/**
+ * One lift's share of the month, rolled up over the slots that prescribe it (ROADMAP P3.14).
+ *
+ * The join N14 already has: a slot's template names the exercises it trains, so a lift's counts are
+ * the occurrences of every slot whose template prescribes it. That is what answers "am I skipping
+ * *this lift*, or this day" — the two have different fixes.
+ *
+ * A lift trained by two slots therefore gets both slots' occurrences, so these rows do **not** sum
+ * to the month's total the way [MonthAdherence.bySlot] does; a lift appearing twice is counted
+ * twice on purpose.
+ */
+data class ExerciseAdherence(
+    val exerciseId: String,
+    val exerciseName: String,
+    val done: Int = 0,
+    val skipped: Int = 0,
+    val missed: Int = 0,
+) {
+    val scored: Int get() = done + skipped + missed
 }
 
 /**

@@ -234,6 +234,9 @@
     <string name="adherence_state_missed">Missed</string>
     <string name="adherence_state_pending">Not yet</string>
     <string name="adherence_state_deload">Deload week — not scored</string>
+    <!-- The month read per slot and per lift (ROADMAP P3.14). -->
+    <string name="adherence_by_slot">By day</string>
+    <string name="adherence_by_lift">By lift</string>
     <!-- Today's plan (ROADMAP N16). -->
     <string name="home_today">Today · %1$s</string>
     <string name="home_plan_start">Start</string>

@@ -1,11 +1,13 @@
 package com.example.androidapp.data
 
+import com.example.androidapp.data.local.ExerciseDao
 import com.example.androidapp.data.local.ProgramDao
 import com.example.androidapp.data.local.ProgramDeloadDao
 import com.example.androidapp.data.local.ProgramDeloadEntity
 import com.example.androidapp.data.local.ProgramSkipDao
 import com.example.androidapp.data.local.ProgramSkipEntity
 import com.example.androidapp.data.local.ProgramSubstitutionDao
+import com.example.androidapp.data.local.TemplateDao
 import com.example.androidapp.data.local.WorkoutDatabase
 import com.example.androidapp.data.local.toAdherenceSession
 import com.example.androidapp.data.local.toDomain
@@ -49,6 +51,10 @@ class RoomAdherenceRepository @Inject constructor(
     private val deloadDao: ProgramDeloadDao = database.programDeloadDao()
 
     private val substitutionDao: ProgramSubstitutionDao = database.programSubstitutionDao()
+
+    private val templateDao: TemplateDao = database.templateDao()
+
+    private val exerciseDao: ExerciseDao = database.exerciseDao()
 
     override suspend fun monthAdherence(
         month: YearMonth,
@@ -97,6 +103,17 @@ class RoomAdherenceRepository @Inject constructor(
         val substitutions = substitutionsBetween(firstWeek, lastWeek)
         val activeIds = active.map { it.id }.toSet()
 
+        // The per-lift breakdown's join (P3.14): what each slot's template prescribes, and what
+        // those exercises are called. Read once per distinct template, not once per slot.
+        val exercisesByTemplate = mutableMapOf<String, List<String>>()
+        slots.map { it.templateId }.distinct().forEach { templateId ->
+            exercisesByTemplate[templateId] =
+                templateDao.findPlannedExercises(templateId).map { it.exerciseId }
+        }
+        val exerciseNames = exercisesByTemplate.values.flatten().distinct().mapNotNull { id ->
+            exerciseDao.findById(id)?.let { id to it.name }
+        }.toMap()
+
         AdherenceReport(
             hasActiveProgram = true,
             adherence = ProgramSchedule.monthAdherence(
@@ -105,6 +122,8 @@ class RoomAdherenceRepository @Inject constructor(
                 skips = skips,
                 deloads = deloads,
                 substitutions = substitutions,
+                exercisesByTemplate = exercisesByTemplate,
+                exerciseNames = exerciseNames,
                 month = month,
                 today = today,
             ),

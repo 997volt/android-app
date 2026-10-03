@@ -13,6 +13,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.DayOccurrence
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.SlotAdherence
+import com.example.androidapp.domain.model.ExerciseAdherence
 import com.example.androidapp.domain.model.OccurrenceState
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.ui.components.TestTags
@@ -268,6 +270,62 @@ class AdherenceScreenTest {
             .performClick()
 
         assertThat(marked).isFalse()
+    }
+
+    @Test
+    fun theMonth_isBrokenDownByDayAndByLift() {
+        // ROADMAP P3.14: the same aggregate, read two ways.
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                adherence = MonthAdherence(
+                    done = 1,
+                    skipped = 1,
+                    missed = 1,
+                    scheduledDays = setOf(LocalDate.of(2026, 10, 6)),
+                    bySlot = listOf(
+                        SlotAdherence(
+                            slotId = "s1",
+                            templateId = "t1",
+                            templateName = "Heavy lower",
+                            done = 1,
+                            skipped = 1,
+                        ),
+                    ),
+                    byExercise = listOf(ExerciseAdherence("e1", "Back squat", done = 1, missed = 1)),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.BY_SLOT_TITLE).performScrollTo().assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.slotBreakdown("s1"))
+            .performScrollTo()
+            .assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.BY_EXERCISE_TITLE)
+            .performScrollTo()
+            .assertExists()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.exerciseBreakdown("e1"))
+            .performScrollTo()
+            .assertExists()
+        composeTestRule.onNodeWithText("Back squat").assertExists()
+    }
+
+    @Test
+    fun withNothingScored_thereAreNoBreakdownSections() {
+        // No active program: the pins carry no skip record, so there is nothing to break down.
+        setScreen(
+            state = AdherenceUiState(
+                month = october,
+                currentMonth = october,
+                isLoading = false,
+                adherence = MonthAdherence(scheduledDays = setOf(LocalDate.of(2026, 10, 6))),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TestTags.Adherence.BY_SLOT_TITLE).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.Adherence.BY_EXERCISE_TITLE).assertDoesNotExist()
     }
 
     @Test

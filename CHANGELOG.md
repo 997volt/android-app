@@ -80,6 +80,14 @@ repeated here.
   removes a skip itself: the correction is a second, explicit writer rather than a second opinion.
   No schema change.
 
+- **The month is broken down, per day and per lift** (P3.14). A month's ratio says the program is at
+  70%; it does not say that the squat day is what keeps being skipped. The same aggregate is now
+  read **per slot** — each slot's own done / skipped / missed, accumulated in the same pass as the
+  totals so the parts sum to the whole by construction — and **per lift**, over the join N14 already
+  has: an exercise gets the occurrences of the slots whose template prescribes it, which answers "am
+  I skipping this lift, or this day". A lift trained by two slots is counted in both on purpose.
+  Counts, not a per-row percentage. No schema change.
+
 ## [1.9] — 2026-10-03 (versionCode 10)
 
 ### Added

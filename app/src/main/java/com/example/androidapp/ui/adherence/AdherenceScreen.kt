@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -48,6 +49,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
 import com.example.androidapp.domain.model.MonthAdherence
+import com.example.androidapp.domain.model.SlotAdherence
+import com.example.androidapp.domain.model.ExerciseAdherence
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.ui.components.CenteredMessage
 import com.example.androidapp.ui.components.TestTags
@@ -318,6 +321,11 @@ private fun AdherenceBody(
 
         Calendar(month = state.month, adherence = state.adherence, onSelectDay = onSelectDay)
 
+        // The same counts, read per slot and per lift (ROADMAP P3.14). Empty with no active
+        // program, for the ratio's reason: the pins carry no skip record to break down.
+        SlotBreakdown(rows = state.adherence.bySlot)
+        ExerciseBreakdown(rows = state.adherence.byExercise)
+
         DeloadWeeks(
             programs = state.programs,
             weeks = state.markableWeeks,
@@ -524,3 +532,85 @@ private fun DayCell(day: CalendarDay?, onSelect: (LocalDate) -> Unit, modifier: 
 
 /** A ratio as the percentage the screen shows: hundredths, so `0.75` reads as `75`. */
 private const val PERCENT = 100
+
+/** One slot's share of the month (ROADMAP P3.14). */
+@Composable
+private fun SlotBreakdown(rows: List<SlotAdherence>) {
+    if (rows.isEmpty()) return
+    BreakdownTitle(R.string.adherence_by_slot, TestTags.Adherence.BY_SLOT_TITLE)
+    rows.forEach { slot ->
+        BreakdownRow(
+            tag = TestTags.Adherence.slotBreakdown(slot.slotId),
+            name = slot.templateName,
+            done = slot.done,
+            skipped = slot.skipped,
+            missed = slot.missed,
+        )
+    }
+}
+
+/** One lift's share of the month, over the slots that prescribe it (ROADMAP P3.14). */
+@Composable
+private fun ExerciseBreakdown(rows: List<ExerciseAdherence>) {
+    if (rows.isEmpty()) return
+    BreakdownTitle(R.string.adherence_by_lift, TestTags.Adherence.BY_EXERCISE_TITLE)
+    rows.forEach { exercise ->
+        BreakdownRow(
+            tag = TestTags.Adherence.exerciseBreakdown(exercise.exerciseId),
+            name = exercise.exerciseName,
+            done = exercise.done,
+            skipped = exercise.skipped,
+            missed = exercise.missed,
+        )
+    }
+}
+
+@Composable
+private fun BreakdownTitle(titleRes: Int, tag: String) {
+    Text(
+        text = stringResource(titleRes),
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.testTag(tag),
+    )
+}
+
+/**
+ * One breakdown row: the name, and the three counts.
+ *
+ * Counts rather than a percentage across the row (P3.14): two of three is not 67% of anything worth
+ * printing, and the counts are what says *which* day keeps being skipped. Three labelled figures
+ * rather than a sentence, for [Count]'s reason above: "1 done" is a plural decision this row does
+ * not need to make.
+ */
+@Composable
+private fun BreakdownRow(tag: String, name: String, done: Int, skipped: Int, missed: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        BreakdownCount(R.string.adherence_done, done)
+        BreakdownCount(R.string.adherence_skipped, skipped)
+        BreakdownCount(R.string.adherence_missed, missed)
+    }
+}
+
+@Composable
+private fun BreakdownCount(labelRes: Int, value: Int) {
+    Column(
+        modifier = Modifier.width(BREAKDOWN_COLUMN_WIDTH),
+        horizontalAlignment = Alignment.End,
+    ) {
+        Text(value.toString(), style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = stringResource(labelRes),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Wide enough for a two-digit count over its label, and no wider in a list of rows. */
+private val BREAKDOWN_COLUMN_WIDTH = 56.dp

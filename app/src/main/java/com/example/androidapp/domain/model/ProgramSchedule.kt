@@ -233,6 +233,13 @@ object ProgramSchedule {
         deloads: List<RecordedDeload> = emptyList(),
         /** The occurrences trained with another workout, or none (P3.11). */
         substitutions: List<RecordedSubstitution> = emptyList(),
+        /**
+         * What each slot's template prescribes, by template id — the join the per-lift breakdown
+         * needs (P3.14). Absent means there is no breakdown to take.
+         */
+        exercisesByTemplate: Map<String, List<String>> = emptyMap(),
+        /** What those exercises are called, by exercise id (P3.14). */
+        exerciseNames: Map<String, String> = emptyMap(),
         month: YearMonth,
         today: LocalDate,
     ): MonthAdherence {
@@ -259,10 +266,48 @@ object ProgramSchedule {
         val skipped = skips.toSet()
         val deloaded = deloads.toSet()
 
+        val counted = countOccurrences(
+            slots = slots,
+            recorded = Recorded(resolved = resolved, skipped = skipped, deloaded = deloaded),
+            month = month,
+            today = today,
+        )
+
+        return MonthAdherence(
+            done = counted.done,
+            skipped = counted.skipped,
+            missed = counted.missed,
+            trainedDays = trained,
+            scheduledDays = counted.scheduledDays,
+            bySlot = counted.bySlot,
+            byExercise = exerciseAdherence(counted.bySlot, exercisesByTemplate, exerciseNames),
+        )
+    }
+
+    /**
+     * One month's scored occurrences, counted whole and per slot in a single pass (P3.14).
+     *
+     * Together rather than twice because they are one walk: **the parts are the whole**, accumulated
+     * rather than recomputed, so the breakdown cannot drift from the ratio above it. A slot with
+     * nothing scored is left out of [bySlot] — a row of zeros answers nothing — which is why the
+     * rows are not simply every slot.
+     */
+    private fun countOccurrences(
+        slots: List<ProgramSlot>,
+        recorded: Recorded,
+        month: YearMonth,
+        today: LocalDate,
+    ): Counted {
+        val first = month.atDay(1)
+        val last = month.atEndOfMonth()
         val scheduledDays = mutableSetOf<LocalDate>()
         var done = 0
         var skipCount = 0
         var missed = 0
+
+        val doneBySlot = mutableMapOf<String, Int>()
+        val skippedBySlot = mutableMapOf<String, Int>()
+        val missedBySlot = mutableMapOf<String, Int>()
 
         for (week in weeksOf(month)) {
             slots.forEach { slot ->
@@ -273,24 +318,121 @@ object ProgramSchedule {
 
                 // Exempt from judgement, not from the calendar: the day is drawn as scheduled and a
                 // session in it still marks a trained day, but nothing here is scored (P3.10).
-                if (RecordedDeload(slot.programId, week) in deloaded) return@forEach
+                if (RecordedDeload(slot.programId, week) in recorded.deloaded) return@forEach
 
                 when {
-                    SlotOccurrence(slot.id, week, date) in resolved -> done++
-                    RecordedSkip(slot.id, week) in skipped -> skipCount++
-                    date.isBefore(today) -> missed++
+                    SlotOccurrence(slot.id, week, date) in recorded.resolved -> {
+                        done++
+                        doneBySlot.merge(slot.id, 1, Int::plus)
+                    }
+
+                    RecordedSkip(slot.id, week) in recorded.skipped -> {
+                        skipCount++
+                        skippedBySlot.merge(slot.id, 1, Int::plus)
+                    }
+
+                    date.isBefore(today) -> {
+                        missed++
+                        missedBySlot.merge(slot.id, 1, Int::plus)
+                    }
                 }
             }
         }
 
-        return MonthAdherence(
+        // In the order the slots arrived — the caller's authored union order (P3.12) — so the rows
+        // read the way the program is written.
+        val bySlot = slots.mapNotNull { slot ->
+            val slotDone = doneBySlot[slot.id] ?: 0
+            val slotSkipped = skippedBySlot[slot.id] ?: 0
+            val slotMissed = missedBySlot[slot.id] ?: 0
+            if (slotDone + slotSkipped + slotMissed == 0) {
+                null
+            } else {
+                SlotAdherence(
+                    slotId = slot.id,
+                    templateId = slot.templateId,
+                    templateName = slot.templateName,
+                    done = slotDone,
+                    skipped = slotSkipped,
+                    missed = slotMissed,
+                )
+            }
+        }
+
+        return Counted(
             done = done,
             skipped = skipCount,
             missed = missed,
-            trainedDays = trained,
             scheduledDays = scheduledDays,
+            bySlot = bySlot,
         )
     }
+
+    /**
+     * The month's recorded events, in one value: what settles an occurrence and what exempts it.
+     *
+     * A parameter object so the counting pass stays inside the parameter ceiling this project
+     * enforces, and because the three sets are read together but mean different things (P3.3, P3.10).
+     */
+    private data class Recorded(
+        val resolved: Set<SlotOccurrence>,
+        val skipped: Set<RecordedSkip>,
+        val deloaded: Set<RecordedDeload>,
+    )
+
+    /** One month's counts, whole and per slot, from the single pass above (P3.14). */
+    private data class Counted(
+        val done: Int,
+        val skipped: Int,
+        val missed: Int,
+        val scheduledDays: Set<LocalDate>,
+        val bySlot: List<SlotAdherence>,
+    )
+
+    /**
+     * The month's counts, read per lift (ROADMAP P3.14).
+     *
+     * [exercisesByTemplate] is the join N14 already has — a template's planned exercise ids — and
+     * [exerciseNames] names them for the screen. A lift's counts are the occurrences of every slot
+     * whose template prescribes it, which is what answers "am I skipping *this lift*, or this day".
+     * A lift trained by two slots is therefore counted in both, so these rows do **not** sum to the
+     * month's total the way the per-slot rows do; that is the point of the second grouping.
+     *
+     * Ordered by name: the counts are the answer, and a list that reorders itself by whichever row
+     * is worst this month would be harder to read across months.
+     */
+    fun exerciseAdherence(
+        bySlot: List<SlotAdherence>,
+        exercisesByTemplate: Map<String, List<String>>,
+        exerciseNames: Map<String, String>,
+    ): List<ExerciseAdherence> {
+        val totals = mutableMapOf<String, IntArray>()
+        bySlot.forEach { slot ->
+            exercisesByTemplate[slot.templateId].orEmpty().forEach { exerciseId ->
+                val counts = totals.getOrPut(exerciseId) { IntArray(COUNT_FIELDS) }
+                counts[0] += slot.done
+                counts[1] += slot.skipped
+                counts[2] += slot.missed
+            }
+        }
+
+        return totals.entries
+            .map { (exerciseId, counts) ->
+                ExerciseAdherence(
+                    exerciseId = exerciseId,
+                    // A template can name an exercise the library no longer has; the id is then
+                    // still true, where dropping the row would hide the occurrences behind it.
+                    exerciseName = exerciseNames[exerciseId] ?: exerciseId,
+                    done = counts[0],
+                    skipped = counts[1],
+                    missed = counts[2],
+                )
+            }
+            .sortedBy { it.exerciseName }
+    }
+
+    /** done, skipped, missed — the three counts every row of the breakdown carries. */
+    private const val COUNT_FIELDS = 3
 
     /**
      * What one day scheduled, per occurrence, with each one's state (ROADMAP P3.13).
