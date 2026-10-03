@@ -1,6 +1,6 @@
 # Workout — Roadmap
 
-> **v1.8** is shipped and installed. Last reviewed against the code: 2026-10-02.
+> **v1.8** is shipped and installed. Last reviewed against the code: 2026-10-03.
 >
 > Forward-looking only. What shipped is [CHANGELOG.md](CHANGELOG.md), how a release is cut is
 > [RELEASING.md](RELEASING.md), and settled decisions with the rules that apply to every
@@ -17,40 +17,16 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**One row is open: B47**, the dead code the statistics round left behind. It carries one
-question that is a decision rather than a cleanup, which is why it is a row and not a commit.
+**Nothing is open.** B47, the dead code the statistics round left behind, is removed — including
+the three `HOME_*` constants and the assertions that asserted the absence of things already
+absent. The question it raised, whether a test read counts as a caller, is settled in
+[DECISIONS.md](DECISIONS.md) (D2): an accessor whose only reader is the test asserting on it is
+dead weight. D4's tag backlog also has a gate now, so a new tag without its test fails rather
+than joining the list.
 
-### B47 — Dead code the deleted trends screens left behind, and one rule question
-
-The review of the statistics round found nineteen `TestTags` members and four other members
-with no production caller. Not urgent, and deliberately left for whoever wants it rather than
-decided in the review that found it.
-
-- **The stale tags.** N35 folded the per-exercise trends screen into Statistics and deleted
-  it; the tags went with the screen and the constants did not. Sixteen members reference
-  nothing but their own declaration: the `TRENDS_*`, `EXERCISE_TRENDS_*`, `TEMPLATE_PLAN_TITLE`
-  and `TEMPLATE_WEEKDAY` constants and the `trend*` accessors. The trends ones address controls
-  that no longer exist; the two template ones name controls that do, but are no longer how
-  those controls are tagged. This half is not a judgement call: removing them changes no
-  behaviour.
-- **Three `HOME_*` constants** (`HOME_TRENDS`, `HOME_TEMPLATES`, `HOME_SETTINGS`) have no
-  production caller but a test names them — `assertDoesNotExist` assertions in
-  `WorkoutsHomeScreenTest` that assert the absence of things already absent, so they pass
-  whatever the code does. Removing the constants means removing those assertions too, which
-  makes this one change that touches a test as well as production.
-- **Four members** have no production caller. `MetricSeries.recorded` and `TrendSlope.points`
-  are read only by the tests that assert on them; `List<Double?>.recordedCount()` only by the
-  test that tests it, and `List<ExerciseTrendPoint>.recordedCount(metric)` by nothing at all.
-
-**Whether a test counts as a caller is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md)
-is strict about APIs that exist to be tested and lenient about a test arranging or reading its
-subject — and these four are read only by the tests that assert on them, which is where those
-two halves meet. It has been left open on purpose rather than decided by a cleanup, because
-the answer changes what the rule means for every future change. **Whichever way it is settled
-belongs in [DECISIONS.md](DECISIONS.md)**, and then this row is a five-minute deletion.
-
-One correction: `MetricEntry.higherIsBetter` was reported as dead in the review and is **not** —
-it is read in two places in `main`. Recorded so the next reader does not go looking.
+N39's metric targets were the one thing that split across the line the cleanup drew: they are
+settings, and settings were not in the backup, so a restore dropped them. They ride in the file
+now and "delete everything" clears them, while the rest of settings stays a device preference.
 
 ## Later (still self-contained)
 

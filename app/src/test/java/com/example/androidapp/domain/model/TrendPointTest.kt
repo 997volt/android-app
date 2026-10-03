@@ -66,7 +66,6 @@ class TrendPointTest {
         // Over the two that were recorded, not over all three: dividing by the gaps
         // would make a sparsely-rated metric look systematically lower.
         assertEquals(7.0, values.averageValue())
-        assertEquals(2, values.recordedCount())
     }
 
     @Test

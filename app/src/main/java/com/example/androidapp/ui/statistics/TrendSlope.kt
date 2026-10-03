@@ -10,8 +10,6 @@ package com.example.androidapp.ui.statistics
 data class TrendSlope(
     /** How much the value changes in a week, in the metric's own units. */
     val perWeek: Double,
-    /** How many readings the line was fitted to, which is what says whether to trust it. */
-    val points: Int,
     /** The fitted line itself, for drawing: value = intercept + slope × epochMillis. */
     val slope: Double,
     val intercept: Double,
@@ -55,7 +53,6 @@ fun MetricSeries.trend(): TrendSlope? {
 
     return TrendSlope(
         perWeek = slope * MILLIS_PER_WEEK,
-        points = recorded.size,
         slope = slope,
         intercept = intercept,
     )

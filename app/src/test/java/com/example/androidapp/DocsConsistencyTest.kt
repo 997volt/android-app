@@ -37,7 +37,7 @@ class DocsConsistencyTest {
     @Test
     fun every_path_the_docs_link_resolves() {
         val missing = DOCS.flatMap { doc ->
-            linkTargets(read(doc)).filterNot { File(root, it).exists() }.map { "$doc -> $it" }
+            linkTargets(read(doc)).filterNot { File(repoRoot, it).exists() }.map { "$doc -> $it" }
         }
 
         assertThat(missing).isEmpty()
@@ -100,16 +100,7 @@ class DocsConsistencyTest {
             .filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
             .replace(' ', '-')
 
-    private fun read(name: String): String = File(root, name).readText()
-
-    private val root: File by lazy {
-        var dir: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
-        while (dir != null) {
-            if (File(dir, "settings.gradle.kts").isFile) return@lazy dir
-            dir = dir.parentFile
-        }
-        error("No settings.gradle.kts above ${System.getProperty("user.dir")}")
-    }
+    private fun read(name: String): String = File(repoRoot, name).readText()
 
     private companion object {
         val DOCS = listOf(

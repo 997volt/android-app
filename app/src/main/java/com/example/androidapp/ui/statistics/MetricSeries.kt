@@ -19,10 +19,7 @@ data class MetricReading(val at: Instant, val value: Double?)
 data class MetricSeries(
     val key: MetricKey,
     val readings: List<MetricReading>,
-) {
-    /** How many readings there are, as opposed to how many moments. */
-    val recorded: Int get() = readings.count { it.value != null }
-}
+)
 
 /**
  * The readings for one metric (ROADMAP N35).

@@ -81,8 +81,6 @@ object TestTags {
     const val DETAIL_PLAN_CONFIRM = "detail_plan_confirm"
     const val DETAIL_OPEN_NEW_PLAN = "detail_open_new_plan"
     const val HOME_MENU = "home_menu"
-    const val HOME_TRENDS = "home_trends"
-    const val HOME_TEMPLATES = "home_templates"
     const val HOME_RECENT_ROW = "home_recent_row"
     const val HOME_SEE_ALL = "home_see_all"
     const val HOME_FIRST_RUN = "home_first_run"
@@ -97,19 +95,6 @@ object TestTags {
      */
     const val LIBRARY_EMPTY_LIBRARY = "library_empty_library"
     const val LIBRARY_NO_MATCH = "library_no_match"
-
-
-    /** The trends screen (ROADMAP N13). A metric's series is tagged by its name. */
-    const val TRENDS_TITLE = "trends_title"
-    const val TRENDS_WINDOW = "trends_window"
-    const val TRENDS_EMPTY = "trends_empty"
-    const val TRENDS_READ_ERROR = "trends_read_error"
-
-    fun trendSection(metric: String) = "trend_section_$metric"
-
-    fun trendCaption(metric: String) = "trend_caption_$metric"
-
-    fun trendChart(metric: String) = "trend_chart_$metric"
 
 
     /** A read that failed, shown where the data would have been (ROADMAP B4). */
@@ -189,7 +174,6 @@ object TestTags {
 
     /** A plan's sets (ROADMAP N14): the list, one target, and its rest and cue. */
     const val TEMPLATE_PLAN_ROW = "template_plan_row"
-    const val TEMPLATE_PLAN_TITLE = "template_plan_title"
     const val TEMPLATE_PLAN_EMPTY = "template_plan_empty"
     const val TEMPLATE_PLAN_ADD = "template_plan_add"
     const val TEMPLATE_ADD_WARMUPS = "template_add_warmups"
@@ -239,7 +223,6 @@ object TestTags {
     const val SETTINGS_REST_CURRENT = "settings_rest_current"
     const val SETTINGS_REST_CUE = "settings_rest_cue"
     const val SETTINGS_KEEP_SCREEN_ON = "settings_keep_screen_on"
-    const val HOME_SETTINGS = "home_settings"
 
     fun settingRest(seconds: Int) = "setting_rest_$seconds"
 
@@ -263,18 +246,10 @@ object TestTags {
 
     /** One exercise's own trends (ROADMAP N17). */
     const val EXERCISE_TRENDS = "exercise_trends"
-    const val EXERCISE_TRENDS_EMPTY = "exercise_trends_empty"
-    const val EXERCISE_TRENDS_ERROR = "exercise_trends_error"
-    const val EXERCISE_TRENDS_DIRECTION = "exercise_trends_direction"
 
     fun historyExerciseTrends(id: String) = "history_exercise_trends_$id"
 
-    /** A part of a per-exercise trend section: `chart`, `caption` or `section`. */
-    fun exerciseTrend(part: String, metric: String) = "exercise_trend_${part}_$metric"
-
     /** Pinning a plan to a weekday (ROADMAP N16). */
-    const val TEMPLATE_WEEKDAY = "template_weekday"
-
     fun templateWeekday(day: String) = "template_weekday_$day"
 
     /** The measurements screen's own tags (ROADMAP N32), grouped so this object stays under its ceiling. */
@@ -289,13 +264,6 @@ object TestTags {
         fun tape(site: TapeSite) = "measurements_tape_${site.name.lowercase()}"
     
         fun delete(id: String) = "measurements_delete_$id"
-
-        /** The trend series a measurement appears as, on the trends screen. */
-        fun trend(labelRes: Int) = "trend_measurement_$labelRes"
-
-        fun trendChart(labelRes: Int) = "trend_measurement_chart_$labelRes"
-
-        fun trendCaption(labelRes: Int) = "trend_measurement_caption_$labelRes"
     }
 
     /** The Statistics screen's own tags (ROADMAP N35), grouped so this object stays under its ceiling. */

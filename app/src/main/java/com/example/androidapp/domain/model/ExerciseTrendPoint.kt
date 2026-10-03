@@ -88,10 +88,6 @@ fun List<ExerciseTrendPoint>.averageValue(metric: ExerciseTrendMetric): Double? 
     return if (recorded.isEmpty()) null else recorded.average()
 }
 
-/** How many sessions in the window recorded this metric at all. */
-fun List<ExerciseTrendPoint>.recordedCount(metric: ExerciseTrendMetric): Int =
-    count { metric.valueOf(it) != null }
-
 /**
  * Epley's one-rep-max estimate, or null when it would be a guess dressed as a number.
  *

@@ -33,6 +33,14 @@ caller — `ExerciseDao.insertAll`, `softDelete` and `CrashLogStore.latest` stay
 deleting them would mean testing through a different door than the app uses. The line is
 what the API is for, not where it is called from.
 
+The hard case was left open on purpose (B47) and is settled the same way: four members of the
+statistics round were read only by the tests that assert on them. An accessor that exists for
+its own assertion is not a test arranging or reading another subject — it is the API that
+exists to be tested — so they went, with the tests that only exercised them. Where such a test
+asserted a real behaviour *through* the accessor, it was rewritten to assert the behaviour
+directly (the trend line's slope rather than its reading count), because the coverage was never
+the accessor's to begin with.
+
 ## D4
 
 A test tag arrives with the test that asserts on it.

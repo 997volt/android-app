@@ -50,7 +50,6 @@ class MetricSeriesTest {
 
         assertWithMessage("both moments, not just the one with a value").that(series.readings.size).isEqualTo(2)
         assertWithMessage("the second recorded nothing").that(series.readings[1].value).isNull()
-        assertWithMessage("but only one of them is a reading").that(series.recorded).isEqualTo(1)
     }
 
     @Test
@@ -127,7 +126,6 @@ class MetricSeriesTest {
         val series = metricSeries(MetricKey.Workout(TrendMetric.RPE))
 
         assertThat(series.readings).isEqualTo(emptyList<MetricReading>())
-        assertThat(series.recorded).isEqualTo(0)
     }
 
     private fun measurement(

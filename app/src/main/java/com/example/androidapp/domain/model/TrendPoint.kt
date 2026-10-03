@@ -57,9 +57,6 @@ fun List<Double?>.averageValue(): Double? {
     return if (recorded.isEmpty()) null else recorded.average()
 }
 
-/** How many of the window's workouts carry this metric at all. */
-fun List<Double?>.recordedCount(): Int = count { it != null }
-
 /**
  * A 1–10 average as the screen shows it: one decimal, always a dot.
  *

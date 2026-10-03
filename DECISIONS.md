@@ -71,7 +71,9 @@ the rule; that one argues it.
   instruments** (D2). `Weight.step`, `DataResult.map` and `successUnit` went, with the
   tests that only exercised them; `ExerciseDao.insertAll`, `softDelete` and
   `CrashLogStore.latest` stay, because a test calling a method to arrange or read its
-  subject is a caller. ([evidence](DECISIONS-EVIDENCE.md#d2))
+  subject is a caller. An accessor whose only reader is the test asserting on *it* is not:
+  the line is what the API is for, not where it is called from.
+  ([evidence](DECISIONS-EVIDENCE.md#d2))
 
 - **A per-exercise trend plots the number that moves, and says which way is forward**
   (N17). Load series come from *working* sets only; a set with no added weight is not a

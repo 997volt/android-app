@@ -139,20 +139,6 @@ class WorkoutsHomeScreenTest {
     }
 
     @Test
-    fun theOverflowMenu_noLongerCarriesTheTabs() {
-        // ROADMAP N34: the surfaces with a permanent home moved to the bottom bar, so the menu is now the
-        // data actions and nothing else. Three of the departed entries carried tags, and those are the
-        // ones a test can name without matching on English.
-        setScreen(WorkoutsHomeUiState(isLoading = false))
-
-        composeTestRule.onNodeWithTag(TestTags.HOME_MENU).performClick()
-
-        composeTestRule.onNodeWithTag(TestTags.HOME_TEMPLATES).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(TestTags.HOME_TRENDS).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(TestTags.HOME_SETTINGS).assertDoesNotExist()
-    }
-
-    @Test
     fun theOverflowMenu_offersExportAndImport() {
         // ROADMAP B1: these used to be two menus deep — home, then the library.
         var exported = false

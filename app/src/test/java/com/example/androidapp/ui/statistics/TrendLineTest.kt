@@ -32,7 +32,6 @@ class TrendLineTest {
         ).trend()!!
 
         assertWithMessage("half a kilo a week").that(trend.perWeek).isWithin(0.001).of(-500.0)
-        assertThat(trend.points).isEqualTo(4)
     }
 
     @Test
@@ -45,6 +44,8 @@ class TrendLineTest {
     @Test
     fun anUnmeasuredWeek_isNotAReadingAtZero() {
         // A month nobody weighed in must not pull the line down: only the readings that exist are fitted.
+        // The slope is what proves it — a missing week read as a zero would tilt the line hard down, so a
+        // flat line here says the gap was skipped, not filled in.
         val trend = series(
             0L to 82_000.0,
             1L to null,
@@ -52,8 +53,8 @@ class TrendLineTest {
             3L to 82_000.0,
         ).trend()!!
 
-        assertThat(trend.perWeek).isWithin(0.0001).of(0.0)
-        assertWithMessage("three readings, not four moments").that(trend.points).isEqualTo(3)
+        assertWithMessage("a missing week is skipped, not read as a zero")
+            .that(trend.perWeek).isWithin(0.0001).of(0.0)
     }
 
     @Test
