@@ -191,14 +191,18 @@ jobs:
           # immediately afterwards ("Failure calling service settings: Broken pipe"), before a single
           # test ran. More minutes to boot is more time for a starved runner to lose the emulator.
           #
-          # So the image is a lighter one as well: `aosp_atd` is an Automated Test Device, built for exactly
-          # this and without the Google services this app does not use at runtime. It costs an API level —
-          # `aosp_atd` is published for x86_64 up to 34 — which changes what the suite is tested against, and
-          # that is a real trade: the suite runs at 34 rather than at the 37 it ships against. It was taken
-          # because a suite that never runs tests nothing at all, and with VM acceleration working it is worth
-          # revisiting: the boot time that drove the choice is no longer the constraint.
-          api-level: 34
-          target: aosp_atd
+          # N30. The API-level trade this comment used to carry is now split by trigger rather than
+          # paid on every run. `aosp_atd` is an Automated Test Device, built for exactly this and
+          # without the Google services this app does not use at runtime, and it stops at API 34 —
+          # so the nightly keeps it, because a suite that runs every night must not be slow for a
+          # reason nobody is testing that night. The pre-release dispatch runs at the API the app
+          # ships against, which is where a change in API 35+ behaviour can actually show up.
+          #
+          # The image for the shipping API is the one thing not verified here: if none is published,
+          # the dispatch fails at download. Pick the highest API that is published, change the number
+          # below, and record why it is not the shipping API in DECISIONS-EVIDENCE.md.
+          api-level: ${{ github.event_name == 'workflow_dispatch' && 37 || 34 }}
+          target: ${{ github.event_name == 'workflow_dispatch' && 'default' || 'aosp_atd' }}
           arch: x86_64
           disable-animations: true
           emulator-boot-timeout: 900

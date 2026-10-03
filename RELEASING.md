@@ -61,9 +61,11 @@ gh run watch
 
 The build job runs the gate set — unit tests, lint, detekt, R8 — and the instrumented job is the
 only place the emulator suite runs outside a developer's machine, so a release is the wrong time
-to discover either has stopped working. If the instrumented job fails on the emulator rather than
-on a test, say so and decide deliberately: the failure signatures and the remaining API-level
-trade are in [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md#n30-emulator).
+to discover either has stopped working. A dispatch is also the one run that uses the **shipping
+API** rather than the nightly's fast API 34 image, so it is the run that would catch a behaviour
+change on a newer Android. If it fails on the emulator rather than on a test, say so and decide
+deliberately: the failure signatures and the API-level split are in
+[DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md#n30-emulator).
 
 ```bash
 APK=app/build/outputs/apk/release/app-release.apk

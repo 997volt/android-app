@@ -255,10 +255,16 @@ acceleration" — and every one of those signatures is what a starved emulator d
 
 A udev rule grants the group access and `-accel auto` lets the emulator take it. The levers
 tried before this one were all about tolerating a slow emulator rather than checking why it
-was slow: a longer boot timeout, a lighter image, a lower API level. The API level is still
-34 rather than the 37 the app ships against, and that is now the only remaining trade —
-worth revisiting on its own merits, since the boot time that drove it is no longer the
-binding constraint.
+was slow: a longer boot timeout, a lighter image, a lower API level.
+
+The API level was still 34 rather than the 37 the app ships against, and that revisit has now
+been taken, by splitting the trade instead of picking a side. The nightly keeps `aosp_atd` at 34
+— the image exists because a starved emulator needed a light one, and that reasoning still holds
+for a run nobody is watching — while the pre-release `workflow_dispatch` runs at the shipping API
+on the default image, which is the run that can catch an API 35+ behaviour change. The one thing
+not verified here is that a system image is published for the shipping API: the first dispatch is
+the experiment, and if none exists the highest published API is the number to use, with the reason
+recorded here rather than rediscovered.
 
 ## N32
 

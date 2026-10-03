@@ -194,8 +194,10 @@ the rule; that one argues it.
 - **The emulator runs with VM acceleration, and that is what the flakiness was** (N30).
   Four different infrastructure failures shared one cause: the runner user is not in the
   `kvm` group, so the emulator fell back to software emulation. A udev rule grants the
-  group access and `-accel auto` takes it. API 34 rather than the app's 37 is the remaining
-  trade. ([evidence](DECISIONS-EVIDENCE.md#n30-emulator))
+  group access and `-accel auto` takes it. The API-level trade is split by trigger rather
+  than paid every run: the nightly keeps the fast `aosp_atd` image at API 34, and the
+  pre-release dispatch runs the shipping API, where an API 35+ behaviour change can show up.
+  ([evidence](DECISIONS-EVIDENCE.md#n30-emulator))
 
 - **A series is described once, in the metric registry** (N35). Labels, units, formatters,
   groups, bars-or-line, axis-at-zero and better-direction all live in one place, because
