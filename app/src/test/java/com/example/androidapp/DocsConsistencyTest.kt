@@ -98,7 +98,15 @@ class DocsConsistencyTest {
     }
 
     private companion object {
-        val DOCS = listOf("AGENTS.md", "README.md", "DECISIONS.md", "DECISIONS-EVIDENCE.md")
+        val DOCS = listOf(
+            "AGENTS.md",
+            "README.md",
+            "DECISIONS.md",
+            "DECISIONS-EVIDENCE.md",
+            "ROADMAP.md",
+            "CHANGELOG.md",
+            "RELEASING.md",
+        )
         val WHITESPACE = Regex("\\s+")
         val LINK = Regex("""\]\(([^)]+)\)""")
         val HEADING = Regex("^## (.+)$", RegexOption.MULTILINE)

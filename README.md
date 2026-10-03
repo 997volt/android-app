@@ -1,7 +1,8 @@
 # Workout
 
 A local-only workout planner and logger for Android, written in Kotlin with Jetpack
-Compose (Material 3).
+Compose (Material 3). One module, one activity; Compose UI tests run on the JVM under
+Robolectric rather than on a device.
 
 ## What it asks for
 

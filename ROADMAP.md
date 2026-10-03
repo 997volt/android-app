@@ -2,179 +2,136 @@
 
 > **v1.8** is shipped and installed. Last reviewed against the code: 2026-10-02.
 >
-> This file is forward-looking only. What shipped lives in
-> [CHANGELOG.md](CHANGELOG.md); how a release is cut lives in
-> [RELEASING.md](RELEASING.md); settled decisions and the rules that apply to every
-> change live in [DECISIONS.md](DECISIONS.md).
+> Forward-looking only. What shipped is [CHANGELOG.md](CHANGELOG.md), how a release is cut is
+> [RELEASING.md](RELEASING.md), and settled decisions with the rules that apply to every
+> change are [DECISIONS.md](DECISIONS.md) — their argument, where there is one, is
+> [DECISIONS-EVIDENCE.md](DECISIONS-EVIDENCE.md).
 
-**What this app is.** A local-only training notebook: write a plan, log what you actually
-did against it, and let the app show you the difference and what to do next. No account, no
-server, and nothing leaves the device unless you export it.
+A local-only training notebook: write a plan, log what you actually did against it, and let
+the app show you the difference and what to do next.
 
-Feature ids (`F#` foundations, `B#` defects, `N#` the next planned changes,
-`P#.#` the product backlog, `R#.#` releases) are stable and are referenced from
-commit messages. They were assigned when the work was planned, so they do not run in
-order — the `P4`/`P5` rows are simply the ones parked furthest out, and `N1`–`N29` and
-`N31`–`N40` have shipped and left the file.
-
-## Current state
-
-- **The whole loop works and is released**: start a workout, log sets, see the
-  history, get the data out. What that includes at any moment is
-  [CHANGELOG.md](CHANGELOG.md)'s job, not this file's — an enumerated feature list is
-  precisely the kind of fact that drifts.
-- **Local only.** No `INTERNET` permission, `allowBackup="false"`, no accounts, no
-  analytics; the export file is the only path off the device.
-- **Releases are manual**, signed with a permanent local key. The procedure and its
-  traps are in [RELEASING.md](RELEASING.md), including why automation was declined.
-- **One module, one activity**, Compose + Room + Hilt. Compose UI tests run on the
-  JVM under Robolectric rather than on a device.
+Ids (`F#` foundations, `B#` defects, `N#` the next planned changes, `P#.#` the product
+backlog, `R#.#` releases) are stable and go in commit messages. They were assigned when the
+work was planned, so they do not run in order — and an id this file does not list has
+shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-**The Statistics round has shipped** — five tabs, one screen with a registry over every series, a time axis, bars where bars belong, an
-average, a fitted trend and a trailing mean — and it is in [CHANGELOG.md](CHANGELOG.md), as are N31–N33 and B44, as is everything before them — the v1.6 review (B33–B43), the v1.5 corrections (B26–B32), the round
-after it (N26–N28), repeating the last workout (N29) and the session timezone (N25). **N30 — the CI thread — is closed**: the
-instrumented suite now runs nightly and before a release, and it has passed on the hosted runner.
-
-**New and touched tests assert on Truth** — the statistics suite, and every JVM file reworked since the rule
-was adopted. That is not the whole suite: the rest still use JUnit and migrate as they are touched, which is
-the rule's own wording in [DECISIONS.md](DECISIONS.md). The instrumented suite keeps JUnit, because Truth is
-`testImplementation` only — the same rule's stated limit rather than an exception to it.
-
-**One row is open: B47**, the dead code the statistics round left behind — with one question in it that is a
-decision rather than a cleanup, which is why it is a row instead of a commit.
+**One row is open: B47**, the dead code the statistics round left behind. It carries one
+question that is a decision rather than a cleanup, which is why it is a row and not a commit.
 
 ### B47 — Dead code the deleted trends screens left behind, and one rule question
 
-The review of the statistics round found 19 `TestTags` members and four other members with no production
-caller. Not urgent, and deliberately left for whoever wants it rather than decided in the review that found
-it.
+The review of the statistics round found nineteen `TestTags` members and four other members
+with no production caller. Not urgent, and deliberately left for whoever wants it rather than
+decided in the review that found it.
 
-**The stale tags.** N35 folded the per-exercise trends screen into Statistics and deleted it; the tags went
-with the screen and the constants did not. Sixteen members have no reference anywhere but their own
-declaration: the constants `TRENDS_TITLE`, `TRENDS_WINDOW`, `TRENDS_EMPTY`, `TRENDS_READ_ERROR`,
-`EXERCISE_TRENDS_EMPTY`, `EXERCISE_TRENDS_ERROR`, `EXERCISE_TRENDS_DIRECTION`, `TEMPLATE_PLAN_TITLE` and
-`TEMPLATE_WEEKDAY`, and the functions `TestTags.trendSection`, `trendCaption`, `trendChart`, `exerciseTrend`,
-`Measurements.trend`, `Measurements.trendChart` and `Measurements.trendCaption`. The trends ones address
-controls that no longer exist; `TEMPLATE_PLAN_TITLE` and `TEMPLATE_WEEKDAY` name controls that do, but are no
-longer how those controls are tagged. This is the one half that is not a judgement call: removing them changes
-no behaviour.
+- **The stale tags.** N35 folded the per-exercise trends screen into Statistics and deleted
+  it; the tags went with the screen and the constants did not. Sixteen members reference
+  nothing but their own declaration: the `TRENDS_*`, `EXERCISE_TRENDS_*`, `TEMPLATE_PLAN_TITLE`
+  and `TEMPLATE_WEEKDAY` constants and the `trend*` accessors. The trends ones address controls
+  that no longer exist; the two template ones name controls that do, but are no longer how
+  those controls are tagged. This half is not a judgement call: removing them changes no
+  behaviour.
+- **Three `HOME_*` constants** (`HOME_TRENDS`, `HOME_TEMPLATES`, `HOME_SETTINGS`) have no
+  production caller but a test names them — `assertDoesNotExist` assertions in
+  `WorkoutsHomeScreenTest` that assert the absence of things already absent, so they pass
+  whatever the code does. Removing the constants means removing those assertions too, which
+  makes this one change that touches a test as well as production.
+- **Four members** have no production caller. `MetricSeries.recorded` and `TrendSlope.points`
+  are read only by the tests that assert on them; `List<Double?>.recordedCount()` only by the
+  test that tests it, and `List<ExerciseTrendPoint>.recordedCount(metric)` by nothing at all.
 
-Three more constants have no production caller but a test names them: `HOME_TRENDS`, `HOME_TEMPLATES` and
-`HOME_SETTINGS` survive only as `assertDoesNotExist` assertions in `WorkoutsHomeScreenTest` — tests that
-assert the absence of things that are already absent, so they pass whatever the code does. Removing the
-constants means removing those assertions too, which makes this one change that touches a test as well as
-production.
+**Whether a test counts as a caller is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md)
+is strict about APIs that exist to be tested and lenient about a test arranging or reading its
+subject — and these four are read only by the tests that assert on them, which is where those
+two halves meet. It has been left open on purpose rather than decided by a cleanup, because
+the answer changes what the rule means for every future change. **Whichever way it is settled
+belongs in [DECISIONS.md](DECISIONS.md)**, and then this row is a five-minute deletion.
 
-**Four members** have no caller in production. `MetricSeries.recorded` and `TrendSlope.points` are read only by
-the tests that assert on them. `List<Double?>.recordedCount()` is reached only by the test that tests it, and
-`List<ExerciseTrendPoint>.recordedCount(metric)` by nothing at all.
-
-**And whether a test counts as a caller is the question, not the cleanup.** [DECISIONS.md](DECISIONS.md) says
-both "delete an API the moment nothing calls it" and that no-dead-weight is "strict about APIs that exist to
-be tested, and lenient about…" something the sentence does not finish in a way that settles this. So does a
-test count as a caller? It has been left open on purpose rather than decided by a cleanup, because the answer
-changes what the rule means for every future change. **Whichever way it is settled belongs in
-[DECISIONS.md](DECISIONS.md)**, and then this row is a five-minute deletion.
-
-One correction while writing this down: `MetricEntry.higherIsBetter` was reported as dead in the review and is
-**not** — it is read in two places in `main`. Recorded here only so the next reader does not go looking for
-it.
+One correction: `MetricEntry.higherIsBetter` was reported as dead in the review and is **not** —
+it is read in two places in `main`. Recorded so the next reader does not go looking.
 
 ## Later (still self-contained)
 
-Post-MVP, same local-only premise. Grouped by theme, ordered by value inside each.
-
-This is where candidates live. One graduates to *Next* — gaining a `B#` or `N#` id and
-a spelled-out decision — when it is picked up, and leaves for
-[CHANGELOG.md](CHANGELOG.md) when it ships.
+Post-MVP on the same local-only premise, grouped by theme and ordered by value inside each.
+This is where candidates live: one graduates to *Next* — gaining an id and a spelled-out
+decision — when it is picked up, and leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
 
 **P3.3 — Programs: an ordered list of templates, each with a weekday.**
 
-A **program** is a named, ordered list of slots; a slot is a template plus an optional weekday. It is
-the container N16's pins cannot be on their own: a pin says what happens on a Tuesday, but nothing
-orders the pins against each other, so "which one is next" and "was that a skip or a rest day" have no
-answer.
+A **program** is a named, ordered list of slots; a slot is a template plus an optional
+weekday. It is the container N16's pins cannot be on their own: a pin says what happens on a
+Tuesday, but nothing orders the pins against each other, so "which one is next" and "was that
+a skip or a rest day" have no answer.
 
-- **Today's plan** comes from the slot pinned to today. With no program active, home falls back to the
-  template pins it already reads.
+- **Today's plan** comes from the slot pinned to today. With no program active, home falls
+  back to the template pins it already reads.
 - **A skipped occurrence is asked about, not assumed.** When a start is attempted and a slot's
-  occurrence this week has neither a session nor a recorded skip, the app asks: *"You missed Paused
-  Squat on Tuesday. Do it now, or continue with Bench?"* — **Do it now** starts that slot; **Continue**
-  records a skip for **every** pending occurrence this week, because asking again for the next one turns
-  two misses into two interrogations. Asked at the point of starting, not at launch: an app that
-  questions you when you open it is one you stop opening.
-- **A skip is an event keyed by slot and week** (`program_skips`, storing the week start), never a
-  boolean on the slot: the same weekday recurs, so a flag would need resetting and would be wrong the
-  moment two weeks in a row were missed. Those rows are also exactly what P3.5 needs — without them,
-  "skipped" is unknowable, because a standing weekday pin carries no history.
+  occurrence this week has neither a session nor a recorded skip, the app asks: *"You missed
+  Paused Squat on Tuesday. Do it now, or continue with Bench?"* — **Do it now** starts that
+  slot; **Continue** records a skip for **every** pending occurrence this week, because asking
+  again for the next one turns two misses into two interrogations. Asked at the point of
+  starting, not at launch: an app that questions you when you open it is one you stop opening.
+- **A skip is an event keyed by slot and week** (`program_skips`, storing the week start),
+  never a boolean on the slot: the same weekday recurs, so a flag would need resetting and
+  would be wrong the moment two weeks in a row were missed. Those rows are also exactly what
+  P3.5 needs — without them, "skipped" is unknowable, because a standing weekday pin carries
+  no history.
 - **A session records the template it was started from** — one nullable `templateId` on
-  `workout_sessions`, written only when the session is *created* from a template, so a resumed session
-  never rewrites it. That is how an occurrence is matched: **by template and date**, in a Monday-start
-  week taken in the session's own zone (N25 is what makes "which day was this" answerable).
-  - **It amends N16 deliberately, and the distinction is the point.** N16 rejected copying a plan's
-    *targets* onto a session because that freezes what the plan prescribes. Recording *where a session
-    came from* freezes nothing: the template stays living, and this is provenance rather than
-    prescription.
-  - **Matching:** one candidate slot with that template resolves; with several, an exact weekday match
-    wins, then the latest slot earlier in the week (done late), then the earliest after it (done early),
-    then the earliest unresolved. A session resolves at most one occurrence, and an occurrence is
-    resolved by at most one session — the first.
+  `workout_sessions`, written only when the session is *created* from a template, so a resumed
+  session never rewrites it. That is how an occurrence is matched: **by template and date**, in
+  a Monday-start week taken in the session's own zone (N25 is what makes "which day was this"
+  answerable).
+  - **It amends N16 deliberately, and the distinction is the point.** N16 rejected copying a
+    plan's *targets* onto a session because that freezes what the plan prescribes. Recording
+    *where a session came from* freezes nothing: the template stays living, and this is
+    provenance rather than prescription.
+  - **Matching:** one candidate slot with that template resolves; with several, an exact
+    weekday match wins, then the latest slot earlier in the week (done late), then the earliest
+    after it (done early), then the earliest unresolved. A session resolves at most one
+    occurrence, and an occurrence is resolved by at most one session — the first.
 
-**What v1 deliberately leaves out** — this list matters as much as the scope above:
+**What v1 deliberately leaves out**, which matters as much as the scope above: no deloads (a
+deload will be *authored* when it arrives, not calculated), no auto-progression (a program
+decides *which* template; the lifter decides the numbers — this depends on **N33**), no
+intensity modifiers, no percentage-of-1RM programming, no automatic anything, no dated
+instances (N16 rejected the entity a calendar of planned sessions would reintroduce), one
+active program only (any others fall back to the template pins), a weekday-less slot is never
+"missed" because it has no day to miss and is order-only, and no per-slot template
+substitution mid-cycle beyond editing the program, nor load-based rotation.
 
-- **No deloads.** No `isDeload`, no weeks-of-weeks. A deload will be *authored* when it arrives, not
-  calculated.
-- **No auto-progression.** A program decides *which* template; the lifter decides the numbers. This
-  depends on **N33**, which stops the app's progression proposal from being the prefilled value.
-- **No intensity modifiers**, no percentage-of-1RM programming, no automatic anything.
-- **No dated instances.** N16 rejected them and a program is a rotation; a calendar of planned sessions
-  would reintroduce the entity that decision avoided.
-- **One active program.** Any others fall back to the template pins.
-- **A weekday-less slot is never "missed"** — it has no day to miss. It is order-only.
-- **No per-slot template substitution** mid-cycle beyond editing the program, and no load-based rotation.
-
-**Known limitations, stated rather than discovered:** an occurrence is resolved only when the workout was
-*started from* that template, so bench added by hand to an empty workout does not resolve it — matching
-by exercises was rejected because it breaks the moment a template is edited and cannot tell two slots
-apart; a second session from the same template in a week is unmatched; and editing a template changes
-every week that references it, which is N16's living-template decision inherited rather than new.
+**Known limitations, stated rather than discovered:** an occurrence is resolved only when the
+workout was *started from* that template, so bench added by hand to an empty workout does not
+resolve it — matching by exercises was rejected because it breaks the moment a template is
+edited and cannot tell two slots apart; a second session from the same template in a week is
+unmatched; and editing a template changes every week that references it, which is N16's
+living-template decision inherited rather than new.
 
 **P3.5 — Adherence and a calendar.**
 
-How often what was scheduled actually happened, over weeks rather than one session, plus a calendar of
-days trained. Session-level plan-versus-actual shipped as N20; this is the aggregate over it.
+How often what was scheduled actually happened, over weeks rather than one session, plus a
+calendar of days trained. Session-level plan-versus-actual shipped as N20; this is the
+aggregate over it.
 
-- **Its hard part is knowing what was skipped, and it has no answer of its own.** Today the schedule is
-  a standing rule — "these templates are pinned to Tuesday" — not a history, so "you missed last
-  Tuesday" cannot be derived from pins. **P3.3's `program_skips` rows are what make it answerable**,
-  which is why this row follows P3.3 rather than standing beside it.
-- **Shape:** a month calendar with trained days marked, and a completion ratio over a window — sessions
-  started against scheduled days.
-- **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled days count;
-  what counts as scheduled when nothing is pinned; and whether a deload week is judged by the same
-  standard as any other.
-
-Templates shipped their v1 as **N3**, and their targets, per-plan rest and weekday schedule
-as **N14–N16**. Auto-progression shipped as **N22**, and supersets as **N24**.
-
-The **accessibility rule still applies to every screen as it is written**
-([DECISIONS.md](DECISIONS.md)); the audit sweep that used to sit here is parked, so this
-section is empty until it returns or something replaces it.
-
-Design-system work (**F8**) is a rule rather than a row now: extract a component when
-a second screen needs it, not before.
+- **Its hard part is knowing what was skipped, and it has no answer of its own.** Today the
+  schedule is a standing rule — "these templates are pinned to Tuesday" — not a history, so
+  "you missed last Tuesday" cannot be derived from pins. **P3.3's `program_skips` rows are what
+  make it answerable**, which is why this row follows P3.3 rather than standing beside it.
+- **Shape:** a month calendar with trained days marked, and a completion ratio over a window —
+  sessions started against scheduled days.
+- **Decisions it carries:** an unscheduled day is rest rather than a miss, so only scheduled
+  days count; what counts as scheduled when nothing is pinned; and whether a deload week is
+  judged by the same standard as any other.
 
 ## Parked — deliberately not planned
 
-Each parked row is a product in its own right, contradicts "local-only", or both. Parking is a
-decision, not a backlog. Every row names what would change it.
-
-Parked is **not** the same as the non-goals below: these become possible again the
-moment their trigger fires, while a non-goal is a line this app does not cross.
+Each row is a product in its own right, contradicts "local-only", or both. Parking is a
+decision, not a backlog, and every row names what would change it. Parked is **not** the same
+as the non-goals below: these become possible again the moment their trigger fires, while a
+non-goal is a line this app does not cross.
 
 | # | Feature | Revisit only if |
 | --- | --- | --- |
@@ -192,51 +149,44 @@ moment their trigger fires, while a non-goal is a line this app does not cross.
 | P5.4 | Localization | A non-English user appears. |
 | P1.11 | Onboarding: goal, experience level, weekly target | This stops being a single-user local tool with one obvious user. It personalises defaults, and there are no defaults to personalise. |
 | P1.9 | kg/lb display setting | You start lifting in pounds. Storage is canonical grams, so this is display-only whenever it is wanted. |
-| P1.17 | Accessibility audit | The per-screen rule stops being enough — a real complaint on a device, or a screen that grew past ad-hoc tagging. The rule itself still applies to every change; only the sweep is parked. |
+| P1.17 | Accessibility audit | The per-screen rule stops being enough — a real complaint on a device, or a screen that grew past ad-hoc tagging. The rule still applies to every change; only the sweep is parked. |
 | P2.5 | Progress photos | A visual record is actually wanted, and an encrypted-storage design for it is acceptable. |
 | P2.8 | Muscle-group balance warnings | Enough history exists for a rolling window to say something true rather than something plausible. |
 | P2.6 | Plate calculator | Loading from a plan's target is frequent enough that the arithmetic gets in the way, and you would rather it were done for you. |
 | — | **Play Store listing** | You want distribution beyond `adb install`. Self-install works today, and Play App Signing would change who holds the signing key. |
 | — | **Encryption at rest / app lock** | You start carrying the phone somewhere you would not carry the data. |
-| F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). Revisited after v1.2 and re-affirmed. |
+| F6 | Module split into `:core:*` / `:feature:*` | **A named goal, not a refactor**: a measured build-time problem, working on one feature without compiling the rest, or a second surface (Wear, a widget). |
 | F11b | Product analytics | Almost certainly never: on a single-user local tool it buys nothing, and it would breach the no-`INTERNET` line. |
 
 ### N39 — the plan's target, parked by decision
 
-The per-metric target shipped; **the plan's target was scoped out** when the feature was built, so it is parked
-rather than planned. It is a different shape of work: the training plan is not one of the statistics screen's
-sources, so it means making the plan available to a screen that knows nothing about it, plus a rule for a lift
-that is in two plans at once or in none.
+The per-metric target shipped; **the plan's target was scoped out** when the feature was
+built, so it is parked rather than planned. It is a different shape of work: the training plan
+is not one of the statistics screen's sources, so it means making the plan available to a
+screen that knows nothing about it, plus a rule for a lift that is in two plans at once or in
+none.
 
 ## Explicit non-goals
 
-Permanent, unlike *Parked* above: nutrition / calorie tracking, social feeds, live GPS
-route tracking, and a web dashboard. Each is a product in its own right and would
-dilute the logging core.
+Permanent, unlike *Parked* above: nutrition / calorie tracking, social feeds, live GPS route
+tracking, and a web dashboard. Each is a product in its own right and would dilute the logging
+core.
 
 ## Keeping this true
 
-Four rules. The drift they prevent has now happened four times — stale test counts, a
-dependency inventory, an enumerated feature list that v1.3 quietly outgrew, and a
-review stamp still reading v1.3 while *Next* said "Nothing" after v1.4 had shipped
-with defects unfound. Two of those four were this file describing itself wrongly:
+Four rules, written after the drift they prevent had happened four times — stale test counts,
+a dependency inventory, an enumerated feature list that v1.3 quietly outgrew, and a review
+stamp still reading v1.3 while *Next* said "Nothing" after v1.4 had shipped with defects
+unfound. Two of those four were this file describing itself wrongly.
 
-1. **Nothing marked done lives here.** Shipped work goes to
-   [CHANGELOG.md](CHANGELOG.md), and a finished row is deleted from this file.
-2. **No hand-maintained facts.** No test counts, no dependency lists, no inventory of
-   which files exist. Those are commands (`./gradlew …`) or links
-   ([libs.versions.toml](gradle/libs.versions.toml), [app/schemas](app/schemas)).
-3. **Every parked row names its revisit trigger**, so parking reads as a decision
-   rather than a forgotten item.
-4. **Durable content lives in [DECISIONS.md](DECISIONS.md).** Settled decisions and the
-   rules that apply to every change are a reference, not a queue, and the two age
-   differently. A section here that accumulates rather than drains belongs there.
+1. **Nothing marked done lives here.** Shipped work goes to [CHANGELOG.md](CHANGELOG.md), and a
+   finished row is deleted from this file.
+2. **No hand-maintained facts.** No test counts, no dependency lists, no inventory of which
+   files exist. Those are commands (`./gradlew …`) or links.
+3. **Every parked row names its revisit trigger**, so parking reads as a decision rather than a
+   forgotten item.
+4. **Durable content lives in [DECISIONS.md](DECISIONS.md).** Settled decisions and the rules
+   that apply to every change are a reference, not a queue, and the two age differently. A
+   section here that accumulates rather than drains belongs there.
 
 Bump the review stamp at the top whenever this file is checked against the code.
-
-## References
-
-- [DECISIONS.md](DECISIONS.md) — settled choices, and the rules that apply to every change
-- [CHANGELOG.md](CHANGELOG.md) — what shipped, per version, with the reasoning
-- [RELEASING.md](RELEASING.md) — the release procedure and its traps
-- [README.md](README.md) — build, install on your own phone, local toolchain
