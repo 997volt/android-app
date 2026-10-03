@@ -278,6 +278,38 @@ object TestTags {
         const val SKIP_DO_NOW = "program_skip_do_now"
         const val SKIP_CONTINUE = "program_skip_continue"
 
+        /** What a slot prescribes, and the two dialogs behind it (ROADMAP P3.8). */
+        const val PRESCRIPTION_DIALOG = "program_prescription_dialog"
+        const val PRESCRIPTION_CLOSE = "program_prescription_close"
+        const val PRESCRIPTION_SET_DIALOG = "program_set_dialog"
+        const val PRESCRIPTION_SET_ROLE = "program_set_role"
+        const val PRESCRIPTION_SET_WEIGHT = "program_set_weight"
+        const val PRESCRIPTION_SET_PERCENT = "program_set_percent"
+        const val PRESCRIPTION_SET_REPS_MIN = "program_set_reps_min"
+        const val PRESCRIPTION_SET_REPS_MAX = "program_set_reps_max"
+        const val PRESCRIPTION_SET_RPE = "program_set_rpe"
+        const val PRESCRIPTION_SET_NOTE = "program_set_note"
+        const val PRESCRIPTION_SET_SAVE = "program_set_save"
+        const val PRESCRIPTION_SET_CANCEL = "program_set_cancel"
+        const val REST_CUE_DIALOG = "program_rest_cue_dialog"
+        const val REST_FIELD = "program_rest_field"
+        const val CUE_FIELD = "program_cue_field"
+        const val REST_CUE_SAVE = "program_rest_cue_save"
+        const val REST_CUE_CANCEL = "program_rest_cue_cancel"
+
+        /** The control that opens a slot's prescription. */
+        fun prescription(slotId: String) = "program_prescription_$slotId"
+
+        fun prescriptionAddSet(exerciseId: String) = "program_prescription_add_set_$exerciseId"
+
+        fun prescriptionSet(id: String) = "program_prescription_set_$id"
+
+        fun prescriptionRemoveSet(id: String) = "program_prescription_remove_set_$id"
+
+        fun prescriptionRestCue(exerciseId: String) = "program_prescription_rest_cue_$exerciseId"
+
+        fun prescriptionSetRole(role: String) = "program_set_role_$role"
+
         /** A program in the list; tapping it edits, its button makes it the active one. */
         fun row(id: String) = "program_row_$id"
 

@@ -17,35 +17,11 @@ shipped, with its entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Eight rows, planned together: they are everything the last two rounds deferred, and each one
+Seven rows, planned together: they are everything the last two rounds deferred, and each one
 carries its own id and a spelled-out decision rather than a wish. They are ordered by value —
 not a commitment to that order — and each leaves for [CHANGELOG.md](CHANGELOG.md) when it ships.
 
 **Programming** — turns a logger into a plan
-
-**P3.8 — A slot prescribes its own intensity.**
-
-A program that names only templates is a schedule: the numbers still come from the plan, and
-two slots pointing at one template cannot train it differently. A slot gains a prescription of
-its own — per exercise, sets × reps at a load, at a **percentage of the estimated 1RM**, or up
-to an **RPE** — and an empty one leaves the template's targets standing (N14).
-
-- **A target, not a claim** (N14): nothing verifies it, every part is nullable, and a set that
-  differs is expected. The modifier vocabulary is the one already there — set roles, the RPE
-  target, rest and cue — and a prescription with a floor and no ceiling is the AMRAP a plan can
-  already write (`targetRepsMin`/`targetRepsMax`), not a second way to say it.
-- **A percentage is derived, never assumed**: the kilograms come from N17's Epley estimate, and
-  an exercise with nothing estimable — no working set at twelve reps or fewer — has no number
-  and says so rather than borrowing one.
-- **Progression stays offered, not applied** (N22, N33), and the offer is made per slot from
-  that slot's own history: a heavy Monday and a light Friday progress apart, which is the part
-  of "auto-progression" P3.3 deferred. Nothing is written unless the lifter accepts it.
-- **The slot id travels as a start argument, not as a stored fact.** Home already knows which
-  slot it is starting; passing it seeds the prescription, and the session still records only
-  the template (P3.3), so provenance and matching are unchanged.
-- **A schema change, done by the book** (N24): a slot's prescribed sets are rows of their own,
-  so the migration is numbered as it ships and the new rows join the backup codec in the same
-  change, with the round trip guarded.
 
 **P3.9 — The run, and what is next.**
 

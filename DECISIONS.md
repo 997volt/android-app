@@ -267,6 +267,28 @@ the rule; that one argues it.
   first is a decision the lifter made. The rows already on disk take their `rowid` as the
   position, which is the only order they carried; a name tie-break would have reshuffled them
   the moment one was moved.
+- **A slot prescribes its own intensity, and an empty prescription leaves the template's targets
+  standing** (P3.8, extending N14). The prescribed sets are rows of their own — a
+  `program_slot_exercises` row for the rest and cue, `program_slot_sets` for the sets — so two slots
+  pointing at one template can train it differently, which naming a template alone could not. The
+  vocabulary is the plan's (role, the split load, the rep range, the RPE, a note) plus one a
+  template's planned set cannot carry: a percentage of the estimated one-rep max. Every target is
+  nullable and nothing verifies it, for N14's reason.
+- **A percentage is derived, never assumed** (P3.8, from N17). The kilograms are Epley's estimate of
+  the exercise's heaviest working set, rounded to the loadable step. An exercise with nothing
+  estimable leaves the load open and history prefills it, which is "no number" said honestly rather
+  than a borrowed one; a weight the slot writes wins over its own percentage, because the two are
+  alternatives rather than a sum.
+- **The slot travels as a start argument, never as a stored fact** (P3.8). Home already knows which
+  slot it is starting, so the route carries the slot id and it seeds the rest, cue and targets; the
+  session still records only the template (P3.3), so provenance and occurrence matching are
+  unchanged. Storing it would make the session's provenance say two things and would go stale the
+  moment the slot moved.
+- **Progression is offered per slot, from that slot's own history** (P3.8, extending N22 and N33).
+  A session names only the template, so which slot it belongs to is P3.3's occurrence matching —
+  `sessionAssignments`, read where the session rather than the occurrence matters — and a heavy
+  Monday and a light Friday progress apart. Keying the history by template alone was rejected: it is
+  exactly what makes two slots progress together. Nothing is written unless the lifter accepts it.
 - **A program's known limits are inherited, not new** (P3.3): an occurrence resolves only when
   the workout was started from that template, a second session from the same template in a week
   is unmatched, and editing a template changes every week that references it — N16's

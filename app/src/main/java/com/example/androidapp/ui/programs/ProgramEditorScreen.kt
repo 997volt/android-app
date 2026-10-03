@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.androidapp.R
+import com.example.androidapp.domain.DataError
 import com.example.androidapp.domain.model.ProgramSlot
 import com.example.androidapp.domain.model.WorkoutProgram
 import com.example.androidapp.domain.model.WorkoutTemplate
@@ -71,7 +73,9 @@ import java.time.DayOfWeek
  * One program: its name, whether it is the active one, and its ordered slots (ROADMAP P3.3).
  *
  * The order is the feature: a slot's weekday answers "what happens on a Tuesday", and its
- * position answers "which one is next". Both are edited here, and neither is inferred.
+ * position answers "which one is next". Both are edited here, and neither is inferred. What a slot
+ * *prescribes* is edited behind it (P3.8), because a slot pointing at a template is a schedule
+ * until it says what to do.
  */
 @Composable
 fun ProgramEditorRoute(
@@ -98,6 +102,16 @@ fun ProgramEditorRoute(
         onMoveSlot = viewModel::onMoveSlot,
         onRemoveSlot = viewModel::onRemoveSlot,
         onDeleteProgram = viewModel::onDeleteProgram,
+        onEditPrescription = viewModel::onEditPrescription,
+        onClosePrescription = viewModel::onClosePrescription,
+        prescriptionActions = PrescriptionActions(
+            onAddSet = viewModel::onAddSlotSet,
+            onUpdateSet = viewModel::onUpdateSlotSet,
+            onRemoveSet = viewModel::onRemoveSlotSet,
+            onSetRestCue = { slotId, exerciseId, rest, cue ->
+                viewModel.onSetSlotExercisePlan(slotId, exerciseId, rest, cue)
+            },
+        ),
         onDismissMessage = viewModel::onErrorShown,
         onBack = onBack,
         modifier = modifier,
@@ -118,19 +132,19 @@ fun ProgramEditorScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onDismissMessage: () -> Unit = {},
+    onEditPrescription: (String) -> Unit = {},
+    onClosePrescription: () -> Unit = {},
+    prescriptionActions: PrescriptionActions = PrescriptionActions(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     var pickingTemplate by rememberSaveable { mutableStateOf(false) }
-    val currentOnDismissMessage by rememberUpdatedState(onDismissMessage)
 
-    state.error?.let { failure ->
-        val message = dataErrorMessage(failure)
-        LaunchedEffect(message) {
-            snackbarHostState.showSnackbar(message)
-            currentOnDismissMessage()
-        }
-    }
+    EditorErrorMessage(
+        error = state.error,
+        snackbarHostState = snackbarHostState,
+        onDismiss = onDismissMessage,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -158,6 +172,7 @@ fun ProgramEditorScreen(
             onSetSlotWeekday = onSetSlotWeekday,
             onMoveSlot = onMoveSlot,
             onRemoveSlot = onRemoveSlot,
+            onEditPrescription = onEditPrescription,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -176,15 +191,39 @@ fun ProgramEditorScreen(
             confirmingDelete = false
             onDeleteProgram()
         },
+        onClosePrescription = onClosePrescription,
+        prescriptionActions = prescriptionActions,
     )
 }
 
 /**
- * The two things the editor can be asked to do before it writes (P3.3).
+ * Shows a write failure on the editor's snackbar (F7).
  *
- * Split out because the screen around them is at the length this project allows, and because
- * both are dialogs over the same state: one asks which plan to add, the other asks before
- * deleting.
+ * Extracted so the screen stays the length this project allows: the message is resolved during
+ * composition, because a string resource cannot be read inside an effect, and then shown from one.
+ */
+@Composable
+private fun EditorErrorMessage(
+    error: DataError?,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit,
+) {
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    error?.let { failure ->
+        val message = dataErrorMessage(failure)
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            currentOnDismiss()
+        }
+    }
+}
+
+/**
+ * The things the editor can be asked to do before it writes (P3.3, P3.8).
+ *
+ * Split out because the screen around them is at the length this project allows, and because all
+ * are dialogs over the same state: which plan to add, whether to delete, and what a slot
+ * prescribes.
  */
 @Composable
 private fun ProgramEditorDialogs(
@@ -195,6 +234,8 @@ private fun ProgramEditorDialogs(
     onDismissPicker: () -> Unit,
     onDismissDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
+    onClosePrescription: () -> Unit,
+    prescriptionActions: PrescriptionActions,
 ) {
     if (pickingTemplate) {
         TemplatePickerDialog(
@@ -206,6 +247,23 @@ private fun ProgramEditorDialogs(
 
     if (confirmingDelete) {
         DeleteProgramDialog(onDismiss = onDismissDelete, onConfirm = onConfirmDelete)
+    }
+
+    // What the open slot prescribes (P3.8). The dialog addresses one exercise at a time; the
+    // screen knows which slot it belongs to, so the callbacks carry the slot id.
+    state.prescription?.let { editor ->
+        SlotPrescriptionDialog(
+            editor = editor,
+            onAddSet = { exerciseId, edit ->
+                prescriptionActions.onAddSet(editor.slotId, exerciseId, edit)
+            },
+            onUpdateSet = prescriptionActions.onUpdateSet,
+            onRemoveSet = prescriptionActions.onRemoveSet,
+            onSetRestCue = { exerciseId, rest, cue ->
+                prescriptionActions.onSetRestCue(editor.slotId, exerciseId, rest, cue)
+            },
+            onDismiss = onClosePrescription,
+        )
     }
 }
 
@@ -248,6 +306,7 @@ private fun ProgramEditorBody(
     onSetSlotWeekday: (String, DayOfWeek?) -> Unit,
     onMoveSlot: (String, Int) -> Unit,
     onRemoveSlot: (String) -> Unit,
+    onEditPrescription: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (state.isLoading) {
@@ -289,6 +348,7 @@ private fun ProgramEditorBody(
                         onMoveDown = { onMoveSlot(slot.id, 1) },
                         onRemove = { onRemoveSlot(slot.id) },
                         onSetWeekday = { weekday -> onSetSlotWeekday(slot.id, weekday) },
+                        onEditPrescription = { onEditPrescription(slot.id) },
                     )
                     HorizontalDivider()
                 }
@@ -370,7 +430,7 @@ private fun ActiveSwitch(
     }
 }
 
-/** One slot: its template, the order it sits in, and the day it falls on. */
+/** One slot: its template, the order it sits in, the day it falls on, and what it prescribes. */
 @Composable
 private fun ProgramSlotBlock(
     slot: ProgramSlot,
@@ -380,6 +440,7 @@ private fun ProgramSlotBlock(
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
     onSetWeekday: (DayOfWeek?) -> Unit,
+    onEditPrescription: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -399,6 +460,7 @@ private fun ProgramSlotBlock(
                     slot = slot,
                     isFirst = isFirst,
                     isLast = isLast,
+                    onEditPrescription = onEditPrescription,
                     onMoveUp = onMoveUp,
                     onMoveDown = onMoveDown,
                     onRemove = onRemove,
@@ -416,12 +478,24 @@ private fun SlotActions(
     slot: ProgramSlot,
     isFirst: Boolean,
     isLast: Boolean,
+    onEditPrescription: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        // A slot that names only a template is a schedule; this is where it says what to do
+        // (ROADMAP P3.8). An icon rather than a word, because the row already carries three.
+        IconButton(
+            onClick = onEditPrescription,
+            modifier = Modifier.testTag(TestTags.Programs.prescription(slot.id)),
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.List,
+                contentDescription = stringResource(R.string.program_prescription_for, slot.templateName),
+            )
+        }
         IconButton(
             onClick = onMoveUp,
             enabled = !isFirst,

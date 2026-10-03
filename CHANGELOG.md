@@ -24,6 +24,23 @@ repeated here.
   program comes first is a decision rather than an accident of its name or when it was created.
   The upgrades are additive: the rows already there take their `rowid` as the position, and a
   program that was active stays active.
+- **A program slot prescribes its own intensity, schema v22** (P3.8). A slot that names only a
+  template is a schedule — the numbers come from the template, so two slots pointing at one
+  template cannot train it differently. A slot now carries a prescription of its own: per exercise,
+  sets × reps at a load, at a **percentage of the estimated 1RM**, or up to an RPE, with the rest
+  and cue a plan already has. An empty prescription leaves the template's targets standing (N14)
+  and every target stays nullable, because a target is not a claim.
+- **A percentage is derived, never assumed.** The kilograms are N17's Epley estimate of the
+  exercise's heaviest working set, rounded to the loadable step; an exercise with nothing estimable
+  has **no number**, and history prefills the load rather than the app borrowing one. A weight the
+  slot writes wins over its own percentage.
+- **Progression is offered per slot, from that slot's own history** (N22, N33): a heavy Monday and a
+  light Friday pointing at one template progress apart, because which slot a session settled is
+  P3.3's occurrence matching. Nothing is written unless the lifter accepts it.
+- **The slot travels as a start argument, not a stored fact.** Home passes the slot it is starting,
+  which seeds the session's rest, cue and targets; the session still records only the template
+  (P3.3), so provenance and matching are unchanged. The prescribed rows join the backup codec, with
+  the round trip guarded by a field-for-field test.
 
 ## [1.9] — 2026-10-03 (versionCode 10)
 
