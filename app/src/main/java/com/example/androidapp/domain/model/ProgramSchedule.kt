@@ -293,6 +293,65 @@ object ProgramSchedule {
     }
 
     /**
+     * What one day scheduled, per occurrence, with each one's state (ROADMAP P3.13).
+     *
+     * The correction dialog's read: a day can schedule two occurrences (two slots on one Tuesday),
+     * so the unit is the occurrence, exactly as the ratio's is (P3.5). Order is the order [slots]
+     * arrives in — the caller's union order (P3.12) — because that is the order the day was
+     * scheduled in.
+     *
+     * **Adding looks backwards only.** A skip is a statement that an elapsed day was passed over,
+     * so a future occurrence is never correctable; [DayOccurrence.canCorrect] carries that rule
+     * rather than leaving it to a screen. A finished session is not correctable either: it is the
+     * record, and the app never removes one itself (P3.13).
+     */
+    fun occurrencesOn(
+        slots: List<ProgramSlot>,
+        sessions: List<AdherenceSession>,
+        skips: List<RecordedSkip>,
+        date: LocalDate,
+        today: LocalDate,
+        deloads: List<RecordedDeload> = emptyList(),
+        substitutions: List<RecordedSubstitution> = emptyList(),
+    ): List<DayOccurrence> {
+        val weekStart = weekStartOf(date)
+        val finished = sessions.mapNotNull { session ->
+            session.templateId?.let {
+                ProgramSession(
+                    sessionId = session.sessionId,
+                    templateId = it,
+                    startedAt = session.startedAt,
+                    zone = session.zone,
+                )
+            }
+        }
+        val resolved = resolvedOccurrences(slots, finished, substitutions)
+        val skipped = skips.toSet()
+        val deloaded = deloads.toSet()
+
+        return slots.filter { it.weekday == date.dayOfWeek }.map { slot ->
+            val state = when {
+                RecordedDeload(slot.programId, weekStart) in deloaded -> OccurrenceState.DELOAD
+                SlotOccurrence(slot.id, weekStart, date) in resolved -> OccurrenceState.DONE
+                RecordedSkip(slot.id, weekStart) in skipped -> OccurrenceState.SKIPPED
+                date.isBefore(today) -> OccurrenceState.MISSED
+                else -> OccurrenceState.PENDING
+            }
+            DayOccurrence(
+                slotId = slot.id,
+                templateId = slot.templateId,
+                templateName = slot.templateName,
+                date = date,
+                weekStart = weekStart,
+                state = state,
+                canCorrect = !date.isAfter(today) &&
+                    state != OccurrenceState.DONE &&
+                    state != OccurrenceState.DELOAD,
+            )
+        }
+    }
+
+    /**
      * The Monday-start weeks that contain at least one day of [month], in order.
      *
      * Every scored occurrence falls in one of them, and a skip row is keyed by exactly one of

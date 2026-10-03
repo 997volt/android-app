@@ -213,11 +213,6 @@ class ProgramStartGateViewModelTest {
 
         override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
-    override suspend fun setDeloadWeek(
-        programId: String,
-        weekStart: java.time.LocalDate,
-        marked: Boolean,
-    ): DataResult<Unit> = error("these tests do not mark a deload")
 
     override suspend fun setSubstitution(
         slotId: String,
@@ -308,11 +303,5 @@ class ProgramStartGateViewModelTest {
         override suspend fun removeSlot(slotId: String): DataResult<Unit> =
             error("these tests do not remove a slot")
 
-        override suspend fun monthAdherence(
-            month: java.time.YearMonth,
-            today: LocalDate,
-            zone: ZoneId,
-        ): DataResult<com.example.androidapp.domain.model.AdherenceReport> =
-            error("these tests do not read adherence")
     }
 }

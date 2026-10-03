@@ -46,6 +46,9 @@ class ProgramRepositoryTest {
     private lateinit var database: WorkoutDatabase
     private lateinit var repository: RoomProgramRepository
 
+    /** The adherence reads moved to their own repository at P3.13; the fixtures are shared. */
+    private lateinit var adherence: RoomAdherenceRepository
+
     private val clock = TimeSource { Instant.parse("2026-10-07T12:00:00Z") }
 
     // A Wednesday, so Tuesday's slot is behind it and Friday's is ahead.
@@ -60,6 +63,7 @@ class ProgramRepositoryTest {
             WorkoutDatabase::class.java,
         ).build()
         repository = RoomProgramRepository(database, clock)
+        adherence = RoomAdherenceRepository(database, clock)
         runTest {
             database.exerciseDao().insertAll(listOf(exercise("back-squat")))
         }
@@ -274,7 +278,7 @@ class ProgramRepositoryTest {
         repository.skipOccurrences(listOf(slotId), monday)
 
         assertTrue(repository.pendingOccurrences(today, utc).getOrNull().isNullOrEmpty())
-        assertEquals(1, database.programDao().findSkipsForWeek(monday.toEpochDay()).size)
+        assertEquals(1, database.programSkipDao().findSkipsForWeek(monday.toEpochDay()).size)
     }
 
     @Test
@@ -297,7 +301,7 @@ class ProgramRepositoryTest {
         insertSession(id = "done", date = "2026-10-06T09:00:00Z", finished = true, templateId = template)
         insertSession(id = "abandoned", date = "2026-10-13T09:00:00Z", finished = false, templateId = template)
 
-        val report = repository.monthAdherence(
+        val report = adherence.monthAdherence(
             month = YearMonth.of(2026, 10),
             today = LocalDate.of(2026, 10, 15),
             zone = utc,
@@ -327,7 +331,7 @@ class ProgramRepositoryTest {
         repository.activateProgram(program)
         repository.skipOccurrences(listOf(slot(program).id), monday)
 
-        val report = repository.monthAdherence(
+        val report = adherence.monthAdherence(
             month = YearMonth.of(2026, 10),
             today = today,
             zone = utc,
@@ -348,7 +352,7 @@ class ProgramRepositoryTest {
         repository.activateProgram(lifting)
         repository.activateProgram(conditioning)
 
-        val report = repository.monthAdherence(
+        val report = adherence.monthAdherence(
             month = YearMonth.of(2026, 10),
             today = LocalDate.of(2026, 10, 8),
             zone = utc,
@@ -368,7 +372,7 @@ class ProgramRepositoryTest {
         // there is deliberately no ratio to compute.
         insertSession(id = "hand-started", date = "2026-10-06T09:00:00Z", finished = true, templateId = null)
 
-        val report = repository.monthAdherence(
+        val report = adherence.monthAdherence(
             month = YearMonth.of(2026, 10),
             today = today,
             zone = utc,
@@ -608,19 +612,19 @@ class ProgramRepositoryTest {
         repository.addSlot(program, template, DayOfWeek.TUESDAY)
         repository.activateProgram(program)
 
-        repository.setDeloadWeek(program, monday, marked = true)
+        adherence.setDeloadWeek(program, monday, marked = true)
         // Idempotent: marking a marked week must not double-record.
-        repository.setDeloadWeek(program, monday, marked = true)
+        adherence.setDeloadWeek(program, monday, marked = true)
         assertEquals(1, database.programDeloadDao().countDeload(program, monday.toEpochDay()))
 
-        val marked = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        val marked = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
         assertEquals(0, marked!!.adherence.scored)
         assertEquals(setOf(monday), marked.deloadWeeks[program])
         assertTrue(marked.programs.any { it.id == program })
 
-        repository.setDeloadWeek(program, monday, marked = false)
+        adherence.setDeloadWeek(program, monday, marked = false)
 
-        val unmarked = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        val unmarked = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
         assertEquals(1, unmarked!!.adherence.missed)
         assertTrue(unmarked.deloadWeeks[program].isNullOrEmpty())
     }
@@ -641,7 +645,7 @@ class ProgramRepositoryTest {
         insertSessionWithSet("sub", "2026-10-06T09:00:00Z", substitute, weightGrams = 60_000L)
 
         assertTrue(repository.pendingOccurrences(today, utc).getOrNull().isNullOrEmpty())
-        val report = repository.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
+        val report = adherence.monthAdherence(YearMonth.of(2026, 10), today, utc).getOrNull()
         assertEquals(1, report!!.adherence.done)
         assertEquals(0, report.adherence.missed)
     }

@@ -51,8 +51,11 @@ abstract class WorkoutDatabase : RoomDatabase() {
     /** Templates and their exercises (ROADMAP N3). */
     abstract fun templateDao(): TemplateDao
 
-    /** Programs, their slots and their recorded skips (ROADMAP P3.3). */
+    /** Programs and their slots (ROADMAP P3.3). */
     abstract fun programDao(): ProgramDao
+
+    /** The occurrences a lifter consciously passed over (ROADMAP P3.3, P3.13). */
+    abstract fun programSkipDao(): ProgramSkipDao
 
     /** What each slot prescribes, per exercise (ROADMAP P3.8). */
     abstract fun programPrescriptionDao(): ProgramPrescriptionDao

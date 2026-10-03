@@ -3,7 +3,6 @@ package com.example.androidapp.ui.workout
 import com.example.androidapp.domain.model.StatisticsRange
 import com.example.androidapp.domain.model.ProgressionReason
 import com.example.androidapp.domain.model.PersonalRecords
-import com.example.androidapp.domain.model.AdherenceReport
 import com.example.androidapp.domain.model.PendingOccurrence
 import com.example.androidapp.domain.model.ProgramRun
 import com.example.androidapp.domain.model.ProgramSlot
@@ -2010,11 +2009,6 @@ private class FakeProgramRepository : ProgramRepository {
 
     override fun observeProgramRun(programId: String): Flow<ProgramRun?> = flowOf(null)
 
-    override suspend fun setDeloadWeek(
-        programId: String,
-        weekStart: java.time.LocalDate,
-        marked: Boolean,
-    ): DataResult<Unit> = error("these tests do not mark a deload")
 
     override suspend fun setSubstitution(
         slotId: String,
@@ -2097,9 +2091,4 @@ private class FakeProgramRepository : ProgramRepository {
         weekStart: java.time.LocalDate,
     ): DataResult<Unit> = error("the workout screen does not record a skip")
 
-    override suspend fun monthAdherence(
-        month: java.time.YearMonth,
-        today: java.time.LocalDate,
-        zone: java.time.ZoneId,
-    ): DataResult<AdherenceReport> = error("the workout screen does not read adherence")
 }

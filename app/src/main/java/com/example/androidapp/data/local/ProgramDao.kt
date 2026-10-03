@@ -179,9 +179,6 @@ interface ProgramDao {
     @Insert
     suspend fun insertSlot(row: ProgramSlotEntity)
 
-    @Insert
-    suspend fun insertSkip(row: ProgramSkipEntity)
-
     /** Rows updated: 0 means the program is gone or was already deleted. */
     @Query("UPDATE programs SET name = :name, updatedAt = :at WHERE id = :id AND deletedAt IS NULL")
     suspend fun renameProgram(id: String, name: String, at: Long): Int
@@ -364,15 +361,4 @@ interface ProgramDao {
         templateId: String,
         currentSessionId: String,
     ): List<ProgramSessionRow>
-
-    /** The skips recorded for any week in [from, to] inclusive, both epoch days (P3.5). */
-    @Query("SELECT * FROM program_skips WHERE weekStart >= :from AND weekStart <= :to AND deletedAt IS NULL")
-    suspend fun findSkipsBetween(from: Long, to: Long): List<ProgramSkipEntity>
-
-    /** The skips recorded for one week, live rows only. */
-    @Query("SELECT * FROM program_skips WHERE weekStart = :weekStart AND deletedAt IS NULL")
-    suspend fun findSkipsForWeek(weekStart: Long): List<ProgramSkipEntity>
-
-    @Query("SELECT COUNT(*) FROM program_skips WHERE slotId = :slotId AND weekStart = :weekStart AND deletedAt IS NULL")
-    suspend fun countSkips(slotId: String, weekStart: Long): Int
 }

@@ -6,12 +6,14 @@ import com.example.androidapp.domain.repository.MeasurementRepository
 import com.example.androidapp.data.RoomMeasurementRepository
 import com.example.androidapp.data.RoomBackupRepository
 import com.example.androidapp.data.RoomExerciseRepository
+import com.example.androidapp.data.RoomAdherenceRepository
 import com.example.androidapp.data.RoomProgramRepository
 import com.example.androidapp.data.RoomTemplateRepository
 import com.example.androidapp.data.RoomTrendsRepository
 import com.example.androidapp.data.RoomWorkoutRepository
 import com.example.androidapp.domain.repository.BackupRepository
 import com.example.androidapp.domain.repository.ExerciseRepository
+import com.example.androidapp.domain.repository.AdherenceRepository
 import com.example.androidapp.domain.repository.ProgramRepository
 import com.example.androidapp.domain.repository.TemplateRepository
 import com.example.androidapp.domain.repository.TrendsRepository
@@ -64,6 +66,11 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindProgramRepository(impl: RoomProgramRepository): ProgramRepository
+
+    /** How often the plan happened, and the corrections to it (P3.5, P3.13). */
+    @Binds
+    @Singleton
+    abstract fun bindAdherenceRepository(impl: RoomAdherenceRepository): AdherenceRepository
 
     /** The read-only trends over what the app collects (N13). */
     @Binds

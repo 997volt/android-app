@@ -25,6 +25,37 @@ data class AdherenceSession(
 }
 
 /**
+ * What one scheduled occurrence reads as (ROADMAP P3.13), by P3.5's same definitions.
+ *
+ * [DELOAD] is not one of the ratio's outcomes: a deload week is exempt from the ratio (P3.10), so
+ * the row says so rather than reading as a miss the lifter never earned.
+ */
+enum class OccurrenceState {
+    DONE,
+    SKIPPED,
+    MISSED,
+    PENDING,
+    DELOAD,
+}
+
+/**
+ * One occurrence scheduled on one day, as the correction dialog reads it (ROADMAP P3.13).
+ *
+ * [canCorrect] is the rule, computed where `today` is known: a skip is added for **today or
+ * earlier** — a day passed over is behind you, and a future day cannot be skipped (P3.3) — and a
+ * finished session is not something a skip row can argue with, because the session is the record.
+ */
+data class DayOccurrence(
+    val slotId: String,
+    val templateId: String,
+    val templateName: String,
+    val date: LocalDate,
+    val weekStart: LocalDate,
+    val state: OccurrenceState,
+    val canCorrect: Boolean,
+)
+
+/**
  * One month's adherence (ROADMAP P3.5).
  *
  * **The unit is the occurrence, not the day.** Two slots may fall on one Tuesday and P3.3

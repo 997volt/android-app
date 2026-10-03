@@ -8,7 +8,7 @@ import com.example.androidapp.domain.TimeSource
 import com.example.androidapp.domain.model.MonthAdherence
 import com.example.androidapp.domain.model.ProgramSchedule
 import com.example.androidapp.domain.model.WorkoutProgram
-import com.example.androidapp.domain.repository.ProgramRepository
+import com.example.androidapp.domain.repository.AdherenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.YearMonth
@@ -78,7 +78,7 @@ internal fun markableWeeksOf(month: YearMonth, today: LocalDate): List<LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AdherenceViewModel @Inject constructor(
-    private val programs: ProgramRepository,
+    private val adherence: AdherenceRepository,
     private val timeSource: TimeSource,
 ) : ViewModel() {
 
@@ -123,7 +123,7 @@ class AdherenceViewModel @Inject constructor(
      */
     fun onToggleDeload(programId: String, weekStart: LocalDate, marked: Boolean) {
         viewModelScope.launch {
-            when (val result = programs.setDeloadWeek(programId, weekStart, marked)) {
+            when (val result = adherence.setDeloadWeek(programId, weekStart, marked)) {
                 is DataResult.Success -> {
                     writeError.value = null
                     refresh.update { it + 1 }
@@ -141,7 +141,7 @@ class AdherenceViewModel @Inject constructor(
     private suspend fun load(month: YearMonth): AdherenceUiState {
         val zone = ZoneId.systemDefault()
         val today = today(zone)
-        return when (val result = programs.monthAdherence(month, today, zone)) {
+        return when (val result = adherence.monthAdherence(month, today, zone)) {
             is DataResult.Success -> AdherenceUiState(
                 month = month,
                 currentMonth = YearMonth.from(today),
